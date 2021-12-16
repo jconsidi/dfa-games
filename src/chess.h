@@ -19,6 +19,7 @@ class Board
   BoardMask pieces_by_side_type[2][PIECE_MAX] = {{0}};
 
   Side side_to_move = SIDE_WHITE;
+  int en_passant_file = -1;
 
   bool check_between(int i, int j) const;
   bool try_move(int from, int to, Board *move_out) const;

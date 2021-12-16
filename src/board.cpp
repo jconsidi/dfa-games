@@ -62,11 +62,11 @@ static MoveSet knight_moves([](int from_rank, int from_file, int to_rank, int to
 
 static MoveSet pawn_advances_black([](int from_rank, int from_file, int to_rank, int to_file)
 				   {
-				     return (to_file == from_file) && ((to_rank == from_rank + 1) || ((from_rank == 1) && to_rank == 3));
+				     return (to_file == from_file) && (to_rank == from_rank + 1);
 				   });
 static MoveSet pawn_advances_white([](int from_rank, int from_file, int to_rank, int to_file)
 				   {
-				     return (to_file == from_file) && ((to_rank == from_rank - 1) || ((from_rank == 6) && to_rank == 4));
+				     return (to_file == from_file) && (to_rank == from_rank - 1);
 				   });
 
 static MoveSet pawn_captures_black([](int from_rank, int from_file, int to_rank, int to_file)
@@ -316,6 +316,8 @@ bool Board::try_move(int from, int to, Board *move_out) const
 
   // TODO special handling of castling and en-passant
 
+  move_out->en_passant_file = -1; // will be overriden in generate_moves after pawn double advance
+
   // almost done
 
   move_out->pieces = move_out->pieces_by_side[SIDE_WHITE] | move_out->pieces_by_side[SIDE_BLACK];
@@ -352,6 +354,21 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 	  BoardMask capture_mask = pawn_captures.moves[from_index] & pieces_by_side[side_not_to_move];
 
 	  to_mask = advance_mask | capture_mask;
+
+	  // advancing two ranks and en-passant setup
+	  int from_rank = from_index / 8;
+	  if(advance_mask && (from_rank == ((side_to_move == SIDE_WHITE) ? 6 : 1)))
+	    {
+	      int two_index = from_index + ((side_to_move == SIDE_WHITE) ? -16 : +16);
+	      BoardMask two_mask = 1ULL << two_index;
+
+	      if(!(two_mask & pieces) &&
+		 try_move(from_index, two_index, &moves_out[move_count]))
+		{
+		  moves_out[move_count].en_passant_file = from_index % 8;
+		  ++move_count;
+		}
+	    }
 	}
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_BISHOP])
 	{
