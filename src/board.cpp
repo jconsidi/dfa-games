@@ -60,6 +60,25 @@ static MoveSet knight_moves([](int from_rank, int from_file, int to_rank, int to
 			      return abs((to_rank - from_rank) * (to_file - from_file)) == 2;
 			    });
 
+static MoveSet pawn_advances_black([](int from_rank, int from_file, int to_rank, int to_file)
+				   {
+				     return (to_file == from_file) && ((to_rank == from_rank + 1) || ((from_rank == 1) && to_rank == 3));
+				   });
+static MoveSet pawn_advances_white([](int from_rank, int from_file, int to_rank, int to_file)
+				   {
+				     return (to_file == from_file) && ((to_rank == from_rank - 1) || ((from_rank == 6) && to_rank == 4));
+				   });
+
+static MoveSet pawn_captures_black([](int from_rank, int from_file, int to_rank, int to_file)
+				   {
+				     return (to_rank == from_rank + 1) && (abs(to_file - from_file) == 1);
+				   });
+
+static MoveSet pawn_captures_white([](int from_rank, int from_file, int to_rank, int to_file)
+				   {
+				     return (to_rank == from_rank - 1) && (abs(to_file - from_file) == 1);
+				   });
+
 static MoveSet queen_moves([](int from_rank, int from_file, int to_rank, int to_file)
 			   {
 			     return (to_rank == from_rank) || (to_file == from_file) || abs(from_rank - to_rank) == abs(from_file - to_file);
@@ -323,11 +342,18 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 	  continue;
 	}
 
-      int from_rank = from_index / 8;
-      int from_file = from_index % 8;
-
       BoardMask to_mask = 0ULL;
-      if(from_mask & pieces_by_side_type[side_to_move][PIECE_BISHOP])
+      if(from_mask & pieces_by_side_type[side_to_move][PIECE_PAWN])
+	{
+	  const MoveSet &pawn_advances = (side_to_move == SIDE_WHITE) ? pawn_advances_white : pawn_advances_black;
+	  BoardMask advance_mask = pawn_advances.moves[from_index] & ~pieces;
+
+	  const MoveSet &pawn_captures = (side_to_move == SIDE_WHITE) ? pawn_captures_white : pawn_captures_black;
+	  BoardMask capture_mask = pawn_captures.moves[from_index] & pieces_by_side[side_not_to_move];
+
+	  to_mask = advance_mask | capture_mask;
+	}
+      else if(from_mask & pieces_by_side_type[side_to_move][PIECE_BISHOP])
 	{
 	  to_mask = bishop_moves.moves[from_index];
 	}
@@ -347,105 +373,22 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 	{
 	  to_mask = rook_moves.moves[from_index];
 	}
-      if(to_mask)
+      else
 	{
-	  // filter out self-captures
-	  to_mask &= ~pieces_by_side[side_to_move];
-
-	  // try the remaining moves
-	  for(int to_index = std::countr_zero(to_mask);
-	      to_index < 64;
-	      to_index += 1 + std::countr_zero(to_mask >> (to_index + 1)))
-	    {
-	      if(try_move(from_index, to_index, &moves_out[move_count]))
-		{
-		  move_count += 1;
-		}
-	    }
-
-	  continue;
+	  throw std::logic_error("unrecognized from piece type in generate_moves");
 	}
 
-      for(int to_index = 0; to_index < 64; ++to_index)
+      // filter out self-captures
+      to_mask &= ~pieces_by_side[side_to_move];
+
+      // try the remaining moves
+      for(int to_index = std::countr_zero(to_mask);
+	  to_index < 64;
+	  to_index += 1 + std::countr_zero(to_mask >> (to_index + 1)))
 	{
-	  const BoardMask to_mask = 1ULL << to_index;
-	  if(to_mask & pieces_by_side[side_to_move])
+	  if(try_move(from_index, to_index, &moves_out[move_count]))
 	    {
-	      // can't move onto pieces of own side
-	      continue;
-	    }
-
-	  bool capture = (to_mask & pieces_by_side[side_not_to_move]) != 0;
-	       
-	  int to_rank = to_index / 8;
-	  int to_file = to_index % 8;
-
-	  if(from_mask & pieces_by_side_type[side_to_move][PIECE_PAWN])
-	    {
-	      if(side_to_move == SIDE_WHITE)
-		{
-		  if((from_rank == 6) && (to_rank == 4) && (to_file == from_file) && !capture)
-		    {
-		      // pushing two
-		      if(try_move(from_index, to_index, &moves_out[move_count]))
-			{
-			  move_count += 1;
-			}
-		    }
-		  else if(to_rank == from_rank - 1)
-		    {
-		      if((to_file == from_file) && !capture)
-			{
-			  // pushing pawn
-			  if(try_move(from_index, to_index, &moves_out[move_count]))
-			    {
-			      move_count += 1;
-			    }			  
-			}
-		      else if((abs(to_file - from_file) == 1) && capture)
-			{
-			  // pawn capture
-			  if(try_move(from_index, to_index, &moves_out[move_count]))
-			    {
-			      move_count += 1;
-			    }			  
-			}
-		    }
-		}
-	      else
-		{
-		  if((from_rank == 1) && (to_rank == 3) && (to_file == from_file) && !capture)
-		    {
-		      // pushing two
-		      if(try_move(from_index, to_index, &moves_out[move_count]))
-			{
-			  move_count += 1;
-			}
-		    }
-		  else if(to_rank == from_rank + 1)
-		    {
-		      if((to_file == from_file) && !capture)
-			{
-			  // pushing pawn
-			  if(try_move(from_index, to_index, &moves_out[move_count]))
-			    {
-			      move_count += 1;
-			    }			  
-			}
-		      else if((abs(to_file - from_file) == 1) && capture)
-			{
-			  // pawn capture
-			  if(try_move(from_index, to_index, &moves_out[move_count]))
-			    {
-			      move_count += 1;
-			    }			  
-			}
-		    }
-		}		
-	    }
-	  else
-	    {
-	      throw std::logic_error("unrecognized from piece type in generate_moves");
+	      move_count += 1;
 	    }
 	}
     }
@@ -464,7 +407,10 @@ bool Board::is_attacked(Side defending_side, int defending_index) const
   attacking_mask |= knight_moves.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_KNIGHT];
   attacking_mask |= queen_moves.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_QUEEN];
   attacking_mask |= rook_moves.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_ROOK];
-  // TODO: pawn attacks
+
+  // pawn captures. deliberately swapping color to reverse attack.
+  MoveSet &pawn_captures = (attacking_side == SIDE_WHITE) ? pawn_captures_black : pawn_captures_white;
+  attacking_mask |= pawn_captures.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_PAWN];
 
   // check possible attackers for blocks
   for(int attacking_index = std::countr_zero(attacking_mask);
