@@ -45,35 +45,30 @@ struct MoveSet
   }
 };
 
-static bool check_bishop_move(int from_rank, int from_file, int to_rank, int to_file)
-{
-  return abs(from_rank - to_rank) == abs(from_file - to_file);
-}
-static MoveSet bishop_moves(&check_bishop_move);
+static MoveSet bishop_moves([](int from_rank, int from_file, int to_rank, int to_file)
+			    {
+			      return abs(from_rank - to_rank) == abs(from_file - to_file);
+			    });
 
-static bool check_king_move(int from_rank, int from_file, int to_rank, int to_file)
-{
-  return (abs(to_rank - from_rank) <= 1) && (abs(to_file - from_file) <= 1);
-}
-static MoveSet king_moves(&check_king_move);
+static MoveSet king_moves([](int from_rank, int from_file, int to_rank, int to_file)
+			  {
+			    return (abs(to_rank - from_rank) <= 1) && (abs(to_file - from_file) <= 1);
+			  });
 
-static bool check_knight_move(int from_rank, int from_file, int to_rank, int to_file)
-{
-  return abs((to_rank - from_rank) * (to_file - from_file)) == 2;
-}
-static MoveSet knight_moves(&check_knight_move);
+static MoveSet knight_moves([](int from_rank, int from_file, int to_rank, int to_file)
+			    {
+			      return abs((to_rank - from_rank) * (to_file - from_file)) == 2;
+			    });
 
-static bool check_queen_move(int from_rank, int from_file, int to_rank, int to_file)
-{
-  return (to_rank == from_rank) || (to_file == from_file) || abs(from_rank - to_rank) == abs(from_file - to_file);
-}
-static MoveSet queen_moves(&check_queen_move);
+static MoveSet queen_moves([](int from_rank, int from_file, int to_rank, int to_file)
+			   {
+			     return (to_rank == from_rank) || (to_file == from_file) || abs(from_rank - to_rank) == abs(from_file - to_file);
+			   });
 
-static bool check_rook_move(int from_rank, int from_file, int to_rank, int to_file)
-{
-  return (to_rank == from_rank) || (to_file == from_file);
-}
-static MoveSet rook_moves(&check_rook_move);
+static MoveSet rook_moves([](int from_rank, int from_file, int to_rank, int to_file)
+			  {
+			    return (to_rank == from_rank) || (to_file == from_file);
+			  });
 
 ////////////////////////////////////////////////////////////
 // constructors ////////////////////////////////////////////
