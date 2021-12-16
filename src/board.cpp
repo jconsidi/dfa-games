@@ -458,15 +458,44 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
   return move_count;
 }
 
-bool Board::is_in_check(Side side) const
+bool Board::is_attacked(Side defending_side, int defending_index) const
 {
-  int king_index = std::countr_zero(pieces_by_side_type[side][PIECE_KING]);
+  Side attacking_side = defending_side == SIDE_WHITE ? SIDE_BLACK : SIDE_WHITE;
+
+  // identify pieces that could attack if not blocked
+  BoardMask attacking_mask = 0ULL;
+  attacking_mask |= bishop_moves.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_BISHOP];
+  attacking_mask |= king_moves.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_KING];
+  attacking_mask |= knight_moves.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_KNIGHT];
+  attacking_mask |= queen_moves.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_QUEEN];
+  attacking_mask |= rook_moves.moves[defending_index] & pieces_by_side_type[attacking_side][PIECE_ROOK];
+  // TODO: pawn attacks
+
+  // check possible attackers for blocks
+  for(int attacking_index = std::countr_zero(attacking_mask);
+      attacking_index < 64;
+      attacking_index += 1 + std::countr_zero(attacking_mask >> (attacking_index + 1)))
+    {
+      if(!check_between(attacking_index, defending_index))
+	{
+	  // no blocking pieces
+	  return true;
+	}
+    }
+
+  // no unblocked attacks
+  return false;
+}
+
+bool Board::is_in_check(Side defending_side) const
+{
+  int king_index = std::countr_zero(pieces_by_side_type[defending_side][PIECE_KING]);
   if(king_index >= 64)
     {
       throw std::logic_error("board missing king");
     }
   
-  return false;
+  return is_attacked(defending_side, king_index);
 }
 
 std::ostream& operator<<(std::ostream& os, const Board& board)

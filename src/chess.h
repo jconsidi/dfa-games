@@ -28,7 +28,8 @@ class Board
   Board(const char *fen_string);
 
   int generate_moves(Board moves_out[CHESS_MAX_MOVES]) const;
-  bool is_in_check(Side side) const;
+  bool is_attacked(Side defending_side, int defending_index) const;
+  bool is_in_check(Side defending_side) const;
   
   friend std::ostream& operator<<(std::ostream& os, const Board& board);
 };
