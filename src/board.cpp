@@ -8,6 +8,74 @@
 #include "chess.h"
 
 ////////////////////////////////////////////////////////////
+// internal static data ////////////////////////////////////
+////////////////////////////////////////////////////////////
+
+struct MoveSet
+{
+  BoardMask moves[64];
+
+  MoveSet(bool (*check_func)(int, int, int, int))
+  {
+    for(int from_index = 0; from_index < 64; ++from_index)
+      {
+	int from_rank = from_index / 8;
+	int from_file = from_index % 8;
+
+	BoardMask move_mask = 0ULL;
+
+	for(int to_index = 0; to_index < 64; ++to_index)
+	  {
+	    if(to_index == from_index)
+	      {
+		continue;
+	      }
+
+	    int to_rank = to_index / 8;
+	    int to_file = to_index % 8;
+
+	    if((*check_func)(from_rank, from_file, to_rank, to_file))
+	      {
+		move_mask |= 1ULL << to_index;
+	      }
+	  }
+
+	moves[from_index] = move_mask;
+      }
+  }
+};
+
+static bool check_bishop_move(int from_rank, int from_file, int to_rank, int to_file)
+{
+  return abs(from_rank - to_rank) == abs(from_file - to_file);
+}
+static MoveSet bishop_moves(&check_bishop_move);
+
+static bool check_king_move(int from_rank, int from_file, int to_rank, int to_file)
+{
+  return (abs(to_rank - from_rank) <= 1) && (abs(to_file - from_file) <= 1);
+}
+static MoveSet king_moves(&check_king_move);
+
+static bool check_knight_move(int from_rank, int from_file, int to_rank, int to_file)
+{
+  return abs((to_rank - from_rank) * (to_file - from_file)) == 2;
+}
+static MoveSet knight_moves(&check_knight_move);
+
+static bool check_queen_move(int from_rank, int from_file, int to_rank, int to_file)
+{
+  return (to_rank == from_rank) || (to_file == from_file) || abs(from_rank - to_rank) == abs(from_file - to_file);
+}
+static MoveSet queen_moves(&check_queen_move);
+
+static bool check_rook_move(int from_rank, int from_file, int to_rank, int to_file)
+{
+  return (to_rank == from_rank) || (to_file == from_file);
+}
+static MoveSet rook_moves(&check_rook_move);
+
+////////////////////////////////////////////////////////////
 // constructors ////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 
@@ -263,6 +331,46 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
       int from_rank = from / 8;
       int from_file = from % 8;
 
+      BoardMask to_mask = 0ULL;
+      if(from_mask & side_piece_types[side_to_move][PIECE_BISHOP])
+	{
+	  to_mask = bishop_moves.moves[from];
+	}
+      else if(from_mask & side_piece_types[side_to_move][PIECE_KING])
+	{
+	  to_mask = king_moves.moves[from];
+	}
+      else if(from_mask & side_piece_types[side_to_move][PIECE_KNIGHT])
+	{
+	  to_mask = knight_moves.moves[from];
+	}
+      else if(from_mask & side_piece_types[side_to_move][PIECE_QUEEN])
+	{
+	  to_mask = queen_moves.moves[from];
+	}
+      else if(from_mask & side_piece_types[side_to_move][PIECE_ROOK])
+	{
+	  to_mask = rook_moves.moves[from];
+	}
+      if(to_mask)
+	{
+	  // filter out self-captures
+	  to_mask &= ~side_pieces[side_to_move];
+
+	  // try the remaining moves
+	  for(int to_index = std::countr_zero(to_mask);
+	      to_index < 64;
+	      to_index += 1 + std::countr_zero(to_mask >> (to_index + 1)))
+	    {
+	      if(try_move(from, to_index, &moves_out[move_count]))
+		{
+		  move_count += 1;
+		}
+	    }
+
+	  continue;
+	}
+
       for(int to = 0; to < 64; ++to)
 	{
 	  const BoardMask to_mask = 1ULL << to;
@@ -276,9 +384,6 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 	       
 	  int to_rank = to / 8;
 	  int to_file = to % 8;
-
-	  int delta_rank = to_rank - from_rank;
-	  int delta_file = to_file - from_file;
 
 	  if(from_mask & side_piece_types[side_to_move][PIECE_PAWN])
 	    {
@@ -343,58 +448,9 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		    }
 		}		
 	    }
-	  else if(from_mask & side_piece_types[side_to_move][PIECE_ROOK])
+	  else
 	    {
-	      if((delta_rank == 0) || (delta_file == 0))
-		{
-		  if(try_move(from, to, &moves_out[move_count]))
-		    {
-		      move_count += 1;
-		    }
-		}
-	    }
-	  else if(from_mask & side_piece_types[side_to_move][PIECE_KNIGHT])
-	    {
-	      if(abs(delta_rank) * abs(delta_file) == 2)
-		{
-		  if(try_move(from, to, &moves_out[move_count]))
-                    {
-                      move_count += 1;
-                    }
-		}
-	    }
-	  else if(from_mask & side_piece_types[side_to_move][PIECE_BISHOP])
-	    {
-	      if(abs(delta_rank) == abs(delta_file))
-		{
-		  if(try_move(from, to, &moves_out[move_count]))
-                    {
-                      move_count += 1;
-                    }
-		}
-	    }
-	  else if(from_mask & side_piece_types[side_to_move][PIECE_KING])
-	    {
-	      if(abs(delta_rank) > 1)
-		continue;
-
-	      if(abs(delta_file) > 1)
-		continue;
-
-	      if(try_move(from, to, &moves_out[move_count]))
-		{
-		  move_count += 1;
-		}
-	    }
-	  else if(from_mask & side_piece_types[side_to_move][PIECE_QUEEN])
-	    {
-	      if((delta_rank == 0) || (delta_file == 0) || (abs(delta_rank) == abs(delta_file)))
-		{
-		  if(try_move(from, to, &moves_out[move_count]))
-                    {
-                      move_count += 1;
-                    }
-		}
+	      throw std::logic_error("unrecognized from piece type in generate_moves");
 	    }
 	}
     }
