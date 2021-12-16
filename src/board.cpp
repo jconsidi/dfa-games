@@ -320,37 +320,37 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
   Side side_not_to_move = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
 
   int move_count = 0;
-  for(int from = 0; from < 64; ++from)
+  for(int from_index = 0; from_index < 64; ++from_index)
     {
-      const BoardMask from_mask = 1ULL << from;
+      const BoardMask from_mask = 1ULL << from_index;
       if(!(from_mask & pieces_by_side[side_to_move]))
 	{
 	  continue;
 	}
 
-      int from_rank = from / 8;
-      int from_file = from % 8;
+      int from_rank = from_index / 8;
+      int from_file = from_index % 8;
 
       BoardMask to_mask = 0ULL;
       if(from_mask & pieces_by_side_type[side_to_move][PIECE_BISHOP])
 	{
-	  to_mask = bishop_moves.moves[from];
+	  to_mask = bishop_moves.moves[from_index];
 	}
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_KING])
 	{
-	  to_mask = king_moves.moves[from];
+	  to_mask = king_moves.moves[from_index];
 	}
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_KNIGHT])
 	{
-	  to_mask = knight_moves.moves[from];
+	  to_mask = knight_moves.moves[from_index];
 	}
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_QUEEN])
 	{
-	  to_mask = queen_moves.moves[from];
+	  to_mask = queen_moves.moves[from_index];
 	}
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_ROOK])
 	{
-	  to_mask = rook_moves.moves[from];
+	  to_mask = rook_moves.moves[from_index];
 	}
       if(to_mask)
 	{
@@ -362,7 +362,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 	      to_index < 64;
 	      to_index += 1 + std::countr_zero(to_mask >> (to_index + 1)))
 	    {
-	      if(try_move(from, to_index, &moves_out[move_count]))
+	      if(try_move(from_index, to_index, &moves_out[move_count]))
 		{
 		  move_count += 1;
 		}
@@ -371,9 +371,9 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 	  continue;
 	}
 
-      for(int to = 0; to < 64; ++to)
+      for(int to_index = 0; to_index < 64; ++to_index)
 	{
-	  const BoardMask to_mask = 1ULL << to;
+	  const BoardMask to_mask = 1ULL << to_index;
 	  if(to_mask & pieces_by_side[side_to_move])
 	    {
 	      // can't move onto pieces of own side
@@ -382,8 +382,8 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 
 	  bool capture = (to_mask & pieces_by_side[side_not_to_move]) != 0;
 	       
-	  int to_rank = to / 8;
-	  int to_file = to % 8;
+	  int to_rank = to_index / 8;
+	  int to_file = to_index % 8;
 
 	  if(from_mask & pieces_by_side_type[side_to_move][PIECE_PAWN])
 	    {
@@ -392,7 +392,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  if((from_rank == 6) && (to_rank == 4) && (to_file == from_file) && !capture)
 		    {
 		      // pushing two
-		      if(try_move(from, to, &moves_out[move_count]))
+		      if(try_move(from_index, to_index, &moves_out[move_count]))
 			{
 			  move_count += 1;
 			}
@@ -402,7 +402,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		      if((to_file == from_file) && !capture)
 			{
 			  // pushing pawn
-			  if(try_move(from, to, &moves_out[move_count]))
+			  if(try_move(from_index, to_index, &moves_out[move_count]))
 			    {
 			      move_count += 1;
 			    }			  
@@ -410,7 +410,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		      else if((abs(to_file - from_file) == 1) && capture)
 			{
 			  // pawn capture
-			  if(try_move(from, to, &moves_out[move_count]))
+			  if(try_move(from_index, to_index, &moves_out[move_count]))
 			    {
 			      move_count += 1;
 			    }			  
@@ -422,7 +422,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  if((from_rank == 1) && (to_rank == 3) && (to_file == from_file) && !capture)
 		    {
 		      // pushing two
-		      if(try_move(from, to, &moves_out[move_count]))
+		      if(try_move(from_index, to_index, &moves_out[move_count]))
 			{
 			  move_count += 1;
 			}
@@ -432,7 +432,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		      if((to_file == from_file) && !capture)
 			{
 			  // pushing pawn
-			  if(try_move(from, to, &moves_out[move_count]))
+			  if(try_move(from_index, to_index, &moves_out[move_count]))
 			    {
 			      move_count += 1;
 			    }			  
@@ -440,7 +440,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		      else if((abs(to_file - from_file) == 1) && capture)
 			{
 			  // pawn capture
-			  if(try_move(from, to, &moves_out[move_count]))
+			  if(try_move(from_index, to_index, &moves_out[move_count]))
 			    {
 			      move_count += 1;
 			    }			  
