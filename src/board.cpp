@@ -118,26 +118,26 @@ Board::Board(const char *fen_string)
       BoardMask m = 1ULL << bit_index;
 
       pieces |= m;
-      side_pieces[p] |= m;
+      pieces_by_side[p] |= m;
       switch(tolower(c))
 	{
 	case 'b':
-	  side_piece_types[p][PIECE_BISHOP] |= m;
+	  pieces_by_side_type[p][PIECE_BISHOP] |= m;
 	  break;
 	case 'k':
-	  side_piece_types[p][PIECE_KING] |= m;
+	  pieces_by_side_type[p][PIECE_KING] |= m;
 	  break;
 	case 'n':
-	  side_piece_types[p][PIECE_KNIGHT] |= m;
+	  pieces_by_side_type[p][PIECE_KNIGHT] |= m;
 	  break;
 	case 'p':
-	  side_piece_types[p][PIECE_PAWN] |= m;
+	  pieces_by_side_type[p][PIECE_PAWN] |= m;
 	  break;
 	case 'r':
-	  side_piece_types[p][PIECE_ROOK] |= m;
+	  pieces_by_side_type[p][PIECE_ROOK] |= m;
 	  break;
 	case 'q':
-	  side_piece_types[p][PIECE_QUEEN] |= m;
+	  pieces_by_side_type[p][PIECE_QUEEN] |= m;
 	  break;
 	default:
 	  throw std::invalid_argument("unrecognized piece character");
@@ -251,11 +251,11 @@ bool Board::try_move(int from, int to, Board *move_out) const
   const BoardMask from_mask = 1ULL << from;
   const BoardMask to_mask = 1ULL << to;
   
-  if(!(side_pieces[side_to_move] & from_mask))
+  if(!(pieces_by_side[side_to_move] & from_mask))
     {
       throw std::logic_error("tried to move without side piece");
     }
-  if(side_pieces[side_to_move] & to_mask)
+  if(pieces_by_side[side_to_move] & to_mask)
     {
       throw std::logic_error("tried to move on top of same side piece");
     }
@@ -265,18 +265,18 @@ bool Board::try_move(int from, int to, Board *move_out) const
 
   const BoardMask move_mask = from_mask ^ to_mask;
   
-  move_out->side_pieces[side_to_move] = side_pieces[side_to_move] ^ move_mask;
+  move_out->pieces_by_side[side_to_move] = pieces_by_side[side_to_move] ^ move_mask;
   for(int i = 0; i < PIECE_MAX; ++i)
     {
-      if(side_piece_types[side_to_move][i] & from_mask)
+      if(pieces_by_side_type[side_to_move][i] & from_mask)
 	{
 	  // found the piece mask, so copy and flip bits
-	  move_out->side_piece_types[side_to_move][i] = side_piece_types[side_to_move][i] ^ move_mask;
+	  move_out->pieces_by_side_type[side_to_move][i] = pieces_by_side_type[side_to_move][i] ^ move_mask;
 	}
       else
 	{
 	  // piece not here, so just copy
-	  move_out->side_piece_types[side_to_move][i] = side_piece_types[side_to_move][i];
+	  move_out->pieces_by_side_type[side_to_move][i] = pieces_by_side_type[side_to_move][i];
 	}
     }
 
@@ -285,18 +285,18 @@ bool Board::try_move(int from, int to, Board *move_out) const
   const Side side_not_to_move = move_out->side_to_move = side_to_move == SIDE_WHITE ? SIDE_BLACK : SIDE_WHITE;
 
   const BoardMask to_mask_inv = ~to_mask;
-  move_out->side_pieces[side_not_to_move] = side_pieces[side_not_to_move] & to_mask_inv;
+  move_out->pieces_by_side[side_not_to_move] = pieces_by_side[side_not_to_move] & to_mask_inv;
   for(int i = 0; i < PIECE_MAX; ++i)
     {
-      if(side_piece_types[i][side_not_to_move] & to_mask)
+      if(pieces_by_side_type[i][side_not_to_move] & to_mask)
 	{
 	  // found captured piece
-	  move_out->side_piece_types[side_not_to_move][i] = side_piece_types[side_not_to_move][i] & to_mask_inv;
+	  move_out->pieces_by_side_type[side_not_to_move][i] = pieces_by_side_type[side_not_to_move][i] & to_mask_inv;
 	}
       else
 	{
 	  // just copy
-	  move_out->side_piece_types[side_not_to_move][i] = side_piece_types[side_not_to_move][i];
+	  move_out->pieces_by_side_type[side_not_to_move][i] = pieces_by_side_type[side_not_to_move][i];
 	}
     }
 
@@ -304,7 +304,7 @@ bool Board::try_move(int from, int to, Board *move_out) const
 
   // almost done
 
-  move_out->pieces = move_out->side_pieces[SIDE_WHITE] | move_out->side_pieces[SIDE_BLACK];
+  move_out->pieces = move_out->pieces_by_side[SIDE_WHITE] | move_out->pieces_by_side[SIDE_BLACK];
   
   // make sure move was not into check or staying in check
 
@@ -323,7 +323,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
   for(int from = 0; from < 64; ++from)
     {
       const BoardMask from_mask = 1ULL << from;
-      if(!(from_mask & side_pieces[side_to_move]))
+      if(!(from_mask & pieces_by_side[side_to_move]))
 	{
 	  continue;
 	}
@@ -332,30 +332,30 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
       int from_file = from % 8;
 
       BoardMask to_mask = 0ULL;
-      if(from_mask & side_piece_types[side_to_move][PIECE_BISHOP])
+      if(from_mask & pieces_by_side_type[side_to_move][PIECE_BISHOP])
 	{
 	  to_mask = bishop_moves.moves[from];
 	}
-      else if(from_mask & side_piece_types[side_to_move][PIECE_KING])
+      else if(from_mask & pieces_by_side_type[side_to_move][PIECE_KING])
 	{
 	  to_mask = king_moves.moves[from];
 	}
-      else if(from_mask & side_piece_types[side_to_move][PIECE_KNIGHT])
+      else if(from_mask & pieces_by_side_type[side_to_move][PIECE_KNIGHT])
 	{
 	  to_mask = knight_moves.moves[from];
 	}
-      else if(from_mask & side_piece_types[side_to_move][PIECE_QUEEN])
+      else if(from_mask & pieces_by_side_type[side_to_move][PIECE_QUEEN])
 	{
 	  to_mask = queen_moves.moves[from];
 	}
-      else if(from_mask & side_piece_types[side_to_move][PIECE_ROOK])
+      else if(from_mask & pieces_by_side_type[side_to_move][PIECE_ROOK])
 	{
 	  to_mask = rook_moves.moves[from];
 	}
       if(to_mask)
 	{
 	  // filter out self-captures
-	  to_mask &= ~side_pieces[side_to_move];
+	  to_mask &= ~pieces_by_side[side_to_move];
 
 	  // try the remaining moves
 	  for(int to_index = std::countr_zero(to_mask);
@@ -374,18 +374,18 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
       for(int to = 0; to < 64; ++to)
 	{
 	  const BoardMask to_mask = 1ULL << to;
-	  if(to_mask & side_pieces[side_to_move])
+	  if(to_mask & pieces_by_side[side_to_move])
 	    {
 	      // can't move onto pieces of own side
 	      continue;
 	    }
 
-	  bool capture = (to_mask & side_pieces[side_not_to_move]) != 0;
+	  bool capture = (to_mask & pieces_by_side[side_not_to_move]) != 0;
 	       
 	  int to_rank = to / 8;
 	  int to_file = to % 8;
 
-	  if(from_mask & side_piece_types[side_to_move][PIECE_PAWN])
+	  if(from_mask & pieces_by_side_type[side_to_move][PIECE_PAWN])
 	    {
 	      if(side_to_move == SIDE_WHITE)
 		{
@@ -460,7 +460,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 
 bool Board::is_in_check(Side side) const
 {
-  int king_index = std::countr_zero(side_piece_types[side][PIECE_KING]);
+  int king_index = std::countr_zero(pieces_by_side_type[side][PIECE_KING]);
   if(king_index >= 64)
     {
       throw std::logic_error("board missing king");
@@ -477,36 +477,36 @@ std::ostream& operator<<(std::ostream& os, const Board& board)
       char c = '.';
       for(int p = 0; p < 2; ++p)
 	{
-	  if(!(board.side_pieces[p] & mask))
+	  if(!(board.pieces_by_side[p] & mask))
 	    continue;
 
-	  if(board.side_piece_types[p][PIECE_PAWN] & mask)
+	  if(board.pieces_by_side_type[p][PIECE_PAWN] & mask)
 	    {
 	      c = 'p';
 	    }
-	  else if(board.side_piece_types[p][PIECE_KING] & mask)
+	  else if(board.pieces_by_side_type[p][PIECE_KING] & mask)
 	    {
 	      c = 'k';
 	    }
-	  else if(board.side_piece_types[p][PIECE_QUEEN] & mask)
+	  else if(board.pieces_by_side_type[p][PIECE_QUEEN] & mask)
 	    {
 	      c = 'q';
 	    }
-	  else if(board.side_piece_types[p][PIECE_BISHOP] & mask)
+	  else if(board.pieces_by_side_type[p][PIECE_BISHOP] & mask)
 	    {
 	      c = 'b';
 	    }
-	  else if(board.side_piece_types[p][PIECE_KNIGHT] & mask)
+	  else if(board.pieces_by_side_type[p][PIECE_KNIGHT] & mask)
 	    {
 	      c = 'n';
 	    }
-	  else if(board.side_piece_types[p][PIECE_ROOK] & mask)
+	  else if(board.pieces_by_side_type[p][PIECE_ROOK] & mask)
 	    {
 	      c = 'r';
 	    }
 	}
 
-      if(board.side_pieces[SIDE_WHITE] & mask)
+      if(board.pieces_by_side[SIDE_WHITE] & mask)
 	{
 	  c = toupper(c);
 	}

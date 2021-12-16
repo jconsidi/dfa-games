@@ -15,8 +15,8 @@ class Board
 {
  private:
   BoardMask pieces = 0;
-  BoardMask side_pieces[2] = {0};
-  BoardMask side_piece_types[2][PIECE_MAX] = {{0}};
+  BoardMask pieces_by_side[2] = {0};
+  BoardMask pieces_by_side_type[2][PIECE_MAX] = {{0}};
 
   Side side_to_move = SIDE_WHITE;
 
