@@ -24,7 +24,7 @@ int main()
 	  uint64_t output_expected = PERFT_EXPECTED[depth];
 	  if(output != output_expected)
 	    {
-	      std::cerr << "depth " << depth << ": got " << output << " but expected " << output_expected << std::endl;
+	      std::cerr << "depth " << depth << ": " << output_expected << " expected" << std::endl;
 	      return 1;
 	    }
 	}
