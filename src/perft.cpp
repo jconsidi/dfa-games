@@ -5,14 +5,14 @@
 
 #include "chess.h"
 
-const char *FEN_DEFAULT = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const uint64_t PERFT_EXPECTED[] = {1, 20, 400, 8902, 197281, 4865609};
+const char *DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const uint64_t DEFAULT_EXPECTED[] = {1, 20, 400, 8902, 197281, 4865609};
 
 uint64_t perft(const Board& board, int depth);
 
 int main(int argc, char **argv)
 {
-  const char *fen = (argc >= 2) ? argv[1] : FEN_DEFAULT;
+  const char *fen = (argc >= 2) ? argv[1] : DEFAULT_FEN;
 
   Board board(fen);
   std::cout << board;
@@ -23,9 +23,9 @@ int main(int argc, char **argv)
       std::cout << "depth " << depth << ": " << output << std::endl;
 
       uint64_t output_expected = 0ULL;
-      if((fen == FEN_DEFAULT) && (depth < sizeof(PERFT_EXPECTED) / sizeof(uint64_t)))
+      if((fen == DEFAULT_FEN) && (depth < sizeof(DEFAULT_EXPECTED) / sizeof(uint64_t)))
 	{
-	  output_expected = PERFT_EXPECTED[depth];
+	  output_expected = DEFAULT_EXPECTED[depth];
 	}
       // LATER: allow expected output on command line
 
