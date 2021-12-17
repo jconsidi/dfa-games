@@ -6,7 +6,7 @@
 #include "chess.h"
 
 const char *DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-const uint64_t DEFAULT_EXPECTED[] = {1, 20, 400, 8902, 197281, 4865609};
+const uint64_t DEFAULT_EXPECTED[] = {1, 20, 400, 8902, 197281};
 
 uint64_t perft(const Board& board, int depth);
 
@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   Board board(fen);
   std::cout << board;
 
-  for(int depth = 0; depth < 6; ++depth)
+  for(int depth = 1; depth < 5; ++depth)
     {
       uint64_t output = perft(board, depth);
       std::cout << "depth " << depth << ": " << output << std::endl;
