@@ -5,7 +5,7 @@
 
 #include "chess.h"
 
-const uint64_t PERFT_EXPECTED[] = {1, 20, 400, 8902, 197281, 4865698};
+const uint64_t PERFT_EXPECTED[] = {1, 20, 400, 8902, 197281, 4865609};
 
 uint64_t perft(const Board& board, int depth);
 
