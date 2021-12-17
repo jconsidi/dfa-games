@@ -1,5 +1,7 @@
 // perft.cpp
 
+#include <stdlib.h>
+
 #include <cstdint>
 #include <iostream>
 
@@ -27,7 +29,10 @@ int main(int argc, char **argv)
 	{
 	  output_expected = DEFAULT_EXPECTED[depth];
 	}
-      // LATER: allow expected output on command line
+      else if(argc - 2 >= depth)
+	{
+	  output_expected = uint64_t(atoll(argv[1 + depth]));
+	}
 
       if((output_expected) && (output != output_expected))
 	{
