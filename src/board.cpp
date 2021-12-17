@@ -254,22 +254,29 @@ bool Board::check_between(int i, int j) const
   return false;
 }
 
-bool Board::try_move(int from, int to, Board *move_out) const
+bool Board::finish_move()
 {
-  if(check_between(from, to))
-    {
-      // piece between blocking this move.
-      return false;
-    }
+  // update pieces mask
 
-  const BoardMask from_mask = 1ULL << from;
-  const BoardMask to_mask = 1ULL << to;
+  pieces = pieces_by_side[SIDE_WHITE] | pieces_by_side[SIDE_BLACK];
   
-  if(!(pieces_by_side[side_to_move] & from_mask))
+  // make sure move was not into check or staying in check
+
+  Side side_just_moved = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
+  return !(is_in_check(side_just_moved));
+}
+
+void Board::move_piece(int from_index, int to_index)
+{
+  const BoardMask from_mask = 1ULL << from_index;
+  const BoardMask to_mask = 1ULL << to_index;
+
+  Side side_moving = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
+  if(!(pieces_by_side[side_moving] & from_mask))
     {
       throw std::logic_error("tried to move without side piece");
     }
-  if(pieces_by_side[side_to_move] & to_mask)
+  if(pieces_by_side[side_moving] & to_mask)
     {
       throw std::logic_error("tried to move on top of same side piece");
     }
@@ -279,52 +286,58 @@ bool Board::try_move(int from, int to, Board *move_out) const
 
   const BoardMask move_mask = from_mask ^ to_mask;
   
-  move_out->pieces_by_side[side_to_move] = pieces_by_side[side_to_move] ^ move_mask;
+  pieces_by_side[side_moving] ^= move_mask;
   for(int i = 0; i < PIECE_MAX; ++i)
     {
-      if(pieces_by_side_type[side_to_move][i] & from_mask)
+      if(pieces_by_side_type[side_moving][i] & from_mask)
 	{
-	  // found the piece mask, so copy and flip bits
-	  move_out->pieces_by_side_type[side_to_move][i] = pieces_by_side_type[side_to_move][i] ^ move_mask;
-	}
-      else
-	{
-	  // piece not here, so just copy
-	  move_out->pieces_by_side_type[side_to_move][i] = pieces_by_side_type[side_to_move][i];
+	  pieces_by_side_type[side_moving][i] ^= move_mask;
+	  break;
 	}
     }
 
   // clear captured pieces
 
-  const Side side_not_to_move = move_out->side_to_move = side_to_move == SIDE_WHITE ? SIDE_BLACK : SIDE_WHITE;
-
-  const BoardMask to_mask_inv = ~to_mask;
-  move_out->pieces_by_side[side_not_to_move] = pieces_by_side[side_not_to_move] & to_mask_inv;
-  for(int i = 0; i < PIECE_MAX; ++i)
+  if(pieces_by_side[side_to_move] & to_mask)
     {
-      if(pieces_by_side_type[i][side_not_to_move] & to_mask)
+      const BoardMask to_mask_inv = ~to_mask;
+      pieces_by_side[side_to_move] &= to_mask_inv;
+      for(int i = 0; i < PIECE_MAX; ++i)
 	{
-	  // found captured piece
-	  move_out->pieces_by_side_type[side_not_to_move][i] = pieces_by_side_type[side_not_to_move][i] & to_mask_inv;
-	}
-      else
-	{
-	  // just copy
-	  move_out->pieces_by_side_type[side_not_to_move][i] = pieces_by_side_type[side_not_to_move][i];
+	  if(pieces_by_side_type[i][side_to_move] & to_mask)
+	    {
+	      // found captured piece
+	      pieces_by_side_type[side_to_move][i] &= to_mask_inv;
+	      break;
+	    }
 	}
     }
+}
 
-  // TODO special handling of castling and en-passant
+void Board::start_move(Board *move_out) const
+{
+  *move_out = *this;
 
-  move_out->en_passant_file = -1; // will be overriden in generate_moves after pawn double advance
+  move_out->side_to_move = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
 
-  // almost done
+  // will be overriden in generate_moves after pawn double advance
+  move_out->en_passant_file = -1;
+}
 
-  move_out->pieces = move_out->pieces_by_side[SIDE_WHITE] | move_out->pieces_by_side[SIDE_BLACK];
+bool Board::try_move(int from, int to, Board *move_out) const
+{
+  if(check_between(from, to))
+    {
+      // piece between blocking this move.
+      return false;
+    }
   
-  // make sure move was not into check or staying in check
+  start_move(move_out);
+  move_out->move_piece(from, to);
 
-  return !(move_out->is_in_check(side_to_move));
+  // wrap up and check if valid
+
+  return move_out->finish_move();
 }
 
 ////////////////////////////////////////////////////////////
@@ -357,16 +370,25 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 
 	  // advancing two ranks and en-passant setup
 	  int from_rank = from_index / 8;
-	  if(advance_mask && (from_rank == ((side_to_move == SIDE_WHITE) ? 6 : 1)))
-	    {
-	      int two_index = from_index + ((side_to_move == SIDE_WHITE) ? -16 : +16);
-	      BoardMask two_mask = 1ULL << two_index;
+	  int from_file = from_index % 8;
 
-	      if(!(two_mask & pieces) &&
-		 try_move(from_index, two_index, &moves_out[move_count]))
+	  int from_rank_by_side = (side_to_move == SIDE_WHITE) ? (7 - from_rank) : from_rank;
+	  if(from_rank_by_side == 1)
+	    {
+	      // starting rank
+	      if(advance_mask)
 		{
-		  moves_out[move_count].en_passant_file = from_index % 8;
-		  ++move_count;
+		  // can advance one rank. try advancing two ranks too.
+
+		  int two_index = from_index + ((side_to_move == SIDE_WHITE) ? -16 : +16);
+		  BoardMask two_mask = 1ULL << two_index;
+
+		  if(!(two_mask & pieces) &&
+		     try_move(from_index, two_index, &moves_out[move_count]))
+		    {
+		      moves_out[move_count].en_passant_file = from_index % 8;
+		      ++move_count;
+		    }
 		}
 	    }
 	}
@@ -408,6 +430,11 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 	      move_count += 1;
 	    }
 	}
+    }
+
+  if(move_count >= CHESS_MAX_MOVES)
+    {
+      throw std::logic_error("found more moves than CHESS_MAX_MOVES");
     }
 
   return move_count;

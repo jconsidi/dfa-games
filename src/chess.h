@@ -22,7 +22,10 @@ class Board
   int en_passant_file = -1;
 
   bool check_between(int i, int j) const;
-  bool try_move(int from, int to, Board *move_out) const;
+  bool finish_move();
+  void move_piece(int from_index, int to_index);
+  void start_move(Board *move_out) const;
+  bool try_move(int from_index, int to_index, Board *move_out) const;
   
  public:
   Board() {}
