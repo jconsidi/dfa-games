@@ -304,7 +304,7 @@ void Board::move_piece(int from_index, int to_index)
       pieces_by_side[side_to_move] &= to_mask_inv;
       for(int i = 0; i < PIECE_MAX; ++i)
 	{
-	  if(pieces_by_side_type[i][side_to_move] & to_mask)
+	  if(pieces_by_side_type[side_to_move][i] & to_mask)
 	    {
 	      // found captured piece
 	      pieces_by_side_type[side_to_move][i] &= to_mask_inv;
