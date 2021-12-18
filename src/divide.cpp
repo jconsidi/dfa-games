@@ -47,6 +47,7 @@ std::string uci_move(const Board& before, const Board& after)
       from &= before.pieces_by_side_type[before.side_to_move][PIECE_KING];
 
       to &= after.pieces_by_side_type[before.side_to_move][PIECE_KING];
+      assert(to);
     }
 
   assert(std::popcount(from) == 1);
