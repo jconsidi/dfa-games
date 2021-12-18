@@ -38,6 +38,7 @@ class Board
   bool is_in_check(Side defending_side) const;
   
   friend std::ostream& operator<<(std::ostream& os, const Board& board);
+  friend std::string uci_move(const Board& before, const Board& after);
 };
 
 // utility functions
