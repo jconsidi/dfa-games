@@ -4,9 +4,14 @@ CXX=g++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20
 
-all : generate_moves test_perft
+TARGETS=divide generate_moves test_perft
 
-test : generate_moves test_perft
+all : $(TARGETS)
+
+clean :
+	$(RM) $(TARGETS) *.o
+
+test : all
 	./test_perft
 
 divide: divide.o board.o utils.o
