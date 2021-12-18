@@ -15,7 +15,7 @@ void test(const char *fen, std::vector<uint64_t> expected_outputs)
   for(int i = 0; i < expected_outputs.size(); ++i)
     {
       int depth = i + 1;
-      std::cout << " depth " << i << std::endl;
+      std::cout << " depth " << depth << std::endl;
       std::cout.flush();
 
       uint64_t actual_output = perft(board, depth);
