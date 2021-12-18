@@ -32,8 +32,13 @@ int main()
 {
   try
     {
+      // en-passant tests
+      test("8/8/8/8/1p6/8/P7/8 w KQkq - 0 1", std::vector<uint64_t>({2, 4}));
+      test("8/8/8/8/2p5/8/1P6/8 w KQkq - 0 1", std::vector<uint64_t>({2, 4}));
+      test("8/1p6/8/P7/8/8/8/8 b KQkq - 0 1", std::vector<uint64_t>({2, 4}));
+
       // initial position
-      test("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", std::vector<uint64_t>({20, 400, 8902, 197281}));
+      test(INITIAL_FEN, std::vector<uint64_t>({20, 400, 8902, 197281, 4865609}));
     }
   catch(std::logic_error)
     {

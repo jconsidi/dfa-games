@@ -391,6 +391,33 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		    }
 		}
 	    }
+	  else if(from_rank_by_side == 4)
+	    {
+	      // at the right rank for en-passant
+	      if((en_passant_file >= 0) && (abs(from_file - en_passant_file) == 1))
+		{
+		  // can capture en-passant.
+
+		  int capture_rank = (side_to_move == SIDE_WHITE) ? 3 : 4;
+		  int capture_index = capture_rank * 8 + en_passant_file;
+		  BoardMask capture_mask_inv = ~(1ULL << capture_index);
+
+		  int to_rank = (side_to_move == SIDE_WHITE) ? 2 : 5;
+		  int to_index = to_rank * 8 + en_passant_file;
+
+		  Board& move = moves_out[move_count];
+		  start_move(&move);
+		  move.move_piece(from_index, to_index);
+		  move.pieces &= capture_mask_inv;
+		  move.pieces_by_side[side_not_to_move] &= capture_mask_inv;
+		  move.pieces_by_side_type[side_not_to_move][PIECE_PAWN] &= capture_mask_inv;
+
+		  if(move.finish_move())
+		    {
+		      move_count += 1;
+		    }
+		}
+	    }
 	}
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_BISHOP])
 	{
