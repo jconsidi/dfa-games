@@ -171,6 +171,8 @@ Board::Board(const char *fen_string)
     }
   cp += 1;
 
+  // side to move
+
   if(*cp == 'w')
     {
       side_to_move = SIDE_WHITE;
@@ -188,6 +190,42 @@ Board::Board(const char *fen_string)
   if(*cp != ' ')
     {
       throw std::invalid_argument("FEN string did not have space after side to move");
+    }
+  cp += 1;
+
+  // castling availability
+
+  for(; *cp && *cp != ' '; ++cp)
+    {
+      switch(*cp)
+	{
+	case '-':
+	  break;
+
+	case 'K':
+	  castling_availability |= 1ULL << 63;
+	  break;
+
+	case 'Q':
+	  castling_availability |= 1ULL << 56;
+	  break;
+
+	case 'k':
+	  castling_availability |= 1ULL << 7;
+	  break;
+
+	case 'q':
+	  castling_availability |= 1ULL << 0;
+	  break;
+
+	default:
+	  throw std::logic_error("unrecognized character for castling availability");
+	}
+    }
+
+  if(*cp != ' ')
+    {
+      throw std::invalid_argument("FEN string did not have space after castling availability");
     }
   cp += 1;
 }
@@ -259,6 +297,8 @@ bool Board::finish_move()
   // update pieces mask
 
   pieces = pieces_by_side[SIDE_WHITE] | pieces_by_side[SIDE_BLACK];
+
+  castling_availability &= pieces_by_side_type[SIDE_WHITE][PIECE_ROOK] | pieces_by_side_type[SIDE_BLACK][PIECE_ROOK];
   
   // make sure move was not into check or staying in check
 
@@ -296,6 +336,19 @@ void Board::move_piece(int from_index, int to_index)
 	}
     }
 
+  if(move_mask & pieces_by_side_type[side_moving][PIECE_KING])
+    {
+      // king moved so cannot castle anymore
+      if(side_moving == SIDE_WHITE)
+	{
+	  castling_availability &= 0xFFULL << 0;
+	}
+      else
+	{
+	  castling_availability &= 0xFFULL << 56;
+	}
+    }
+
   // clear captured pieces
 
   if(pieces_by_side[side_to_move] & to_mask)
@@ -322,6 +375,41 @@ void Board::start_move(Board *move_out) const
 
   // will be overriden in generate_moves after pawn double advance
   move_out->en_passant_file = -1;
+}
+
+bool Board::try_castle(int king_index, int rook_index, Board *move_out) const
+{
+  if(check_between(king_index, rook_index))
+    {
+      // piece between king and rook
+      return false;
+    }
+
+  if(is_attacked(side_to_move, king_index))
+    {
+      // cannot castle out of check
+      return false;
+    }
+
+  int direction = (rook_index > king_index) ? 1 : -1;
+
+  if(is_attacked(side_to_move, king_index + direction))
+    {
+      // cannot castle through check
+      return false;
+    }
+
+  if(is_attacked(side_to_move, king_index + direction * 2))
+    {
+      // cannot castle into check
+      return false;
+    }
+
+    start_move(move_out);
+    move_out->move_piece(king_index, king_index + direction * 2);
+    move_out->move_piece(rook_index, king_index + direction);
+
+    return move_out->finish_move();
 }
 
 bool Board::try_move(int from, int to, Board *move_out) const
@@ -426,6 +514,51 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_KING])
 	{
 	  to_mask = king_moves.moves[from_index];
+
+	  BoardMask rook_availability = castling_availability & pieces_by_side_type[side_to_move][PIECE_ROOK];
+	  if(rook_availability)
+	    {
+	      if(side_to_move == SIDE_WHITE)
+		{
+		  if(rook_availability & (1ULL << 63))
+		    {
+		      // white king-side castling
+		      if(try_castle(60, 63, &moves_out[move_count]))
+			{
+			  move_count += 1;
+			}
+		    }
+
+		  if(rook_availability & (1ULL << 56))
+		    {
+		      // white queen-side castling
+		      if(try_castle(60, 56, &moves_out[move_count]))
+			{
+			  move_count += 1;
+			}
+		    }
+		}
+	      else
+		{
+		  if(rook_availability & (1ULL << 7))
+		    {
+		      // black king-side castling
+		      if(try_castle(4, 7, &moves_out[move_count]))
+			{
+			  move_count += 1;
+			}
+		    }
+
+		  if(rook_availability & (1ULL << 0))
+		    {
+		      // black queen-side castling
+		      if(try_castle(4, 0, &moves_out[move_count]))
+			{
+			  move_count += 1;
+			}
+		    }
+		}
+	    }
 	}
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_KNIGHT])
 	{
