@@ -10,10 +10,13 @@ void test(const char *fen, std::vector<uint64_t> expected_outputs)
 {
   Board board(fen);
   std::cout << "checking " << fen << std::endl;
+  std::cout.flush();
   
   for(int i = 0; i < expected_outputs.size(); ++i)
     {
       int depth = i + 1;
+      std::cout << " depth " << i << std::endl;
+      std::cout.flush();
 
       uint64_t actual_output = perft(board, depth);
       uint64_t expected_output = expected_outputs[i];
@@ -40,8 +43,9 @@ int main()
       // initial position
       test(INITIAL_FEN, std::vector<uint64_t>({20, 400, 8902, 197281, 4865609}));
     }
-  catch(std::logic_error)
+  catch(std::logic_error e)
     {
+      std::cerr << e.what() << std::endl;
       return 1;
     }
   
