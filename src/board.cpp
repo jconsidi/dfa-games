@@ -477,9 +477,10 @@ bool Board::is_in_check(Side defending_side) const
   int king_index = std::countr_zero(pieces_by_side_type[defending_side][PIECE_KING]);
   if(king_index >= 64)
     {
-      throw std::logic_error("board missing king");
+      // no king - allow for testing simplified positions
+      return false;
     }
-  
+
   return is_attacked(defending_side, king_index);
 }
 
