@@ -14,6 +14,8 @@ std::string mask_to_square(BoardMask mask)
   // map mask to a square name. assumes only one bit is set in the
   // mask.
 
+  assert(std::popcount(mask) == 1);
+
   int index = std::countr_zero(mask);
   assert(index < 64);
   
@@ -37,6 +39,18 @@ std::string uci_move(const Board& before, const Board& after)
   assert(from);
   BoardMask to = flipped & after.pieces_by_side[before.side_to_move];
   assert(to);
+
+  if(std::popcount(from) > 1)
+    {
+      // must be castling
+      assert(from & before.pieces_by_side_type[before.side_to_move][PIECE_KING]);
+      from &= before.pieces_by_side_type[before.side_to_move][PIECE_KING];
+
+      to &= after.pieces_by_side_type[before.side_to_move][PIECE_KING];
+    }
+
+  assert(std::popcount(from) == 1);
+  assert(std::popcount(to) == 1);
 
   return mask_to_square(from) + mask_to_square(to);
 }
