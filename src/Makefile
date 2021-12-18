@@ -10,6 +10,9 @@ test : test_generate_moves test_perft
 	./test_generate_moves
 	./test_perft
 
+print: print.o board.o utils.o
+	$(CXX) -o $@ $^
+
 test_generate_moves : test_generate_moves.o board.o
 	$(CXX) -o $@ $^
 
