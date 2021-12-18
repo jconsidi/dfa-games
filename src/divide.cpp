@@ -33,9 +33,9 @@ std::string uci_move(const Board& before, const Board& after)
 
   BoardMask flipped = before.pieces_by_side[before.side_to_move] ^ after.pieces_by_side[before.side_to_move];
   assert(flipped);
-  BoardMask from = flipped & before.pieces;
+  BoardMask from = flipped & before.pieces_by_side[before.side_to_move];
   assert(from);
-  BoardMask to = flipped & after.pieces;
+  BoardMask to = flipped & after.pieces_by_side[before.side_to_move];
   assert(to);
 
   return mask_to_square(from) + mask_to_square(to);
