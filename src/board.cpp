@@ -367,17 +367,17 @@ void Board::move_piece(int from_index, int to_index)
     }
 }
 
-void Board::start_move(Board *move_out) const
+void Board::start_move(Board &move_out) const
 {
-  *move_out = *this;
+  move_out = *this;
 
-  move_out->side_to_move = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
+  move_out.side_to_move = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
 
   // will be overriden in generate_moves after pawn double advance
-  move_out->en_passant_file = -1;
+  move_out.en_passant_file = -1;
 }
 
-bool Board::try_castle(int king_index, int rook_index, Board *move_out) const
+bool Board::try_castle(int king_index, int rook_index, Board &move_out) const
 {
   if(check_between(king_index, rook_index))
     {
@@ -406,13 +406,13 @@ bool Board::try_castle(int king_index, int rook_index, Board *move_out) const
     }
 
     start_move(move_out);
-    move_out->move_piece(king_index, king_index + direction * 2);
-    move_out->move_piece(rook_index, king_index + direction);
+    move_out.move_piece(king_index, king_index + direction * 2);
+    move_out.move_piece(rook_index, king_index + direction);
 
-    return move_out->finish_move();
+    return move_out.finish_move();
 }
 
-bool Board::try_move(int from, int to, Board *move_out) const
+bool Board::try_move(int from, int to, Board &move_out) const
 {
   if(check_between(from, to))
     {
@@ -421,11 +421,11 @@ bool Board::try_move(int from, int to, Board *move_out) const
     }
   
   start_move(move_out);
-  move_out->move_piece(from, to);
+  move_out.move_piece(from, to);
 
   // wrap up and check if valid
 
-  return move_out->finish_move();
+  return move_out.finish_move();
 }
 
 ////////////////////////////////////////////////////////////
@@ -472,7 +472,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  BoardMask two_mask = 1ULL << two_index;
 
 		  if(!(two_mask & pieces) &&
-		     try_move(from_index, two_index, &moves_out[move_count]))
+		     try_move(from_index, two_index, moves_out[move_count]))
 		    {
 		      moves_out[move_count].en_passant_file = from_index % 8;
 		      ++move_count;
@@ -494,7 +494,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  int to_index = to_rank * 8 + en_passant_file;
 
 		  Board& move = moves_out[move_count];
-		  start_move(&move);
+		  start_move(move);
 		  move.move_piece(from_index, to_index);
 		  move.pieces &= capture_mask_inv;
 		  move.pieces_by_side[side_not_to_move] &= capture_mask_inv;
@@ -517,7 +517,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  to_index += 1 + std::countr_zero(to_mask >> (to_index + 1)))
 		{
 		  Board unpromoted;
-		  start_move(&unpromoted);
+		  start_move(unpromoted);
 		  unpromoted.move_piece(from_index, to_index);
 
 		  if(unpromoted.finish_move())
@@ -558,7 +558,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  if(rook_availability & (1ULL << 63))
 		    {
 		      // white king-side castling
-		      if(try_castle(60, 63, &moves_out[move_count]))
+		      if(try_castle(60, 63, moves_out[move_count]))
 			{
 			  move_count += 1;
 			}
@@ -567,7 +567,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  if(rook_availability & (1ULL << 56))
 		    {
 		      // white queen-side castling
-		      if(try_castle(60, 56, &moves_out[move_count]))
+		      if(try_castle(60, 56, moves_out[move_count]))
 			{
 			  move_count += 1;
 			}
@@ -578,7 +578,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  if(rook_availability & (1ULL << 7))
 		    {
 		      // black king-side castling
-		      if(try_castle(4, 7, &moves_out[move_count]))
+		      if(try_castle(4, 7, moves_out[move_count]))
 			{
 			  move_count += 1;
 			}
@@ -587,7 +587,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		  if(rook_availability & (1ULL << 0))
 		    {
 		      // black queen-side castling
-		      if(try_castle(4, 0, &moves_out[move_count]))
+		      if(try_castle(4, 0, moves_out[move_count]))
 			{
 			  move_count += 1;
 			}
@@ -620,7 +620,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 	  to_index < 64;
 	  to_index += 1 + std::countr_zero(to_mask >> (to_index + 1)))
 	{
-	  if(try_move(from_index, to_index, &moves_out[move_count]))
+	  if(try_move(from_index, to_index, moves_out[move_count]))
 	    {
 	      move_count += 1;
 	    }

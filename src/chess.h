@@ -27,9 +27,9 @@ class Board
   bool check_between(int i, int j) const;
   bool finish_move();
   void move_piece(int from_index, int to_index);
-  void start_move(Board *move_out) const;
-  bool try_castle(int king_index, int rook_index, Board *move_out) const;
-  bool try_move(int from_index, int to_index, Board *move_out) const;
+  void start_move(Board &move_out) const;
+  bool try_castle(int king_index, int rook_index, Board &move_out) const;
+  bool try_move(int from_index, int to_index, Board &move_out) const;
   
  public:
   Board() {}
