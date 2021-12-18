@@ -506,6 +506,41 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 		    }
 		}
 	    }
+	  else if(from_rank_by_side == 6)
+	    {
+	      // pawn promotion
+
+	      Piece promotion_choices[4] = {PIECE_QUEEN, PIECE_BISHOP, PIECE_KNIGHT, PIECE_ROOK};
+
+	      for(int to_index = std::countr_zero(to_mask);
+		  to_index < 64;
+		  to_index += 1 + std::countr_zero(to_mask >> (to_index + 1)))
+		{
+		  Board unpromoted;
+		  start_move(&unpromoted);
+		  unpromoted.move_piece(from_index, to_index);
+
+		  if(unpromoted.finish_move())
+		    {
+		      // move is valid, just need to pick what piece to promote now.
+
+		      BoardMask to_mask = 1ULL << to_index;
+		      BoardMask to_mask_inv = ~to_mask;
+
+		      for(int i = 0; i < 4; ++i)
+			{
+			  Piece promotion_piece = promotion_choices[i];
+
+			  Board &move = moves_out[move_count++] = unpromoted;
+			  move.pieces_by_side_type[side_to_move][PIECE_PAWN] &= to_mask_inv;
+			  move.pieces_by_side_type[side_to_move][promotion_piece] |= to_mask;
+			}
+		    }
+		}
+
+	      // already covered these moves
+	      to_mask = 0;
+	    }
 	}
       else if(from_mask & pieces_by_side_type[side_to_move][PIECE_BISHOP])
 	{
