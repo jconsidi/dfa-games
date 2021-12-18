@@ -39,4 +39,8 @@ class Board
   friend std::ostream& operator<<(std::ostream& os, const Board& board);
 };
 
+// utility functions
+
+uint64_t perft(const Board& board, int depth);
+
 #endif

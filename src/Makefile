@@ -13,7 +13,7 @@ test : test_generate_moves test_perft
 test_generate_moves : test_generate_moves.o board.o
 	$(CXX) -o $@ $^
 
-test_perft : test_perft.o board.o
+test_perft : test_perft.o board.o utils.o
 	$(CXX) -o $@ $^
 
 %.o : %.cpp chess.h
