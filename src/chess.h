@@ -3,6 +3,7 @@
 #ifndef CHESS_H
 
 #include <cstdint>
+#include <iostream>
 
 #define CHESS_MAX_MOVES 256
 
