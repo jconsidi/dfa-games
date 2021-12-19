@@ -23,6 +23,8 @@ class Board
   Side side_to_move = SIDE_WHITE;
   int en_passant_file = -1;
   BoardMask castling_availability = 0;
+  int halfmove_clock = 0;
+  int fullmove_number = 1;
 
   bool check_between(int i, int j) const;
   bool finish_move();
@@ -35,9 +37,17 @@ class Board
   Board() {}
   Board(const char *fen_string);
 
+  int count_moves() const;
   int generate_moves(Board moves_out[CHESS_MAX_MOVES]) const;
   bool is_attacked(Side defending_side, int defending_index) const;
-  bool is_in_check(Side defending_side) const;
+  bool is_check() const;
+  bool is_check(Side defending_side) const;
+  bool is_checkmate() const;
+  bool is_draw() const;
+  bool is_draw_by_material() const;
+  bool is_draw_by_rule() const;
+  bool is_final() const;
+  bool is_stalemate() const;
   
   friend std::ostream& operator<<(std::ostream& os, const Board& board);
   friend std::string uci_move(const Board& before, const Board& after);

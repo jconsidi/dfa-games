@@ -313,7 +313,7 @@ bool Board::finish_move()
   // make sure move was not into check or staying in check
 
   Side side_just_moved = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
-  return !(is_in_check(side_just_moved));
+  return !(is_check(side_just_moved));
 }
 
 void Board::move_piece(int from_index, int to_index)
@@ -342,6 +342,12 @@ void Board::move_piece(int from_index, int to_index)
       if(pieces_by_side_type[side_moving][i] & from_mask)
 	{
 	  pieces_by_side_type[side_moving][i] ^= move_mask;
+
+	  if(i == PIECE_PAWN)
+	    {
+	      halfmove_clock = 0;
+	    }
+
 	  break;
 	}
     }
@@ -374,6 +380,8 @@ void Board::move_piece(int from_index, int to_index)
 	      break;
 	    }
 	}
+
+      halfmove_clock = 0;
     }
 }
 
@@ -385,6 +393,14 @@ void Board::start_move(Board &move_out) const
 
   // will be overriden in generate_moves after pawn double advance
   move_out.en_passant_file = -1;
+
+  // will be cleared in generate_moves after pawn moves or captures
+  move_out.halfmove_clock += 1;
+
+  if(side_to_move == SIDE_BLACK)
+    {
+      move_out.fullmove_number += 1;
+    }
 }
 
 bool Board::try_castle(int king_index, int rook_index, Board &move_out) const
@@ -677,7 +693,18 @@ bool Board::is_attacked(Side defending_side, int defending_index) const
   return false;
 }
 
-bool Board::is_in_check(Side defending_side) const
+int Board::count_moves() const
+{
+  Board moves[CHESS_MAX_MOVES];
+  return generate_moves(moves);
+}
+
+bool Board::is_check() const
+{
+  return is_check(side_to_move);
+}
+
+bool Board::is_check(Side defending_side) const
 {
   int king_index = std::countr_zero(pieces_by_side_type[defending_side][PIECE_KING]);
   if(king_index >= 64)
@@ -687,6 +714,65 @@ bool Board::is_in_check(Side defending_side) const
     }
 
   return is_attacked(defending_side, king_index);
+}
+
+bool Board::is_checkmate() const
+{
+  return is_check() && (count_moves() == 0);
+}
+
+bool Board::is_draw() const
+{
+  return is_draw_by_rule() || is_draw_by_material();
+}
+
+bool Board::is_draw_by_material() const
+{
+  int piece_counts[2];
+  for(int s = 0; s < 2; ++s)
+    piece_counts[s] = std::popcount(pieces_by_side[s]);
+
+  if((piece_counts[0] == 1) && (piece_counts[1] == 1))
+    {
+      // king vs king
+      return true;
+    }
+
+  for(int s = 0; s < 2; ++s)
+    {
+      if((piece_counts[s] == 1) &&
+	 (piece_counts[1-s] == 2) &&
+	 pieces_by_side_type[1-s][PIECE_BISHOP])
+	{
+	  // king vs king and bishop
+	  return true;
+	}
+
+      if((piece_counts[s] == 1) &&
+	 (piece_counts[1-s] == 2) &&
+	 pieces_by_side_type[1-s][PIECE_KNIGHT])
+	{
+	  // king vs king and knight
+	  return true;
+	}
+    }
+
+  return false;
+}
+
+bool Board::is_draw_by_rule() const
+{
+  return halfmove_clock >= 100;
+}
+
+bool Board::is_final() const
+{
+  return (count_moves() == 0) || is_draw();
+}
+
+bool Board::is_stalemate() const
+{
+  return !is_check() && (count_moves() == 0);
 }
 
 std::ostream& operator<<(std::ostream& os, const Board& board)
