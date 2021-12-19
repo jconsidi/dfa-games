@@ -64,7 +64,7 @@ int main(int argc, char **argv)
   int depth = (argc > 2) ? atoi(argv[2]) : 4;
 
   Board moves[CHESS_MAX_MOVES];
-  uint64_t num_moves = board.generate_moves(moves);
+  int num_moves = board.generate_moves(moves);
 
   for(int i = 0; i < num_moves; ++i)
     {

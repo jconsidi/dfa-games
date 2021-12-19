@@ -8,7 +8,7 @@ uint64_t perft(const Board& board, int depth)
     return 1;
   
   Board moves[CHESS_MAX_MOVES];
-  uint64_t num_moves = board.generate_moves(moves);
+  int num_moves = board.generate_moves(moves);
   if(depth == 1)
     return num_moves;
 
