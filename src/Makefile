@@ -14,6 +14,9 @@ clean :
 test : all
 	./test_perft
 
+time : all
+	time ./test_perft
+
 divide: divide.o board.o utils.o
 	$(CXX) -o $@ $^
 
