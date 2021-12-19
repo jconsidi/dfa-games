@@ -11,6 +11,64 @@
 // internal static data ////////////////////////////////////
 ////////////////////////////////////////////////////////////
 
+struct BetweenMasks
+{
+  BoardMask masks[64][64] = {{0}};
+
+  BetweenMasks()
+  {
+    for(int i = 0; i < 64; ++i)
+      {
+	int i_rank = i / 8;
+	int i_file = i % 8;
+
+	for(int j = i + 1; j < 64; ++j)
+	  {
+	    int j_rank = j / 8;
+	    int j_file = j % 8;
+
+	    int step = 0;
+
+	    if(j_rank == i_rank)
+	      {
+		// same rank = horizontal move
+		step = 1;
+	      }
+	    else if(j_file == i_file)
+	      {
+		// same file = vertical move
+		step = 8;
+	      }
+	    else if(j_file - i_file == j_rank - i_rank)
+	      {
+		// diagonal to bottom right
+		step = 9;
+	      }
+	    else if(i_file - j_file == j_rank - i_rank)
+	      {
+		// diagonal to bottom left
+		step = 7;
+	      }
+	    else
+	      {
+		// irregular move... so knight
+		continue;
+	      }
+
+	    BoardMask mask = 0ULL;
+	    for(int k = i + step; k < j; k += step)
+	      {
+		mask |= 1ULL << k;
+	      }
+
+	    masks[i][j] = mask;
+	    masks[j][i] = mask;
+	  }
+      }
+  }
+};
+static BetweenMasks between_masks;
+
 struct MoveSet
 {
   BoardMask moves[64];
@@ -241,55 +299,7 @@ bool Board::check_between(int i, int j) const
       throw std::logic_error("check_between called with one square twice");
     }
 
-  // swap if needed for i <= j so directions are constrained.
-  if(i > j)
-    {
-      int temp = i;
-      i = j;
-      j = temp;
-    }
-
-  int i_rank = i / 8;
-  int i_file = i % 8;
-
-  int j_rank = j / 8;
-  int j_file = j % 8;
-
-  int step = 0;
-  if(j_rank == i_rank)
-    {
-      // same rank = horizontal move
-      step = 1;
-    }
-  else if(j_file == i_file)
-    {
-      // same file = vertical move
-      step = 8;
-    }
-  else if(j_file - i_file == j_rank - i_rank)
-    {
-      // diagonal to bottom right
-      step = 9;
-    }
-  else if(i_file - j_file == j_rank - i_rank)
-    {
-      // diagonal to bottom left
-      step = 7;
-    }
-  else
-    {
-      // irregular move... so knight
-      return false;
-    }
-  for(int k = i + step; k < j; k += step)
-    {
-      if(pieces & (1ULL << k))
-	{
-	  return true;
-	}
-    }
-  
-  return false;
+  return (between_masks.masks[i][j] & pieces) != 0;
 }
 
 bool Board::finish_move()
