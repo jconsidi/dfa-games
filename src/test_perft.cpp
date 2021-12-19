@@ -60,6 +60,10 @@ int main()
 
       // Position 6
       test("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", std::vector<uint64_t>({46, 2079, 89890, 3894594}));
+
+      // positions from http://www.rocechess.ch/perft.html
+
+      test("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", std::vector<uint64_t>({24, 496, 9483, 182838, 3605103}));
     }
   catch(std::logic_error e)
     {
