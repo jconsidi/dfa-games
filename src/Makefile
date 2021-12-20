@@ -17,19 +17,19 @@ test : all
 time : all
 	time ./test_perft
 
-divide: divide.o board.o utils.o
+divide: divide.o Board.o utils.o
 	$(CXX) -o $@ $^
 
-generate_moves : generate_moves.o board.o
+generate_moves : generate_moves.o Board.o
 	$(CXX) -o $@ $^
 
-print: print.o board.o utils.o
+print: print.o Board.o utils.o
 	$(CXX) -o $@ $^
 
-random : random.o board.o utils.o
+random : random.o Board.o utils.o
 	$(CXX) -o $@ $^
 
-test_perft : test_perft.o board.o utils.o
+test_perft : test_perft.o Board.o utils.o
 	$(CXX) -o $@ $^
 
 %.o : %.cpp chess.h
