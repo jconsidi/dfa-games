@@ -31,5 +31,3 @@ random : random.o Board.o utils.o
 
 test_perft : test_perft.o Board.o utils.o
 	$(CXX) -o $@ $^
-
-%.o : %.cpp chess.h
