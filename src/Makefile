@@ -17,7 +17,7 @@ test : all
 time : all
 	time ./test_perft
 
-divide: divide.o Board.o utils.o
+divide : divide.o Board.o utils.o
 	$(CXX) -o $@ $^
 
 generate_moves : generate_moves.o Board.o
