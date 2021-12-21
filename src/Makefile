@@ -4,7 +4,7 @@ CXX=g++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20
 
-TARGETS=divide generate_moves random test_perft
+TARGETS=divide generate_moves random random_uci test_perft
 
 all : $(TARGETS)
 
@@ -27,6 +27,9 @@ print: print.o Board.o utils.o
 	$(CXX) -o $@ $^
 
 random : random.o Board.o utils.o
+	$(CXX) -o $@ $^
+
+random_uci : random_uci.o Board.o utils.o
 	$(CXX) -o $@ $^
 
 test_perft : test_perft.o Board.o utils.o
