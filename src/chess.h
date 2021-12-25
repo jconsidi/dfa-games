@@ -1,6 +1,7 @@
 // chess.h
 
 #ifndef CHESS_H
+#define CHESS_H
 
 #include <cstdint>
 #include <iostream>
