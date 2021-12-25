@@ -9,7 +9,7 @@ TARGETS=divide generate_moves random random_uci test_perft
 all : $(TARGETS)
 
 clean :
-	$(RM) $(TARGETS) *.o
+	$(RM) $(TARGETS) *.a *.o
 
 test : all
 	./test_perft
@@ -17,22 +17,25 @@ test : all
 time : all
 	time ./test_perft
 
-divide : divide.o Board.o utils.o
+divide : divide.o chess.a
 	$(CXX) -o $@ $^
 
-generate_moves : generate_moves.o Board.o
+generate_moves : generate_moves.o chess.a
 	$(CXX) -o $@ $^
 
-print: print.o Board.o utils.o
+print: print.o chess.a
 	$(CXX) -o $@ $^
 
-random : random.o Board.o utils.o
+random : random.o chess.a
 	$(CXX) -o $@ $^
 
-random_uci : random_uci.o Board.o utils.o
+random_uci : random_uci.o chess.a
 	$(CXX) -o $@ $^
 
-test_perft : test_perft.o Board.o utils.o
+test_perft : test_perft.o chess.a
 	$(CXX) -o $@ $^
+
+chess.a : Board.o utils.o
+	$(AR) rcs $@ $^
 
 *.o : chess.h
