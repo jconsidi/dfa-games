@@ -11,6 +11,9 @@ all : $(TARGETS)
 clean :
 	$(RM) $(TARGETS) *.a *.o
 
+depend :
+	makedepend -Y -f - -- $(CXXFLAGS) -- *.cpp > .depend 2> /dev/null
+
 test : all
 	./test_perft
 
@@ -38,4 +41,9 @@ test_perft : test_perft.o chess.a
 chess.a : Board.o utils.o
 	$(AR) rcs $@ $^
 
-*.o : chess.h
+############################################################
+# include dependency file if it exists
+
+ifneq ($(wildcard .depend),)
+include .depend
+endif
