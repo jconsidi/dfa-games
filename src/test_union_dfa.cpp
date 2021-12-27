@@ -38,11 +38,11 @@ int main()
 
   try
     {
-      test_pair("count0+count0", count0, count0, count0.size());
-      test_pair("count0+count1", count0, count1, count0.size() + count1.size());
-      test_pair("count1+count0", count1, count0, count0.size() + count1.size());
-      test_pair("count1+count1", count1, count1, count1.size());
-      test_pair("count2+count3", count2, count3, count2.size() + count3.size());
+      test_pair("pair count0+count0", count0, count0, count0.size());
+      test_pair("pair count0+count1", count0, count1, count0.size() + count1.size());
+      test_pair("pair count1+count0", count1, count0, count0.size() + count1.size());
+      test_pair("pair count1+count1", count1, count1, count1.size());
+      test_pair("pair count2+count3", count2, count3, count2.size() + count3.size());
     }
   catch(std::logic_error e)
     {
