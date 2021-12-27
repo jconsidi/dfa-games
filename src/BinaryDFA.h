@@ -5,6 +5,7 @@
 
 #include <map>
 #include <utility>
+#include <vector>
 
 #include "DFA.h"
 
@@ -32,6 +33,7 @@ class BinaryDFA : public DFA
  protected:
   
   BinaryDFA(const DFA&, const DFA&, uint64_t (*)(uint64_t, uint64_t));
+  BinaryDFA(const std::vector<const DFA *>, uint64_t (*)(uint64_t, uint64_t));
 
   uint64_t binary_build(int, uint64_t, uint64_t, BinaryBuildCache&);
 };

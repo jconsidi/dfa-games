@@ -29,6 +29,15 @@ void test_pair(std::string test_name, const DFA& left, const DFA& right, DFA::si
   test_helper(test_name, test_dfa, expected_boards);
 }
 
+void test_vector(std::string test_name, const std::vector<const DFA *> dfas_in, DFA::size_type expected_boards)
+{
+  std::cout << "checking " << test_name << std::endl;
+  std::cout.flush();
+
+  UnionDFA test_dfa(dfas_in);
+  test_helper(test_name, test_dfa, expected_boards);
+}
+
 int main()
 {
   CountDFA count0(0);
@@ -43,6 +52,11 @@ int main()
       test_pair("pair count1+count0", count1, count0, count0.size() + count1.size());
       test_pair("pair count1+count1", count1, count1, count1.size());
       test_pair("pair count2+count3", count2, count3, count2.size() + count3.size());
+
+      test_vector("vector count0", std::vector<const DFA *>({&count0}), count0.size());
+      test_vector("vector count0+count1", std::vector<const DFA *>({&count0, &count1}), count0.size() + count1.size());
+      test_vector("vector count0+count1+count2", std::vector<const DFA *>({&count0, &count1, &count2}), count0.size() + count1.size() + count2.size());
+      test_vector("vector count0+count1+count2+count3", std::vector<const DFA *>({&count0, &count1, &count2, &count3}), count0.size() + count1.size() + count2.size() + count3.size());
     }
   catch(std::logic_error e)
     {
