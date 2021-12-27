@@ -25,9 +25,11 @@ class DFA
 
  public:
 
+  typedef uint64_t size_type;
+
   void debug_counts(std::string) const;
 
-  int size() const;
+  size_type size() const;
 
   friend class BinaryDFA;
 };

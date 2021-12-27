@@ -4,13 +4,13 @@
 
 #include "CountDFA.h"
 
-void test(int num_pieces, uint64_t expected_boards)
+void test(int num_pieces, DFA::size_type expected_boards)
 {
   std::cout << "checking " << num_pieces << " pieces" << std::endl;
   std::cout.flush();
 
   CountDFA test_dfa(num_pieces);
-  int actual_boards = test_dfa.size();
+  DFA::size_type actual_boards = test_dfa.size();
 
   if(actual_boards != expected_boards)
     {

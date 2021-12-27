@@ -6,14 +6,14 @@
 #include "CountDFA.h"
 #include "UnionDFA.h"
 
-void test(std::string test_name, const DFA& left, const DFA& right, uint64_t expected_boards)
+void test(std::string test_name, const DFA& left, const DFA& right, DFA::size_type expected_boards)
 {
   std::cout << "checking " << test_name << std::endl;
   std::cout.flush();
   
   UnionDFA test_dfa(left, right);
   
-  uint64_t actual_boards = test_dfa.size();
+  DFA::size_type actual_boards = test_dfa.size();
   std::cout << left.size() << " + " << right.size() << " => " << actual_boards << std::endl;
   std::cout.flush();
 
