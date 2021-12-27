@@ -23,6 +23,8 @@ class DFA
 
  public:
 
+  void debug_counts(std::string) const;
+
   int size() const;
 };
 

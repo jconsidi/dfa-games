@@ -66,6 +66,22 @@ int DFA::add_state(int layer, uint64_t next_states[DFA_MAX])
   return new_state;
 }
 
+void DFA::debug_counts(std::string debug_name) const
+{
+  for(int layer = 0; layer < 63; ++layer)
+    {
+      std::cerr << debug_name << " counts: layer " << layer << ": " << state_counts[layer][0];
+      for(int state = 1; state < state_counts[layer].size(); ++state)
+	{
+	  std::cerr << ", " << state_counts[layer][state];
+	}
+      std::cerr << std::endl;
+    }
+  std::cerr << std::endl;
+
+  std::cerr.flush();
+}
+
 int DFA::size() const
 {
   return state_counts[0][0];
