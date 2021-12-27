@@ -17,11 +17,11 @@ class DFA
 
  protected:
 
+  DFA();
+
   int add_state(int layer, uint64_t next_states[DFA_MAX]);
 
  public:
-
-  DFA();
 
   int size() const;
 };
