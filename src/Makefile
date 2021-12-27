@@ -4,7 +4,7 @@ CXX=g++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20
 
-TARGETS=divide generate_moves random random_uci test_count_dfa test_perft
+TARGETS=divide generate_moves random random_uci test_count_dfa test_union_dfa test_perft
 
 all : $(TARGETS)
 
@@ -16,6 +16,7 @@ depend :
 
 test : all
 	./test_count_dfa
+	./test_union_dfa
 	./test_perft
 
 time : all
@@ -39,10 +40,13 @@ random_uci : random_uci.o chess.a
 test_count_dfa : test_count_dfa.o chess.a
 	$(CXX) -o $@ $^
 
+test_union_dfa : test_union_dfa.o chess.a
+	$(CXX) -o $@ $^
+
 test_perft : test_perft.o chess.a
 	$(CXX) -o $@ $^
 
-chess.a : Board.o CountDFA.o DFA.o utils.o
+chess.a : BinaryDFA.o Board.o CountDFA.o DFA.o UnionDFA.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################
