@@ -51,7 +51,7 @@ int DFA::add_state(int layer, uint64_t next_states[DFA_MAX])
 
   // add new state
 
-  int new_state = state_counts[layer].size() / DFA_MAX;
+  int new_state = state_counts[layer].size();
   uint64_t new_count = 0;
   for(int i = 0; i < DFA_MAX; ++i)
     {
@@ -60,7 +60,8 @@ int DFA::add_state(int layer, uint64_t next_states[DFA_MAX])
     }
   state_counts[layer].push_back(new_count);
 
-  assert(state_transitions[layer].size() == state_counts[layer].size() * DFA_MAX);
+  assert(state_counts[layer].size() == new_state + 1);
+  assert(state_transitions[layer].size() == (new_state + 1) * DFA_MAX);
 
   return new_state;
 }
