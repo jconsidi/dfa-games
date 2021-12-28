@@ -29,6 +29,7 @@ class DFA
 
   void debug_counts(std::string) const;
 
+  bool ready() const;
   size_type size() const;
   size_type states() const;
 

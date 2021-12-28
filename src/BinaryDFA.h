@@ -24,6 +24,14 @@ BinaryBuildCache(const DFA& left_in, const DFA& right_in, uint64_t (*leaf_func_i
     right(right_in),
     leaf_func(leaf_func_in)
   {
+    if(!left_in.ready())
+      {
+	throw std::logic_error("left DFA is not ready");
+      }
+    if(!right_in.ready())
+      {
+	throw std::logic_error("right DFA is not ready");
+      }
   }
 };
 

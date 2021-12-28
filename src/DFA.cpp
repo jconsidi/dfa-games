@@ -82,6 +82,11 @@ void DFA::debug_counts(std::string debug_name) const
   std::cerr.flush();
 }
 
+bool DFA::ready() const
+{
+  return state_counts[0].size() != 0;
+}
+
 DFA::size_type DFA::size() const
 {
   return state_counts[0][0];
