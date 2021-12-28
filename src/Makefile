@@ -1,8 +1,8 @@
 # Makefile
 
-CXX=g++
+CXX=c++
 
-CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20
+CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g
 
 TARGETS=divide generate_moves random random_uci test_count_dfa test_union_dfa test_perft
 
