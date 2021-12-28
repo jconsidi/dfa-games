@@ -46,7 +46,7 @@ test_union_dfa : test_union_dfa.o chess.a
 test_perft : test_perft.o chess.a
 	$(CXX) -o $@ $^
 
-chess.a : BinaryDFA.o Board.o CountDFA.o DFA.o UnionDFA.o utils.o
+chess.a : BinaryDFA.o Board.o CountDFA.o DFA.o MoveSet.o UnionDFA.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################
