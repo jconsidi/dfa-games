@@ -7,11 +7,12 @@
 #include <ctype.h>
 #include <iostream>
 
+#include "Side.h"
+
 #define CHESS_MAX_MOVES 256
 
 typedef uint64_t BoardMask;
 enum Piece {PIECE_KING, PIECE_QUEEN, PIECE_BISHOP, PIECE_KNIGHT, PIECE_ROOK, PIECE_PAWN, PIECE_MAX};
-enum Side {SIDE_WHITE, SIDE_BLACK};
 
 class Board
 {

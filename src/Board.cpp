@@ -235,7 +235,7 @@ bool Board::finish_move()
   
   // make sure move was not into check or staying in check
 
-  Side side_just_moved = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
+  Side side_just_moved = side_flip(side_to_move);
   return !(is_check(side_just_moved));
 }
 
@@ -244,7 +244,7 @@ void Board::move_piece(int from_index, int to_index)
   const BoardMask from_mask = 1ULL << from_index;
   const BoardMask to_mask = 1ULL << to_index;
 
-  Side side_moving = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
+  Side side_moving = side_flip(side_to_move);
   if(!(pieces_by_side[side_moving] & from_mask))
     {
       throw std::logic_error("tried to move without side piece");
@@ -312,7 +312,7 @@ void Board::start_move(Board &move_out) const
 {
   move_out = *this;
 
-  move_out.side_to_move = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
+  move_out.side_to_move = side_flip(side_to_move);
 
   // will be overriden in generate_moves after pawn double advance
   move_out.en_passant_file = -1;
@@ -383,7 +383,7 @@ bool Board::try_move(int from, int to, Board &move_out) const
 
 int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 {
-  Side side_not_to_move = (side_to_move == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
+  Side side_not_to_move = side_flip(side_to_move);
 
   int move_count = 0;
   for(int from_index = 0; from_index < 64; ++from_index)
@@ -586,7 +586,7 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 
 bool Board::is_attacked(Side defending_side, int defending_index) const
 {
-  Side attacking_side = defending_side == SIDE_WHITE ? SIDE_BLACK : SIDE_WHITE;
+  Side attacking_side = side_flip(defending_side);
 
   // identify pieces that could attack if not blocked
   BoardMask attacking_mask = 0ULL;
