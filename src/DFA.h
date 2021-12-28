@@ -30,6 +30,7 @@ class DFA
   void debug_counts(std::string) const;
 
   size_type size() const;
+  size_type states() const;
 
   friend class BinaryDFA;
 };

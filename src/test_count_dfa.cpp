@@ -19,6 +19,8 @@ void test(int num_pieces, DFA::size_type expected_boards)
 
       throw std::logic_error("CountDFA construction failed");
     }
+
+  std::cout << " used " << test_dfa.states() << " states" << std::endl;
 }
 
 int main()

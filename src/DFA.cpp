@@ -86,3 +86,17 @@ DFA::size_type DFA::size() const
 {
   return state_counts[0][0];
 }
+
+DFA::size_type DFA::states() const
+{
+  DFA::size_type states_out = 0;
+
+  for(int layer = 0; layer < 63; ++layer)
+    {
+      states_out += state_counts[layer].size();
+    }
+
+  // ignoring states implied by masks in last layer
+
+  return states_out;
+}
