@@ -13,18 +13,31 @@ enum DFACharacter {DFA_BLANK, DFA_WHITE_KING, DFA_WHITE_QUEEN, DFA_WHITE_BISHOP,
 class BinaryDFA;
 class InverseDFA;
 
+struct DFAState
+{
+  uint64_t transitions[DFA_MAX];
+
+  inline DFAState(const uint64_t transitions_in[DFA_MAX])
+  {
+    for(int i = 0; i < DFA_MAX; ++i)
+      {
+	transitions[i] = transitions_in[i];
+      }
+  }
+};
+
 class DFA
 {
   // 63 layers mapping (state, square contents) -> next state.
   // 64th state is a bitmap of accepted square contents.
   std::vector<uint64_t> state_counts[63] = {{}};
-  std::vector<uint64_t> state_transitions[63] = {{}};
+  std::vector<DFAState> state_transitions[63] = {{}};
 
  protected:
 
   DFA();
 
-  int add_state(int layer, uint64_t next_states[DFA_MAX]);
+  int add_state(int layer, const uint64_t next_states[DFA_MAX]);
 
  public:
 

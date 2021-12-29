@@ -27,7 +27,7 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
 	  state_counts[layer] = source->state_counts[layer];
 	  state_transitions[layer] = source->state_transitions[layer];
 
-	  assert(state_transitions[layer].size() == state_counts[layer].size() * DFA_MAX);
+	  assert(state_transitions[layer].size() == state_counts[layer].size());
 	}
 
       return;
@@ -74,8 +74,8 @@ uint64_t BinaryDFA::binary_build(int layer, uint64_t left_state, uint64_t right_
   for(int i = 0; i < DFA_MAX; ++i)
     {
       transitions[i] = binary_build(layer + 1,
-				    cache.left.state_transitions[layer][left_state * DFA_MAX + i],
-				    cache.right.state_transitions[layer][right_state * DFA_MAX + i],
+				    cache.left.state_transitions[layer][left_state].transitions[i],
+				    cache.right.state_transitions[layer][right_state].transitions[i],
 				    cache);
     }
 

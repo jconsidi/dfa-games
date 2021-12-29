@@ -11,7 +11,7 @@ DFA::DFA()
 {
 }
 
-int DFA::add_state(int layer, uint64_t next_states[DFA_MAX])
+int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
 {
   if(layer == 0)
     {
@@ -56,12 +56,12 @@ int DFA::add_state(int layer, uint64_t next_states[DFA_MAX])
   for(int i = 0; i < DFA_MAX; ++i)
     {
       new_count += (layer < 62) ? state_counts[layer+1][next_states[i]] : std::popcount(next_states[i]);
-      state_transitions[layer].push_back(next_states[i]);
     }
   state_counts[layer].push_back(new_count);
+  state_transitions[layer].emplace_back(next_states);
 
   assert(state_counts[layer].size() == new_state + 1);
-  assert(state_transitions[layer].size() == (new_state + 1) * DFA_MAX);
+  assert(state_transitions[layer].size() == (new_state + 1));
 
   return new_state;
 }
