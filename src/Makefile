@@ -4,7 +4,7 @@ CXX=c++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g
 
-TARGETS=divide generate_moves random random_uci test_count_dfa test_union_dfa test_perft
+TARGETS=divide generate_moves prototype random random_uci test_count_dfa test_union_dfa test_perft
 
 all : $(TARGETS)
 
@@ -31,6 +31,9 @@ generate_moves : generate_moves.o chess.a
 print: print.o chess.a
 	$(CXX) -o $@ $^
 
+prototype: prototype.o chess.a
+	$(CXX) -o $@ $^
+
 random : random.o chess.a
 	$(CXX) -o $@ $^
 
@@ -46,7 +49,7 @@ test_union_dfa : test_union_dfa.o chess.a
 test_perft : test_perft.o chess.a
 	$(CXX) -o $@ $^
 
-chess.a : BinaryDFA.o Board.o CountDFA.o DFA.o IntersectionDFA.o MoveSet.o UnionDFA.o utils.o
+chess.a : AcceptDFA.o BinaryDFA.o Board.o CheckDFA.o CountDFA.o DFA.o ForcedDFA.o IntersectionDFA.o InverseDFA.o MoveSet.o PreviousDFA.o UnionDFA.o Singleton.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################

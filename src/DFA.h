@@ -9,6 +9,7 @@
 enum DFACharacter {DFA_BLANK, DFA_WHITE_KING, DFA_WHITE_QUEEN, DFA_WHITE_BISHOP, DFA_WHITE_KNIGHT, DFA_WHITE_ROOK, DFA_WHITE_PAWN, DFA_BLACK_KING, DFA_BLACK_QUEEN, DFA_BLACK_BISHOP, DFA_BLACK_KNIGHT, DFA_BLACK_ROOK, DFA_BLACK_PAWN, DFA_MAX};
 
 class BinaryDFA;
+class InverseDFA;
 
 class DFA
 {
@@ -34,6 +35,7 @@ class DFA
   size_type states() const;
 
   friend class BinaryDFA;
+  friend class InverseDFA;
 };
 
 #endif
