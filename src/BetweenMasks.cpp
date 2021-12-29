@@ -54,4 +54,4 @@ BetweenMasks::BetweenMasks()
     }
 }
 
-BetweenMasks between_masks;
+const BetweenMasks between_masks;

@@ -12,6 +12,6 @@ struct BetweenMasks
   BetweenMasks();
 };
 
-extern BetweenMasks between_masks;
+extern const BetweenMasks between_masks;
 
 #endif
