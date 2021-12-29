@@ -87,7 +87,7 @@ Board::Board(const char *fen_string)
 	{
 	case ' ':
 	  throw std::invalid_argument("found space before end of board squares");
-	  
+
 	case '/':
 	  // spot check that we are at the end of a row.
 	  if(bit_index % 8 != 0)
@@ -232,7 +232,7 @@ bool Board::finish_move()
   pieces = pieces_by_side[SIDE_WHITE] | pieces_by_side[SIDE_BLACK];
 
   castling_availability &= pieces_by_side_type[SIDE_WHITE][PIECE_ROOK] | pieces_by_side_type[SIDE_BLACK][PIECE_ROOK];
-  
+
   // make sure move was not into check or staying in check
 
   Side side_just_moved = side_flip(side_to_move);
@@ -258,7 +258,7 @@ void Board::move_piece(int from_index, int to_index)
   // bit and turn on "to" bit.
 
   const BoardMask move_mask = from_mask ^ to_mask;
-  
+
   pieces_by_side[side_moving] ^= move_mask;
   for(int i = 0; i < PIECE_MAX; ++i)
     {
@@ -368,7 +368,7 @@ bool Board::try_move(int from, int to, Board &move_out) const
       // piece between blocking this move.
       return false;
     }
-  
+
   start_move(move_out);
   move_out.move_piece(from, to);
 

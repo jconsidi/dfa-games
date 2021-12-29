@@ -11,7 +11,7 @@ void test(const char *fen, std::vector<uint64_t> expected_outputs)
   Board board(fen);
   std::cout << "checking " << fen << std::endl;
   std::cout.flush();
-  
+
   for(int i = 0; i < expected_outputs.size(); ++i)
     {
       int depth = i + 1;
@@ -70,6 +70,6 @@ int main()
       std::cerr << e.what() << std::endl;
       return 1;
     }
-  
+
   return 0;
 }

@@ -39,7 +39,7 @@ BinaryBuildCache(const DFA& left_in, const DFA& right_in, uint64_t (*leaf_func_i
 class BinaryDFA : public DFA
 {
  protected:
-  
+
   BinaryDFA(const DFA&, const DFA&, uint64_t (*)(uint64_t, uint64_t));
   BinaryDFA(const std::vector<const DFA *>, uint64_t (*)(uint64_t, uint64_t));
 

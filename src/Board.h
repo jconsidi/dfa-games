@@ -33,7 +33,7 @@ class Board
   void start_move(Board &move_out) const;
   bool try_castle(int king_index, int rook_index, Board &move_out) const;
   bool try_move(int from_index, int to_index, Board &move_out) const;
-  
+
  public:
   Board() {}
   Board(const char *fen_string);
@@ -49,7 +49,7 @@ class Board
   bool is_draw_by_rule() const;
   bool is_final() const;
   bool is_stalemate() const;
-  
+
   friend std::ostream& operator<<(std::ostream& os, const Board& board);
   friend std::string uci_move(const Board& before, const Board& after);
 };

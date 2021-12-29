@@ -59,7 +59,7 @@ int main()
 	{
 	  // would start thinking thread for a real player here.
 	  std::cout << "bestmove " << pick_move(board) << std::endl;
-	  std::cout.flush();	  
+	  std::cout.flush();
 	  continue;
 	}
 
@@ -79,7 +79,7 @@ int main()
       std::cerr << "UNRECOGNIZED INPUT: --" << line << "--" << std::endl;
       std::cerr.flush();
     }
-  
+
   return 0;
 }
 
@@ -97,7 +97,7 @@ Board apply_moves(const Board& board, std::string uci_string)
 	    {
 	      uci_vector.push_back(uci_string.substr(offset1, offset2 - offset1));
 	    }
-	  
+
 	  offset1 = offset2 + 1;
 	}
     }

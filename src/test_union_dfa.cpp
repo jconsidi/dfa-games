@@ -15,7 +15,7 @@ void test_helper(std::string test_name, const DFA& test_dfa, DFA::size_type expe
 
       std::cerr << test_name << ": expected " << expected_boards << std::endl;
       std::cerr << test_name << ":   actual " << actual_boards << std::endl;
-      
+
       throw std::logic_error("UnionDFA construction failed");
     }
 }
@@ -63,6 +63,6 @@ int main()
       std::cerr << e.what() << std::endl;
       return 1;
     }
-  
+
   return 0;
 }

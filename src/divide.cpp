@@ -23,6 +23,6 @@ int main(int argc, char **argv)
     {
       std::cout << uci_move(board, moves[i]) << " " << perft(moves[i], depth - 1) << std::endl;
     }
-  
+
   return 0;
 }
