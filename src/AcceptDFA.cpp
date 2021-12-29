@@ -10,7 +10,7 @@ AcceptDFA::AcceptDFA()
 
   for(int i = 0; i < DFA_MAX; ++i)
     {
-      next_states[i] = (1 << DFA_MAX) - 1;
+      next_states[i] = DFA_MASK_ACCEPT_ALL;
     }
   add_state(62, next_states);
 

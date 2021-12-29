@@ -34,7 +34,7 @@ CountDFA::CountDFA(int num_pieces)
 	next_states[0] = 0; // cannot be no piece
 	for(int j = 1; j < DFA_MAX; ++j)
 	  {
-	    next_states[j] = (1 << DFA_MAX) - 2; // anything but no piece
+	    next_states[j] = DFA_MASK_ACCEPT_ALL ^ (1ULL << DFA_BLANK); // anything but no piece
 	}
 	add_state(layer, next_states);
       }
@@ -42,7 +42,7 @@ CountDFA::CountDFA(int num_pieces)
     if(num_pieces >= 1)
       {
 	// k = num_pieces - 1: need exactly one square to have a piece
-	next_states[0] = (1 << DFA_MAX) - 2; // anything but no piece
+	next_states[0] = DFA_MASK_ACCEPT_ALL ^ (1ULL << DFA_BLANK); // anything but no piece
 	for(int j = 1; j < DFA_MAX; ++j)
 	  {
 	    next_states[j] = 1; // must be no piece

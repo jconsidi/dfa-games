@@ -12,7 +12,7 @@ InverseDFA::InverseDFA(const DFA& dfa_in)
       uint64_t inverted_states[DFA_MAX];
       for(int i = 0; i < DFA_MAX; ++i)
 	{
-	  inverted_states[i] = mask_transitions[state_offset + i] ^ ((1 << DFA_MAX) - 1);
+	  inverted_states[i] = mask_transitions[state_offset + i] ^ DFA_MASK_ACCEPT_ALL;
 	}
 
       add_state(62, inverted_states);
