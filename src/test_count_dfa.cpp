@@ -30,6 +30,7 @@ int main()
       test(0, 1);
       test(1, 12 * 64);
       test(2, (12 * 12) * (64 * 63 / 2));
+      test(3, (12 * 12 * 12) * (64 * 63 * 62 / 3 / 2));
     }
   catch(std::logic_error e)
     {
