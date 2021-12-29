@@ -5,6 +5,7 @@
 // 1+k = k pieces in previous squares.
 
 #include <iostream>
+#include <vector>
 
 #include "CountDFA.h"
 
@@ -18,6 +19,11 @@ CountDFA::CountDFA(int num_pieces)
       add_state(layer, next_states);
     }
 
+  // current layer states
+
+  std::vector<uint64_t> current_layer_states;
+  current_layer_states.push_back(0); // reject
+
   // penultimate square
   {
     int layer = 62;
@@ -25,7 +31,7 @@ CountDFA::CountDFA(int num_pieces)
     for(int k = 0; k < num_pieces - 2; ++k)
       {
 	// cannot get enough pieces
-	add_state(62, next_states);
+	current_layer_states.push_back(add_state(62, next_states));
       }
 
     if(num_pieces >= 2)
@@ -36,7 +42,7 @@ CountDFA::CountDFA(int num_pieces)
 	  {
 	    next_states[j] = DFA_MASK_ACCEPT_ALL ^ (1ULL << DFA_BLANK); // anything but no piece
 	}
-	add_state(layer, next_states);
+	current_layer_states.push_back(add_state(layer, next_states));
       }
 
     if(num_pieces >= 1)
@@ -47,7 +53,7 @@ CountDFA::CountDFA(int num_pieces)
 	  {
 	    next_states[j] = 1; // must be no piece
 	  }
-	add_state(layer, next_states);
+	current_layer_states.push_back(add_state(layer, next_states));
       }
 
     // k = num_pieces: no more pieces allowed
@@ -56,32 +62,36 @@ CountDFA::CountDFA(int num_pieces)
       {
 	next_states[j] = 0; // got a piece so reject
       }
-    add_state(layer, next_states);
+    current_layer_states.push_back(add_state(layer, next_states));
   }
 
   // build rest of layers backwards
 
   for(int layer = 61; layer >= 0; --layer)
     {
+      std::vector<uint64_t> previous_layer_states = current_layer_states;
+      current_layer_states.clear();
+      current_layer_states.push_back(0); // reject
+
       for(int previous_pieces = 0; previous_pieces < num_pieces && previous_pieces <= layer; ++previous_pieces)
 	{
-	  next_states[0] = previous_pieces + 1; // skip reject state
+	  next_states[0] = previous_layer_states[previous_pieces + 1]; // skip reject state
 	  for(int j = 1; j < DFA_MAX; ++j)
 	    {
-	      next_states[j] = previous_pieces + 1 + 1; // skip reject state, increment count
+	      next_states[j] = previous_layer_states[previous_pieces + 1 + 1]; // skip reject state, increment count
 	    }
-	  add_state(layer, next_states);
+	  current_layer_states.push_back(add_state(layer, next_states));
 	}
 
       if(layer >= num_pieces)
 	{
 	  // at piece limit
-	  next_states[0] = num_pieces + 1; // skip reject state
+	  next_states[0] = previous_layer_states[num_pieces + 1]; // skip reject state
 	  for(int j = 1; j < DFA_MAX; ++j)
 	    {
-	      next_states[j] = 0; // over piece limit
+	      next_states[j] = previous_layer_states[0]; // over piece limit
 	    }
-	  add_state(layer, next_states);
+	  current_layer_states.push_back(add_state(layer, next_states));
 	}
     }
 }
