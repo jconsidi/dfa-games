@@ -3,15 +3,14 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include <cstdint>
 #include <ctype.h>
 #include <iostream>
 
+#include "BoardMask.h"
 #include "Side.h"
 
 #define CHESS_MAX_MOVES 256
 
-typedef uint64_t BoardMask;
 enum Piece {PIECE_KING, PIECE_QUEEN, PIECE_BISHOP, PIECE_KNIGHT, PIECE_ROOK, PIECE_PAWN, PIECE_MAX};
 
 class Board
