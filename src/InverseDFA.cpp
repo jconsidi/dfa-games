@@ -28,6 +28,7 @@ InverseDFA::InverseDFA(const DFA& dfa_in)
 	    {
 	      copied_states[i] = layer_transitions[state_offset + i];
 	    }
+	  add_state(layer, copied_states);
 	}
     }
 }
