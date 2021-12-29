@@ -14,6 +14,7 @@ class Singleton
 
   static const DFA *get_check(Side);
   static const DFA *get_has_moves(Side);
+  static const DFA *get_threat(Side, int);
 };
 
 #endif

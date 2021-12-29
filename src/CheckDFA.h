@@ -5,9 +5,12 @@
 
 #include "DFA.h"
 #include "Side.h"
+#include "UnionDFA.h"
 
-class CheckDFA : public DFA
+class CheckDFA : public UnionDFA
 {
+  static std::vector<const DFA *> get_king_threats(Side);
+
  public:
   CheckDFA(Side);
 };
