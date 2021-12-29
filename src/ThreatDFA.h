@@ -3,11 +3,15 @@
 #ifndef THREAT_DFA_H
 #define THREAT_DFA_H
 
-#include "DFA.h"
-#include "Side.h"
+#include <vector>
 
-class ThreatDFA : public DFA
+#include "Side.h"
+#include "UnionDFA.h"
+
+class ThreatDFA : public UnionDFA
 {
+  static std::vector<const DFA *> get_threats(Side threatened_side, int threatened_square);
+
  public:
 
   ThreatDFA(Side, int);
