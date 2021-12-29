@@ -4,6 +4,7 @@
 #define DFA_H
 
 #include <cstdint>
+#include <map>
 #include <vector>
 
 enum DFACharacter {DFA_BLANK, DFA_WHITE_KING, DFA_WHITE_QUEEN, DFA_WHITE_BISHOP, DFA_WHITE_KNIGHT, DFA_WHITE_ROOK, DFA_WHITE_PAWN, DFA_BLACK_KING, DFA_BLACK_QUEEN, DFA_BLACK_BISHOP, DFA_BLACK_KNIGHT, DFA_BLACK_ROOK, DFA_BLACK_PAWN, DFA_MAX};
@@ -26,12 +27,36 @@ struct DFAState
   }
 };
 
+struct DFAStateCompare
+{
+  bool operator() (const DFAState& left, const DFAState& right) const
+  {
+    for(int i = 0; i < DFA_MAX; ++i)
+      {
+	if(left.transitions[i] < right.transitions[i])
+	  {
+	    return true;
+	  }
+	else if(left.transitions[i] > right.transitions[i])
+	  {
+	    return false;
+	  }
+      }
+
+    return false;
+  }
+};
+
+typedef std::map<DFAState, uint64_t, DFAStateCompare> DFAStateMap;
+
 class DFA
 {
   // 63 layers mapping (state, square contents) -> next state.
   // 64th state is a bitmap of accepted square contents.
   std::vector<uint64_t> state_counts[63] = {{}};
   std::vector<DFAState> state_transitions[63] = {{}};
+
+  DFAStateMap *state_lookup;
 
  protected:
 
@@ -40,6 +65,8 @@ class DFA
   int add_state(int layer, const uint64_t next_states[DFA_MAX]);
 
  public:
+
+  ~DFA();
 
   typedef uint64_t size_type;
 

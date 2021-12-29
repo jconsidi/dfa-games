@@ -8,11 +8,27 @@
 #include "DFA.h"
 
 DFA::DFA()
+  : state_lookup(new DFAStateMap[63])
 {
+  for(int layer = 0; layer < 63; ++layer)
+    {
+
+    }
+}
+
+DFA::~DFA()
+{
+  if(state_lookup)
+    {
+      delete[] state_lookup;
+      state_lookup = 0;
+    }
 }
 
 int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
 {
+  assert(state_lookup);
+
   if(layer == 0)
     {
       // only one initial state allowed
@@ -20,6 +36,9 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
 	{
 	  throw std::logic_error("tried to add second initial state");
 	}
+
+      delete[] state_lookup;
+      state_lookup = 0;
     }
 
   // state range checks
@@ -30,10 +49,7 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
       int next_layer_size = state_counts[layer + 1].size();
       for(int i = 0; i < DFA_MAX; ++i)
 	{
-	  if(next_states[i] >= next_layer_size)
-	    {
-	      throw std::logic_error("non-existent state");
-	    }
+	  assert(next_states[i] < next_layer_size);
 	}
     }
   else
@@ -42,10 +58,19 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
       int max_state = 1 << DFA_MAX;
       for(int i = 0; i < DFA_MAX; ++i)
 	{
-	  if(next_states[i] >= max_state)
-	    {
-	      throw std::logic_error("invalid state bitmap");
-	    }
+	  assert(next_states[i] < max_state);
+	}
+    }
+
+  // check if state already exists
+
+  DFAState state_key(next_states);
+
+  if(layer > 0)
+    {
+      if(state_lookup[layer].count(state_key))
+	{
+	  return state_lookup[layer][state_key];
 	}
     }
 
@@ -62,6 +87,11 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
 
   assert(state_counts[layer].size() == new_state + 1);
   assert(state_transitions[layer].size() == (new_state + 1));
+
+  if(layer > 0)
+    {
+      state_lookup[layer][state_key] = new_state;
+    }
 
   return new_state;
 }
