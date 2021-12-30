@@ -4,9 +4,9 @@
 
 #include <iostream>
 
+#include "CountCharacterDFA.h"
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
-#include "InverseDFA.h"
 #include "ThreatDFA.h"
 
 std::vector<const DFA *> CheckDFA::get_king_threats(Side side_in_check)
@@ -15,19 +15,6 @@ std::vector<const DFA *> CheckDFA::get_king_threats(Side side_in_check)
 
   DFACharacter king_character = (side_in_check == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
-  // filters to limit to one king that could be checked.
-  //
-  // MAYBE: make the usage of these more efficient, but this is pretty
-  // cheap already and downstream will be cached.
-  static const DFA *not_kings[2][64] = {{0}};
-  for(int square = 0; square < 64; ++square)
-    {
-      if(not_kings[side_in_check][square] == 0)
-	{
-	  not_kings[side_in_check][square] = new InverseDFA(FixedDFA(square, king_character));
-	}
-    }
-
   std::vector<const DFA *> output;
   for(int square = 0; square < 64; ++square)
     {
@@ -35,19 +22,12 @@ std::vector<const DFA *> CheckDFA::get_king_threats(Side side_in_check)
 	{
 	  ThreatDFA square_threat(side_in_check, square);
 	  FixedDFA square_king(square, king_character);
+	  CountCharacterDFA one_king(king_character, 1);
 
 	  std::vector<const DFA*> threat_conditions;
 	  threat_conditions.push_back(&square_threat);
 	  threat_conditions.push_back(&square_king);
-
-	  // add conditions to block multiple kings
-	  for(int other_square = 0; other_square < 64; ++other_square)
-	    {
-	      if(other_square != square)
-		{
-		  threat_conditions.push_back(not_kings[side_in_check][other_square]);
-		}
-	    }
+	  threat_conditions.push_back(&one_king);
 
 	  king_threats[side_in_check][square] = new IntersectionDFA(threat_conditions);
 	}
