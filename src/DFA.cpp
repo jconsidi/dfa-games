@@ -100,6 +100,11 @@ void DFA::debug_counts(std::string debug_name) const
 {
   for(int layer = 0; layer < 63; ++layer)
     {
+      if(!state_counts[layer].size())
+	{
+	  continue;
+	}
+
       std::cerr << debug_name << " counts: layer " << layer << ": " << state_counts[layer][0];
       for(int state = 1; state < state_counts[layer].size(); ++state)
 	{
