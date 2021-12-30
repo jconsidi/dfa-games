@@ -4,6 +4,8 @@
 
 #include <assert.h>
 
+#include <iostream>
+
 BinaryDFA::BinaryDFA(const DFA& left_in, const DFA& right_in, uint64_t (*leaf_func)(uint64_t, uint64_t))
   : DFA()
 {
@@ -13,47 +15,84 @@ BinaryDFA::BinaryDFA(const DFA& left_in, const DFA& right_in, uint64_t (*leaf_fu
 
 BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_func)(uint64_t, uint64_t))
 {
-  if(dfas_in.size() <= 0)
+  switch(dfas_in.size())
     {
-      throw std::logic_error("zero dfas passed to BinaryDFA vector constructor");
+    case 0:
+      {
+	throw std::logic_error("zero dfas passed to BinaryDFA vector constructor");
+      }
+
+    case 1:
+      {
+	// copy singleton input
+	const DFA *source = dfas_in[0];
+	for(int layer = 62; layer >= 0; --layer)
+	  {
+	    state_counts[layer] = source->state_counts[layer];
+	    state_transitions[layer] = source->state_transitions[layer];
+
+	    assert(state_transitions[layer].size() == state_counts[layer].size());
+	  }
+	return;
+      }
+
+    case 2:
+      {
+	// simple binary merge
+	BinaryBuildCache cache(*(dfas_in[0]), *(dfas_in[1]), leaf_func);
+	binary_build(0, 0, 0, cache);
+	return;
+      }
+
+    case 3:
+      {
+	// two binary merges
+	BinaryDFA temp(*(dfas_in[0]), *(dfas_in[1]), leaf_func);
+
+	BinaryBuildCache cache(temp, *(dfas_in[2]), leaf_func);
+	binary_build(0, 0, 0, cache);
+	return;
+      }
     }
 
-  if(dfas_in.size() == 1)
+  // four or more DFAs. will merge and rollover into a temp
+  // vector. then keep popping off two DFAs from the front and merging
+  // onto the end. last merge becomes this DFA.
+
+  std::vector<BinaryDFA> dfas_temp;
+  for(int i = 0; i < dfas_in.size() - 1; i += 2)
     {
-      // copy singleton input
-      const DFA *source = dfas_in[0];
-      for(int layer = 62; layer >= 0; --layer)
-	{
-	  state_counts[layer] = source->state_counts[layer];
-	  state_transitions[layer] = source->state_transitions[layer];
-
-	  assert(state_transitions[layer].size() == state_counts[layer].size());
-	}
-
-      return;
+      dfas_temp.emplace_back(*(dfas_in[i]),*(dfas_in[i + 1]), leaf_func);
+      std::cerr << "  early merge had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
+    }
+  int next_merge = 0;
+  if(dfas_in.size() % 2)
+    {
+      dfas_temp.emplace_back(*(dfas_in[dfas_in.size() - 1]), dfas_temp[0], leaf_func);
+      next_merge = 1;
+      // LATER: drop temp DFA internals
+      std::cerr << "  odd merge had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
     }
 
-  if(dfas_in.size() == 2)
+  std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining" << std::endl;
+  while(next_merge + 2 < dfas_temp.size())
     {
-      BinaryBuildCache cache(*(dfas_in[0]), *(dfas_in[1]), leaf_func);
-      binary_build(0, 0, 0, cache);
-      return;
+      dfas_temp.emplace_back(dfas_temp[next_merge], dfas_temp[next_merge + 1], leaf_func);
+      next_merge += 2;
+      // LATER: drop temp DFA internals
+      std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining, last merge had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
     }
 
-  // more than two input dfas. merge first two, then add the rest one
-  // at a time. the last one will be this DFA.
+  assert(dfas_temp.size() - next_merge == 2);
 
-  BinaryDFA *previous_dfa = new BinaryDFA(*(dfas_in[0]), *(dfas_in[1]), leaf_func);
-  for(int i = 2; i < dfas_in.size() - 1; ++i)
-    {
-      BinaryDFA *next_dfa = new BinaryDFA(*previous_dfa, *(dfas_in[i]), leaf_func);
-      delete previous_dfa;
-      previous_dfa = next_dfa;
-    }
-
-  // merge penultimate result with last input DFA.
-  BinaryBuildCache cache(*previous_dfa, *(dfas_in[dfas_in.size() - 1]), leaf_func);
+  // merge last two into the final DFA
+  BinaryBuildCache cache(dfas_temp[next_merge], dfas_temp[next_merge + 1], leaf_func);
   binary_build(0, 0, 0, cache);
+
+  if(states() >= 1 << 10)
+    {
+      std::cerr << "  final merged has " << states() << " states" << std::endl;
+    }
 }
 
 uint64_t BinaryDFA::binary_build(int layer, uint64_t left_state, uint64_t right_state, BinaryBuildCache& cache)
