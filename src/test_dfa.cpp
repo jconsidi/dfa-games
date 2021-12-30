@@ -4,6 +4,7 @@
 #include <string>
 
 #include "CountDFA.h"
+#include "IntersectionDFA.h"
 #include "UnionDFA.h"
 
 void test_helper(std::string test_name, const DFA& test_dfa, DFA::size_type expected_boards)
@@ -20,13 +21,22 @@ void test_helper(std::string test_name, const DFA& test_dfa, DFA::size_type expe
     }
 }
 
+void test_intersection_pair(std::string test_name, const DFA& left, const DFA& right, DFA::size_type expected_boards)
+{
+  std::cout << "checking intersection pair " << test_name << std::endl;
+  std::cout.flush();
+
+  IntersectionDFA test_dfa(left, right);
+  test_helper("intersection pair " + test_name, test_dfa, expected_boards);
+}
+
 void test_union_pair(std::string test_name, const DFA& left, const DFA& right, DFA::size_type expected_boards)
 {
   std::cout << "checking union pair " << test_name << std::endl;
   std::cout.flush();
 
   UnionDFA test_dfa(left, right);
-  test_helper(test_name, test_dfa, expected_boards);
+  test_helper("union pair " + test_name, test_dfa, expected_boards);
 }
 
 void test_union_vector(std::string test_name, const std::vector<const DFA *> dfas_in, DFA::size_type expected_boards)
@@ -35,7 +45,7 @@ void test_union_vector(std::string test_name, const std::vector<const DFA *> dfa
   std::cout.flush();
 
   UnionDFA test_dfa(dfas_in);
-  test_helper(test_name, test_dfa, expected_boards);
+  test_helper("union vector " + test_name, test_dfa, expected_boards);
 }
 
 int main()
@@ -55,6 +65,13 @@ int main()
 
       CountDFA count3(3);
       test_helper("count3", count3, (12 * 12 * 12) * (64 * 63 * 62 / 3 / 2));
+
+      // intersection tests
+
+      test_intersection_pair("count0+count0", count0, count0, count0.size());
+      test_intersection_pair("count0+count1", count0, count1, 0);
+      test_intersection_pair("count1+count1", count1, count1, count1.size());
+      test_intersection_pair("count2+count3", count2, count3, 0);
 
       // union tests
       
