@@ -4,7 +4,7 @@ CXX=c++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g
 
-TARGETS=divide generate_moves prototype random random_uci test_count_dfa test_union_dfa test_perft
+TARGETS=divide generate_moves prototype random random_uci test_dfa test_perft
 
 all : $(TARGETS)
 
@@ -15,8 +15,7 @@ depend :
 	makedepend -Y -f - -- $(CXXFLAGS) -- *.cpp > .depend 2> /dev/null
 
 test : all
-	./test_count_dfa
-	./test_union_dfa
+	./test_dfa
 	./test_perft
 
 time : all
@@ -40,10 +39,7 @@ random : random.o chess.a
 random_uci : random_uci.o chess.a
 	$(CXX) -o $@ $^
 
-test_count_dfa : test_count_dfa.o chess.a
-	$(CXX) -o $@ $^
-
-test_union_dfa : test_union_dfa.o chess.a
+test_dfa : test_dfa.o chess.a
 	$(CXX) -o $@ $^
 
 test_perft : test_perft.o chess.a
