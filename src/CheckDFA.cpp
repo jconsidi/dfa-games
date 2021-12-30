@@ -2,6 +2,8 @@
 
 #include "CheckDFA.h"
 
+#include <iostream>
+
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "ThreatDFA.h"
@@ -29,4 +31,5 @@ std::vector<const DFA *> CheckDFA::get_king_threats(Side side_in_check)
 CheckDFA::CheckDFA(Side side_in_check)
   : UnionDFA(get_king_threats(side_in_check))
 {
+  std::cerr << "CheckDFA(" << side_in_check << ") has " << states() << " states" << std::endl;
 }
