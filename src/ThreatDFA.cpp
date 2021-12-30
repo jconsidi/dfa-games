@@ -3,6 +3,7 @@
 #include "ThreatDFA.h"
 
 #include <bit>
+#include <iostream>
 
 #include "BetweenMasks.h"
 #include "FixedDFA.h"
@@ -77,5 +78,6 @@ std::vector<const DFA *> ThreatDFA::get_threats(Side threatened_side, int threat
 ThreatDFA::ThreatDFA(Side threatened_side, int threatened_square)
   : UnionDFA(get_threats(threatened_side, threatened_square))
 {
+  std::cerr << "ThreatDFA(" << threatened_side << ", " << threatened_square << ") has " << states() << " states" << std::endl;
 }
 
