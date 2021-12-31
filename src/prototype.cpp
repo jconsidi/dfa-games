@@ -5,12 +5,13 @@
 
 #include "chess.h"
 
+#include "CheckDFA.h"
 #include "DFA.h"
 #include "ForcedDFA.h"
+#include "HasMovesDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "PreviousDFA.h"
-#include "Singleton.h"
 #include "UnionDFA.h"
 
 const DFA *log_dfa(std::string dfa_name, const DFA *dfa)
@@ -21,9 +22,9 @@ const DFA *log_dfa(std::string dfa_name, const DFA *dfa)
 
 int main()
 {
-  const DFA *white_in_check = log_dfa("white in check", Singleton::get_check(SIDE_WHITE));
+  const DFA *white_in_check = log_dfa("white in check", CheckDFA::get_singleton(SIDE_WHITE));
 
-  const DFA *white_has_moves = log_dfa("white has moves", Singleton::get_has_moves(SIDE_WHITE));
+  const DFA *white_has_moves = log_dfa("white has moves", HasMovesDFA::get_singleton(SIDE_WHITE));
   const DFA *white_has_no_moves = log_dfa("white has no moves", new InverseDFA(*white_has_moves));
 
   const DFA *white_in_checkmate = log_dfa("white in checkmate", new IntersectionDFA(*white_in_check, *white_has_no_moves));

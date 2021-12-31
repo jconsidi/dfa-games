@@ -49,3 +49,14 @@ CheckDFA::CheckDFA(Side side_in_check)
 {
   std::cerr << "CheckDFA(" << side_in_check << ") has " << states() << " states" << std::endl;
 }
+
+const CheckDFA *CheckDFA::get_singleton(Side side_in_check)
+{
+  static const CheckDFA *singletons[2] = {0, 0};
+  if(singletons[side_in_check] == 0)
+    {
+      singletons[side_in_check] = new CheckDFA(SIDE_WHITE);
+    }
+
+  return singletons[side_in_check];
+}

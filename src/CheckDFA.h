@@ -11,8 +11,11 @@ class CheckDFA : public UnionDFA
 {
   static std::vector<const DFA *> get_king_threats(Side);
 
- public:
   CheckDFA(Side);
+
+ public:
+
+  static const CheckDFA *get_singleton(Side);
 };
 
 #endif
