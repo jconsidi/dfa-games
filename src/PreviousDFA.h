@@ -5,8 +5,9 @@
 
 #include "DFA.h"
 #include "Side.h"
+#include "UnionDFA.h"
 
-class PreviousDFA : public DFA
+class PreviousDFA : public UnionDFA
 {
  public:
   PreviousDFA(Side, const DFA&);
