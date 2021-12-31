@@ -80,7 +80,10 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
       dfas_temp.emplace_back(dfas_temp[next_merge], dfas_temp[next_merge + 1], leaf_func);
       next_merge += 2;
       // LATER: drop temp DFA internals
-      std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining, last merge had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
+      if(dfas_temp[dfas_temp.size() - 1].states() >= 1024)
+	{
+	  std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining, last merge had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
+	}
     }
 
   assert(dfas_temp.size() - next_merge == 2);
