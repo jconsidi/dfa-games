@@ -4,15 +4,16 @@
 
 #include <iostream>
 
-#include "CountCharacterDFA.h"
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
+#include "LegalDFA.h"
 #include "ThreatDFA.h"
 
 std::vector<const DFA *> CheckDFA::get_king_threats(Side side_in_check)
 {
   static const DFA *king_threats[2][64] = {{0}};
 
+  LegalDFA legal;
   DFACharacter king_character = (side_in_check == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
   std::vector<const DFA *> output;
@@ -22,12 +23,11 @@ std::vector<const DFA *> CheckDFA::get_king_threats(Side side_in_check)
 	{
 	  ThreatDFA square_threat(side_in_check, square);
 	  FixedDFA square_king(square, king_character);
-	  CountCharacterDFA one_king(king_character, 1);
 
 	  std::vector<const DFA*> threat_conditions;
+	  threat_conditions.push_back(&legal);
 	  threat_conditions.push_back(&square_threat);
 	  threat_conditions.push_back(&square_king);
-	  threat_conditions.push_back(&one_king);
 
 	  king_threats[side_in_check][square] = new IntersectionDFA(threat_conditions);
 	}
