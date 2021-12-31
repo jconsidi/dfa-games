@@ -15,7 +15,7 @@
 
 const DFA *log_dfa(std::string dfa_name, const DFA *dfa)
 {
-  std::cout << dfa_name << ": " << dfa->states() << " states, " << dfa->size() << "positions" << std::endl;
+  std::cout << dfa_name << ": " << dfa->states() << " states, " << dfa->size() << " positions" << std::endl;
   return dfa;
 }
 
