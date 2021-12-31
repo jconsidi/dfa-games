@@ -19,6 +19,12 @@ std::vector<const DFA *> CheckDFA::get_king_threats(Side side_in_check)
   std::vector<const DFA *> output;
   for(int square = 0; square < 64; ++square)
     {
+      if(square >= 16)
+	{
+	  // TODO: restore full check
+	  break;
+	}
+
       if(king_threats[side_in_check][square] == 0)
 	{
 	  ThreatDFA square_threat(side_in_check, square);
