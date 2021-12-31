@@ -2,8 +2,6 @@
 
 #include "IntersectionDFA.h"
 
-#include <iostream>
-
 static uint64_t intersection_mask(uint64_t left_mask, uint64_t right_mask)
 {
   return left_mask & right_mask;
