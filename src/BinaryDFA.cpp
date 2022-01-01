@@ -63,7 +63,7 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
   for(int i = 0; i < dfas_in.size() - 1; i += 2)
     {
       dfas_temp.emplace_back(*(dfas_in[i]),*(dfas_in[i + 1]), leaf_func);
-      std::cerr << "  early merge had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
+      std::cerr << "  early merge " << (i / 2) << "/" << (dfas_in.size() / 2) << " had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
     }
   int next_merge = 0;
   if(dfas_in.size() % 2)
