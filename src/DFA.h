@@ -13,11 +13,13 @@ enum DFACharacter {DFA_BLANK, DFA_WHITE_KING, DFA_WHITE_QUEEN, DFA_WHITE_BISHOP,
 
 class BinaryDFA;
 class InverseDFA;
+class RewriteDFA;
 
 struct DFAState
 {
   uint64_t transitions[DFA_MAX];
 
+  class RewriteDFA;
   inline DFAState(const uint64_t transitions_in[DFA_MAX])
   {
     for(int i = 0; i < DFA_MAX; ++i)
@@ -78,6 +80,7 @@ class DFA
 
   friend class BinaryDFA;
   friend class InverseDFA;
+  friend class RewriteDFA;
 };
 
 #endif

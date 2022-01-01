@@ -45,7 +45,7 @@ test_dfa : test_dfa.o chess.a
 test_perft : test_perft.o chess.a
 	$(CXX) -o $@ $^
 
-chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o Board.o CheckDFA.o CountCharacterDFA.o CountDFA.o DFA.o DifferenceDFA.o FixedDFA.o ForcedDFA.o HasMovesDFA.o IntersectionDFA.o InverseDFA.o LegalDFA.o MoveSet.o PreviousDFA.o UnionDFA.o ThreatDFA.o utils.o
+chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o Board.o CheckDFA.o CountCharacterDFA.o CountDFA.o DFA.o DifferenceDFA.o FixedDFA.o ForcedDFA.o HasMovesDFA.o IntersectionDFA.o InverseDFA.o LegalDFA.o MoveSet.o PreviousDFA.o ReverseMoveDFA.o RewriteDFA.o UnionDFA.o ThreatDFA.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################

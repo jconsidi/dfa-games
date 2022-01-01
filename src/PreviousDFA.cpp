@@ -10,6 +10,7 @@
 #include "IntersectionDFA.h"
 #include "FixedDFA.h"
 #include "MoveSet.h"
+#include "ReverseMoveDFA.h"
 
 static void get_previous_helper(std::vector<const DFA *>& output, DFACharacter moving_character, MoveSet moves, const DFA& target)
 {
@@ -48,7 +49,7 @@ static void get_previous_helper(std::vector<const DFA *>& output, DFACharacter m
 	  IntersectionDFA post_condition(post_conditions);
 	  std::cerr << "post condition has " << post_condition.states() << " states" << std::endl;
 
-	  throw std::logic_error("get_previous_helper not implemented");
+	  output.push_back(new ReverseMoveDFA(post_condition, moving_character, from_index, to_index));
 	}
     }
 }
@@ -78,7 +79,7 @@ static std::vector<const DFA *> get_previous(Side side_to_move, const DFA& targe
       get_previous_helper(output, DFA_BLACK_ROOK, rook_moves, safe_target);
     }
 
-  // TODO: pawn captures, en-passant, castling
+  // TODO: pawn captures, promotions, en-passant, castling
 
   return output;
 }
