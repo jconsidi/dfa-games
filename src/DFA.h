@@ -12,6 +12,7 @@ enum DFACharacter {DFA_BLANK, DFA_WHITE_KING, DFA_WHITE_QUEEN, DFA_WHITE_BISHOP,
 class BinaryDFA;
 class InverseDFA;
 class RewriteDFA;
+class UnionDFA;
 
 struct DFAState
 {
@@ -80,6 +81,7 @@ class DFA
   friend class BinaryDFA;
   friend class InverseDFA;
   friend class RewriteDFA;
+  friend class UnionDFA;
 };
 
 #endif
