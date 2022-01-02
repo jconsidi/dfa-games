@@ -23,6 +23,7 @@ DFA::~DFA()
 int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
 {
   assert(state_lookup);
+  assert(layer < 64);
 
   if(layer == 0)
     {
