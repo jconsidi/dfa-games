@@ -4,24 +4,13 @@
 
 AcceptDFA::AcceptDFA()
 {
+  add_uniform_states();
+
+  // accept state at top
   uint64_t next_states[DFA_MAX];
-
-  // penultimate state
-
   for(int i = 0; i < DFA_MAX; ++i)
     {
-      next_states[i] = DFA_MASK_ACCEPT_ALL;
+      next_states[i] = 1;
     }
-  add_state(62, next_states);
-
-  // internal states
-
-  for(int i = 0; i < DFA_MAX; ++i)
-    {
-      next_states[i] = 0;
-    }
-  for(int layer = 61; layer >= 0; --layer)
-    {
-      add_state(layer, next_states);
-    }
+  add_state(0, next_states);
 }

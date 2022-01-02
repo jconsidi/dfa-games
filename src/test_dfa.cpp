@@ -20,6 +20,8 @@ void test_helper(std::string test_name, const DFA& test_dfa, DFA::size_type expe
 
       throw std::logic_error("test failed");
     }
+  std::cout << " passed" << std::endl;
+  std::cout.flush();
 }
 
 void test_intersection_pair(std::string test_name, const DFA& left, const DFA& right, DFA::size_type expected_boards)
@@ -112,6 +114,7 @@ int main()
   catch(std::logic_error e)
     {
       std::cerr << e.what() << std::endl;
+      std::cerr.flush();
       return 1;
     }
 

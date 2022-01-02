@@ -13,25 +13,13 @@ FixedDFA::FixedDFA(int fixed_square, DFACharacter fixed_character)
 
   if(fixed_square == 63)
     {
-      // accept/reject based on last square, so penultimate layer sets
-      // up masks to check that square.
-
-      uint64_t last_mask = 1 << fixed_character;
+      // accept/reject based on last square.
 
       for(int i = 0; i < DFA_MAX; ++i)
 	{
-	  next_states[i] = last_mask;
+	  next_states[i] = (i == fixed_character);
 	}
-      add_state(62, next_states);
-    }
-  else if(fixed_square == 62)
-    {
-      // one state splitting into accept/reject based on this square.
-      for(int i = 0; i < DFA_MAX; ++i)
-	{
-	  next_states[i] = (i == fixed_character) ? DFA_MASK_ACCEPT_ALL : DFA_MASK_REJECT_ALL;
-	}
-      add_state(62, next_states);
+      add_state(63, next_states);
     }
   else
     {
@@ -40,21 +28,21 @@ FixedDFA::FixedDFA(int fixed_square, DFACharacter fixed_character)
       // reject case
       for(int i = 0; i < DFA_MAX; ++i)
 	{
-	  next_states[i] = DFA_MASK_REJECT_ALL;
+	  next_states[i] = 0;
 	}
-      add_state(62, next_states);
+      add_state(63, next_states);
 
       // accept case
       for(int i = 0; i < DFA_MAX; ++i)
 	{
-	  next_states[i] = DFA_MASK_ACCEPT_ALL;
+	  next_states[i] = 1;
 	}
-      add_state(62, next_states);
+      add_state(63, next_states);
     }
 
   // layers after fixed square (if any left)
 
-  for(int layer = 61; layer > fixed_square; --layer)
+  for(int layer = 62; layer > fixed_square; --layer)
     {
       // already decided accept/reject in previous square and just propagating
 
@@ -70,7 +58,7 @@ FixedDFA::FixedDFA(int fixed_square, DFACharacter fixed_character)
 
   // layer with fixed square (if not last two)
 
-  if(fixed_square < 62)
+  if(fixed_square < 63)
     {
       for(int i = 0; i < DFA_MAX; ++i)
 	{

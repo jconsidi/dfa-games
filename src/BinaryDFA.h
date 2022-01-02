@@ -16,7 +16,7 @@ struct BinaryBuildCache
 {
   const DFA& left;
   const DFA& right;
-  BinaryBuildCacheLayer layers[63] = {{}};
+  BinaryBuildCacheLayer layers[64] = {{}};
   uint64_t (*leaf_func)(uint64_t, uint64_t);
 
 BinaryBuildCache(const DFA& left_in, const DFA& right_in, uint64_t (*leaf_func_in)(uint64_t, uint64_t))

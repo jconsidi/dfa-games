@@ -2,18 +2,13 @@
 
 #include <assert.h>
 
-#include <bit>
 #include <iostream>
 
 #include "DFA.h"
 
 DFA::DFA()
-  : state_lookup(new DFAStateMap[63])
+  : state_lookup(new DFAStateMap[64])
 {
-  for(int layer = 0; layer < 63; ++layer)
-    {
-
-    }
 }
 
 DFA::~DFA()
@@ -43,7 +38,7 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
 
   // state range checks
 
-  if(layer < 62)
+  if(layer < 63)
     {
       // make sure next states exist
       int next_layer_size = state_counts[layer + 1].size();
@@ -54,11 +49,10 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
     }
   else
     {
-      // last layer has bitmaps to look up last square
-      int max_state = 1 << DFA_MAX;
+      // last layer is all zero/one for reject/accept.
       for(int i = 0; i < DFA_MAX; ++i)
 	{
-	  assert(next_states[i] < max_state);
+	  assert(next_states[i] < 2);
 	}
     }
 
@@ -80,7 +74,7 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
   uint64_t new_count = 0;
   for(int i = 0; i < DFA_MAX; ++i)
     {
-      new_count += (layer < 62) ? state_counts[layer+1][next_states[i]] : std::popcount(next_states[i]);
+      new_count += (layer < 63) ? state_counts[layer+1][next_states[i]] : next_states[i];
     }
   state_counts[layer].push_back(new_count);
   state_transitions[layer].emplace_back(next_states);
@@ -96,9 +90,26 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
   return new_state;
 }
 
+void DFA::add_uniform_states()
+{
+  for(int layer = 63; layer >= 1; --layer)
+    {
+      uint64_t next_states[DFA_MAX] = {0};
+      uint64_t reject_state = add_state(layer, next_states);
+      assert(reject_state == 0);
+
+      for(int i = 0; i < DFA_MAX; ++i)
+	{
+	  next_states[i] = 1;
+	}
+      uint64_t accept_state = add_state(layer, next_states);
+      assert(accept_state == 1);
+    }
+}
+
 void DFA::debug_counts(std::string debug_name) const
 {
-  for(int layer = 0; layer < 63; ++layer)
+  for(int layer = 0; layer < 64; ++layer)
     {
       if(!state_counts[layer].size())
 	{
@@ -124,6 +135,7 @@ bool DFA::ready() const
 
 DFA::size_type DFA::size() const
 {
+  assert(state_counts[0].size() == 1);
   return state_counts[0][0];
 }
 
@@ -131,7 +143,7 @@ DFA::size_type DFA::states() const
 {
   DFA::size_type states_out = 0;
 
-  for(int layer = 0; layer < 63; ++layer)
+  for(int layer = 0; layer < 64; ++layer)
     {
       states_out += state_counts[layer].size();
     }

@@ -26,7 +26,7 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
       {
 	// copy singleton input
 	const DFA *source = dfas_in[0];
-	for(int layer = 62; layer >= 0; --layer)
+	for(int layer = 63; layer >= 0; --layer)
 	  {
 	    state_counts[layer] = source->state_counts[layer];
 	    state_transitions[layer] = source->state_transitions[layer];
@@ -100,7 +100,7 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
 
 uint64_t BinaryDFA::binary_build(int layer, uint64_t left_state, uint64_t right_state, BinaryBuildCache& cache)
 {
-  if(layer == 63)
+  if(layer == 64)
     {
       return cache.leaf_func(left_state, right_state);
     }
