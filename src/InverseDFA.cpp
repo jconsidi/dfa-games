@@ -6,24 +6,29 @@ InverseDFA::InverseDFA(const DFA& dfa_in)
 {
   // same transitions as original DFA, but final masks are inverted.
 
-  const std::vector<DFAState>& mask_transitions = dfa_in.state_transitions[63];
-  for(int state = 0; state < mask_transitions.size(); ++state)
+  int last_layer_size = dfa_in.get_layer_size(63);
+  for(int state_index = 0; state_index < last_layer_size; ++state_index)
     {
+      const DFAState& old_state(dfa_in.get_state(63, state_index));
+
       uint64_t inverted_states[DFA_MAX];
       for(int i = 0; i < DFA_MAX; ++i)
 	{
-	  inverted_states[i] = !mask_transitions[state].transitions[i];
+	  inverted_states[i] = !old_state.transitions[i];
 	}
 
-      add_state(63, inverted_states);
+      int new_state_index = add_state(63, inverted_states);
+      assert(new_state_index == state_index);
     }
 
   for(int layer = 62; layer >= 0; --layer)
     {
-      const std::vector<DFAState>& layer_transitions = dfa_in.state_transitions[layer];
-      for(int state = 0; state < layer_transitions.size(); ++state)
+      int layer_size = dfa_in.get_layer_size(layer);
+      for(int state_index = 0; state_index < layer_size; ++state_index)
 	{
-	  add_state(layer, layer_transitions[state].transitions);
+	  const DFAState &old_state(dfa_in.get_state(layer, state_index));
+	  int new_state_index = add_state(layer, old_state.transitions);
+	  assert(new_state_index == state_index);
 	}
     }
 }

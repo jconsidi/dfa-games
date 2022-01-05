@@ -101,6 +101,16 @@ void DFA::add_uniform_states()
     }
 }
 
+int DFA::get_layer_size(int layer) const
+{
+  return state_transitions[layer].size();
+}
+
+const DFAState& DFA::get_state(int layer, int state_index) const
+{
+  return state_transitions[layer].at(state_index);
+}
+
 bool DFA::ready() const
 {
   return state_transitions[0].size() != 0;

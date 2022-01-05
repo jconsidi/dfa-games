@@ -13,7 +13,7 @@ uint64_t UnionDFA::union_internal(int layer, std::vector<uint64_t> union_states)
       // internal case
       for(int i = 0; i < union_states.size(); ++i)
 	{
-	  assert(union_states[i] < dedupe_temp->state_transitions[layer].size());
+	  assert(union_states[i] < dedupe_temp->get_layer_size(layer));
 	}
     }
   else
@@ -64,9 +64,10 @@ uint64_t UnionDFA::union_internal(int layer, std::vector<uint64_t> union_states)
       std::vector<uint64_t> next_transitions[DFA_MAX] = {{}};
       for(int i = 0; i < union_states.size(); ++i)
 	{
+	  const DFAState& union_state(dedupe_temp->get_state(layer, union_states.at(i)));
 	  for(int j = 0; j < DFA_MAX; ++j)
 	    {
-	      next_transitions[j].push_back(dedupe_temp->state_transitions[layer].at(union_states.at(i)).transitions[j]);
+	      next_transitions[j].push_back(union_state.transitions[j]);
 	    }
 	}
 
@@ -105,12 +106,15 @@ UnionDFA::UnionDFA(const std::vector<const DFA *> dfas_in)
       for(int layer = 63; layer >= 0; --layer)
 	{
 	  std::vector<uint64_t> current_mapping;
-	  for(int state = 0; state < dfa_in.state_transitions[layer].size(); ++state)
+	  int layer_size = dfa_in.get_layer_size(layer);
+	  for(int state_index = 0; state_index < layer_size; ++state_index)
 	    {
+	      const DFAState& state_in(dfa_in.get_state(layer, state_index));
+
 	      uint64_t next_states[DFA_MAX];
 	      for(int i = 0; i < DFA_MAX; ++i)
 		{
-		  uint64_t old_transition = dfa_in.state_transitions[layer][state].transitions[i];
+		  uint64_t old_transition = state_in.transitions[i];
 		  assert(old_transition < previous_mapping.size());
 		  next_states[i] = previous_mapping.at(old_transition);
 		}

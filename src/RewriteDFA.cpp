@@ -21,11 +21,13 @@ RewriteDFA::RewriteDFA(const DFA& dfa_in, std::function<void(int, uint64_t[64])>
       states_rewritten.push_back(0);
       states_rewritten.push_back(1);
 
-      for(int state_index = 0; state_index < dfa_in.state_transitions[layer].size(); ++state_index)
+      int layer_size = dfa_in.get_layer_size(layer);
+      for(int state_index = 0; state_index < layer_size; ++state_index)
 	{
+	  const DFAState& old_state(dfa_in.get_state(layer, state_index));
 	  for(int i = 0; i < DFA_MAX; ++i)
 	    {
-	      rewrite_states[i] = dfa_in.state_transitions[layer][state_index].transitions[i];
+	      rewrite_states[i] = old_state.transitions[i];
 	    }
 	  rewrite_func(layer, rewrite_states);
 

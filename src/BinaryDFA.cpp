@@ -28,7 +28,13 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
 	const DFA *source = dfas_in[0];
 	for(int layer = 63; layer >= 0; --layer)
 	  {
-	    state_transitions[layer] = source->state_transitions[layer];
+	    int layer_size = source->get_layer_size(layer);
+	    for(int state_index = 0; state_index < layer_size; ++state_index)
+	      {
+		const DFAState& state(source->get_state(layer, state_index));
+		int new_state_index = add_state(layer, state.transitions);
+		assert(new_state_index == state_index);
+	      }
 	  }
 	return;
       }
@@ -95,26 +101,29 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
     }
 }
 
-uint64_t BinaryDFA::binary_build(int layer, uint64_t left_state, uint64_t right_state, BinaryBuildCache& cache)
+uint64_t BinaryDFA::binary_build(int layer, uint64_t left_index, uint64_t right_index, BinaryBuildCache& cache)
 {
   if(layer == 64)
     {
-      return cache.leaf_func(left_state, right_state);
+      return cache.leaf_func(left_index, right_index);
     }
 
   BinaryBuildCacheLayer& layer_cache = cache.layers[layer];
-  BinaryBuildCacheLayerKey key(left_state, right_state);
+  BinaryBuildCacheLayerKey key(left_index, right_index);
   if(layer_cache.contains(key))
     {
       return layer_cache[key];
     }
 
+  const DFAState& left_state(cache.left.get_state(layer, left_index));
+  const DFAState& right_state(cache.right.get_state(layer, right_index));
+
   uint64_t transitions[DFA_MAX];
   for(int i = 0; i < DFA_MAX; ++i)
     {
       transitions[i] = binary_build(layer + 1,
-				    cache.left.state_transitions[layer][left_state].transitions[i],
-				    cache.right.state_transitions[layer][right_state].transitions[i],
+				    left_state.transitions[i],
+				    right_state.transitions[i],
 				    cache);
     }
 
