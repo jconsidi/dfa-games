@@ -42,7 +42,7 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
   if(layer < 63)
     {
       // make sure next states exist
-      int next_layer_size = state_counts[layer + 1].size();
+      int next_layer_size = state_transitions[layer + 1].size();
       for(int i = 0; i < DFA_MAX; ++i)
 	{
 	  assert(next_states[i] < next_layer_size);
@@ -71,16 +71,9 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
 
   // add new state
 
-  int new_state = state_counts[layer].size();
-  uint64_t new_count = 0;
-  for(int i = 0; i < DFA_MAX; ++i)
-    {
-      new_count += (layer < 63) ? state_counts[layer+1][next_states[i]] : next_states[i];
-    }
-  state_counts[layer].push_back(new_count);
+  int new_state = state_transitions[layer].size();
   state_transitions[layer].emplace_back(next_states);
 
-  assert(state_counts[layer].size() == new_state + 1);
   assert(state_transitions[layer].size() == (new_state + 1));
 
   if(layer > 0)
@@ -108,36 +101,37 @@ void DFA::add_uniform_states()
     }
 }
 
-void DFA::debug_counts(std::string debug_name) const
-{
-  for(int layer = 0; layer < 64; ++layer)
-    {
-      if(!state_counts[layer].size())
-	{
-	  continue;
-	}
-
-      std::cerr << debug_name << " counts: layer " << layer << ": " << state_counts[layer][0];
-      for(int state = 1; state < state_counts[layer].size(); ++state)
-	{
-	  std::cerr << ", " << state_counts[layer][state];
-	}
-      std::cerr << std::endl;
-    }
-  std::cerr << std::endl;
-
-  std::cerr.flush();
-}
-
 bool DFA::ready() const
 {
-  return state_counts[0].size() != 0;
+  return state_transitions[0].size() != 0;
 }
 
 DFA::size_type DFA::size() const
 {
-  assert(state_counts[0].size() == 1);
-  return state_counts[0][0];
+  assert(state_transitions[0].size() == 1);
+
+  std::vector<uint64_t> previous_counts({0, 1}); // reject, accept
+  for(int layer = 63; layer >= 0; --layer)
+    {
+      std::vector<uint64_t> current_counts;
+      for(int state_index = 0; state_index < state_transitions[layer].size(); ++state_index)
+	{
+	  const DFAState& state(state_transitions[layer][state_index]);
+
+	  uint64_t state_count = 0;
+	  for(int i = 0; i < DFA_MAX; ++i)
+	    {
+	      state_count += previous_counts.at(state.transitions[i]);
+	    }
+	  current_counts.push_back(state_count);
+	}
+
+      previous_counts = current_counts;
+    }
+
+  assert(previous_counts.size() == 1);
+
+  return previous_counts[0];
 }
 
 DFA::size_type DFA::states() const
@@ -146,7 +140,7 @@ DFA::size_type DFA::states() const
 
   for(int layer = 0; layer < 64; ++layer)
     {
-      states_out += state_counts[layer].size();
+      states_out += state_transitions[layer].size();
     }
 
   // ignoring states implied by masks in last layer

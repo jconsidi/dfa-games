@@ -54,7 +54,6 @@ class DFA
 {
   // 63 layers mapping (state, square contents) -> next state.
   // 64th state is a bitmap of accepted square contents.
-  std::vector<uint64_t> state_counts[64] = {{}};
   std::vector<DFAState> state_transitions[64] = {{}};
 
   DFAStateMap *state_lookup;
@@ -71,8 +70,6 @@ class DFA
   ~DFA();
 
   typedef uint64_t size_type;
-
-  void debug_counts(std::string) const;
 
   bool ready() const;
   size_type size() const;

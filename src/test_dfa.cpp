@@ -13,8 +13,6 @@ void test_helper(std::string test_name, const DFA& test_dfa, DFA::size_type expe
   DFA::size_type actual_boards = test_dfa.size();
   if(actual_boards != expected_boards)
     {
-      test_dfa.debug_counts("test_dfa");
-
       std::cerr << test_name << ": expected " << expected_boards << std::endl;
       std::cerr << test_name << ":   actual " << actual_boards << std::endl;
 

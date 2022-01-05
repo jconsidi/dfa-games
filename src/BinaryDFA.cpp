@@ -28,10 +28,7 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
 	const DFA *source = dfas_in[0];
 	for(int layer = 63; layer >= 0; --layer)
 	  {
-	    state_counts[layer] = source->state_counts[layer];
 	    state_transitions[layer] = source->state_transitions[layer];
-
-	    assert(state_transitions[layer].size() == state_counts[layer].size());
 	  }
 	return;
       }
