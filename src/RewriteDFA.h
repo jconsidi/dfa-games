@@ -7,10 +7,11 @@
 
 #include "DFA.h"
 
-class RewriteDFA : public DFA
+template<int ndim, int... shape_pack>
+class RewriteDFA : public DFA<ndim, shape_pack...>
 {
  public:
-  RewriteDFA(const DFA&, std::function<void(int, uint64_t[DFA_MAX])>);
+  RewriteDFA(const DFA<ndim, shape_pack...>&, std::function<void(int, DFATransitions&)>);
 };
 
 #endif

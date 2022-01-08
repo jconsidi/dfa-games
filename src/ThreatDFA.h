@@ -5,12 +5,13 @@
 
 #include <vector>
 
+#include "ChessDFA.h"
 #include "Side.h"
 #include "UnionDFA.h"
 
-class ThreatDFA : public UnionDFA
+class ThreatDFA : public ChessUnionDFA
 {
-  static std::vector<const DFA *> get_threats(Side threatened_side, int threatened_square);
+  static std::vector<const ChessDFA *> get_threats(Side threatened_side, int threatened_square);
 
  public:
 

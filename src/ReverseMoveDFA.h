@@ -3,13 +3,13 @@
 #ifndef REVERSE_MOVE_DFA_H
 #define REVERSE_MOVE_DFA_H
 
+#include "ChessDFA.h"
 #include "DFA.h"
-#include "RewriteDFA.h"
 
-class ReverseMoveDFA : public RewriteDFA
+class ReverseMoveDFA : public ChessRewriteDFA
 {
  public:
-  ReverseMoveDFA(const DFA&, DFACharacter, int, int);
+  ReverseMoveDFA(const ChessDFA&, int, int, int);
 };
 
 #endif

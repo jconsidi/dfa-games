@@ -5,7 +5,8 @@
 
 #include "DFA.h"
 
-class AcceptDFA : public DFA
+template <int ndim, int... shape_pack>
+class AcceptDFA : public DFA<ndim, shape_pack...>
 {
  public:
 

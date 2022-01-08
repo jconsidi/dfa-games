@@ -3,14 +3,14 @@
 #ifndef FORCED_DFA_H
 #define FORCED_DFA_H
 
-#include "DFA.h"
+#include "ChessDFA.h"
 #include "IntersectionDFA.h"
 #include "Side.h"
 
-class ForcedDFA : public IntersectionDFA
+class ForcedDFA : public ChessIntersectionDFA
 {
  public:
-  ForcedDFA(Side, const DFA&);
+  ForcedDFA(Side, const ChessDFA&);
 };
 
 #endif

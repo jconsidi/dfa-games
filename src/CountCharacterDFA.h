@@ -5,11 +5,12 @@
 
 #include "DFA.h"
 
-class CountCharacterDFA : public DFA
+template<int ndim, int... shape_pack>
+class CountCharacterDFA : public DFA<ndim, shape_pack...>
 {
  public:
 
-  CountCharacterDFA(DFACharacter, int);
+  CountCharacterDFA(int, int);
 };
 
 #endif

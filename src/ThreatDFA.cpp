@@ -10,7 +10,7 @@
 #include "IntersectionDFA.h"
 #include "MoveSet.h"
 
-static void get_threats_helper(std::vector<const DFA *>& threats, DFACharacter threatening_character, int threatened_square, MoveSet moves)
+static void get_threats_helper(std::vector<const ChessDFA *>& threats, int threatening_character, int threatened_square, MoveSet moves)
 {
   BoardMask threatened_mask = 1ULL << threatened_square;
 
@@ -21,17 +21,17 @@ static void get_threats_helper(std::vector<const DFA *>& threats, DFACharacter t
 	  continue;
 	}
 
-      std::vector<const DFA *> threat;
-      threat.push_back(new FixedDFA(threatening_square, threatening_character));
+      std::vector<const ChessDFA *> threat;
+      threat.push_back(new ChessFixedDFA(threatening_square, threatening_character));
 
       BoardMask between_mask = between_masks.masks[threatening_square][threatened_square];
       for(int between_square = std::countr_zero(between_mask); between_square < 64; between_square += 1 + std::countr_zero(between_mask >> (between_square + 1)))
 	{
-	  threat.push_back(new FixedDFA(between_square, DFA_BLANK));
+	  threat.push_back(new ChessFixedDFA(between_square, DFA_BLANK));
 	}
       assert(threat.size() > 0);
 
-      threats.push_back(new IntersectionDFA(threat));
+      threats.push_back(new ChessIntersectionDFA(threat));
 
       // clean up temporary DFAs
       // LATER: make these singletons and skip cleanup
@@ -43,11 +43,11 @@ static void get_threats_helper(std::vector<const DFA *>& threats, DFACharacter t
     }
 }
 
-std::vector<const DFA *> ThreatDFA::get_threats(Side threatened_side, int threatened_square)
+std::vector<const ChessDFA *> ThreatDFA::get_threats(Side threatened_side, int threatened_square)
 {
-  static std::vector<const DFA *> threats[2][64];
+  static std::vector<const ChessDFA *> threats[2][64];
 
-  std::vector<const DFA *>& current_threats = threats[threatened_side][threatened_square];
+  std::vector<const ChessDFA *>& current_threats = threats[threatened_side][threatened_square];
   if(!current_threats.size())
     {
       if(threatened_side == SIDE_WHITE)
@@ -76,7 +76,7 @@ std::vector<const DFA *> ThreatDFA::get_threats(Side threatened_side, int threat
 }
 
 ThreatDFA::ThreatDFA(Side threatened_side, int threatened_square)
-  : UnionDFA(get_threats(threatened_side, threatened_square))
+  : ChessUnionDFA(get_threats(threatened_side, threatened_square))
 {
   std::cerr << "ThreatDFA(" << threatened_side << ", " << threatened_square << ") has " << states() << " states" << std::endl;
 }

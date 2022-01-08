@@ -7,81 +7,45 @@
 
 #include "CountCharacterDFA.h"
 
-CountCharacterDFA::CountCharacterDFA(DFACharacter c_in, int count_in)
+template<int ndim, int... shape_pack>
+CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in)
 {
-  if((count_in < 0) || 64 < count_in)
+  if((count_in < 0) || ndim < count_in)
     {
-      throw std::invalid_argument("count_in must be between 0 and 64 (inclusive)");
+      throw std::invalid_argument("count_in must be between 0 and ndim (inclusive)");
     }
 
-  uint64_t next_states[DFA_MAX];
-  std::vector<uint64_t> logical_states[64];
+  std::vector<uint64_t> logical_states[ndim+1];
 
-  // penultimate layer
+  // dummy layer at end
   {
-    int layer = 63;
-
-    // not enough pieces to finish
-
-    for(int i = 0; i < DFA_MAX; ++i)
+    int layer = ndim;
+    for(int i = 0; i <= ndim; ++i)
       {
-	next_states[i] = 0;
-      }
-
-    for(int layer_count = 0; layer_count < count_in - 1; ++layer_count)
-      {
-	logical_states[layer].push_back(add_state(layer, next_states));
-      }
-
-    // barely enough pieces to finish
-
-    if(count_in >= 1)
-      {
-	// layer_count = count_in - 1;
-
-	for(int i = 0; i < DFA_MAX; ++i)
-	  {
-	    next_states[i] = (i == c_in);
-	  }
-	logical_states[layer].push_back(add_state(layer, next_states));
-      }
-
-    // have exactly enough matches
-
-    if(count_in <= 63)
-      {
-	// layer_count = count_in
-	for(int i = 0; i < DFA_MAX; ++i)
-	  {
-	    next_states[i] = (i != c_in);
-	  }
-	logical_states[layer].push_back(add_state(layer, next_states));
-      }
-
-    // too many matches
-
-    for(int i = 0; i < DFA_MAX; ++i)
-      {
-	// reject all
-	next_states[i] = 0;
-      }
-    for(int layer_count = count_in + 1; layer_count < 64; ++layer_count)
-      {
-	logical_states[layer].push_back(add_state(layer, next_states));
+	logical_states[layer].push_back(i == count_in);
       }
   }
 
   // internal layers
 
-  for(int layer = 62; layer >= 0; --layer)
+  for(int layer = ndim - 1; layer >= 0; --layer)
     {
-     for(int layer_count = 0; layer_count <= layer; ++layer_count)
+      int layer_shape = this->get_layer_shape(layer);
+
+      for(int layer_count = 0; layer_count <= layer; ++layer_count)
 	{
-	  for(int i = 0; i < DFA_MAX; ++i)
+	  DFATransitions next_states(layer_shape);
+	  for(int i = 0; i < layer_shape; ++i)
 	    {
 	      next_states[i] = logical_states[layer+1].at((i == c_in) ? (layer_count + 1) : layer_count);
 	    }
-	  logical_states[layer].push_back(add_state(layer, next_states));
+	  logical_states[layer].push_back(this->add_state(layer, next_states));
 	}
     }
 }
+
+// template instantiations
+
+#include "ChessDFA.h"
+
+template class CountCharacterDFA<CHESS_TEMPLATE_PARAMS>;

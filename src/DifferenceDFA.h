@@ -5,11 +5,14 @@
 
 #include "BinaryDFA.h"
 
-class DifferenceDFA : public BinaryDFA
+template<int ndim, int... shape_pack>
+class DifferenceDFA : public BinaryDFA<ndim, shape_pack...>
 {
- public:
+  static uint64_t difference_mask(uint64_t left_mask, uint64_t right_mask);
 
-  DifferenceDFA(const DFA&, const DFA&);
+public:
+
+  DifferenceDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&);
 };
 
 #endif

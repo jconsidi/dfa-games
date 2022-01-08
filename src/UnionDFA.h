@@ -9,17 +9,18 @@
 
 #include "DFA.h"
 
-class UnionDFA : public DFA
+template <int ndim, int... shape_pack>
+class UnionDFA : public DFA<ndim, shape_pack...>
 {
-  DFA *dedupe_temp;
+  DFA<ndim, shape_pack...> *dedupe_temp;
   std::unordered_map<std::string, uint64_t> *union_cache;
 
   uint64_t union_internal(int, std::vector<uint64_t>);
 
  public:
 
-  UnionDFA(const DFA&, const DFA&);
-  UnionDFA(const std::vector<const DFA *>);
+  UnionDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&);
+  UnionDFA(const std::vector<const DFA<ndim, shape_pack...> *>);
 };
 
 #endif

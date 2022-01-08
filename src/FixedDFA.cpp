@@ -2,80 +2,49 @@
 
 #include "FixedDFA.h"
 
-FixedDFA::FixedDFA(int fixed_square, DFACharacter fixed_character)
+template<int ndim, int... shape_pack>
+FixedDFA<ndim, shape_pack...>::FixedDFA(int fixed_square, int fixed_character)
+  : DFA<ndim,shape_pack...>()
 {
   // 1 state until the fixed square, then a reject state and accept
   // state until the penultimate (mask) layer.
 
-  uint64_t next_states[64];
+  // layers after fixed square
 
-  // penultimate layer
-
-  if(fixed_square == 63)
-    {
-      // accept/reject based on last square.
-
-      for(int i = 0; i < DFA_MAX; ++i)
-	{
-	  next_states[i] = (i == fixed_character);
-	}
-      add_state(63, next_states);
-    }
-  else
-    {
-      // already decided accept/reject in previous square and just propagating
-
-      // reject case
-      for(int i = 0; i < DFA_MAX; ++i)
-	{
-	  next_states[i] = 0;
-	}
-      add_state(63, next_states);
-
-      // accept case
-      for(int i = 0; i < DFA_MAX; ++i)
-	{
-	  next_states[i] = 1;
-	}
-      add_state(63, next_states);
-    }
-
-  // layers after fixed square (if any left)
-
-  for(int layer = 62; layer > fixed_square; --layer)
+  for(int layer = ndim - 1; layer > fixed_square; --layer)
     {
       // already decided accept/reject in previous square and just propagating
 
       for(int state = 0; state < 2; ++state)
 	{
-	  for(int i = 0; i < DFA_MAX; ++i)
-	    {
-	      next_states[i] = state;
-	    }
-	  add_state(layer, next_states);
+	  // already decided accept/reject in previous square and just propagating
+
+	  // reject case
+	  int reject_state_id = this->add_state(layer, [](int i){return 0;});
+	  assert(reject_state_id == 0);
+
+	  // accept case
+	  int accept_state_id = this->add_state(layer, [](int i){return 1;});
+	  assert(accept_state_id == 1);
 	}
     }
 
-  // layer with fixed square (if not last two)
+  // fixed layer
 
-  if(fixed_square < 63)
-    {
-      for(int i = 0; i < DFA_MAX; ++i)
-	{
-	  next_states[i] = (i == fixed_character);
-	}
-      add_state(fixed_square, next_states);
-    }
+  int fixed_state_id = this->add_state(fixed_square, [fixed_character](int i){return (i == fixed_character);});
+  assert(fixed_state_id == 0);
 
   // layers before fixed square (if any)
 
-  for(int i = 0; i < DFA_MAX; ++i)
-    {
-      next_states[i] = 0;
-    }
-
   for(int layer = fixed_square - 1; layer >= 0; --layer)
     {
-      add_state(layer, next_states);
+      int early_state_id = this->add_state(layer, [](int i){return 0;});
+      assert(early_state_id == 0);
     }
 }
+
+// template instantiations
+
+#include "ChessDFA.h"
+
+template class FixedDFA<CHESS_TEMPLATE_PARAMS>;

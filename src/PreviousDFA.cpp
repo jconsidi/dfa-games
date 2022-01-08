@@ -12,9 +12,9 @@
 #include "MoveSet.h"
 #include "ReverseMoveDFA.h"
 
-static void get_previous_helper(std::vector<const DFA *>& output, DFACharacter moving_character, MoveSet moves, const DFA& target)
+static void get_previous_helper(std::vector<const ChessDFA *>& output, int moving_character, MoveSet moves, const ChessDFA& target)
 {
-  std::vector<FixedDFA> blank_conditions;
+  std::vector<ChessFixedDFA> blank_conditions;
   for(int i = 0; i < 64; ++i)
     {
       blank_conditions.emplace_back(i, DFA_BLANK);
@@ -29,12 +29,12 @@ static void get_previous_helper(std::vector<const DFA *>& output, DFACharacter m
 	      continue;
 	    }
 
-	  FixedDFA from_condition(from_index, DFA_BLANK);
-	  FixedDFA to_condition(to_index, moving_character);
+	  ChessFixedDFA from_condition(from_index, DFA_BLANK);
+	  ChessFixedDFA to_condition(to_index, moving_character);
 
 	  BoardMask between_mask = between_masks.masks[from_index][to_index];
 
-	  std::vector<const DFA *> post_conditions;
+	  std::vector<const ChessDFA *> post_conditions;
 	  post_conditions.push_back(&target);
 	  post_conditions.push_back(&(blank_conditions.at(from_index)));
 	  for(int between_index = 0; between_index < 64; ++between_index)
@@ -46,7 +46,7 @@ static void get_previous_helper(std::vector<const DFA *>& output, DFACharacter m
 	    }
 	  post_conditions.push_back(&to_condition);
 
-	  IntersectionDFA post_condition(post_conditions);
+	  ChessIntersectionDFA post_condition(post_conditions);
 	  std::cerr << "post condition has " << post_condition.states() << " states" << std::endl;
 
 	  output.push_back(new ReverseMoveDFA(post_condition, moving_character, from_index, to_index));
@@ -54,12 +54,12 @@ static void get_previous_helper(std::vector<const DFA *>& output, DFACharacter m
     }
 }
 
-static std::vector<const DFA *> get_previous(Side side_to_move, const DFA& target)
+static std::vector<const ChessDFA *> get_previous(Side side_to_move, const ChessDFA& target)
 {
-  const DFA *side_to_move_in_check = CheckDFA::get_singleton(side_to_move);
+  const ChessDFA *side_to_move_in_check = CheckDFA::get_singleton(side_to_move);
   DifferenceDFA safe_target(target, *side_to_move_in_check);
 
-  std::vector<const DFA *> output; // LATER: deal with this memory leak
+  std::vector<const ChessDFA *> output; // LATER: deal with this memory leak
   if(side_to_move == SIDE_WHITE)
     {
       get_previous_helper(output, DFA_WHITE_BISHOP, bishop_moves, safe_target);
@@ -84,7 +84,7 @@ static std::vector<const DFA *> get_previous(Side side_to_move, const DFA& targe
   return output;
 }
 
-PreviousDFA::PreviousDFA(Side side_to_move, const DFA& target)
+PreviousDFA::PreviousDFA(Side side_to_move, const ChessDFA& target)
   : UnionDFA(get_previous(side_to_move, target))
 {
   std::cerr << "PreviousDFA(" << side_to_move << ", ...) has " << states() << " states" << std::endl;

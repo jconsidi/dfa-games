@@ -7,35 +7,34 @@
 #include <map>
 #include <vector>
 
-enum DFACharacter {DFA_BLANK, DFA_WHITE_KING, DFA_WHITE_QUEEN, DFA_WHITE_BISHOP, DFA_WHITE_KNIGHT, DFA_WHITE_ROOK, DFA_WHITE_PAWN, DFA_BLACK_KING, DFA_BLACK_QUEEN, DFA_BLACK_BISHOP, DFA_BLACK_KNIGHT, DFA_BLACK_ROOK, DFA_BLACK_PAWN, DFA_MAX};
-
+template <int ndim, int... shape_pack>
 class UnionDFA;
 
-struct DFAState
-{
-  uint64_t transitions[DFA_MAX];
+typedef std::vector<uint64_t> DFATransitions;
 
-  class RewriteDFA;
-  inline DFAState(const uint64_t transitions_in[DFA_MAX])
+struct DFATransitionsCompare
+{
+  bool operator() (const DFATransitions& left, const DFATransitions& right) const
   {
-    for(int i = 0; i < DFA_MAX; ++i)
+    int left_num_transitions = left.size();
+    int right_num_transitions = right.size();
+
+    if(left_num_transitions < right_num_transitions)
       {
-	transitions[i] = transitions_in[i];
+	return true;
       }
-  }
-};
-
-struct DFAStateCompare
-{
-  bool operator() (const DFAState& left, const DFAState& right) const
-  {
-    for(int i = 0; i < DFA_MAX; ++i)
+    else if(left_num_transitions > right_num_transitions)
       {
-	if(left.transitions[i] < right.transitions[i])
+	return false;
+      }
+
+    for(int i = 0; i < left_num_transitions; ++i)
+      {
+	if(left[i] < right[i])
 	  {
 	    return true;
 	  }
-	else if(left.transitions[i] > right.transitions[i])
+	else if(left[i] > right[i])
 	  {
 	    return false;
 	  }
@@ -45,37 +44,39 @@ struct DFAStateCompare
   }
 };
 
-typedef std::map<DFAState, uint64_t, DFAStateCompare> DFAStateMap;
+typedef std::map<DFATransitions, uint64_t, DFATransitionsCompare> DFATransitionsMap;
 
+template <int ndim, int... shape_pack>
 class DFA
 {
-  // 63 layers mapping (state, square contents) -> next state.
-  // 64th state is a bitmap of accepted square contents.
-  std::vector<DFAState> state_transitions[64] = {{}};
+  std::vector<int> shape;
 
-  DFAStateMap *state_lookup;
+  // ndim layers mapping (state, square contents) -> next state.
+  std::vector<DFATransitions> *state_transitions;
+
+  DFATransitionsMap *state_lookup;
 
  protected:
 
   DFA();
 
-  int add_state(int layer, const uint64_t next_states[DFA_MAX]);
+  int add_state(int, const DFATransitions&);
+  int add_state(int, std::function<uint64_t(int)>);
   void add_uniform_states();
 
  public:
 
   ~DFA();
 
-  typedef uint64_t size_type;
-
+  int get_layer_shape(int) const;
   int get_layer_size(int) const;
-  const DFAState& get_state(int, int) const;
+  const DFATransitions& get_transitions(int, int) const;
 
   bool ready() const;
-  size_type size() const;
-  size_type states() const;
+  int size() const;
+  int states() const;
 
-  friend class UnionDFA;
+  friend class UnionDFA<ndim, shape_pack...>;
 };
 
 #endif

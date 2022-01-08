@@ -6,24 +6,51 @@
 
 #include "DFA.h"
 
-DFA::DFA()
-  : state_lookup(new DFAStateMap[64])
+template<int... shape_pack>
+std::vector<int> shape_pack_to_vector()
 {
-}
+  // initialize an array from the shape parameter pack
 
-DFA::~DFA()
-{
-  if(state_lookup)
+  int ox[] = {shape_pack...};
+
+  // convert to a vector and return
+  std::vector<int> output;
+  for(int i = 0; i < sizeof(ox) / sizeof(int); ++i)
     {
-      delete[] state_lookup;
-      state_lookup = 0;
+      output.push_back(ox[i]);
     }
+  output.shrink_to_fit();
+
+  return output;
 }
 
-int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
+template<int ndim, int... shape_pack>
+DFA<ndim, shape_pack...>::DFA()
+  : shape(shape_pack_to_vector<shape_pack...>()),
+    state_transitions(new std::vector<DFATransitions>[ndim]),
+    state_lookup(new DFATransitionsMap[ndim])
+{
+  assert(shape.size() == ndim);
+}
+
+template<int ndim, int... shape_pack>
+DFA<ndim, shape_pack...>::~DFA()
+{
+  if(this->state_lookup)
+    {
+      delete[] this->state_lookup;
+      this->state_lookup = 0;
+    }
+
+  delete[] this->state_transitions;
+}
+
+template<int ndim, int... shape_pack>
+int DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_states)
 {
   assert(state_lookup);
-  assert(layer < 64);
+  assert((0 <= layer) && (layer < ndim));
+  assert(next_states.size() == this->shape[layer]);
 
   if(layer == 0)
     {
@@ -39,11 +66,13 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
 
   // state range checks
 
-  if(layer < 63)
+  int layer_shape = this->shape[layer];
+
+  if(layer < ndim - 1)
     {
       // make sure next states exist
       int next_layer_size = state_transitions[layer + 1].size();
-      for(int i = 0; i < DFA_MAX; ++i)
+      for(int i = 0; i < layer_shape; ++i)
 	{
 	  assert(next_states[i] < next_layer_size);
 	}
@@ -51,87 +80,106 @@ int DFA::add_state(int layer, const uint64_t next_states[DFA_MAX])
   else
     {
       // last layer is all zero/one for reject/accept.
-      for(int i = 0; i < DFA_MAX; ++i)
+      for(int i = 0; i < layer_shape; ++i)
 	{
 	  assert(next_states[i] < 2);
 	}
     }
 
-  // check if state already exists
-
-  DFAState state_key(next_states);
-
   if(layer > 0)
     {
-      if(state_lookup[layer].count(state_key))
+      if(this->state_lookup[layer].count(next_states))
 	{
-	  return state_lookup[layer][state_key];
+	  return this->state_lookup[layer][next_states];
 	}
     }
 
   // add new state
 
-  int new_state = state_transitions[layer].size();
-  state_transitions[layer].emplace_back(next_states);
+  int new_state_id = this->state_transitions[layer].size();
+  this->state_transitions[layer].emplace_back(next_states);
 
-  assert(state_transitions[layer].size() == (new_state + 1));
+  assert(this->state_transitions[layer].size() == (new_state_id + 1));
 
   if(layer > 0)
     {
-      state_lookup[layer][state_key] = new_state;
+      this->state_lookup[layer][next_states] = new_state_id;
     }
 
-  return new_state;
+  return new_state_id;
 }
 
-void DFA::add_uniform_states()
+template<int ndim, int... shape_pack>
+int DFA<ndim, shape_pack...>::add_state(int layer, std::function<uint64_t(int)> transition_func)
 {
-  for(int layer = 63; layer >= 1; --layer)
+  int layer_shape = shape[layer];
+
+  DFATransitions transitions(layer_shape);
+  for(int i = 0; i < layer_shape; ++i)
     {
-      uint64_t next_states[DFA_MAX] = {0};
-      uint64_t reject_state = add_state(layer, next_states);
+      transitions[i] = transition_func(i);
+    }
+
+  return add_state(layer, transitions);
+}
+
+template<int ndim, int... shape_pack>
+void DFA<ndim, shape_pack...>::add_uniform_states()
+{
+  for(int layer = ndim - 1; layer >= 1; --layer)
+    {
+      uint64_t reject_state = add_state(layer, [](int i){return 0;});
       assert(reject_state == 0);
 
-      for(int i = 0; i < DFA_MAX; ++i)
-	{
-	  next_states[i] = 1;
-	}
-      uint64_t accept_state = add_state(layer, next_states);
+      uint64_t accept_state = add_state(layer, [](int i){return 1;});
       assert(accept_state == 1);
     }
 }
 
-int DFA::get_layer_size(int layer) const
+template<int ndim, int... shape_pack>
+int DFA<ndim, shape_pack...>::get_layer_shape(int layer) const
+{
+  assert((0 <= layer) && (layer < ndim));
+  return shape[layer];
+}
+
+template<int ndim, int... shape_pack>
+int DFA<ndim, shape_pack...>::get_layer_size(int layer) const
 {
   return state_transitions[layer].size();
 }
 
-const DFAState& DFA::get_state(int layer, int state_index) const
+template<int ndim, int... shape_pack>
+const DFATransitions& DFA<ndim, shape_pack...>::get_transitions(int layer, int state_index) const
 {
   return state_transitions[layer].at(state_index);
 }
 
-bool DFA::ready() const
+template<int ndim, int... shape_pack>
+bool DFA<ndim, shape_pack...>::ready() const
 {
   return state_transitions[0].size() != 0;
 }
 
-DFA::size_type DFA::size() const
+template<int ndim, int... shape_pack>
+int DFA<ndim, shape_pack...>::size() const
 {
   assert(state_transitions[0].size() == 1);
 
   std::vector<uint64_t> previous_counts({0, 1}); // reject, accept
-  for(int layer = 63; layer >= 0; --layer)
+  for(int layer = ndim - 1; layer >= 0; --layer)
     {
+      int layer_shape = this->get_layer_shape(layer);
+
       std::vector<uint64_t> current_counts;
       for(int state_index = 0; state_index < state_transitions[layer].size(); ++state_index)
 	{
-	  const DFAState& state(state_transitions[layer][state_index]);
+	  const DFATransitions& transitions = this->get_transitions(layer, state_index);
 
 	  uint64_t state_count = 0;
-	  for(int i = 0; i < DFA_MAX; ++i)
+	  for(int i = 0; i < layer_shape; ++i)
 	    {
-	      state_count += previous_counts.at(state.transitions[i]);
+	      state_count += previous_counts.at(transitions[i]);
 	    }
 	  current_counts.push_back(state_count);
 	}
@@ -144,11 +192,12 @@ DFA::size_type DFA::size() const
   return previous_counts[0];
 }
 
-DFA::size_type DFA::states() const
+template<int ndim, int... shape_pack>
+int DFA<ndim, shape_pack...>::states() const
 {
-  DFA::size_type states_out = 0;
+  int states_out = 0;
 
-  for(int layer = 0; layer < 64; ++layer)
+  for(int layer = 0; layer < ndim; ++layer)
     {
       states_out += state_transitions[layer].size();
     }
@@ -157,3 +206,9 @@ DFA::size_type DFA::states() const
 
   return states_out;
 }
+
+// template instantiations
+
+#include "ChessDFA.h"
+
+template class DFA<CHESS_TEMPLATE_PARAMS>;

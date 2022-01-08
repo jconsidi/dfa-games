@@ -5,12 +5,12 @@
 
 #include <vector>
 
-#include "DFA.h"
+#include "ChessDFA.h"
 #include "IntersectionDFA.h"
 
-class LegalDFA : public IntersectionDFA
+class LegalDFA : public ChessIntersectionDFA
 {
-  static std::vector<const DFA *> get_legal_conditions();
+  static std::vector<const ChessDFA *> get_legal_conditions();
 
  public:
   LegalDFA();

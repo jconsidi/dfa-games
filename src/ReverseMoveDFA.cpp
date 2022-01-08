@@ -2,25 +2,25 @@
 
 #include "ReverseMoveDFA.h"
 
-ReverseMoveDFA::ReverseMoveDFA(const DFA& dfa_in, DFACharacter c_in, int from_index, int to_index)
-  : RewriteDFA(dfa_in, [=](int layer_rewrite, uint64_t states_rewrite[DFA_MAX]) -> void
+ReverseMoveDFA::ReverseMoveDFA(const DFA& dfa_in, int c_in, int from_index, int to_index)
+  : RewriteDFA(dfa_in, [=](int layer_rewrite, DFATransitions& transitions_rewrite) -> void
   {
     if(layer_rewrite == from_index)
       {
 	// replacing blank square with c_in
-	states_rewrite[c_in] = states_rewrite[DFA_BLANK];
-	states_rewrite[DFA_BLANK] = 0; // reject
+	transitions_rewrite[c_in] = transitions_rewrite[DFA_BLANK];
+	transitions_rewrite[DFA_BLANK] = 0; // reject
       }
     // TODO: pawn capture/non-capture rules, en-passant, castling
     else if(layer_rewrite == to_index)
       {
-	uint64_t to_state = states_rewrite[c_in];
+	uint64_t to_state = transitions_rewrite[c_in];
 
 	// this piece was not here before the move.
-	states_rewrite[c_in] = 0;
+	transitions_rewrite[c_in] = 0;
 
 	// no capture option
-	states_rewrite[DFA_BLANK] = to_state;
+	transitions_rewrite[DFA_BLANK] = to_state;
 
 	// capture choices
 	if((DFA_WHITE_KING <= c_in) && (c_in < DFA_BLACK_KING))
@@ -28,7 +28,7 @@ ReverseMoveDFA::ReverseMoveDFA(const DFA& dfa_in, DFACharacter c_in, int from_in
 	    // white is moving.
 	    for(int i = DFA_BLACK_KING + 1; i < DFA_MAX; ++i)
 	      {
-		states_rewrite[i] = to_state;
+		transitions_rewrite[i] = to_state;
 	      }
 	  }
 	else if(DFA_WHITE_KING <= c_in)
@@ -36,7 +36,7 @@ ReverseMoveDFA::ReverseMoveDFA(const DFA& dfa_in, DFACharacter c_in, int from_in
 	    // black is moving.
 	    for(int i = DFA_WHITE_KING + 1; i < DFA_BLACK_KING; ++i)
 	      {
-		states_rewrite[i] = to_state;
+		transitions_rewrite[i] = to_state;
 	      }
 	  }
 	else

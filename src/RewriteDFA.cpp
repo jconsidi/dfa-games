@@ -2,19 +2,18 @@
 
 #include "RewriteDFA.h"
 
-RewriteDFA::RewriteDFA(const DFA& dfa_in, std::function<void(int, uint64_t[64])> rewrite_func)
+template<int ndim, int... shape_pack>
+RewriteDFA<ndim, shape_pack...>::RewriteDFA(const DFA<ndim, shape_pack...>& dfa_in, std::function<void(int, DFATransitions&)> rewrite_func)
 {
   // setup reject/accept nodes to be available to rewrite_func
 
-  add_uniform_states();
+  this->add_uniform_states();
 
   // rewrite input DFA
 
-  uint64_t rewrite_states[DFA_MAX];
-
   // rewrite mask layer by splitting into separate states and reassembling
   std::vector<uint64_t> states_rewritten = {0, 1};
-  for(int layer = 63; layer >= 0; --layer)
+  for(int layer = ndim - 1; layer >= 0; --layer)
     {
       std::vector<uint64_t> states_rewritten_previous = states_rewritten;
       states_rewritten.clear();
@@ -24,15 +23,18 @@ RewriteDFA::RewriteDFA(const DFA& dfa_in, std::function<void(int, uint64_t[64])>
       int layer_size = dfa_in.get_layer_size(layer);
       for(int state_index = 0; state_index < layer_size; ++state_index)
 	{
-	  const DFAState& old_state(dfa_in.get_state(layer, state_index));
-	  for(int i = 0; i < DFA_MAX; ++i)
-	    {
-	      rewrite_states[i] = old_state.transitions[i];
-	    }
-	  rewrite_func(layer, rewrite_states);
+	  const DFATransitions& old_transitions = dfa_in.get_transitions(layer, state_index);
+	  DFATransitions new_transitions = old_transitions;
+	  rewrite_func(layer, new_transitions);
 
-	  states_rewritten.push_back(add_state(layer, rewrite_states));
+	  states_rewritten.push_back(this->add_state(layer, new_transitions));
 	  assert(states_rewritten.size() == state_index + 3);
 	}
     }
 }
+
+// template instantiations
+
+#include "ChessDFA.h"
+
+template class RewriteDFA<CHESS_TEMPLATE_PARAMS>;

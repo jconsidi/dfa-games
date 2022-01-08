@@ -5,7 +5,8 @@
 
 #include "DFA.h"
 
-class CountDFA : public DFA
+template<int ndim, int... shape_pack>
+class CountDFA : public DFA<ndim, shape_pack...>
 {
  public:
 

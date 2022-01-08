@@ -2,15 +2,23 @@
 
 #include "AcceptDFA.h"
 
-AcceptDFA::AcceptDFA()
+template <int ndim, int... shape_pack>
+AcceptDFA<ndim, shape_pack...>::AcceptDFA()
 {
-  add_uniform_states();
+  this->add_uniform_states();
 
   // accept state at top
-  uint64_t next_states[DFA_MAX];
-  for(int i = 0; i < DFA_MAX; ++i)
+  int top_shape = this->get_layer_shape(0);
+  DFATransitions next_states(top_shape);
+  for(int i = 0; i < top_shape; ++i)
     {
       next_states[i] = 1;
     }
-  add_state(0, next_states);
+  this->add_state(0, next_states);
 }
+
+// template instantiations
+
+#include "ChessDFA.h"
+
+template class AcceptDFA<CHESS_TEMPLATE_PARAMS>;

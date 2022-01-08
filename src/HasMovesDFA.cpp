@@ -5,7 +5,7 @@
 #include "AcceptDFA.h"
 
 HasMovesDFA::HasMovesDFA(Side side_to_move)
-  : PreviousDFA(side_to_move, AcceptDFA())
+  : PreviousDFA(side_to_move, ChessAcceptDFA())
 {
 }
 

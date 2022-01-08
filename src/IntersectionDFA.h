@@ -7,12 +7,15 @@
 
 #include "BinaryDFA.h"
 
-class IntersectionDFA : public BinaryDFA
+template<int ndim, int... shape_pack>
+class IntersectionDFA : public BinaryDFA<ndim, shape_pack...>
 {
+  static uint64_t intersection_mask(uint64_t left_mask, uint64_t right_mask);
+
  public:
 
-  IntersectionDFA(const DFA&, const DFA&);
-  IntersectionDFA(const std::vector<const DFA *>);
+  IntersectionDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&);
+  IntersectionDFA(const std::vector<const DFA<ndim, shape_pack...> *>);
 };
 
 #endif

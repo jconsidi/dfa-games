@@ -6,14 +6,22 @@
 
 #include <iostream>
 
-BinaryDFA::BinaryDFA(const DFA& left_in, const DFA& right_in, uint64_t (*leaf_func)(uint64_t, uint64_t))
-  : DFA()
+template <int ndim, int... shape_pack>
+BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
+					  const DFA<ndim, shape_pack...>& right_in,
+					  uint64_t (*leaf_func)(uint64_t, uint64_t))
+  : DFA<ndim, shape_pack...>()
 {
-  BinaryBuildCache cache(left_in, right_in, leaf_func);
+  // TODO: sanity check left/right shape match
+
+  BinaryBuildCache<ndim, shape_pack...> cache(left_in, right_in, leaf_func);
   binary_build(0, 0, 0, cache);
 }
 
-BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_func)(uint64_t, uint64_t))
+template <int ndim, int... shape_pack>
+BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<const DFA<ndim, shape_pack...> *> dfas_in,
+					  uint64_t (*leaf_func)(uint64_t, uint64_t))
+  : DFA<ndim, shape_pack...>()
 {
   switch(dfas_in.size())
     {
@@ -25,14 +33,14 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
     case 1:
       {
 	// copy singleton input
-	const DFA *source = dfas_in[0];
-	for(int layer = 63; layer >= 0; --layer)
+	const DFA<ndim, shape_pack...> *source = dfas_in[0];
+	for(int layer = ndim - 1; layer >= 0; --layer)
 	  {
 	    int layer_size = source->get_layer_size(layer);
 	    for(int state_index = 0; state_index < layer_size; ++state_index)
 	      {
-		const DFAState& state(source->get_state(layer, state_index));
-		int new_state_index = add_state(layer, state.transitions);
+		const DFATransitions& transitions(source->get_transitions(layer, state_index));
+		int new_state_index = this->add_state(layer, transitions);
 		assert(new_state_index == state_index);
 	      }
 	  }
@@ -95,15 +103,19 @@ BinaryDFA::BinaryDFA(const std::vector<const DFA *> dfas_in, uint64_t (*leaf_fun
   BinaryBuildCache cache(dfas_temp[next_merge], dfas_temp[next_merge + 1], leaf_func);
   binary_build(0, 0, 0, cache);
 
-  if(states() >= 1 << 10)
+  if(this->states() >= 1 << 10)
     {
-      std::cerr << "  final merged has " << states() << " states" << std::endl;
+      std::cerr << "  final merged has " << this->states() << " states" << std::endl;
     }
 }
 
-uint64_t BinaryDFA::binary_build(int layer, uint64_t left_index, uint64_t right_index, BinaryBuildCache& cache)
+template <int ndim, int... shape_pack>
+uint64_t BinaryDFA<ndim, shape_pack...>::binary_build(int layer,
+						      uint64_t left_index,
+						      uint64_t right_index,
+						      BinaryBuildCache<ndim, shape_pack...>& cache)
 {
-  if(layer == 64)
+  if(layer == ndim)
     {
       return cache.leaf_func(left_index, right_index);
     }
@@ -115,19 +127,26 @@ uint64_t BinaryDFA::binary_build(int layer, uint64_t left_index, uint64_t right_
       return layer_cache[key];
     }
 
-  const DFAState& left_state(cache.left.get_state(layer, left_index));
-  const DFAState& right_state(cache.right.get_state(layer, right_index));
+  const DFATransitions& left_transitions(cache.left.get_transitions(layer, left_index));
+  const DFATransitions& right_transitions(cache.right.get_transitions(layer, right_index));
 
-  uint64_t transitions[DFA_MAX];
-  for(int i = 0; i < DFA_MAX; ++i)
+  int layer_shape = this->get_layer_shape(layer);
+  DFATransitions transitions(layer_shape);
+  for(int i = 0; i < layer_shape; ++i)
     {
       transitions[i] = binary_build(layer + 1,
-				    left_state.transitions[i],
-				    right_state.transitions[i],
+				    left_transitions[i],
+				    right_transitions[i],
 				    cache);
     }
 
-  uint64_t new_state = add_state(layer, transitions);
+  uint64_t new_state = this->add_state(layer, transitions);
   layer_cache[key] = new_state;
   return new_state;
 }
+
+// template instantiations
+
+#include "ChessDFA.h"
+
+template class BinaryDFA<CHESS_TEMPLATE_PARAMS>;
