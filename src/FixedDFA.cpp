@@ -9,6 +9,8 @@ FixedDFA<ndim, shape_pack...>::FixedDFA(int fixed_square, int fixed_character)
   // 1 state until the fixed square, then a reject state and accept
   // state until the penultimate (mask) layer.
 
+  assert((0 <= fixed_square) && (fixed_square < ndim));
+
   // layers after fixed square
 
   for(int layer = ndim - 1; layer > fixed_square; --layer)
