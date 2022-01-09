@@ -59,7 +59,7 @@ uint64_t UnionDFA<ndim, shape_pack...>::union_internal(int layer, std::vector<ui
     {
       const int layer_shape = this->get_layer_shape(layer);
 
-      if(layer <= 14)
+      if((ndim > 20) && (layer <= 14))
 	{
 	  std::cerr << "  flattening " << layer << ":" << key << std::endl;
 	}
