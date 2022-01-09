@@ -7,6 +7,18 @@
 #include <sstream>
 
 template<int ndim, int... shape_pack>
+std::vector<const DFA<ndim, shape_pack...> *> UnionDFA<ndim, shape_pack...>::convert_inputs(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in)
+{
+  std::vector<const DFA<ndim, shape_pack...> *> output;
+  int num_inputs = dfas_in.size();
+  for(int i = 0; i < num_inputs; ++i)
+    {
+      output.push_back(dfas_in[i].get());
+    }
+  return output;
+}
+
+template<int ndim, int... shape_pack>
 uint64_t UnionDFA<ndim, shape_pack...>::union_internal(int layer, std::vector<uint64_t> union_states)
 {
   if(layer < ndim)
@@ -88,7 +100,7 @@ UnionDFA<ndim, shape_pack...>::UnionDFA(const DFA<ndim, shape_pack...>& left_in,
 }
 
 template<int ndim, int... shape_pack>
-UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<const DFA<ndim, shape_pack...> *> dfas_in)
+UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<const DFA<ndim, shape_pack...> *>& dfas_in)
   : dedupe_temp(new DFA<ndim, shape_pack...>()),
     union_cache(new std::unordered_map<std::string, uint64_t>[64])
 {
@@ -148,6 +160,12 @@ UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<const DFA<ndim, shape_
 
   delete dedupe_temp;
   dedupe_temp = 0;
+}
+
+template<int ndim, int... shape_pack>
+UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in)
+  : UnionDFA(convert_inputs(dfas_in))
+{
 }
 
 // template instantiations
