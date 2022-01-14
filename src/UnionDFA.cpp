@@ -94,6 +94,15 @@ uint64_t UnionDFA<ndim, shape_pack...>::union_internal(int layer, std::vector<ui
 }
 
 template<int ndim, int... shape_pack>
+UnionDFA<ndim, shape_pack...>::UnionDFA()
+  : dedupe_temp(new DFA<ndim, shape_pack...>()),
+    union_cache(new std::unordered_map<std::string, uint64_t>[64])
+{
+  this->add_uniform_states();
+  dedupe_temp->add_uniform_states();
+}
+
+template<int ndim, int... shape_pack>
 UnionDFA<ndim, shape_pack...>::UnionDFA(const DFA<ndim, shape_pack...>& left_in, const DFA<ndim, shape_pack...>& right_in)
   : UnionDFA(std::vector<const DFA<ndim, shape_pack...> *>({&left_in, &right_in}))
 {
@@ -101,12 +110,8 @@ UnionDFA<ndim, shape_pack...>::UnionDFA(const DFA<ndim, shape_pack...>& left_in,
 
 template<int ndim, int... shape_pack>
 UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<const DFA<ndim, shape_pack...> *>& dfas_in)
-  : dedupe_temp(new DFA<ndim, shape_pack...>()),
-    union_cache(new std::unordered_map<std::string, uint64_t>[64])
+  : UnionDFA()
 {
-  this->add_uniform_states();
-  dedupe_temp->add_uniform_states();
-
   int top_shape = this->get_layer_shape(0);
   std::vector<uint64_t> *top_transitions = new std::vector<uint64_t>[top_shape];
 
@@ -171,5 +176,9 @@ UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<std::shared_ptr<const 
 // template instantiations
 
 #include "ChessDFA.h"
+#include "TicTacToeGame.h"
 
 template class UnionDFA<CHESS_TEMPLATE_PARAMS>;
+template class UnionDFA<TICTACTOE2_DFA_PARAMS>;
+template class UnionDFA<TICTACTOE3_DFA_PARAMS>;
+template class UnionDFA<TICTACTOE4_DFA_PARAMS>;

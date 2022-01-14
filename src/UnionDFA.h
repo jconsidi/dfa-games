@@ -19,6 +19,10 @@ class UnionDFA : public DFA<ndim, shape_pack...>
   static std::vector<const DFA<ndim, shape_pack...> *> convert_inputs(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>&);
   uint64_t union_internal(int, std::vector<uint64_t>);
 
+protected:
+
+  UnionDFA();
+
  public:
 
   UnionDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&);

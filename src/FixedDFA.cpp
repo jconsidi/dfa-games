@@ -48,5 +48,9 @@ FixedDFA<ndim, shape_pack...>::FixedDFA(int fixed_square, int fixed_character)
 // template instantiations
 
 #include "ChessDFA.h"
+#include "TicTacToeGame.h"
 
 template class FixedDFA<CHESS_TEMPLATE_PARAMS>;
+template class FixedDFA<TICTACTOE2_DFA_PARAMS>;
+template class FixedDFA<TICTACTOE3_DFA_PARAMS>;
+template class FixedDFA<TICTACTOE4_DFA_PARAMS>;
