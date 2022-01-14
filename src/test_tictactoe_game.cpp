@@ -1,4 +1,4 @@
-// test_tictactoe.cpp
+// test_tictactoe_game.cpp
 
 #include <iostream>
 
