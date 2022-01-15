@@ -6,20 +6,30 @@
 
 #include <iostream>
 
+template<int ndim, int... shape_pack>
+std::vector<const DFA<ndim, shape_pack...> *> BinaryDFA<ndim, shape_pack...>::convert_inputs(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in)
+{
+  std::vector<const DFA<ndim, shape_pack...> *> output;
+  int num_inputs = dfas_in.size();
+  for(int i = 0; i < num_inputs; ++i)
+    {
+      output.push_back(dfas_in[i].get());
+    }
+  return output;
+}
+
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
 					  uint64_t (*leaf_func)(uint64_t, uint64_t))
   : DFA<ndim, shape_pack...>()
 {
-  // TODO: sanity check left/right shape match
-
   BinaryBuildCache<ndim, shape_pack...> cache(left_in, right_in, leaf_func);
   binary_build(0, 0, 0, cache);
 }
 
 template <int ndim, int... shape_pack>
-BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<const DFA<ndim, shape_pack...> *> dfas_in,
+BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<const DFA<ndim, shape_pack...> *>& dfas_in,
 					  uint64_t (*leaf_func)(uint64_t, uint64_t))
   : DFA<ndim, shape_pack...>()
 {
@@ -70,43 +80,50 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<const DFA<ndim, shap
   // vector. then keep popping off two DFAs from the front and merging
   // onto the end. last merge becomes this DFA.
 
-  std::vector<BinaryDFA> dfas_temp;
+  std::vector<std::shared_ptr<BinaryDFA>> dfas_temp;
   for(int i = 0; i < dfas_in.size() - 1; i += 2)
     {
-      dfas_temp.emplace_back(*(dfas_in[i]),*(dfas_in[i + 1]), leaf_func);
-      std::cerr << "  early merge " << (i / 2) << "/" << (dfas_in.size() / 2) << " had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
+      dfas_temp.emplace_back(new BinaryDFA(*(dfas_in[i]),*(dfas_in[i + 1]), leaf_func));
+      std::cerr << "  early merge " << (i / 2) << "/" << (dfas_in.size() / 2) << " had " << dfas_temp[dfas_temp.size() - 1]->states() << " states" << std::endl;
     }
   int next_merge = 0;
   if(dfas_in.size() % 2)
     {
-      dfas_temp.emplace_back(*(dfas_in[dfas_in.size() - 1]), dfas_temp[0], leaf_func);
+      dfas_temp.emplace_back(new BinaryDFA(*(dfas_in[dfas_in.size() - 1]), *dfas_temp[0], leaf_func));
       next_merge = 1;
       // LATER: drop temp DFA internals
-      std::cerr << "  odd merge had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
+      std::cerr << "  odd merge had " << dfas_temp[dfas_temp.size() - 1]->states() << " states" << std::endl;
     }
 
   std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining" << std::endl;
   while(next_merge + 2 < dfas_temp.size())
     {
-      dfas_temp.emplace_back(dfas_temp[next_merge], dfas_temp[next_merge + 1], leaf_func);
+      dfas_temp.emplace_back(new BinaryDFA(*dfas_temp[next_merge], *dfas_temp[next_merge + 1], leaf_func));
       next_merge += 2;
       // LATER: drop temp DFA internals
-      if(dfas_temp[dfas_temp.size() - 1].states() >= 1024)
+      if(dfas_temp[dfas_temp.size() - 1]->states() >= 1024)
 	{
-	  std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining, last merge had " << dfas_temp[dfas_temp.size() - 1].states() << " states" << std::endl;
+	  std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining, last merge had " << dfas_temp[dfas_temp.size() - 1]->states() << " states" << std::endl;
 	}
     }
 
   assert(dfas_temp.size() - next_merge == 2);
 
   // merge last two into the final DFA
-  BinaryBuildCache cache(dfas_temp[next_merge], dfas_temp[next_merge + 1], leaf_func);
+  BinaryBuildCache cache(*dfas_temp[next_merge], *dfas_temp[next_merge + 1], leaf_func);
   binary_build(0, 0, 0, cache);
 
   if(this->states() >= 1 << 10)
     {
       std::cerr << "  final merged has " << this->states() << " states" << std::endl;
     }
+}
+
+template<int ndim, int... shape_pack>
+BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in,
+					  uint64_t (*leaf_func)(uint64_t, uint64_t))
+  : BinaryDFA(convert_inputs(dfas_in), leaf_func)
+{
 }
 
 template <int ndim, int... shape_pack>

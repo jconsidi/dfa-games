@@ -199,10 +199,9 @@ int DFA<ndim, shape_pack...>::states() const
 
   for(int layer = 0; layer < ndim; ++layer)
     {
+      assert(state_transitions[layer].size() > 0);
       states_out += state_transitions[layer].size();
     }
-
-  // ignoring states implied by masks in last layer
 
   return states_out;
 }

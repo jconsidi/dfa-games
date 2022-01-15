@@ -49,12 +49,12 @@ typedef std::map<DFATransitions, uint64_t, DFATransitionsCompare> DFATransitions
 template <int ndim, int... shape_pack>
 class DFA
 {
-  std::vector<int> shape;
+  std::vector<int> shape = {};
 
   // ndim layers mapping (state, square contents) -> next state.
-  std::vector<DFATransitions> *state_transitions;
+  std::vector<DFATransitions> *state_transitions = 0;
 
-  DFATransitionsMap *state_lookup;
+  DFATransitionsMap *state_lookup = 0;
 
  protected:
 
