@@ -8,6 +8,7 @@
 #include "CountDFA.h"
 #include "DFA.h"
 #include "IntersectionDFA.h"
+#include "InverseDFA.h"
 #include "RejectDFA.h"
 #include "UnionDFA.h"
 
@@ -41,6 +42,20 @@ void test_intersection_vector(std::string test_name, const std::vector<const Tes
 
   IntersectionDFA<TEST_DFA_PARAMS> test_dfa(dfas_in);
   test_helper("intersection vector " + test_name, test_dfa, expected_boards);
+}
+
+void test_inverse(std::string test_name, const TestDFA& dfa_in)
+{
+  std::cout << "checking inverse " << test_name << std::endl;
+  std::cout.flush();
+
+  int expected_boards = 24 - dfa_in.size();
+
+  InverseDFA<TEST_DFA_PARAMS> test_dfa(dfa_in);
+  test_helper("inverse " + test_name, test_dfa, expected_boards);
+
+  IntersectionDFA<TEST_DFA_PARAMS> intersection_dfa(test_dfa, dfa_in);
+  test_intersection_pair("inverse " + test_name, test_dfa, dfa_in, 0);
 }
 
 void test_union_pair(std::string test_name, const TestDFA& left, const TestDFA& right, int expected_boards)
@@ -108,6 +123,15 @@ int main()
       test_union_vector("count0+count1", std::vector<const TestDFA *>({&count0, &count1}), count0.size() + count1.size());
       test_union_vector("count0+count1+count2", std::vector<const TestDFA *>({&count0, &count1, &count2}), count0.size() + count1.size() + count2.size());
       test_union_vector("count0+count1+count2+count3", std::vector<const TestDFA *>({&count0, &count1, &count2, &count3}), count0.size() + count1.size() + count2.size() + count3.size());
+
+      // inverse tests
+
+      test_inverse("accept", accept);
+      test_inverse("reject", reject);
+      test_inverse("count0", count0);
+      test_inverse("count1", count1);
+      test_inverse("count2", count2);
+      test_inverse("count3", count3);
 
       // count character tests
 
