@@ -15,7 +15,6 @@ class UnionDFA : public BinaryDFA<ndim, shape_pack...>
  public:
 
   UnionDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&);
-  UnionDFA(const std::vector<const DFA<ndim, shape_pack...> *>&);
   UnionDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>&);
 };
 

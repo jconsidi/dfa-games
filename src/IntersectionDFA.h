@@ -15,7 +15,6 @@ class IntersectionDFA : public BinaryDFA<ndim, shape_pack...>
  public:
 
   IntersectionDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&);
-  IntersectionDFA(const std::vector<const DFA<ndim, shape_pack...> *>&);
   IntersectionDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>&);
 };
 

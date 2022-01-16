@@ -16,12 +16,6 @@ UnionDFA<ndim, shape_pack...>::UnionDFA(const DFA<ndim, shape_pack...>& left_in,
 }
 
 template<int ndim, int... shape_pack>
-UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<const DFA<ndim, shape_pack...> *>& dfas_in)
-  : BinaryDFA<ndim, shape_pack...>(dfas_in, union_mask)
-{
-}
-
-template<int ndim, int... shape_pack>
 UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in)
   : BinaryDFA<ndim, shape_pack...>(dfas_in, union_mask)
 {
