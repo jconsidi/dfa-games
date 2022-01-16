@@ -51,7 +51,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
       // king restrictions
       requirements.push_back(get_king_positions(0));
       requirements.push_back(get_king_positions(1));
-      
+
       std::cout << "get_basic_positions() => " << requirements.size() << " requirements" << std::endl;
 
       singleton = shared_dfa_ptr(new intersection_dfa_type(requirements));
@@ -71,7 +71,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int side_to_mo
 
       shared_dfa_ptr king_positions = get_king_positions(side_to_move);
       int king_character = (side_to_move == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
-      
+
       std::vector<shared_dfa_ptr> checks;
       for(int square = 0; square < 64; ++square)
 	{
@@ -79,7 +79,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int side_to_mo
 	  square_requirements.emplace_back(new fixed_dfa_type(square + 2, king_character));
 	  square_requirements.push_back(king_positions); // makes union much cheaper below
 	  square_requirements.push_back(get_threat_positions(side_to_move, square));
-	  
+
 	  checks.emplace_back(new intersection_dfa_type(square_requirements));
 	}
 
@@ -113,12 +113,12 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 	  };
 
 	  add_requirement(new fixed_dfa_type(king_side, king_square));
-	  
+
 	  for(int square = 0; square < 64; ++square)
 	    {
 	      shared_dfa_ptr king_on_square(new fixed_dfa_type(square + 2, king_character));
 	      assert(king_on_square->size() > 0);
-	      
+
 	      if(square == king_square)
 		{
 		  king_square_requirements.push_back(king_on_square);
@@ -173,7 +173,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 	    threats.emplace_back(new intersection_dfa_type(threat_components));
 	  }
       };
-      
+
       if(threatened_side == SIDE_WHITE)
 	{
 	  add_threat(DFA_BLACK_BISHOP, bishop_moves);
@@ -276,36 +276,170 @@ typename ChessGame::rule_vector ChessGame::get_rules(int side_to_move) const
   shared_dfa_ptr pre_shared = basic_positions;
   shared_dfa_ptr post_shared(new intersection_dfa_type(*basic_positions, *not_check_positions));
 
+  // common conditions
+
+  std::vector<shared_dfa_ptr> blank_conditions;
+  for(int square = 0; square < 64; ++square)
+    {
+      blank_conditions.emplace_back(new fixed_dfa_type(square + 2, DFA_BLANK));
+    }
+
+  std::vector<shared_dfa_ptr> not_friendly_conditions;
+  for(int square = 0; square < 64; ++square)
+    {
+      std::vector<shared_dfa_ptr> square_conditions;
+
+      if(side_to_move == SIDE_WHITE)
+	{
+	  for(int friendly_character = DFA_WHITE_KING;
+	      friendly_character < DFA_BLACK_KING;
+	      ++friendly_character)
+	    {
+	      square_conditions.emplace_back(new inverse_dfa_type(fixed_dfa_type(square + 2, friendly_character)));
+	    }
+	}
+      else
+	{
+	  for(int friendly_character = DFA_BLACK_KING;
+	      friendly_character < DFA_MAX;
+	      ++friendly_character)
+	    {
+	      square_conditions.emplace_back(new inverse_dfa_type(fixed_dfa_type(square + 2, friendly_character)));
+	    }
+	}
+
+      not_friendly_conditions.emplace_back(new intersection_dfa_type(square_conditions));
+    }
+
   // collect rules
 
   rule_vector output;
 
-  std::function<void(int, const MoveSet&)> add_basic_rule = [&](int character, const MoveSet& moves)
+  std::function<void(int, const MoveSet&)> add_basic_rules = [&](int character, const MoveSet& moves)
   {
-    throw std::logic_error("ChessGame::get_rules::add_basic_rule not implemented");
+    for(int from_square = 0; from_square < 64; ++from_square)
+      {
+	for(int to_square = 0; to_square < 64; ++to_square)
+	  {
+	    if(!(moves.moves[from_square] & (1ULL << to_square)))
+	      {
+		continue;
+	      }
+
+	    std::cout << " adding rules for " << from_square << " -> " << to_square << std::endl;
+
+	    std::vector<shared_dfa_ptr> pre_conditions = {pre_shared};
+	    pre_conditions.emplace_back(new fixed_dfa_type(from_square + 2, character));
+	    pre_conditions.emplace_back(not_friendly_conditions.at(to_square));
+
+	    std::vector<shared_dfa_ptr> post_conditions = {post_shared};
+	    post_conditions.emplace_back(blank_conditions[from_square]);
+	    post_conditions.emplace_back(new fixed_dfa_type(to_square + 2, character));
+
+	    // require squares between from and to squares to be empty pre and post.
+	    BoardMask between_mask = between_masks.masks[from_square][to_square];
+	    for(int between_square = 0; between_square < 64; ++between_square)
+	      {
+		if(between_mask & (1 << between_square))
+		  {
+		    pre_conditions.push_back(blank_conditions.at(between_square));
+		    post_conditions.push_back(blank_conditions.at(between_square));
+		  }
+	      }
+
+	    shared_dfa_ptr pre_condition(new intersection_dfa_type(pre_conditions));
+	    shared_dfa_ptr post_condition(new intersection_dfa_type(post_conditions));
+
+	    change_func change_rule = [=](int layer, int old_value, int new_value)
+	    {
+	      if(layer == SIDE_WHITE)
+		{
+		  // white king index
+		  if(character == DFA_WHITE_KING)
+		    {
+		      // moving this piece
+		      return (old_value == from_square) && (new_value == to_square);
+		    }
+		  else
+		    {
+		      // moving another piece
+		      return old_value == new_value;
+		    }
+		}
+
+	      if(layer == SIDE_BLACK)
+		{
+		  // black king index
+		  if(character == DFA_BLACK_KING)
+		    {
+		      // moving this piece
+		      return (old_value == from_square) && (new_value == to_square);
+		    }
+		  else
+		    {
+		      // moving another piece
+		      return old_value == new_value;
+		    }
+		}
+
+	      int square = layer - 2;
+
+	      // moving piece
+
+	      if(square == from_square)
+		{
+		  return (old_value == character) && (new_value == DFA_BLANK);
+		}
+
+	      if(square == to_square)
+		{
+		  // TODO: limit this more
+		  return (new_value == character);
+		}
+
+	      // rest of board
+
+	      return (old_value == new_value);
+	    };
+
+	    output.emplace_back(pre_condition,
+				change_rule,
+				post_condition);
+	  }
+      }
   };
 
   if(side_to_move == SIDE_WHITE)
     {
-      add_basic_rule(DFA_WHITE_BISHOP, bishop_moves);
-      add_basic_rule(DFA_WHITE_KING, king_moves);
-      add_basic_rule(DFA_WHITE_KNIGHT, knight_moves);
-      add_basic_rule(DFA_WHITE_QUEEN, queen_moves);
-      add_basic_rule(DFA_WHITE_ROOK, rook_moves);
+      std::cout << "BISHOP RULES" << std::endl;
+      add_basic_rules(DFA_WHITE_BISHOP, bishop_moves);
+      std::cout << "KING RULES" << std::endl;
+      add_basic_rules(DFA_WHITE_KING, king_moves);
+      std::cout << "KNIGHT RULES" << std::endl;
+      add_basic_rules(DFA_WHITE_KNIGHT, knight_moves);
+      std::cout << "QUEEN RULES" << std::endl;
+      add_basic_rules(DFA_WHITE_QUEEN, queen_moves);
+      std::cout << "ROOK RULES" << std::endl;
+      add_basic_rules(DFA_WHITE_ROOK, rook_moves);
 
       // TODO: pawn advances, pawn captures, en-passant, castling
-      //add_basic_rule(DFA_WHITE_PAWN, pawn_advances_white);
+      //add_basic_rules(DFA_WHITE_PAWN, pawn_advances_white);
     }
   else
     {
-      add_basic_rule(DFA_BLACK_BISHOP, bishop_moves);
-      add_basic_rule(DFA_BLACK_KING, king_moves);
-      add_basic_rule(DFA_BLACK_KNIGHT, knight_moves);
-      add_basic_rule(DFA_BLACK_QUEEN, queen_moves);
-      add_basic_rule(DFA_BLACK_ROOK, rook_moves);
+      std::cout << "BISHOP RULES" << std::endl;
+      add_basic_rules(DFA_BLACK_BISHOP, bishop_moves);
+      std::cout << "KING RULES" << std::endl;
+      add_basic_rules(DFA_BLACK_KING, king_moves);
+      std::cout << "KNIGHT RULES" << std::endl;
+      add_basic_rules(DFA_BLACK_KNIGHT, knight_moves);
+      std::cout << "QUEEN RULES" << std::endl;
+      add_basic_rules(DFA_BLACK_QUEEN, queen_moves);
+      std::cout << "ROOK RULES" << std::endl;
+      add_basic_rules(DFA_BLACK_ROOK, rook_moves);
 
       // TODO: pawn advances, pawn captures, en-passant, castling
-      //add_basic_rule(DFA_BLACK_PAWN, pawn_advances_black);
+      //add_basic_rules(DFA_BLACK_PAWN, pawn_advances_black);
     }
 
   throw std::logic_error("ChessGame::get_rules not implemented");
