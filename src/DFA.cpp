@@ -208,10 +208,10 @@ int DFA<ndim, shape_pack...>::states() const
 
 // template instantiations
 
-#include "ChessDFA.h"
+#include "ChessGame.h"
 #include "TicTacToeGame.h"
 
-template class DFA<CHESS_TEMPLATE_PARAMS>;
+template class DFA<CHESS_DFA_PARAMS>;
 template class DFA<TEST_DFA_PARAMS>;
 template class DFA<TICTACTOE2_DFA_PARAMS>;
 template class DFA<TICTACTOE3_DFA_PARAMS>;

@@ -134,8 +134,10 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
 // template instantiations
 
+#include "ChessGame.h"
 #include "TicTacToeGame.h"
 
+template class Game<CHESS_DFA_PARAMS>;
 template class Game<TICTACTOE2_DFA_PARAMS>;
 template class Game<TICTACTOE3_DFA_PARAMS>;
 template class Game<TICTACTOE4_DFA_PARAMS>;

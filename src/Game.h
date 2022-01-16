@@ -11,6 +11,7 @@
 #include "ChangeDFA.h"
 #include "DFA.h"
 #include "DifferenceDFA.h"
+#include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "UnionDFA.h"
@@ -26,6 +27,7 @@ public:
   typedef AcceptDFA<ndim, shape_pack...> accept_dfa_type;
   typedef ChangeDFA<ndim, shape_pack...> change_dfa_type;
   typedef DifferenceDFA<ndim, shape_pack...> difference_dfa_type;
+  typedef FixedDFA<ndim, shape_pack...> fixed_dfa_type;
   typedef IntersectionDFA<ndim, shape_pack...> intersection_dfa_type;
   typedef InverseDFA<ndim, shape_pack...> inverse_dfa_type;
   typedef UnionDFA<ndim, shape_pack...> union_dfa_type;

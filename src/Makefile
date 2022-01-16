@@ -4,7 +4,7 @@ CXX=c++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g
 
-TARGETS=divide generate_moves prototype random random_uci test_dfa test_perft test_tictactoe_game
+TARGETS=divide generate_moves random random_uci test_chess_game test_dfa test_perft test_tictactoe_game
 
 all : $(TARGETS)
 
@@ -39,6 +39,9 @@ random : random.o chess.a
 random_uci : random_uci.o chess.a
 	$(CXX) -o $@ $^
 
+test_chess_game : test_chess_game.o chess.a
+	$(CXX) -o $@ $^
+
 test_dfa : test_dfa.o chess.a
 	$(CXX) -o $@ $^
 
@@ -48,7 +51,7 @@ test_perft : test_perft.o chess.a
 test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a
 	$(CXX) -o $@ $^
 
-chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o Board.o ChangeDFA.o CheckDFA.o CountCharacterDFA.o CountDFA.o DFA.o DifferenceDFA.o FixedDFA.o ForcedDFA.o Game.o HasMovesDFA.o IntersectionDFA.o InverseDFA.o LegalDFA.o MoveSet.o PreviousDFA.o RejectDFA.o ReverseMoveDFA.o RewriteDFA.o UnionDFA.o ThreatDFA.o utils.o
+chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o Board.o ChangeDFA.o ChessGame.o CountCharacterDFA.o CountDFA.o DFA.o DifferenceDFA.o FixedDFA.o Game.o IntersectionDFA.o InverseDFA.o MoveSet.o RejectDFA.o RewriteDFA.o UnionDFA.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################

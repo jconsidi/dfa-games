@@ -19,10 +19,10 @@ AcceptDFA<ndim, shape_pack...>::AcceptDFA()
 
 // template instantiations
 
-#include "ChessDFA.h"
+#include "ChessGame.h"
 #include "TicTacToeGame.h"
 
-template class AcceptDFA<CHESS_TEMPLATE_PARAMS>;
+template class AcceptDFA<CHESS_DFA_PARAMS>;
 template class AcceptDFA<TEST_DFA_PARAMS>;
 template class AcceptDFA<TICTACTOE2_DFA_PARAMS>;
 template class AcceptDFA<TICTACTOE3_DFA_PARAMS>;

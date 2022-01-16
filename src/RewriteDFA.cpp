@@ -35,6 +35,6 @@ RewriteDFA<ndim, shape_pack...>::RewriteDFA(const DFA<ndim, shape_pack...>& dfa_
 
 // template instantiations
 
-#include "ChessDFA.h"
+#include "ChessGame.h"
 
-template class RewriteDFA<CHESS_TEMPLATE_PARAMS>;
+template class RewriteDFA<CHESS_DFA_PARAMS>;

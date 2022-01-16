@@ -28,10 +28,10 @@ IntersectionDFA<ndim, shape_pack...>::IntersectionDFA(const std::vector<std::sha
 }
 // template instantiations
 
-#include "ChessDFA.h"
+#include "ChessGame.h"
 #include "TicTacToeGame.h"
 
-template class IntersectionDFA<CHESS_TEMPLATE_PARAMS>;
+template class IntersectionDFA<CHESS_DFA_PARAMS>;
 template class IntersectionDFA<TEST_DFA_PARAMS>;
 template class IntersectionDFA<TICTACTOE2_DFA_PARAMS>;
 template class IntersectionDFA<TICTACTOE3_DFA_PARAMS>;
