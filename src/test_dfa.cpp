@@ -3,10 +3,12 @@
 #include <iostream>
 #include <string>
 
+#include "AcceptDFA.h"
 #include "CountCharacterDFA.h"
 #include "CountDFA.h"
 #include "DFA.h"
 #include "IntersectionDFA.h"
+#include "RejectDFA.h"
 #include "UnionDFA.h"
 
 void test_helper(std::string test_name, const TestDFA& test_dfa, int expected_boards)
@@ -63,6 +65,16 @@ int main()
 {
   try
     {
+      // accept all
+
+      AcceptDFA<TEST_DFA_PARAMS> accept;
+      test_helper("accept", accept, 24); // 1 * 2 * 3 * 4
+
+      // reject all
+
+      RejectDFA<TEST_DFA_PARAMS> reject;
+      test_helper("reject", reject, 0);
+
       // count tests
 
       CountDFA<TEST_DFA_PARAMS> count0(0);

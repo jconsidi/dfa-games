@@ -23,6 +23,7 @@ AcceptDFA<ndim, shape_pack...>::AcceptDFA()
 #include "TicTacToeGame.h"
 
 template class AcceptDFA<CHESS_TEMPLATE_PARAMS>;
+template class AcceptDFA<TEST_DFA_PARAMS>;
 template class AcceptDFA<TICTACTOE2_DFA_PARAMS>;
 template class AcceptDFA<TICTACTOE3_DFA_PARAMS>;
 template class AcceptDFA<TICTACTOE4_DFA_PARAMS>;
