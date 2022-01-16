@@ -49,3 +49,4 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in
 #include "ChessDFA.h"
 
 template class CountCharacterDFA<CHESS_TEMPLATE_PARAMS>;
+template class CountCharacterDFA<TEST_DFA_PARAMS>;

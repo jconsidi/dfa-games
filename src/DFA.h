@@ -79,4 +79,7 @@ class DFA
   friend class UnionDFA<ndim, shape_pack...>;
 };
 
+#define TEST_DFA_PARAMS 4, 1, 2, 3, 4
+typedef DFA<TEST_DFA_PARAMS> TestDFA;
+
 #endif

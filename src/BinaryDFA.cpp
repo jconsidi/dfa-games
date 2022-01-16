@@ -168,6 +168,7 @@ uint64_t BinaryDFA<ndim, shape_pack...>::binary_build(int layer,
 #include "TicTacToeGame.h"
 
 template class BinaryDFA<CHESS_TEMPLATE_PARAMS>;
+template class BinaryDFA<TEST_DFA_PARAMS>;
 template class BinaryDFA<TICTACTOE2_DFA_PARAMS>;
 template class BinaryDFA<TICTACTOE3_DFA_PARAMS>;
 template class BinaryDFA<TICTACTOE4_DFA_PARAMS>;
