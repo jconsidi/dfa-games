@@ -21,6 +21,10 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 					  uint64_t (*leaf_func)(uint64_t, uint64_t))
   : DFA<ndim, shape_pack...>()
 {
+  // confirm commutativity
+  assert(leaf_func(0, 1) == leaf_func(1, 0));
+
+  // special case 0-2 input DFAs
   switch(dfas_in.size())
     {
     case 0:
@@ -52,59 +56,57 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 	binary_build(0, 0, 0, cache);
 	return;
       }
-
-    case 3:
-      {
-	// two binary merges
-	BinaryDFA temp(*(dfas_in[0]), *(dfas_in[1]), leaf_func);
-
-	BinaryBuildCache cache(temp, *(dfas_in[2]), leaf_func);
-	binary_build(0, 0, 0, cache);
-	return;
-      }
     }
 
-  // four or more DFAs. will merge and rollover into a temp
-  // vector. then keep popping off two DFAs from the front and merging
-  // onto the end. last merge becomes this DFA.
+  // three or more DFAs. will greedily merge the two smallest DFAs
+  // counting states until two DFAs left, then merge the last two for
+  // this DFA.
 
-  std::vector<std::shared_ptr<BinaryDFA>> dfas_temp;
-  for(int i = 0; i < dfas_in.size() - 1; i += 2)
+  std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>> dfas_temp;
+  for(int i = 0; i < dfas_in.size(); ++i)
     {
-      dfas_temp.emplace_back(new BinaryDFA(*(dfas_in[i]),*(dfas_in[i + 1]), leaf_func));
-      std::cerr << "  early merge " << (i / 2) << "/" << (dfas_in.size() / 2) << " had " << dfas_temp[dfas_temp.size() - 1]->states() << " states" << std::endl;
-    }
-  int next_merge = 0;
-  if(dfas_in.size() % 2)
-    {
-      dfas_temp.emplace_back(new BinaryDFA(*(dfas_in[dfas_in.size() - 1]), *dfas_temp[0], leaf_func));
-      next_merge = 1;
-      // LATER: drop temp DFA internals
-      std::cerr << "  odd merge had " << dfas_temp[dfas_temp.size() - 1]->states() << " states" << std::endl;
+      dfas_temp.push_back(dfas_in[i]);
     }
 
-  std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining" << std::endl;
-  while(next_merge + 2 < dfas_temp.size())
+  struct
+  {
+    bool operator()(std::shared_ptr<const DFA<ndim, shape_pack...>> a,
+		    std::shared_ptr<const DFA<ndim, shape_pack...>> b) const
     {
-      dfas_temp.emplace_back(new BinaryDFA(*dfas_temp[next_merge], *dfas_temp[next_merge + 1], leaf_func));
-      next_merge += 2;
-      // LATER: drop temp DFA internals
-      if(dfas_temp[dfas_temp.size() - 1]->states() >= 1024)
+      return a->states() > b->states();
+    }
+  } reverse_less;
+
+  while(dfas_temp.size() > 2)
+    {
+      int temp_size = dfas_temp.size();
+
+      // partial sort so last two DFAs have the least positions
+      std::nth_element(dfas_temp.begin(),
+		       dfas_temp.begin() + (temp_size - 2),
+		       dfas_temp.end(),
+		       reverse_less);
+
+      std::shared_ptr<const DFA<ndim, shape_pack...>>& second_last = dfas_temp[temp_size - 2];
+      std::shared_ptr<const DFA<ndim, shape_pack...>> last = dfas_temp[temp_size - 1];
+
+      if(second_last->states() >= 1024)
 	{
-	  std::cerr << "  " << (dfas_temp.size() - next_merge - 1) << " merges remaining, last merge had " << dfas_temp[dfas_temp.size() - 1]->states() << " states" << std::endl;
+	  std::cerr << "  merging DFAs with " << last->states() << " states and " << second_last->states() << " states" << std::endl;
 	}
+      second_last = std::shared_ptr<const DFA<ndim, shape_pack...>>(new BinaryDFA(*second_last, *last, leaf_func));
+      dfas_temp.pop_back();
+
+      assert(dfas_temp.size() == temp_size - 1);
     }
 
-  assert(dfas_temp.size() - next_merge == 2);
+  assert(dfas_temp.size() == 2);
 
-  // merge last two into the final DFA
-  BinaryBuildCache cache(*dfas_temp[next_merge], *dfas_temp[next_merge + 1], leaf_func);
+  std::cerr << "  merging DFAs with " << dfas_temp[0]->states() << " states and " << dfas_temp[1]->states() << " states" << std::endl;
+
+  BinaryBuildCache cache(*(dfas_temp[0]), *(dfas_temp[1]), leaf_func);
   binary_build(0, 0, 0, cache);
-
-  if(this->states() >= 1 << 10)
-    {
-      std::cerr << "  final merged has " << this->states() << " states" << std::endl;
-    }
+  assert(this->ready());
 }
 
 template <int ndim, int... shape_pack>
