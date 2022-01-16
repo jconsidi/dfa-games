@@ -73,7 +73,7 @@ class DFA
   const DFATransitions& get_transitions(int, int) const;
 
   bool ready() const;
-  int size() const;
+  double size() const;
   int states() const;
 
   friend class UnionDFA<ndim, shape_pack...>;

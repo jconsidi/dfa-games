@@ -162,21 +162,21 @@ bool DFA<ndim, shape_pack...>::ready() const
 }
 
 template<int ndim, int... shape_pack>
-int DFA<ndim, shape_pack...>::size() const
+double DFA<ndim, shape_pack...>::size() const
 {
   assert(state_transitions[0].size() == 1);
 
-  std::vector<uint64_t> previous_counts({0, 1}); // reject, accept
+  std::vector<double> previous_counts({0, 1}); // reject, accept
   for(int layer = ndim - 1; layer >= 0; --layer)
     {
       int layer_shape = this->get_layer_shape(layer);
 
-      std::vector<uint64_t> current_counts;
+      std::vector<double> current_counts;
       for(int state_index = 0; state_index < state_transitions[layer].size(); ++state_index)
 	{
 	  const DFATransitions& transitions = this->get_transitions(layer, state_index);
 
-	  uint64_t state_count = 0;
+	  double state_count = 0;
 	  for(int i = 0; i < layer_shape; ++i)
 	    {
 	      state_count += previous_counts.at(transitions[i]);
