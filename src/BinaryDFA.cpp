@@ -6,18 +6,6 @@
 
 #include <iostream>
 
-template<int ndim, int... shape_pack>
-std::vector<const DFA<ndim, shape_pack...> *> BinaryDFA<ndim, shape_pack...>::convert_inputs(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in)
-{
-  std::vector<const DFA<ndim, shape_pack...> *> output;
-  int num_inputs = dfas_in.size();
-  for(int i = 0; i < num_inputs; ++i)
-    {
-      output.push_back(dfas_in[i].get());
-    }
-  return output;
-}
-
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
@@ -29,7 +17,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_i
 }
 
 template <int ndim, int... shape_pack>
-BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<const DFA<ndim, shape_pack...> *>& dfas_in,
+BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in,
 					  uint64_t (*leaf_func)(uint64_t, uint64_t))
   : DFA<ndim, shape_pack...>()
 {
@@ -43,7 +31,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<const DFA<ndim, shap
     case 1:
       {
 	// copy singleton input
-	const DFA<ndim, shape_pack...> *source = dfas_in[0];
+	std::shared_ptr<const DFA<ndim, shape_pack...>> source = dfas_in[0];
 	for(int layer = ndim - 1; layer >= 0; --layer)
 	  {
 	    int layer_size = source->get_layer_size(layer);
@@ -117,13 +105,6 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<const DFA<ndim, shap
     {
       std::cerr << "  final merged has " << this->states() << " states" << std::endl;
     }
-}
-
-template<int ndim, int... shape_pack>
-BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in,
-					  uint64_t (*leaf_func)(uint64_t, uint64_t))
-  : BinaryDFA(convert_inputs(dfas_in), leaf_func)
-{
 }
 
 template <int ndim, int... shape_pack>

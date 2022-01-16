@@ -43,10 +43,6 @@ class BinaryDFA : public DFA<ndim, shape_pack...>
 {
   uint64_t binary_build(int, uint64_t, uint64_t, BinaryBuildCache<ndim, shape_pack...>&);
 
-  static std::vector<const DFA<ndim, shape_pack...> *> convert_inputs(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>&);
-
-  BinaryDFA(const std::vector<const DFA<ndim, shape_pack...> *>&, uint64_t (*)(uint64_t, uint64_t));
-
 public:
 
   BinaryDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, uint64_t (*)(uint64_t, uint64_t));
