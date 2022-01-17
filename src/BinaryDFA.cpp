@@ -102,11 +102,19 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 
   assert(dfas_temp.size() == 2);
 
-  std::cerr << "  merging DFAs with " << dfas_temp[0]->states() << " states and " << dfas_temp[1]->states() << " states" << std::endl;
+  if((dfas_temp[0]->states() >= 1024) || (dfas_temp[1]->states() >= 1024))
+    {
+      std::cerr << "  merging DFAs with " << dfas_temp[0]->states() << " states and " << dfas_temp[1]->states() << " states" << std::endl;
+    }
 
   BinaryBuildCache cache(*(dfas_temp[0]), *(dfas_temp[1]), leaf_func);
   binary_build(0, 0, 0, cache);
   assert(this->ready());
+
+  if(this->states() >= 1024)
+    {
+      std::cerr << " merged DFA has " << this->states() << " and " << this->size() << " positions" << std::endl;
+    }
 }
 
 template <int ndim, int... shape_pack>
