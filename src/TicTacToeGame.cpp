@@ -73,50 +73,55 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
 }
 
 template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pack...>::get_rules(int side_to_move) const
+const typename TicTacToeGame<n, shape_pack...>::rule_vector& TicTacToeGame<n, shape_pack...>::get_rules(int side_to_move) const
 {
-  shared_dfa_ptr lost_positions = this->get_lost_positions(side_to_move);
-  inverse_dfa_type not_lost_positions(*lost_positions);
+  static rule_vector singletons[2] = {};
 
-  int side_to_move_piece = 1 + side_to_move;
-
-  rule_vector output;
-  for(int move_index = 0; move_index < n * n; ++move_index)
+  if(!singletons[side_to_move].size())
     {
-      shared_dfa_ptr pre_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 0)));
+      shared_dfa_ptr lost_positions = this->get_lost_positions(side_to_move);
+      inverse_dfa_type not_lost_positions(*lost_positions);
 
-      change_func change_rule = [=](int layer, int old_value, int new_value)
-      {
-	if(layer == move_index)
+      int side_to_move_piece = 1 + side_to_move;
+
+      rule_vector output;
+      for(int move_index = 0; move_index < n * n; ++move_index)
+	{
+	  shared_dfa_ptr pre_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 0)));
+
+	  change_func change_rule = [=](int layer, int old_value, int new_value)
 	  {
-	    if(old_value == 0)
+	    if(layer == move_index)
 	      {
-		// square was blank, changing to side to move
-		return new_value == side_to_move_piece;
+		if(old_value == 0)
+		  {
+		    // square was blank, changing to side to move
+		    return new_value == side_to_move_piece;
+		  }
+		else
+		  {
+		    // square was not blank as required
+		    return false;
+		  }
 	      }
 	    else
 	      {
-		// square was not blank as required
-		return false;
+		// square not changing
+		return old_value == new_value;
 	      }
-	  }
-	else
-	  {
-	    // square not changing
-	    return old_value == new_value;
-	  }
-      };
+	  };
 
-      shared_dfa_ptr post_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 1 + side_to_move)));
+	  shared_dfa_ptr post_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 1 + side_to_move)));
 
-      output.emplace_back(pre_condition,
-			  change_rule,
-			  post_condition);
+	  singletons[side_to_move].emplace_back(pre_condition,
+						change_rule,
+						post_condition);
+	}
+
+      assert(singletons[side_to_move].size() == n * n);
     }
 
-  assert(output.size() == n * n);
-
-  return output;
+  return singletons[side_to_move];
 }
 
 // template instantiations

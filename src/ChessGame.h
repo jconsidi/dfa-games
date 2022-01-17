@@ -28,7 +28,7 @@ public:
 
   virtual shared_dfa_ptr get_initial_positions() const;
   virtual shared_dfa_ptr get_lost_positions_helper(int) const;
-  virtual rule_vector get_rules(int) const;
+  virtual const rule_vector& get_rules(int) const;
 };
 
 typedef DFA<CHESS_DFA_PARAMS> ChessDFA;

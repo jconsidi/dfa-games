@@ -47,7 +47,7 @@ public:
 
   virtual shared_dfa_ptr get_initial_positions() const = 0;
   virtual shared_dfa_ptr get_lost_positions_helper(int) const = 0;
-  virtual rule_vector get_rules(int) const = 0;
+  virtual const rule_vector& get_rules(int) const = 0;
 
   shared_dfa_ptr get_lost_positions(int) const;
   shared_dfa_ptr get_lost_positions(int, const dfa_type&) const;
