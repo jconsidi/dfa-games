@@ -280,41 +280,6 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
       shared_dfa_ptr pre_shared = basic_positions;
       shared_dfa_ptr post_shared(new intersection_dfa_type(*basic_positions, *not_check_positions));
 
-      // common conditions
-
-      std::vector<shared_dfa_ptr> blank_conditions;
-      for(int square = 0; square < 64; ++square)
-	{
-	  blank_conditions.emplace_back(new fixed_dfa_type(square + 2, DFA_BLANK));
-	}
-
-      std::vector<shared_dfa_ptr> not_friendly_conditions;
-      for(int square = 0; square < 64; ++square)
-	{
-	  std::vector<shared_dfa_ptr> square_conditions;
-
-	  if(side_to_move == SIDE_WHITE)
-	    {
-	      for(int friendly_character = DFA_WHITE_KING;
-		  friendly_character < DFA_BLACK_KING;
-		  ++friendly_character)
-		{
-		  square_conditions.emplace_back(new inverse_dfa_type(fixed_dfa_type(square + 2, friendly_character)));
-		}
-	    }
-	  else
-	    {
-	      for(int friendly_character = DFA_BLACK_KING;
-		  friendly_character < DFA_MAX;
-		  ++friendly_character)
-		{
-		  square_conditions.emplace_back(new inverse_dfa_type(fixed_dfa_type(square + 2, friendly_character)));
-		}
-	    }
-
-	  not_friendly_conditions.emplace_back(new intersection_dfa_type(square_conditions));
-	}
-
       // collect rules
 
       std::function<void(int, const MoveSet&)> add_basic_rules = [&](int character, const MoveSet& moves)
@@ -330,27 +295,9 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 		std::cout << " adding rules for " << from_square << " -> " << to_square << std::endl;
 
-		std::vector<shared_dfa_ptr> pre_conditions = {pre_shared};
-		pre_conditions.emplace_back(new fixed_dfa_type(from_square + 2, character));
-		pre_conditions.emplace_back(not_friendly_conditions.at(to_square));
-
-		std::vector<shared_dfa_ptr> post_conditions = {post_shared};
-		post_conditions.emplace_back(blank_conditions[from_square]);
-		post_conditions.emplace_back(new fixed_dfa_type(to_square + 2, character));
 
 		// require squares between from and to squares to be empty pre and post.
 		BoardMask between_mask = between_masks.masks[from_square][to_square];
-		for(int between_square = 0; between_square < 64; ++between_square)
-		  {
-		    if(between_mask & (1 << between_square))
-		      {
-			pre_conditions.push_back(blank_conditions.at(between_square));
-			post_conditions.push_back(blank_conditions.at(between_square));
-		      }
-		  }
-
-		shared_dfa_ptr pre_condition(new intersection_dfa_type(pre_conditions));
-		shared_dfa_ptr post_condition(new intersection_dfa_type(post_conditions));
 
 		change_func change_rule = [=](int layer, int old_value, int new_value)
 		{
@@ -386,16 +333,40 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 		  int square = layer - 2;
 
-		  // moving piece
+		  // from square
 
 		  if(square == from_square)
 		    {
 		      return (old_value == character) && (new_value == DFA_BLANK);
 		    }
 
+		  // between squares
+
+		  if(between_mask & (1 << square))
+		    {
+		      return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
+		    }
+
+		  // to square
+
 		  if(square == to_square)
 		    {
-		      // TODO: limit this more
+		      // make sure not "capturing" a friendly piece
+		      if(side_to_move == SIDE_WHITE)
+			{
+			  if((DFA_WHITE_KING <= old_value) && (old_value < DFA_BLACK_KING))
+			    {
+			      return false;
+			    }
+			}
+		      else
+			{
+			  if((DFA_BLACK_KING <= old_value) && (old_value < DFA_MAX))
+			    {
+			      return false;
+			    }
+			}
+
 		      return (new_value == character);
 		    }
 
@@ -404,9 +375,9 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 		  return (old_value == new_value);
 		};
 
-		singletons[side_to_move].emplace_back(pre_condition,
+		singletons[side_to_move].emplace_back(pre_shared,
 						      change_rule,
-						      post_condition);
+						      post_shared);
 	      }
 	  }
       };
