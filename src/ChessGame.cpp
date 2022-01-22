@@ -30,13 +30,20 @@ static bool chess_is_friendly(int side_to_move, int character)
     }
 }
 
+#if 0
+static bool chess_is_hostile(int side_to_move, int character)
+{
+  return chess_is_friendly(1 - side_to_move, character);
+}
+#endif
+
 typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 {
   // basic position requirements:
   // * make sure initial king indexes are correct
   // * pawns in appropriate rows
 
-  shared_dfa_ptr singleton;
+  static shared_dfa_ptr singleton;
   if(!singleton)
     {
       std::cout << "ChessGame::get_basic_positions()" << std::endl;
