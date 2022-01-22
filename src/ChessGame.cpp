@@ -13,6 +13,23 @@ static bool chess_default_rule(int layer, int old_value, int new_value)
   return (old_value == new_value);
 };
 
+static bool chess_is_friendly(int side_to_move, int character)
+{
+  if(character == DFA_BLANK)
+    {
+      return false;
+    }
+
+  if(side_to_move == SIDE_WHITE)
+    {
+      return (DFA_WHITE_KING <= character) && (character < DFA_BLACK_KING);
+    }
+  else
+    {
+      return DFA_BLACK_KING <= character;
+    }
+}
+
 typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 {
   // basic position requirements:
@@ -356,20 +373,9 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 		  if(square == to_square)
 		    {
-		      // make sure not "capturing" a friendly piece
-		      if(side_to_move == SIDE_WHITE)
+		      if(chess_is_friendly(side_to_move, old_value))
 			{
-			  if((DFA_WHITE_KING <= old_value) && (old_value < DFA_BLACK_KING))
-			    {
-			      return false;
-			    }
-			}
-		      else
-			{
-			  if((DFA_BLACK_KING <= old_value) && (old_value < DFA_MAX))
-			    {
-			      return false;
-			    }
+			  return false;
 			}
 
 		      return (new_value == character);
