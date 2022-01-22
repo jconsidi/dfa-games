@@ -31,11 +31,15 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_internal(const typename Game<ndim, shape_pack...>::rule_vector& rules_in, const typename Game<ndim, shape_pack...>::dfa_type& positions_in) const
 {
+  std::cout << "get_moves_internal(...)" << std::endl;
+
   std::vector<shared_dfa_ptr> rule_outputs;
 
   int num_rules = rules_in.size();
   for(int i = 0; i < num_rules; ++i)
     {
+      std::cout << " rule " << i << "/" << num_rules << std::endl;
+
       const rule_type& rule = rules_in[i];
 
       const shared_dfa_ptr& pre_condition = std::get<0>(rule);
@@ -45,14 +49,17 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       shared_dfa_ptr positions = 0;
       // apply rule pre-conditions
       positions = shared_dfa_ptr(new intersection_dfa_type(positions_in, *pre_condition));
+      std::cout << "  pre-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
       // apply rule changes
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
+      std::cout << "  changes => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
       if(positions->size() == 0)
 	{
 	  continue;
 	}
       // apply rule post-conditions
       positions = shared_dfa_ptr(new intersection_dfa_type(*positions, *post_condition));
+      std::cout << "  post-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
 
       rule_outputs.push_back(positions);
     }
