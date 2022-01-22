@@ -64,6 +64,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       rule_outputs.push_back(positions);
     }
 
+  std::cout << " combining " << rule_outputs.size() << " rule outputs" << std::endl;
   return shared_dfa_ptr(new UnionDFA(rule_outputs));
 }
 
