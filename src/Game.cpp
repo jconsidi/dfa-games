@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#include "IntersectionManager.h"
+
 template <int ndim, int... shape_pack>
 Game<ndim, shape_pack...>::Game()
 {
@@ -35,6 +37,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
   std::vector<shared_dfa_ptr> rule_outputs;
 
+  IntersectionManager<ndim, shape_pack...> manager;
+
   int num_rules = rules_in.size();
   for(int i = 0; i < num_rules; ++i)
     {
@@ -48,25 +52,16 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
       shared_dfa_ptr positions = 0;
       // apply rule pre-conditions
-      positions = shared_dfa_ptr(new intersection_dfa_type(*positions_in, *pre_condition));
+      positions = manager.intersect(positions_in, pre_condition);
       std::cout << "  pre-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
       // apply rule changes
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
       std::cout << "  changes => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
-      if(positions->size() == 0)
-	{
-	  continue;
-	}
       // apply rule post-conditions
-      positions = shared_dfa_ptr(new intersection_dfa_type(*positions, *post_condition));
+      positions = manager.intersect(positions, post_condition);
       std::cout << "  post-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
 
       rule_outputs.push_back(positions);
-    }
-
-  if(rule_outputs.size() == 0)
-    {
-      return shared_dfa_ptr(new reject_dfa_type());
     }
 
   return shared_dfa_ptr(new UnionDFA(rule_outputs));
