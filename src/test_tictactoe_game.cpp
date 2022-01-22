@@ -32,7 +32,7 @@ int test()
       typename T::shared_dfa_ptr previous_positions = current_positions;
       int previous_size = current_size;
 
-      typename T::shared_dfa_ptr just_lost_positions = tictactoe.get_lost_positions(side_to_move, *previous_positions);
+      typename T::shared_dfa_ptr just_lost_positions = tictactoe.get_lost_positions(side_to_move, previous_positions);
       int just_lost_size = just_lost_positions->size();
       if((previous_ply + 1) / 2 >= n)
 	{
@@ -46,7 +46,7 @@ int test()
 
       int expected_size = (previous_size - just_lost_size) * (n2 - previous_ply) / (previous_ply / 2 + 1);
 
-      current_positions = tictactoe.get_moves_forward(side_to_move, *current_positions);
+      current_positions = tictactoe.get_moves_forward(side_to_move, current_positions);
       current_size = current_positions->size();
       current_states = current_positions->states();
 
@@ -62,7 +62,7 @@ int test()
   // first player should never lose via strategy stealing argument.
 
   std::cout << " retrograde analysis" << std::endl;
-  typename T::shared_dfa_ptr initial_winning = tictactoe.get_winning_positions(0, n*n, *initial_positions);
+  typename T::shared_dfa_ptr initial_winning = tictactoe.get_winning_positions(0, n*n, initial_positions);
   if(n <= 2)
     {
       // first player always wins

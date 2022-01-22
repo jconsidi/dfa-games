@@ -39,7 +39,7 @@ public:
 
 private:
 
-  shared_dfa_ptr get_moves_internal(const rule_vector&, const dfa_type&) const;
+  shared_dfa_ptr get_moves_internal(const rule_vector&, shared_dfa_ptr) const;
 
 protected:
 
@@ -52,12 +52,11 @@ public:
   virtual const rule_vector& get_rules(int) const = 0;
 
   shared_dfa_ptr get_lost_positions(int) const;
-  shared_dfa_ptr get_lost_positions(int, const dfa_type&) const;
-  shared_dfa_ptr get_moves_forward(int, const dfa_type&) const;
-  shared_dfa_ptr get_moves_reverse(int, const dfa_type&) const;
+  shared_dfa_ptr get_lost_positions(int, shared_dfa_ptr) const;
+  shared_dfa_ptr get_moves_forward(int, shared_dfa_ptr) const;
+  shared_dfa_ptr get_moves_reverse(int, shared_dfa_ptr) const;
   shared_dfa_ptr get_winning_positions(int, int) const;
-  shared_dfa_ptr get_winning_positions(int, int, const dfa_type&) const;
-  shared_dfa_ptr get_winning_positions(int, int, const dfa_type* = 0) const;
+  shared_dfa_ptr get_winning_positions(int, int, shared_dfa_ptr) const;
 };
 
 #endif

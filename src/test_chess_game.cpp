@@ -23,7 +23,7 @@ int main()
     {
       int side_to_move = previous_ply % 2;
 
-      current_positions = chess.get_moves_forward(side_to_move, *current_positions);
+      current_positions = chess.get_moves_forward(side_to_move, current_positions);
       int current_size = current_positions->size();
       int current_states = current_positions->states();
 
