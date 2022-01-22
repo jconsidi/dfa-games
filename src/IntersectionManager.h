@@ -3,6 +3,7 @@
 #ifndef INTERSECTION_MANAGER_H
 #define INTERSECTION_MANAGER_H
 
+#include <map>
 #include <memory>
 #include <utility>
 
@@ -22,6 +23,7 @@ template <int ndim, int... shape_pack>
 
   static std::optional<bool> check_constant(shared_dfa_ptr);
 
+  std::map<std::pair<shared_dfa_ptr,shared_dfa_ptr>, shared_dfa_ptr> intersect_cache;
   shared_dfa_ptr reject_all;
 
  public:

@@ -30,7 +30,8 @@ std::optional<bool> IntersectionManager<ndim, shape_pack...>::check_constant(typ
 
 template<int ndim, int... shape_pack>
 IntersectionManager<ndim, shape_pack...>::IntersectionManager()
-  : reject_all(new RejectDFA<ndim, shape_pack...>())
+  : intersect_cache(),
+    reject_all(new RejectDFA<ndim, shape_pack...>())
 {
 }
 
@@ -65,7 +66,15 @@ typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr IntersectionMa
 	}
     }
 
-  return shared_dfa_ptr(new intersection_dfa_type(*left_in, *right_in));
+  std::pair<shared_dfa_ptr,shared_dfa_ptr> key(left_in, right_in);
+  if(intersect_cache.count(key))
+    {
+      return intersect_cache.at(key);
+    }
+
+  shared_dfa_ptr output(new intersection_dfa_type(*left_in, *right_in));
+  intersect_cache[key] = output;
+  return output;
 }
 
 // template instantiations
