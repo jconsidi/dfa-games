@@ -314,9 +314,9 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 		  {
 		    continue;
 		  }
+		assert(to_square != from_square);
 
 		std::cout << " adding rules for " << from_square << " -> " << to_square << std::endl;
-
 
 		// require squares between from and to squares to be empty pre and post.
 		BoardMask between_mask = between_masks.masks[from_square][to_square];
