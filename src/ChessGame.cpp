@@ -8,6 +8,11 @@
 #include "BetweenMasks.h"
 #include "MoveSet.h"
 
+static bool chess_default_rule(int layer, int old_value, int new_value)
+{
+  return (old_value == new_value);
+};
+
 typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 {
   // basic position requirements:
@@ -372,7 +377,7 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 		  // rest of board
 
-		  return (old_value == new_value);
+		  return chess_default_rule(layer, old_value, new_value);
 		};
 
 		singletons[side_to_move].emplace_back(pre_shared,
