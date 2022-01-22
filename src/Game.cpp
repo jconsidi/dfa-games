@@ -47,10 +47,19 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       positions = shared_dfa_ptr(new intersection_dfa_type(positions_in, *pre_condition));
       // apply rule changes
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
+      if(positions->size() == 0)
+	{
+	  continue;
+	}
       // apply rule post-conditions
       positions = shared_dfa_ptr(new intersection_dfa_type(*positions, *post_condition));
 
       rule_outputs.push_back(positions);
+    }
+
+  if(rule_outputs.size() == 0)
+    {
+      return shared_dfa_ptr(new reject_dfa_type());
     }
 
   return shared_dfa_ptr(new UnionDFA(rule_outputs));

@@ -14,6 +14,7 @@
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
+#include "RejectDFA.h"
 #include "UnionDFA.h"
 
 template <int ndim, int... shape_pack>
@@ -30,6 +31,7 @@ public:
   typedef FixedDFA<ndim, shape_pack...> fixed_dfa_type;
   typedef IntersectionDFA<ndim, shape_pack...> intersection_dfa_type;
   typedef InverseDFA<ndim, shape_pack...> inverse_dfa_type;
+  typedef RejectDFA<ndim, shape_pack...> reject_dfa_type;
   typedef UnionDFA<ndim, shape_pack...> union_dfa_type;
 
   typedef std::tuple<shared_dfa_ptr, change_func, shared_dfa_ptr> rule_type;
