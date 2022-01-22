@@ -364,7 +364,7 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 		  // between squares
 
-		  if(between_mask & (1 << square))
+		  if(between_mask & (1ULL << square))
 		    {
 		      return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
 		    }
