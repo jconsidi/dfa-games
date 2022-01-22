@@ -15,8 +15,9 @@ depend :
 	makedepend -Y -f - -- $(CXXFLAGS) -- *.cpp > .depend 2> /dev/null
 
 test : all
-	./test_dfa
 	./test_perft
+	./test_dfa
+	./test_tictactoe_game
 
 time : all
 	time ./test_perft
