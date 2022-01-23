@@ -119,13 +119,6 @@ uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint
 
   // union multiple states
 
-  std::cout << "union_local(" << states_in[0];
-  for(int i = 1; i < num_states; ++i)
-    {
-      std::cout << ", " << states_in[i];
-    }
-  std::cout << ")" << std::endl;
-
   std::ostringstream key_builder;
   key_builder << states_in[0];
   for(int i = 1; i < num_states; ++i)
