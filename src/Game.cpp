@@ -3,6 +3,7 @@
 #include "Game.h"
 
 #include <iostream>
+#include <map>
 
 #include "IntersectionManager.h"
 
@@ -35,9 +36,10 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   std::cout << "get_moves_internal(...)" << std::endl;
 
-  std::vector<shared_dfa_ptr> rule_outputs;
+  assert(rules_in.size() > 0);
 
   IntersectionManager<ndim, shape_pack...> manager;
+  std::map<shared_dfa_ptr,std::vector<shared_dfa_ptr>> rule_outputs_by_post_condition;
 
   int num_rules = rules_in.size();
   for(int i = 0; i < num_rules; ++i)
@@ -57,14 +59,29 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       // apply rule changes
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
       std::cout << "  changes => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
-      // apply rule post-conditions
+      // defer rule post-conditions
+      rule_outputs_by_post_condition.try_emplace(post_condition);
+      rule_outputs_by_post_condition.at(post_condition).push_back(positions);
+    }
+
+  // combine rules with the same post-conditions, then apply post conditions
+
+  std::vector<shared_dfa_ptr> rule_outputs;
+  for(const auto& [post_condition, positions_vector] : rule_outputs_by_post_condition)
+    {
+      std::cout << " applying post condition to " << positions_vector.size() << " rule outputs" << std::endl;
+      shared_dfa_ptr positions(new union_dfa_type(positions_vector));
+      std::cout << "  combined rule outputs => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
+
       positions = manager.intersect(positions, post_condition);
       std::cout << "  post-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
 
       rule_outputs.push_back(positions);
     }
 
-  std::cout << " combining " << rule_outputs.size() << " rule outputs" << std::endl;
+  // final output
+
+  std::cout << " combining " << rule_outputs.size() << " post-condition rule outputs" << std::endl;
   return shared_dfa_ptr(new UnionDFA(rule_outputs));
 }
 
