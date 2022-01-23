@@ -44,6 +44,7 @@ class Board
 
   int count_moves() const;
   int generate_moves(Board moves_out[CHESS_MAX_MOVES]) const;
+  int get_side_to_move() const;
   bool is_attacked(Side defending_side, int defending_index) const;
   bool is_check() const;
   bool is_check(Side defending_side) const;

@@ -574,6 +574,11 @@ int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
   return move_count;
 }
 
+int Board::get_side_to_move() const
+{
+  return side_to_move;
+}
+
 bool Board::is_attacked(Side defending_side, int defending_index) const
 {
   Side attacking_side = side_flip(defending_side);
