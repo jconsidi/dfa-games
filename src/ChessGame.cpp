@@ -52,7 +52,8 @@ static bool chess_pawn_maybe_promote(int side_to_move, int previous_advancement,
 {
   if(previous_advancement < 6)
     {
-      return (side_to_move == SIDE_WHITE) ? DFA_WHITE_PAWN : DFA_BLACK_PAWN;
+      int pawn_character = (side_to_move == SIDE_WHITE) ? DFA_WHITE_PAWN : DFA_BLACK_PAWN;
+      return character == pawn_character;
     }
 
   // promotion
