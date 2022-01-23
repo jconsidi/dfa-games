@@ -5,6 +5,7 @@
 
 #include <ctype.h>
 #include <iostream>
+#include <string>
 
 #include "BoardMask.h"
 #include "Side.h"
@@ -36,6 +37,7 @@ class Board
  public:
   Board() {}
   Board(const char *fen_string);
+  Board(std::string);
 
   int count_moves() const;
   int generate_moves(Board moves_out[CHESS_MAX_MOVES]) const;
