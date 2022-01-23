@@ -324,6 +324,53 @@ bool Board::try_move(int from, int to, Board &move_out) const
 // public functions ////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 
+bool Board::operator<(const Board& other) const
+{
+  for(int side = 0; side < 2; ++side)
+    {
+      for(int piece = 0; piece < PIECE_MAX; ++piece)
+	{
+	  if(pieces_by_side_type[side][piece] < other.pieces_by_side_type[side][piece])
+	    {
+	      return true;
+	    }
+	  else if(pieces_by_side_type[side][piece] > other.pieces_by_side_type[side][piece])
+	    {
+	      return false;
+	    }
+	}
+    }
+
+  if(side_to_move < other.side_to_move)
+    {
+      return true;
+    }
+  else if(side_to_move > other.side_to_move)
+    {
+      return false;
+    }
+
+  if(en_passant_file < other.en_passant_file)
+    {
+      return true;
+    }
+  else if(en_passant_file > other.en_passant_file)
+    {
+      return false;
+    }
+
+  if(castling_availability < other.castling_availability)
+    {
+      return true;
+    }
+  else if(castling_availability > other.castling_availability)
+    {
+      return false;
+    }
+
+  return false;
+}
+
 int Board::generate_moves(Board moves_out[CHESS_MAX_MOVES]) const
 {
   Side side_not_to_move = side_flip(side_to_move);

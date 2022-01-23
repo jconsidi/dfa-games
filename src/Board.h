@@ -39,6 +39,8 @@ class Board
   Board(const char *fen_string);
   Board(std::string);
 
+  bool operator<(const Board&) const;
+
   int count_moves() const;
   int generate_moves(Board moves_out[CHESS_MAX_MOVES]) const;
   bool is_attacked(Side defending_side, int defending_index) const;
