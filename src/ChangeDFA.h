@@ -3,6 +3,7 @@
 #ifndef CHANGE_DFA_H
 #define CHANGE_DFA_H
 
+#include <map>
 #include <memory>
 #include <set>
 
@@ -20,6 +21,8 @@ template<int ndim, int... shape_pack>
   typedef std::shared_ptr<dfa_type> shared_dfa_ptr;
 
 private:
+
+  std::vector<std::map<std::string, int>> union_local_cache;
 
   uint64_t union_local(int layer, std::vector<uint64_t>& states_in);
 

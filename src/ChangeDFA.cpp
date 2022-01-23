@@ -4,9 +4,11 @@
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 
 template<int ndim, int... shape_pack>
 ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_pack...>::dfa_type& dfa_in, change_func change_rule)
+  : union_local_cache(ndim)
 {
   assert(dfa_in.ready());
   this->add_uniform_states();
@@ -47,7 +49,7 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_p
 		old_value_states.push_back(previous_layer.at(old_transitions[old_values[j]]));
 	      }
 
-	    return union_local(layer, old_value_states);
+	    return union_local(layer + 1, old_value_states);
 	  }));
 	}
 
@@ -55,11 +57,15 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_p
     }
 
   assert(this->ready());
+  this->union_local_cache.clear();
+  this->union_local_cache.shrink_to_fit();
 }
 
 template<int ndim, int... shape_pack>
 uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint64_t>& states_in)
 {
+  assert((1 <= layer) && (layer <= ndim));
+
   // sort to normalize
 
   std::sort(states_in.begin(), states_in.end());
@@ -84,12 +90,9 @@ uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint
 	}
     }
 
-  // do stuff
+  // trivial cases based on number of remaining states
 
   int num_states = states_in.size();
-
-  // trivial cases based on number of states combined
-
   if(num_states == 0)
     {
       // no inputs = reject all
@@ -109,16 +112,42 @@ uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint
       return 0;
     }
 
+  // sanity checks
+
+  assert(layer < ndim);
+  assert(states_in[num_states - 1] < this->get_layer_size(layer));
+
   // union multiple states
 
   std::cout << "union_local(" << states_in[0];
-  for(int i = 1; i < states_in.size(); ++i)
+  for(int i = 1; i < num_states; ++i)
     {
       std::cout << ", " << states_in[i];
     }
   std::cout << ")" << std::endl;
 
-  throw std::logic_error("ChangeDFA::union_local not implemented");
+  std::ostringstream key_builder;
+  key_builder << states_in[0];
+  for(int i = 1; i < num_states; ++i)
+    {
+      key_builder << "/" << states_in[i];
+    }
+  std::string key = key_builder.str();
+
+  if(!this->union_local_cache[layer].count(key))
+    {
+      this->union_local_cache[layer][key] = this->add_state(layer, [&](int j)
+      {
+	std::vector<uint64_t> states_j;
+	for(int i = 0; i < num_states; ++i)
+	  {
+	    states_j.push_back(this->get_transitions(layer, states_in[i])[j]);
+	  }
+	return union_local(layer+1, states_j);
+      });
+    }
+
+  return this->union_local_cache[layer].at(key);
 }
 
 // template instantiations
