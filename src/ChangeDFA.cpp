@@ -60,6 +60,32 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_p
 template<int ndim, int... shape_pack>
 uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint64_t>& states_in)
 {
+  // sort to normalize
+
+  std::sort(states_in.begin(), states_in.end());
+
+  // dedupe inputs
+
+  for(int i = states_in.size() - 1; i >= 1; --i)
+    {
+      if(states_in[i] == states_in[i - 1])
+	{
+	  states_in.erase(states_in.begin() + i);
+	}
+    }
+
+  // remove reject input (will be first)
+
+  if(states_in.size() > 0)
+    {
+      if(states_in[0] == 0)
+	{
+	  states_in.erase(states_in.begin());
+	}
+    }
+
+  // do stuff
+
   int num_states = states_in.size();
 
   // trivial cases based on number of states combined
@@ -76,31 +102,11 @@ uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint
       return states_in[0];
     }
 
-  // sort to normalize
+  // check for accept all state (will be first)
 
-  std::sort(states_in.begin(), states_in.end());
-
-  // check for only reject all states
-
-  if(states_in[num_states - 1] == 0)
+  if(states_in[0] == 1)
     {
       return 0;
-    }
-
-  if(states_in[num_states - 2] == 0)
-    {
-      return states_in[num_states - 1];
-    }
-
-  // check for accept all state (will be sort near front)
-
-  for(int i = 0; i < num_states; ++i)
-    {
-      if(states_in[i] == 1)
-	{
-	  // found accept all state
-	  return 1;
-	}
     }
 
   // union multiple states
