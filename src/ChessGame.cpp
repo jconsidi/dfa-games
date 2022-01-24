@@ -2,6 +2,7 @@
 
 #include "ChessGame.h"
 
+#include <bit>
 #include <functional>
 #include <iostream>
 
@@ -85,6 +86,126 @@ static bool chess_pawn_maybe_promote(int side_to_move, int previous_advancement,
 	  return false;
 	}
     }
+}
+
+typename ChessGame::shared_dfa_ptr ChessGame::from_board(const Board& board_in)
+{
+  shared_dfa_ptr output(new accept_dfa_type());
+
+  int next_square = 0;
+  std::function<void(int)> set_square = [&](int character)
+  {
+    output = shared_dfa_ptr(new intersection_dfa_type(*output, fixed_dfa_type(next_square, character)));
+
+    ++next_square;
+  };
+
+  const auto& pieces_by_side = board_in.pieces_by_side;
+  const auto& pieces_by_side_type = board_in.pieces_by_side_type;
+
+  // white king position
+  set_square(std::countr_zero(pieces_by_side_type[SIDE_WHITE][PIECE_KING]));
+
+  // black king position
+  set_square(std::countr_zero(pieces_by_side_type[SIDE_BLACK][PIECE_KING]));
+
+  for(int square = 0; square < 64; ++square)
+    {
+      int square_rank = square / 8;
+      int square_file = square % 8;
+
+      BoardMask square_mask = 1ULL << square;
+      std::function<bool(int,int)> check = [=](int s, int p) {
+	return (pieces_by_side_type[s][p] & square_mask) != 0;
+      };
+      if(pieces_by_side[SIDE_WHITE] & square_mask)
+	{
+	  if(check(SIDE_WHITE, PIECE_KING))
+	    {
+	      set_square(DFA_WHITE_KING);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_QUEEN))
+	    {
+	      set_square(DFA_WHITE_QUEEN);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_BISHOP))
+	    {
+	      set_square(DFA_WHITE_BISHOP);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_KNIGHT))
+	    {
+	      set_square(DFA_WHITE_KNIGHT);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_ROOK))
+	    {
+	      set_square(DFA_WHITE_ROOK);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_PAWN))
+	    {
+	      if((board_in.side_to_move == SIDE_BLACK) && (square_rank == 4) && (square_file == board_in.en_passant_file))
+		{
+		  set_square(DFA_WHITE_PAWN_EN_PASSANT);
+		}
+	      else
+		{
+		  set_square(DFA_WHITE_PAWN);
+		}
+	    }
+	  else
+	    {
+	      // invalid board
+	      assert(false);
+	    }
+	}
+      else if(pieces_by_side[SIDE_BLACK] & square_mask)
+	{
+	  if(check(SIDE_BLACK, PIECE_KING))
+	    {
+	      set_square(DFA_BLACK_KING);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_QUEEN))
+	    {
+	      set_square(DFA_BLACK_QUEEN);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_BISHOP))
+	    {
+	      set_square(DFA_BLACK_BISHOP);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_KNIGHT))
+	    {
+	      set_square(DFA_BLACK_KNIGHT);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_ROOK))
+	    {
+	      set_square(DFA_BLACK_ROOK);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_PAWN))
+	    {
+	      if((board_in.side_to_move == SIDE_WHITE) && (square_rank == 3) && (square_file == board_in.en_passant_file))
+		{
+		  set_square(DFA_BLACK_PAWN_EN_PASSANT);
+		}
+	      else
+		{
+		  set_square(DFA_BLACK_PAWN);
+		}
+	    }
+	  else
+	    {
+	      // invalid board
+	      assert(false);
+	    }
+	}
+      else
+	{
+	  set_square(DFA_BLANK);
+	}
+    }
+
+  assert(next_square == 66);
+  assert(output->size() == 1);
+
+  return output;
 }
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
@@ -296,56 +417,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_initial_positions() const
 {
-  shared_dfa_ptr output(new accept_dfa_type());
-
-  int next_square = 0;
-  std::function<void(int)> set_square = [&](int character)
-  {
-    output = shared_dfa_ptr(new intersection_dfa_type(*output, fixed_dfa_type(next_square, character)));
-
-    ++next_square;
-  };
-
-  set_square(60); // white king position
-  set_square(4); // black king position
-  // black back line
-  set_square(DFA_BLACK_ROOK);
-  set_square(DFA_BLACK_KNIGHT);
-  set_square(DFA_BLACK_BISHOP);
-  set_square(DFA_BLACK_QUEEN);
-  set_square(DFA_BLACK_KING);
-  set_square(DFA_BLACK_BISHOP);
-  set_square(DFA_BLACK_KNIGHT);
-  set_square(DFA_BLACK_ROOK);
-  // black pawns
-  for(int i = 0; i < 8; ++i)
-    {
-      set_square(DFA_BLACK_PAWN);
-    }
-  // empty center
-  for(int i = 0; i < 32; ++i)
-    {
-      set_square(DFA_BLANK);
-    }
-  // white pawns
-  for(int i = 0; i < 8; ++i)
-    {
-      set_square(DFA_WHITE_PAWN);
-    }
-  // white back line
-  set_square(DFA_WHITE_ROOK);
-  set_square(DFA_WHITE_KNIGHT);
-  set_square(DFA_WHITE_BISHOP);
-  set_square(DFA_WHITE_QUEEN);
-  set_square(DFA_WHITE_KING);
-  set_square(DFA_WHITE_BISHOP);
-  set_square(DFA_WHITE_KNIGHT);
-  set_square(DFA_WHITE_ROOK);
-
-  assert(next_square == 66);
-  assert(output->size() == 1);
-
-  return output;
+  Board initial_board(INITIAL_FEN);
+  return from_board(initial_board);
 }
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions_helper(int side_to_move) const

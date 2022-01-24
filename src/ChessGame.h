@@ -3,6 +3,7 @@
 #ifndef CHESS_GAME_H
 #define CHESS_GAME_H
 
+#include "Board.h"
 #include "Game.h"
 
 enum ChessDFACharacter {DFA_BLANK, DFA_WHITE_KING, DFA_WHITE_QUEEN, DFA_WHITE_BISHOP, DFA_WHITE_KNIGHT, DFA_WHITE_ROOK, DFA_WHITE_PAWN, DFA_WHITE_PAWN_EN_PASSANT, DFA_BLACK_KING, DFA_BLACK_QUEEN, DFA_BLACK_BISHOP, DFA_BLACK_KNIGHT, DFA_BLACK_ROOK, DFA_BLACK_PAWN, DFA_BLACK_PAWN_EN_PASSANT, DFA_MAX};
@@ -25,6 +26,8 @@ private:
   shared_dfa_ptr get_threat_positions(int, int) const;
 
 public:
+
+  static shared_dfa_ptr from_board(const Board& board);
 
   virtual shared_dfa_ptr get_initial_positions() const;
   virtual shared_dfa_ptr get_lost_positions_helper(int) const;

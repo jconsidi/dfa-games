@@ -15,6 +15,8 @@
 
 enum Piece {PIECE_KING, PIECE_QUEEN, PIECE_BISHOP, PIECE_KNIGHT, PIECE_ROOK, PIECE_PAWN, PIECE_MAX};
 
+class ChessGame;
+
 class Board
 {
  private:
@@ -57,6 +59,7 @@ class Board
 
   friend std::ostream& operator<<(std::ostream& os, const Board& board);
   friend std::string uci_move(const Board& before, const Board& after);
+  friend class ChessGame;
 };
 
 #endif
