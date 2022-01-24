@@ -49,6 +49,9 @@ test_dfa : test_dfa.o chess.a
 test_perft : test_perft.o chess.a PerftTestCases.o
 	$(CXX) -o $@ $^
 
+test_perft_u : test_perft_u.o chess.a PerftTestCases.o
+	$(CXX) -o $@ $^
+
 test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a
 	$(CXX) -o $@ $^
 
