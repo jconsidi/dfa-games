@@ -68,6 +68,8 @@ class DFA
 
   ~DFA();
 
+  void debug_example() const;
+
   int get_layer_shape(int) const;
   int get_layer_size(int) const;
   const DFATransitions& get_transitions(int, int) const;

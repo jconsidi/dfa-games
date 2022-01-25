@@ -137,6 +137,65 @@ void DFA<ndim, shape_pack...>::add_uniform_states()
 }
 
 template<int ndim, int... shape_pack>
+void DFA<ndim, shape_pack...>::debug_example() const
+{
+  // identify reject state (if any) at each layer
+
+  std::vector<int> reject_states(ndim+1);
+  reject_states[ndim] = 0;
+  for(int layer = ndim - 1; layer >= 0; --layer)
+    {
+      reject_states[layer] = -1;
+
+      int layer_shape = this->get_layer_shape(layer);
+      int layer_size = this->get_layer_size(layer);
+      for(int state_index = 0; state_index < layer_size; ++state_index)
+	{
+	  bool maybe_reject = true;
+	  const DFATransitions& transitions = this->get_transitions(layer, state_index);
+	  for(int i = 0; i < layer_shape; ++i)
+	    {
+	      if(transitions[i] != reject_states[layer+1])
+		{
+		  maybe_reject = false;
+		  break;
+		}
+	    }
+	  if(maybe_reject)
+	    {
+	      reject_states[layer] = state_index;
+	      break;
+	    }
+	}
+    }
+
+  if(reject_states[0] == 0)
+    {
+      std::cerr << "DFA rejects all inputs" << std::endl;
+      return;
+    }
+
+  // output first accepted state
+
+  int state_index = 0;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      int layer_shape = this->get_layer_shape(layer);
+      const DFATransitions& transitions = this->get_transitions(layer, state_index);
+
+      for(int i = 0; i < layer_shape; ++i)
+	{
+	  if(transitions[i] != reject_states[layer+1])
+	    {
+	      std::cerr << "layer[" << layer << "] = " << i << std::endl;
+	      state_index = transitions[i];
+	      break;
+	    }
+	}
+    }
+}
+
+template<int ndim, int... shape_pack>
 int DFA<ndim, shape_pack...>::get_layer_shape(int layer) const
 {
   assert((0 <= layer) && (layer < ndim));
