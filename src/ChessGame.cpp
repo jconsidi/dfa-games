@@ -396,6 +396,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 	  add_threat(DFA_BLACK_KING, king_moves);
 	  add_threat(DFA_BLACK_KNIGHT, knight_moves);
 	  add_threat(DFA_BLACK_PAWN, pawn_captures_black);
+	  add_threat(DFA_BLACK_PAWN_EN_PASSANT, pawn_captures_black);
 	  add_threat(DFA_BLACK_QUEEN, queen_moves);
 	  add_threat(DFA_BLACK_ROOK, rook_moves);
 	}
@@ -405,6 +406,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 	  add_threat(DFA_WHITE_KING, king_moves);
 	  add_threat(DFA_WHITE_KNIGHT, knight_moves);
 	  add_threat(DFA_WHITE_PAWN, pawn_captures_white);
+	  add_threat(DFA_WHITE_PAWN_EN_PASSANT, pawn_captures_white);
 	  add_threat(DFA_WHITE_QUEEN, queen_moves);
 	  add_threat(DFA_WHITE_ROOK, rook_moves);
 	}
