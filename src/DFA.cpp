@@ -137,7 +137,7 @@ void DFA<ndim, shape_pack...>::add_uniform_states()
 }
 
 template<int ndim, int... shape_pack>
-void DFA<ndim, shape_pack...>::debug_example() const
+void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
 {
   // identify reject state (if any) at each layer
 
@@ -171,7 +171,7 @@ void DFA<ndim, shape_pack...>::debug_example() const
 
   if(reject_states[0] == 0)
     {
-      std::cerr << "DFA rejects all inputs" << std::endl;
+      os << "DFA rejects all inputs" << std::endl;
       return;
     }
 
@@ -187,7 +187,7 @@ void DFA<ndim, shape_pack...>::debug_example() const
 	{
 	  if(transitions[i] != reject_states[layer+1])
 	    {
-	      std::cerr << "layer[" << layer << "] = " << i << std::endl;
+	      os << "layer[" << layer << "] = " << i << std::endl;
 	      state_index = transitions[i];
 	      break;
 	    }

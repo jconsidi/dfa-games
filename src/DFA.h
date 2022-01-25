@@ -4,6 +4,7 @@
 #define DFA_H
 
 #include <cstdint>
+#include <iostream>
 #include <map>
 #include <vector>
 
@@ -68,7 +69,7 @@ class DFA
 
   ~DFA();
 
-  void debug_example() const;
+  void debug_example(std::ostream&) const;
 
   int get_layer_shape(int) const;
   int get_layer_size(int) const;
