@@ -603,8 +603,7 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 		      if(square == double_square)
 			{
-			  return ((old_value == DFA_BLANK) &&
-				  chess_pawn_maybe_promote(side_to_move, previous_advancement, new_value));
+			  return (old_value == DFA_BLANK) && (new_value == en_passant_character);
 			}
 
 		      return chess_default_rule(layer, old_value, new_value);
