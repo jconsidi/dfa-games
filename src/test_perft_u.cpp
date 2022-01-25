@@ -111,7 +111,7 @@ void test(const Board& board, int depth_max)
 	    {
 	      std::cout << log_prefix << " testing child " << i << std::endl;
 	      assert(moves[i].get_side_to_move() != board.get_side_to_move());
-	      test(moves[i], depth_max - 1);
+	      test(moves[i], depth - 1);
 	    }
 
 	  throw std::logic_error("failed to find discrepancy");
