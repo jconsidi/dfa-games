@@ -72,16 +72,36 @@ void test(const Board& board, int depth_max)
 	    {
 	      // report a move that was not found
 
+	      std::cout << log_prefix << " board dfa" << std::endl;
+	      board_dfa->debug_example(std::cout);
+
+	      shared_dfa_ptr expected_moves(new ChessGame::reject_dfa_type());
+
 	      for(int i = 0; i < num_moves; ++i)
 		{
 		  shared_dfa_ptr move_dfa = ChessGame::from_board(moves[i]);
 		  assert(move_dfa->size() == 1);
+		  expected_moves = shared_dfa_ptr(new ChessGame::union_dfa_type(*expected_moves, *move_dfa));
 
 		  if(ChessGame::intersection_dfa_type(*move_dfa, *positions).size() == 0)
 		    {
 		      std::cout << log_prefix << "found missing move:" << std::endl;
 		      std::cout << moves[i];
 		    }
+		}
+
+	      shared_dfa_ptr extra_moves(new ChessGame::difference_dfa_type(*positions, *expected_moves));
+	      if(extra_moves->size())
+		{
+		  std::cout << log_prefix << "found " << extra_moves->size() << " extra moves" << std::endl;
+		  extra_moves->debug_example(std::cout);
+		}
+
+	      shared_dfa_ptr missing_moves(new ChessGame::difference_dfa_type(*expected_moves, *positions));
+	      if(missing_moves->size())
+		{
+		  std::cout << log_prefix << "found " << missing_moves->size() << " missing moves" << std::endl;
+		  missing_moves->debug_example(std::cout);
 		}
 
 	      throw std::logic_error("found discrepancy");
