@@ -109,7 +109,7 @@ void test(const Board& board, int depth_max)
 
 	  for(int i = 0; i < num_moves; ++i)
 	    {
-	      std::cout << log_prefix << " testing child " << i << std::endl;
+	      std::cout << log_prefix << " testing child " << i << "/" << num_moves << std::endl;
 	      assert(moves[i].get_side_to_move() != board.get_side_to_move());
 	      test(moves[i], depth - 1);
 	    }
