@@ -666,7 +666,7 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 			  if(square == en_passant_square)
 			    {
-			      return (old_value = capture_en_passant_character) && (new_value == DFA_BLANK);
+			      return (old_value == capture_en_passant_character) && (new_value == DFA_BLANK);
 			    }
 
 			  if(square == capture_square)
