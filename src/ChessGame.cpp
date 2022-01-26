@@ -278,15 +278,15 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
   return singleton;
 }
 
-typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int side_to_move) const
+typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_side) const
 {
   static shared_dfa_ptr singletons[2] = {0, 0};
-  if(!singletons[side_to_move])
+  if(!singletons[checked_side])
     {
-      std::cout << "ChessGame::get_check_positions(" << side_to_move << ")" << std::endl;
+      std::cout << "ChessGame::get_check_positions(" << checked_side << ")" << std::endl;
 
-      shared_dfa_ptr king_positions = get_king_positions(side_to_move);
-      int king_character = (side_to_move == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+      shared_dfa_ptr king_positions = get_king_positions(checked_side);
+      int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
       std::vector<shared_dfa_ptr> checks;
       for(int square = 0; square < 64; ++square)
@@ -294,17 +294,17 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int side_to_mo
 	  std::vector<shared_dfa_ptr> square_requirements;
 	  square_requirements.emplace_back(new fixed_dfa_type(square + 2, king_character));
 	  square_requirements.push_back(king_positions); // makes union much cheaper below
-	  square_requirements.push_back(get_threat_positions(side_to_move, square));
+	  square_requirements.push_back(get_threat_positions(checked_side, square));
 
 	  checks.emplace_back(new intersection_dfa_type(square_requirements));
 	}
 
-      singletons[side_to_move] = shared_dfa_ptr(new union_dfa_type(checks));
+      singletons[checked_side] = shared_dfa_ptr(new union_dfa_type(checks));
 
-      std::cout << "ChessGame::get_check_positions(" << side_to_move << ") => " << singletons[side_to_move]->size() << " positions, " << singletons[side_to_move]->states() << " states" << std::endl;
+      std::cout << "ChessGame::get_check_positions(" << checked_side << ") => " << singletons[checked_side]->size() << " positions, " << singletons[checked_side]->states() << " states" << std::endl;
     }
 
-  return singletons[side_to_move];
+  return singletons[checked_side];
 }
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) const
