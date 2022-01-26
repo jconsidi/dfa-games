@@ -378,12 +378,12 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 	      }
 
 	    std::vector<shared_dfa_ptr> threat_components;
-	    threat_components.emplace_back(new fixed_dfa_type(threatening_square, threatening_character));
+	    threat_components.emplace_back(new fixed_dfa_type(threatening_square + 2, threatening_character));
 
 	    BoardMask between_mask = between_masks.masks[threatening_square][threatened_square];
 	    for(int between_square = std::countr_zero(between_mask); between_square < 64; between_square += 1 + std::countr_zero(between_mask >> (between_square + 1)))
 	      {
-		threat_components.emplace_back(new fixed_dfa_type(between_square, DFA_BLANK));
+		threat_components.emplace_back(new fixed_dfa_type(between_square + 2, DFA_BLANK));
 	      }
 
 	    threats.emplace_back(new intersection_dfa_type(threat_components));

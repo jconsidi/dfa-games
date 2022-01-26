@@ -77,5 +77,17 @@ int main()
   assert(initial_positions_check);
   assert(initial_positions_check->size() == 1);
 
+  Board black_check_board("rnbq1bnr/ppppkppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR w KQkq - 0 1");
+  assert(black_check_board.is_check(SIDE_BLACK));
+  shared_dfa_ptr black_check_dfa = ChessGame::from_board(black_check_board);
+
+  shared_dfa_ptr black_threat_12 = chess.get_threat_positions(SIDE_BLACK, 12);
+  shared_dfa_ptr black_threat_confirmed(new ChessGame::intersection_dfa_type(*black_check_dfa, *black_threat_12));
+  assert(black_threat_confirmed->size() > 0);
+
+  shared_dfa_ptr black_check_positions = chess.get_check_positions(SIDE_BLACK);
+  shared_dfa_ptr black_check_confirmed(new ChessGame::intersection_dfa_type(*black_check_dfa, *black_check_positions));
+  assert(black_check_confirmed->size() > 0);
+
   return 0;
 }

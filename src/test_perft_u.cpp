@@ -132,6 +132,10 @@ int main()
 {
   try
     {
+      // previous errors
+      test("check detection", "rnbqkbnr/pppp1ppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 0 1", 1);
+
+      // perft cases validated in test_perft
       for(int i = 0; i < perft_test_cases.size(); ++i)
 	{
 	  const PerftTestCase& test_case = perft_test_cases.at(i);
