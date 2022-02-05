@@ -27,20 +27,18 @@ shared_dfa_ptr boards_to_dfa(const std::set<Board>& boards)
   return shared_dfa_ptr(new ChessGame::union_dfa_type(board_dfas));
 }
 
-void check_transition(const std::set<Board>& before_boards, const std::set<Board>& after_boards,
-		      shared_dfa_ptr before_dfa, shared_dfa_ptr after_dfa)
+void check_transition(shared_dfa_ptr before_expected, shared_dfa_ptr after_expected,
+		      shared_dfa_ptr before_actual, shared_dfa_ptr after_actual)
 {
-  if(after_boards.size() == after_dfa->size())
+  if(after_expected->size() == after_actual->size())
     {
       // assume we are good and skip expensive checks
       return;
     }
 
-  shared_dfa_ptr after_boards_dfa = boards_to_dfa(after_boards);
-
   // check for missing boards first since that is more common
 
-  shared_dfa_ptr missing_boards(new ChessGame::difference_dfa_type(*after_boards_dfa, *after_dfa));
+  shared_dfa_ptr missing_boards(new ChessGame::difference_dfa_type(*after_expected, *after_actual));
   if(missing_boards->size())
     {
       std::cout << log_prefix << " found missing boards" << std::endl;
@@ -50,7 +48,7 @@ void check_transition(const std::set<Board>& before_boards, const std::set<Board
 
   // check for extra boards
 
-  shared_dfa_ptr extra_boards(new ChessGame::difference_dfa_type(*after_dfa, *after_boards_dfa));
+  shared_dfa_ptr extra_boards(new ChessGame::difference_dfa_type(*after_actual, *after_expected));
   if(extra_boards->size())
     {
       std::cout << log_prefix << " found extra boards" << std::endl;
@@ -91,11 +89,9 @@ void test(const Board& board, int depth_max)
   for(int depth = 0; depth <= depth_max; ++depth)
     {
       expected_dfas.push_back(boards_to_dfa(expected_boards[depth]));
-      std::cout << log_prefix << "  depth " << depth << ": boards = " << expected_boards[depth].size() << ", dfa = " << expected_dfas[depth]->size() << std::endl;
+      std::cout << log_prefix << "  depth " << depth << ": boards = " << expected_boards[depth].size() << ", expected dfa = " << expected_dfas[depth]->size() << std::endl;
       assert(expected_dfas[depth]->size() == expected_boards[depth].size());
     }
-
-  throw std::logic_error("foo");
 
   std::cout << log_prefix << " testing get_moves_forward()" << std::endl;
 
@@ -107,19 +103,12 @@ void test(const Board& board, int depth_max)
   std::vector<shared_dfa_ptr> actual_dfas = {board_dfa};
   for(int depth = 1; depth <= depth_max; ++depth)
     {
-      std::cout << log_prefix << " depth " << depth << std::endl;
-
-      uint64_t board_output = expected_boards[depth].size();
-      std::cout << log_prefix << "  board output = " << board_output << std::endl;
-
       int side_to_move = (board.get_side_to_move() + depth - 1) % 2;
       actual_dfas.push_back(game.get_moves_forward(side_to_move, actual_dfas[depth - 1]));
       assert(actual_dfas.size() == depth + 1);
+      std::cout << log_prefix << "  depth " << depth << ": expected = " << expected_dfas[depth]->size() << ", actual dfa = " << actual_dfas[depth]->size() << std::endl;
 
-      uint64_t dfa_output = actual_dfas[depth]->size();
-      std::cout << log_prefix << "    dfa output = " << dfa_output << std::endl;
-
-      check_transition(expected_boards[depth - 1], expected_boards[depth],
+      check_transition(expected_dfas[depth - 1], expected_dfas[depth],
 		       actual_dfas[depth - 1], actual_dfas[depth]);
     }
 }
