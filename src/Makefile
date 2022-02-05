@@ -18,6 +18,7 @@ test : all
 	./test_perft
 	./test_dfa
 	./test_tictactoe_game
+	./test_chess_game
 
 time : all
 	time ./test_perft
