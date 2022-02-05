@@ -56,7 +56,7 @@ test_perft_u : test_perft_u.o chess.a PerftTestCases.o
 test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a
 	$(CXX) -o $@ $^
 
-chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o Board.o ChangeDFA.o ChessGame.o CountCharacterDFA.o CountDFA.o DFA.o DifferenceDFA.o FixedDFA.o Game.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MoveSet.o RejectDFA.o RewriteDFA.o UnionDFA.o utils.o
+chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o Board.o ChangeDFA.o ChessBoardDFA.o ChessGame.o CountCharacterDFA.o CountDFA.o DFA.o DifferenceDFA.o FixedDFA.o Game.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MoveSet.o RejectDFA.o RewriteDFA.o UnionDFA.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################
