@@ -670,18 +670,12 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
       if(side_to_move == SIDE_WHITE)
 	{
-	  std::cout << "BISHOP RULES" << std::endl;
 	  add_basic_rules(DFA_WHITE_BISHOP, bishop_moves);
-	  std::cout << "KING RULES" << std::endl;
 	  add_basic_rules(DFA_WHITE_KING, king_moves);
-	  std::cout << "KNIGHT RULES" << std::endl;
 	  add_basic_rules(DFA_WHITE_KNIGHT, knight_moves);
-	  std::cout << "QUEEN RULES" << std::endl;
 	  add_basic_rules(DFA_WHITE_QUEEN, queen_moves);
-	  std::cout << "ROOK RULES" << std::endl;
 	  add_basic_rules(DFA_WHITE_ROOK, rook_moves);
 	  add_basic_rules(DFA_WHITE_ROOK_CASTLE, rook_moves);
-	  std::cout << "PAWN RULES" << std::endl;
 	  add_pawn_rules(DFA_WHITE_PAWN, DFA_WHITE_PAWN_EN_PASSANT, DFA_BLACK_PAWN_EN_PASSANT, 6, -1);
 
 	  add_castle_rule(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 56);
@@ -689,18 +683,12 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 	}
       else
 	{
-	  std::cout << "BISHOP RULES" << std::endl;
 	  add_basic_rules(DFA_BLACK_BISHOP, bishop_moves);
-	  std::cout << "KING RULES" << std::endl;
 	  add_basic_rules(DFA_BLACK_KING, king_moves);
-	  std::cout << "KNIGHT RULES" << std::endl;
 	  add_basic_rules(DFA_BLACK_KNIGHT, knight_moves);
-	  std::cout << "QUEEN RULES" << std::endl;
 	  add_basic_rules(DFA_BLACK_QUEEN, queen_moves);
-	  std::cout << "ROOK RULES" << std::endl;
 	  add_basic_rules(DFA_BLACK_ROOK, rook_moves);
 	  add_basic_rules(DFA_BLACK_ROOK_CASTLE, rook_moves);
-	  std::cout << "PAWN RULES" << std::endl;
 	  add_pawn_rules(DFA_BLACK_PAWN, DFA_BLACK_PAWN_EN_PASSANT, DFA_WHITE_PAWN_EN_PASSANT, 1, 1);
 
 	  add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 0);
