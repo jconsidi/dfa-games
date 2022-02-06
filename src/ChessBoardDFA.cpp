@@ -47,7 +47,14 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
 	    }
 	  else if(check(SIDE_WHITE, PIECE_ROOK))
 	    {
-	      set_square(DFA_WHITE_ROOK);
+	      if(board_in.castling_availability & square_mask)
+		{
+		  set_square(DFA_WHITE_ROOK_CASTLE);
+		}
+	      else
+		{
+		  set_square(DFA_WHITE_ROOK);
+		}
 	    }
 	  else if(check(SIDE_WHITE, PIECE_PAWN))
 	    {
@@ -86,7 +93,14 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
 	    }
 	  else if(check(SIDE_BLACK, PIECE_ROOK))
 	    {
-	      set_square(DFA_BLACK_ROOK);
+	      if(board_in.castling_availability & square_mask)
+		{
+		  set_square(DFA_BLACK_ROOK_CASTLE);
+		}
+	      else
+		{
+		  set_square(DFA_BLACK_ROOK);
+		}
 	    }
 	  else if(check(SIDE_BLACK, PIECE_PAWN))
 	    {

@@ -21,14 +21,14 @@ shared_dfa_ptr initial_positions_manual()
   set_square(60); // white king position
   set_square(4); // black king position
   // black back line
-  set_square(DFA_BLACK_ROOK);
+  set_square(DFA_BLACK_ROOK_CASTLE);
   set_square(DFA_BLACK_KNIGHT);
   set_square(DFA_BLACK_BISHOP);
   set_square(DFA_BLACK_QUEEN);
   set_square(DFA_BLACK_KING);
   set_square(DFA_BLACK_BISHOP);
   set_square(DFA_BLACK_KNIGHT);
-  set_square(DFA_BLACK_ROOK);
+  set_square(DFA_BLACK_ROOK_CASTLE);
   // black pawns
   for(int i = 0; i < 8; ++i)
     {
@@ -46,14 +46,14 @@ shared_dfa_ptr initial_positions_manual()
     }
 
   // white back line
-  set_square(DFA_WHITE_ROOK);
+  set_square(DFA_WHITE_ROOK_CASTLE);
   set_square(DFA_WHITE_KNIGHT);
   set_square(DFA_WHITE_BISHOP);
   set_square(DFA_WHITE_QUEEN);
   set_square(DFA_WHITE_KING);
   set_square(DFA_WHITE_BISHOP);
   set_square(DFA_WHITE_KNIGHT);
-  set_square(DFA_WHITE_ROOK);
+  set_square(DFA_WHITE_ROOK_CASTLE);
 
   assert(next_square == 66);
   assert(output->size() == 1);

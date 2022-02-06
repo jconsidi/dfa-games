@@ -128,7 +128,7 @@ int main()
     {
       // previous errors
       test("check detection", "rnbqkbnr/pppp1ppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 0 1", 1);
-      test("TBD", "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1", 3);
+      test("castling state", "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1", 3);
 
       // perft cases validated in test_perft
       for(int i = 0; i < perft_test_cases.size(); ++i)
