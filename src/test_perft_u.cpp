@@ -81,28 +81,37 @@ void perft_u_board_helper(const Board& board, int depth, int depth_max, std::vec
       return;
     }
 
-  Board moves[CHESS_MAX_MOVES];
-  int num_moves = board.generate_moves(moves);
-  for(int i = 0; i < num_moves; ++i)
-    {
-      perft_u_board_helper(moves[i], depth + 1, depth_max, output);
-    }
 }
 
-void test(const Board& board, int depth_max)
+void test(const Board& board_in, int depth_max)
 {
-  std::vector<std::set<Board>> expected_boards(depth_max + 1);
-  perft_u_board_helper(board, 0, depth_max, expected_boards);
+  std::vector<std::set<Board>> expected_boards(1);
+  expected_boards[0].insert(board_in);
 
-  shared_dfa_ptr board_dfa = ChessGame::from_board(board);
+  shared_dfa_ptr board_dfa = ChessGame::from_board(board_in);
   assert(board_dfa->size() == 1);
+  std::vector<shared_dfa_ptr> actual_dfas = {board_dfa};
 
   ChessGame game;
 
-  std::vector<shared_dfa_ptr> actual_dfas = {board_dfa};
   for(int depth = 1; depth <= depth_max; ++depth)
     {
-      int side_to_move = (board.get_side_to_move() + depth - 1) % 2;
+      expected_boards.emplace_back();
+      assert(expected_boards.size() == depth + 1);
+
+      // extend expected_boards
+      std::for_each(expected_boards[depth - 1].cbegin(), expected_boards[depth - 1].cend(), [&](const Board& board_previous)
+      {
+	Board moves[CHESS_MAX_MOVES];
+	int num_moves = board_previous.generate_moves(moves);
+	for(int i = 0; i < num_moves; ++i)
+	  {
+	    expected_boards[depth].insert(moves[i]);
+	  }
+      });
+
+      // extend actual_dfas
+      int side_to_move = (board_in.get_side_to_move() + depth - 1) % 2;
       actual_dfas.push_back(game.get_moves_forward(side_to_move, actual_dfas[depth - 1]));
       assert(actual_dfas.size() == depth + 1);
 
