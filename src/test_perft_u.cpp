@@ -135,8 +135,12 @@ int main()
   try
     {
       // piece-specific tests
-      test("rook castling white move", "r3k2r/8/8/8/8/8/8/R3K2R w KQkq -", 4);
-      test("rook castling black move", "r3k2r/8/8/8/8/8/8/R3K2R b KQkq -", 4);
+      test("bishop moves", "2b1kb2/8/8/8/8/8/8/2B1KB2 w - - 0 1", 4);
+      test("king moves", "4k3/8/8/8/8/8/8/4K3 w - - 0 1", 4);
+      test("knight moves", "1n2k1n1/8/8/8/8/8/8/1N2K1N1 w - - 0 1", 4);
+      test("pawn moves", "4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1", 6);
+      test("queen moves", "3qk3/8/8/8/8/8/8/3QK3 w - - 0 1", 4);
+      test("rook moves", "r3k2r/8/8/8/8/8/8/R3K2R w KQkq -", 6);
 
       // previous errors
       test("check detection", "rnbqkbnr/pppp1ppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 0 1", 1);
