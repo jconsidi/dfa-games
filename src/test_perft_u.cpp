@@ -125,11 +125,13 @@ int main()
 {
   try
     {
+      // piece-specific tests
+      test("rook castling white move", "r3k2r/8/8/8/8/8/8/R3K2R w KQkq -", 4);
+      test("rook castling black move", "r3k2r/8/8/8/8/8/8/R3K2R b KQkq -", 4);
+
       // previous errors
       test("check detection", "rnbqkbnr/pppp1ppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 0 1", 1);
       test("castling state", "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1", 3);
-      test("rook castling white move", "r3k2r/8/8/8/8/8/8/R3K2R w KQkq -", 4);
-      test("rook castling black move", "r3k2r/8/8/8/8/8/8/R3K2R b KQkq -", 4);
 
       // perft cases validated in test_perft
       for(int i = 0; i < perft_test_cases.size(); ++i)
