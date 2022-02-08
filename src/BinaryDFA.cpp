@@ -114,7 +114,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 
   if(this->states() >= 1024)
     {
-      std::cerr << "  merged DFA has " << this->states() << " and " << this->size() << " positions" << std::endl;
+      std::cerr << "  merged DFA has " << this->states() << " states and " << this->size() << " positions" << std::endl;
     }
 }
 
