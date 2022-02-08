@@ -33,7 +33,7 @@ void check_transition(int depth,
 {
   std::cout << log_prefix << "  depth " << depth << ": boards = " << after_boards.size() << ", dfa = " << after_actual->size() << std::endl;
 
-  if(after_boards.size() == after_actual->size())
+  if((after_boards.size() == after_actual->size()) && (after_boards.size() > 1024))
     {
       // assume we are good and skip expensive checks
       return;
@@ -46,6 +46,7 @@ void check_transition(int depth,
   // build expected DFA for comparison
 
   shared_dfa_ptr after_expected = boards_to_dfa(after_boards);
+  assert(after_expected->size() == after_boards.size());
 
   // check for missing boards first since that is more common
 
@@ -68,8 +69,7 @@ void check_transition(int depth,
   assert(extra_boards->size() == 0);
 
   // no differences found
-
-  throw std::logic_error("failed to find transition difference");
+  assert(after_actual->size() == after_boards.size());
 }
 
 void perft_u_board_helper(const Board& board, int depth, int depth_max, std::vector<std::set<Board>>& output)
