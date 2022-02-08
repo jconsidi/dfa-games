@@ -231,6 +231,10 @@ void Board::move_piece(int from_index, int to_index)
 	}
     }
 
+  // castling cleanup
+
+  castling_availability &= ~(from_mask | to_mask);
+
   // clear captured pieces
 
   if(pieces_by_side[side_to_move] & to_mask)
