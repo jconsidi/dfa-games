@@ -34,14 +34,13 @@ FixedDFA<ndim, shape_pack...>::FixedDFA(int fixed_square, int fixed_character)
   // fixed layer
 
   int fixed_state_id = this->add_state(fixed_square, [fixed_character](int i){return (i == fixed_character);});
-  assert(fixed_state_id == 0);
 
   // layers before fixed square (if any)
 
+  int next_state_id = fixed_state_id;
   for(int layer = fixed_square - 1; layer >= 0; --layer)
     {
-      int early_state_id = this->add_state(layer, [](int i){return 0;});
-      assert(early_state_id == 0);
+      next_state_id = this->add_state(layer, [=](int i){return next_state_id;});
     }
 }
 

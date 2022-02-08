@@ -129,38 +129,41 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
 
   // last layer
 
-  auto add_reject = [&](int layer)
-  {
-    auto reject_index = this->add_state(layer, [](int i)
-    {
-      return 0;
-    });
-    assert(reject_index == 0);
-  };
-
   auto add_accept = [&](int layer, int character)
   {
-    return this->add_state(layer, [=](int i)
-    {
-      return i == character;
-    });
+    assert((0 <= character) && (character < this->get_layer_shape(layer)));
+
+    if(layer == 65)
+      {
+	return this->add_state(layer, [=](int i)
+	{
+	  return i == character;
+	});
+      }
+    else
+      {
+	return this->add_state(layer, [=](int i)
+	{
+	  return (i == character) ? 2 : 0;
+	});
+      }
   };
 
   for(int square = 63; square >= 0; --square)
     {
       int layer = square + 2;
 
-      add_reject(layer);
       auto accept_index = add_accept(layer, board_characters[square]);
-      assert(accept_index == 1);
+      assert(accept_index == 2);
     }
 
   // black king index layer
-  add_reject(1);
   int black_king_accept_index = add_accept(1, black_king_position);
-  assert(black_king_accept_index == 1);
+  assert(black_king_accept_index == 2);
 
   // white king index layer
   int white_king_accept_index = add_accept(0, white_king_position);
   assert(white_king_accept_index == 0);
+
+  assert(this->size() == 1);
 }

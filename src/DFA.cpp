@@ -31,6 +31,8 @@ DFA<ndim, shape_pack...>::DFA()
     state_lookup(new DFATransitionsMap[ndim])
 {
   assert(shape.size() == ndim);
+
+  this->add_uniform_states();
 }
 
 template<int ndim, int... shape_pack>
