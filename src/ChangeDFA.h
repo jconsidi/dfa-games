@@ -22,8 +22,13 @@ template<int ndim, int... shape_pack>
 
 private:
 
+  std::vector<std::vector<std::vector<int>>> new_values_to_old_values_by_layer;
+  std::vector<std::map<int, int>> change_cache; // TODO: make this a vector inside?
   std::vector<std::map<std::string, int>> union_local_cache;
 
+  const dfa_type *dfa_temp;
+
+  uint64_t change_state(int layer, int state_index);
   uint64_t union_local(int layer, std::vector<uint64_t>& states_in);
 
 public:

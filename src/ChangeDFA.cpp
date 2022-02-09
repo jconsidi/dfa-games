@@ -8,19 +8,23 @@
 
 template<int ndim, int... shape_pack>
 ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_pack...>::dfa_type& dfa_in, change_func change_rule)
-  : union_local_cache(ndim)
+  : new_values_to_old_values_by_layer(),
+    change_cache(ndim),
+    union_local_cache(ndim)
 {
   assert(dfa_in.ready());
+  this->dfa_temp = &dfa_in;
+
   this->add_uniform_states();
 
-  std::vector<uint64_t> previous_layer = {0, 1};
-  for(int layer = ndim - 1; layer >= 0; --layer)
-    {
-      std::vector<uint64_t> current_layer;
+  // setup new_values_to_old_values_by_layer
 
+  for(int layer = 0; layer < ndim; ++layer)
+    {
       int layer_shape = this->get_layer_shape(layer);
 
-      std::vector<std::vector<int>> new_values_to_old_values(layer_shape);
+      new_values_to_old_values_by_layer.emplace_back(layer_shape);
+      std::vector<std::vector<int>>& new_values_to_old_values = new_values_to_old_values_by_layer[layer];
       for(int new_value = 0; new_value < layer_shape; ++new_value)
 	{
 	  for(int old_value = 0; old_value < layer_shape; ++old_value)
@@ -31,34 +35,65 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_p
 		}
 	    }
 	}
-
-      int layer_size = dfa_in.get_layer_size(layer);
-      for(int old_index = 0; old_index < layer_size; ++old_index)
-	{
-	  const DFATransitions& old_transitions = dfa_in.get_transitions(layer, old_index);
-	  // TODO: extract changes for this layer
-	  // TODO: rewrite layer states based on changes
-
-	  current_layer.push_back(this->add_state(layer, [&](int i)
-	  {
-	    const std::vector<int>& old_values = new_values_to_old_values[i];
-
-	    std::vector<uint64_t> old_value_states;
-	    for(int j = 0; j < old_values.size(); ++j)
-	      {
-		old_value_states.push_back(previous_layer.at(old_transitions[old_values[j]]));
-	      }
-
-	    return union_local(layer + 1, old_value_states);
-	  }));
-	}
-
-      previous_layer = current_layer;
     }
 
+  // pre-cache rejects
+
+  for(int layer = 1; layer < ndim; ++layer)
+    {
+      change_cache[layer][0] = 0;
+    }
+
+  // trigger whole change process
+
+  this->change_state(0, 0);
+
   assert(this->ready());
+
+  // cleanup temporary state
+
+  this->dfa_temp = 0;
+
   this->union_local_cache.clear();
   this->union_local_cache.shrink_to_fit();
+
+  this->change_cache.clear();
+  this->change_cache.shrink_to_fit();
+
+  this->new_values_to_old_values_by_layer.clear();
+  this->new_values_to_old_values_by_layer.shrink_to_fit();
+}
+
+template<int ndim, int... shape_pack>
+uint64_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, int state_index)
+{
+  if(layer == ndim)
+    {
+      return state_index;
+    }
+
+  if(this->change_cache[layer].count(state_index))
+    {
+      return this->change_cache[layer][state_index];
+    }
+
+  const DFATransitions& old_transitions = dfa_temp->get_transitions(layer, state_index);
+
+  int new_index = this->add_state(layer, [=](int new_value)
+  {
+    const std::vector<int>& old_values = new_values_to_old_values_by_layer[layer][new_value];
+
+    std::vector<uint64_t> states_to_union;
+    for(int i = 0; i < old_values.size(); ++i)
+      {
+	states_to_union.push_back(change_state(layer+1, old_transitions[old_values[i]]));
+      }
+
+    return union_local(layer+1, states_to_union);
+  });
+
+  this->change_cache[layer][state_index] = new_index;
+  return new_index;
 }
 
 template<int ndim, int... shape_pack>
