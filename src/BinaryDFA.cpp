@@ -91,7 +91,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 
       if(second_last->states() >= 1024)
 	{
-	  std::cerr << "  merging DFAs with " << last->states() << " states and " << second_last->states() << " states" << std::endl;
+	  std::cerr << "  merging DFAs with " << last->states() << " states and " << second_last->states() << " states (" << dfa_queue.size() << " remaining)" << std::endl;
 	}
       dfa_queue.push(std::shared_ptr<const DFA<ndim, shape_pack...>>(new BinaryDFA(*second_last, *last, leaf_func)));
     }
@@ -105,7 +105,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 
   if((d0->states() >= 1024) || (d1->states() >= 1024))
     {
-      std::cerr << "  merging DFAs with " << d0->states() << " states and " << d1->states() << " states" << std::endl;
+      std::cerr << "  merging DFAs with " << d0->states() << " states and " << d1->states() << " states (final)" << std::endl;
     }
 
   BinaryBuildCache cache(*d0, *d1, leaf_func);
