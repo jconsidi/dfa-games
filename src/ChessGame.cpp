@@ -114,6 +114,16 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	requirements.emplace_back(requirement);
       };
 
+      std::function<void(int, int)> block_file = [&](int file, int character)
+      {
+	for(int rank = 0; rank < 8; ++rank)
+	  {
+	    int square = rank * 8 + file;
+
+	    add_requirement(new inverse_dfa_type(fixed_dfa_type(square + 2, character)));
+	  }
+      };
+
       std::function<void(int, int)> block_row = [&](int rank, int character)
       {
 	for(int file = 0; file < 8; ++file)
@@ -149,7 +159,23 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
       block_row(6, DFA_WHITE_PAWN_EN_PASSANT);
       block_row(7, DFA_WHITE_PAWN_EN_PASSANT);
 
-      // TODO: castle/rook restrictions
+      // castle/rook restrictions
+
+      for(int file = 1; file < 7; ++file)
+	{
+	  block_file(file, DFA_BLACK_ROOK_CASTLE);
+	  block_file(file, DFA_WHITE_ROOK_CASTLE);
+	}
+
+      for(int rank = 1; rank < 8; ++rank)
+	{
+	  block_row(rank, DFA_BLACK_ROOK_CASTLE);
+	}
+
+      for(int rank = 0; rank < 7; ++rank)
+	{
+	  block_row(rank, DFA_WHITE_ROOK_CASTLE);
+	}
 
       // king restrictions
       requirements.push_back(get_king_positions(0));
