@@ -52,11 +52,12 @@ static bool chess_is_hostile(int side_to_move, int character)
 
 static bool chess_pawn_maybe_promote(int side_to_move, int previous_advancement, int character)
 {
-  if(previous_advancement < 6)
+  if(previous_advancement < 5)
     {
       int pawn_character = (side_to_move == SIDE_WHITE) ? DFA_WHITE_PAWN : DFA_BLACK_PAWN;
       return character == pawn_character;
     }
+  assert(previous_advancement == 5);
 
   // promotion
   if(side_to_move == SIDE_WHITE)
@@ -456,7 +457,7 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
       {
 	for(int from_file = 0; from_file < 8; ++from_file)
 	  {
-	    for(int previous_advancement = 0; previous_advancement < 7; ++previous_advancement)
+	    for(int previous_advancement = 0; previous_advancement < 6; ++previous_advancement)
 	      {
 		int from_rank = rank_start + previous_advancement * rank_direction;
 		int from_square = from_rank * 8 + from_file;
