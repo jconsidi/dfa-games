@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "TicTacToeGame.h"
+#include "test_utils.h"
 
 template<int n, class T>
 int test()
@@ -10,6 +11,8 @@ int test()
   std::cout << "TESTING " << n << "x" << n << std::endl;
 
   T tictactoe;
+
+  // start tictactoe specific tests
 
   int n2 = n * n;
 
@@ -75,6 +78,12 @@ int test()
       assert(initial_winning->size() == 0);
       std::cout << "  rejected win" << std::endl;
     }
+
+  // generic tests
+
+  test_game(tictactoe);
+
+  // done
 
   return 0;
 }

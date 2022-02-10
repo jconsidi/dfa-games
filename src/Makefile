@@ -41,7 +41,7 @@ random : random.o chess.a
 random_uci : random_uci.o chess.a
 	$(CXX) -o $@ $^
 
-test_chess_game : test_chess_game.o chess.a
+test_chess_game : test_chess_game.o chess.a test_utils.o
 	$(CXX) -o $@ $^
 
 test_dfa : test_dfa.o chess.a
@@ -53,7 +53,7 @@ test_perft : test_perft.o chess.a PerftTestCases.o
 test_perft_u : test_perft_u.o chess.a PerftTestCases.o
 	$(CXX) -o $@ $^
 
-test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a
+test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a test_utils.o
 	$(CXX) -o $@ $^
 
 chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o Board.o ChangeDFA.o ChessBoardDFA.o ChessGame.o CountCharacterDFA.o CountDFA.o DFA.o DifferenceDFA.o FixedDFA.o Game.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MoveSet.o RejectDFA.o RewriteDFA.o UnionDFA.o utils.o

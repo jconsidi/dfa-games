@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "ChessGame.h"
+#include "test_utils.h"
 
 typedef typename ChessGame::shared_dfa_ptr shared_dfa_ptr;
 
@@ -65,6 +66,8 @@ int main()
 {
   ChessGame chess;
 
+  // chess-specific tests
+
   shared_dfa_ptr initial_positions = chess.get_initial_positions();
   assert(initial_positions);
   assert(initial_positions->size() == 1);
@@ -88,6 +91,12 @@ int main()
   shared_dfa_ptr black_check_positions = chess.get_check_positions(SIDE_BLACK);
   shared_dfa_ptr black_check_confirmed(new ChessGame::intersection_dfa_type(*black_check_dfa, *black_check_positions));
   assert(black_check_confirmed->size() > 0);
+
+  // generic tests
+
+  test_game(chess);
+
+  // done
 
   return 0;
 }
