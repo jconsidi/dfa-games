@@ -130,10 +130,21 @@ void test(std::string name, std::string fen, int depth_max)
   test(board, depth_max);
 }
 
-int main()
+int main(int argc, char **argv)
 {
   try
     {
+      if(argc > 1)
+	{
+	  for(int i = 1; i < argc; ++i)
+	    {
+	      std::string fen = argv[i];
+	      test("manual", fen, 2);
+	    }
+
+	  return 0;
+	}
+
       // piece-specific tests
       test("bishop moves", "2b1kb2/8/8/8/8/8/8/2B1KB2 w - - 0 1", 4);
       test("king moves", "4k3/8/8/8/8/8/8/4K3 w - - 0 1", 4);
@@ -146,6 +157,7 @@ int main()
       test("check detection", "rnbqkbnr/pppp1ppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 0 1", 1);
       test("castling state", "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1", 3);
       test("capture promotion", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPPKBPpP/R1B4R b KQkq -", 1);
+      test("en passant", "8/2p5/K2p4/1P5r/1R3p1k/8/4P1P1/8 b - -", 1);
 
       // perft cases validated in test_perft
       for(int i = 0; i < perft_test_cases.size(); ++i)
