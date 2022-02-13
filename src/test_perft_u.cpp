@@ -72,17 +72,6 @@ void check_transition(int depth,
   assert(after_actual->size() == after_boards.size());
 }
 
-void perft_u_board_helper(const Board& board, int depth, int depth_max, std::vector<std::set<Board>>& output)
-{
-  assert(depth <= depth_max);
-  output[depth].insert(board);
-  if(depth == depth_max)
-    {
-      return;
-    }
-
-}
-
 void test(const Board& board_in, int depth_max)
 {
   std::vector<std::set<Board>> expected_boards(1);
