@@ -12,6 +12,11 @@
 
 static bool chess_default_rule(int layer, int old_value, int new_value)
 {
+  if(layer < 2)
+    {
+      return new_value == old_value;
+    }
+
   // automatic piece changes
 
   switch(old_value)
