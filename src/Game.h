@@ -39,6 +39,7 @@ public:
 
 private:
 
+  mutable shared_dfa_ptr singleton_has_moves[2] = {0, 0};
   mutable shared_dfa_ptr singleton_initial_positions = 0;
   mutable shared_dfa_ptr singleton_lost_positions[2] = {0, 0};
 
@@ -53,6 +54,7 @@ protected:
 
 public:
 
+  shared_dfa_ptr get_has_moves(int) const;
   shared_dfa_ptr get_initial_positions() const;
   virtual const rule_vector& get_rules(int) const = 0;
 

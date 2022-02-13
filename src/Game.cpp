@@ -13,6 +13,20 @@ Game<ndim, shape_pack...>::Game()
 }
 
 template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_has_moves(int side_to_move) const
+{
+  if(!(this->singleton_has_moves[side_to_move]))
+    {
+      shared_dfa_ptr all_positions(new accept_dfa_type());
+      std::cout << "Game::get_has_moves(" << side_to_move << ")" << std::endl;
+      this->singleton_has_moves[side_to_move] = this->get_moves_reverse(side_to_move, all_positions);
+      std::cout << "Game::get_has_moves(" << side_to_move << ") => " << this->singleton_has_moves[side_to_move]->states() << " states, " << this->singleton_has_moves[side_to_move]->size() << " positions" << std::endl;
+    }
+
+  return this->singleton_has_moves[side_to_move];
+}
+
+template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_initial_positions() const
 {
   if(!(this->singleton_initial_positions))
