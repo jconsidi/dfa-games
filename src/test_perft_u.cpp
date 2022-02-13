@@ -146,7 +146,7 @@ int main(int argc, char **argv)
       test("check detection", "rnbqkbnr/pppp1ppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 0 1", 1);
       test("castling state", "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1", 3);
       test("capture promotion", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPPKBPpP/R1B4R b KQkq -", 1);
-      test("en passant", "8/2p5/K2p4/1P5r/1R3p1k/8/4P1P1/8 b - -", 1);
+      test("en passant", "8/2p5/K5R1/1P3R2/7k/5R2/8/8 b - -", 2);
 
       // perft cases validated in test_perft
       for(int i = 0; i < perft_test_cases.size(); ++i)
