@@ -25,6 +25,12 @@ int test()
 
   std::cout << " perft_u" << std::endl;
 
+  typename T::shared_dfa_ptr lost_positions[2];
+  for(int side_to_move = 0; side_to_move < 2; ++side_to_move)
+    {
+      lost_positions[side_to_move] = tictactoe.get_lost_positions(side_to_move);
+    }
+
   typename T::shared_dfa_ptr current_positions = initial_positions;
   int current_size = current_positions->size();
   int current_states = current_positions->states();
@@ -35,7 +41,8 @@ int test()
       typename T::shared_dfa_ptr previous_positions = current_positions;
       int previous_size = current_size;
 
-      typename T::shared_dfa_ptr just_lost_positions = tictactoe.get_lost_positions(side_to_move, previous_positions);
+      typename T::shared_dfa_ptr just_lost_positions(new typename T::intersection_dfa_type(*(lost_positions[side_to_move]),
+											   *previous_positions));
       int just_lost_size = just_lost_positions->size();
       if((previous_ply + 1) / 2 >= n)
 	{

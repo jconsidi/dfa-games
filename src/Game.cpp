@@ -13,18 +13,6 @@ Game<ndim, shape_pack...>::Game()
 }
 
 template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_lost_positions(int side_to_move) const
-{
-  return get_lost_positions_helper(side_to_move);
-}
-
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_lost_positions(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
-{
-  return shared_dfa_ptr(new intersection_dfa_type(*(this->get_lost_positions(side_to_move)), *positions_in));
-}
-
-template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_forward(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
 {
   rule_vector rules = get_rules(side_to_move);

@@ -5,7 +5,6 @@
 
 #include "AcceptDFA.h"
 #include "FixedDFA.h"
-#include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "Game.h"
 #include "RejectDFA.h"
@@ -18,7 +17,6 @@ template<int n, int... shape_pack>
 
   typedef AcceptDFA<n*n, shape_pack...> accept_dfa_type;
   typedef FixedDFA<n*n, shape_pack...> fixed_dfa_type;
-  typedef IntersectionDFA<n*n, shape_pack...> intersection_dfa_type;
   typedef InverseDFA<n*n, shape_pack...> inverse_dfa_type;
   typedef RejectDFA<n*n, shape_pack...> reject_dfa_type;
   typedef UnionDFA<n*n, shape_pack...> union_dfa_type;
@@ -29,6 +27,8 @@ template<int n, int... shape_pack>
   typedef typename Game<n*n, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
   typedef typename Game<n*n, shape_pack...>::rule_vector rule_vector;
 
+  typedef typename Game<n*n, shape_pack...>::intersection_dfa_type intersection_dfa_type;
+
  private:
 
   static shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta);
@@ -36,7 +36,7 @@ template<int n, int... shape_pack>
  public:
 
   virtual shared_dfa_ptr get_initial_positions() const;
-  virtual shared_dfa_ptr get_lost_positions_helper(int) const;
+  virtual shared_dfa_ptr get_lost_positions(int) const;
   virtual const rule_vector& get_rules(int) const;
 };
 

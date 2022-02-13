@@ -35,7 +35,7 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
 }
 
 template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_lost_positions_helper(int side_to_move) const
+typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_lost_positions(int side_to_move) const
 {
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[side_to_move])
