@@ -347,7 +347,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions_internal(int si
 {
   // lost if and only if check and no legal moves
 
-  throw std::logic_error("ChessGame::get_lost_positions not implemented");
+  return shared_dfa_ptr(new difference_dfa_type(*get_check_positions(side_to_move),
+						*(this->get_has_moves(side_to_move))));
 }
 
 const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) const
