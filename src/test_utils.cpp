@@ -14,6 +14,16 @@ void test_game(const Game<ndim, shape_pack...>& game_in)
   auto initial_positions = game_in.get_initial_positions();
   assert(initial_positions);
   assert(initial_positions->size() == 1);
+
+  std::cout << log_prefix << "get_moves_forward()" << std::endl;
+
+  auto current_positions = initial_positions;
+  for(int depth = 0; depth < 2; ++depth)
+    {
+      int side_to_move = depth % 2;
+      current_positions = game_in.get_moves_forward(side_to_move, current_positions);
+      std::cout << log_prefix << "depth " << (depth + 1) << ": " << current_positions->states() << " states, " << current_positions->size() << " positions" << std::endl;
+    }
 }
 
 // template instantiations
