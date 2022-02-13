@@ -337,23 +337,17 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
   return singletons[threatened_side][threatened_square];
 }
 
-typename ChessGame::shared_dfa_ptr ChessGame::get_initial_positions() const
+typename ChessGame::shared_dfa_ptr ChessGame::get_initial_positions_internal() const
 {
   Board initial_board(INITIAL_FEN);
   return from_board(initial_board);
 }
 
-typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions(int side_to_move) const
+typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions_internal(int side_to_move) const
 {
   // lost if and only if check and no legal moves
 
-  static shared_dfa_ptr singletons[2] = {0, 0};
-  if(!singletons[side_to_move])
-    {
-      throw std::logic_error("ChessGame::get_lost_positions not implemented");
-    }
-
-  return singletons[side_to_move];
+  throw std::logic_error("ChessGame::get_lost_positions not implemented");
 }
 
 const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) const

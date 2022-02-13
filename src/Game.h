@@ -39,6 +39,12 @@ public:
 
 private:
 
+  mutable shared_dfa_ptr singleton_initial_positions = 0;
+  mutable shared_dfa_ptr singleton_lost_positions[2] = {0, 0};
+
+  virtual shared_dfa_ptr get_initial_positions_internal() const = 0;
+  virtual shared_dfa_ptr get_lost_positions_internal(int) const = 0;
+
   shared_dfa_ptr get_moves_internal(const rule_vector&, shared_dfa_ptr) const;
 
 protected:
@@ -47,10 +53,10 @@ protected:
 
 public:
 
-  virtual shared_dfa_ptr get_initial_positions() const = 0;
-  virtual shared_dfa_ptr get_lost_positions(int) const = 0;
+  shared_dfa_ptr get_initial_positions() const;
   virtual const rule_vector& get_rules(int) const = 0;
 
+  shared_dfa_ptr get_lost_positions(int) const;
   shared_dfa_ptr get_moves_forward(int, shared_dfa_ptr) const;
   shared_dfa_ptr get_moves_reverse(int, shared_dfa_ptr) const;
   shared_dfa_ptr get_winning_positions(int, int) const;

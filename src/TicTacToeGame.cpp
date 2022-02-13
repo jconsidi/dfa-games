@@ -3,7 +3,7 @@
 #include "TicTacToeGame.h"
 
 template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_initial_positions() const
+typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_initial_positions_internal() const
 {
   shared_dfa_ptr output(new accept_dfa_type());
 
@@ -35,41 +35,35 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
 }
 
 template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_lost_positions(int side_to_move) const
+typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_lost_positions_internal(int side_to_move) const
 {
-  static shared_dfa_ptr singletons[2] = {0, 0};
-  if(!singletons[side_to_move])
+  shared_dfa_ptr lost_positions(new reject_dfa_type());
+
+  // vertical lost conditions
+  for(int x = 0; x < n; ++x)
     {
-      shared_dfa_ptr lost_positions(new reject_dfa_type());
-
-      // vertical lost conditions
-      for(int x = 0; x < n; ++x)
-	{
-	  shared_dfa_ptr lost_vertical = get_lost_condition(side_to_move, x, 0, 0, 1);
-	  lost_positions = shared_dfa_ptr(new union_dfa_type(*lost_positions, *lost_vertical));
-	}
-
-      // horizontal lost conditions
-      for(int y = 0; y < n; ++y)
-	{
-	  shared_dfa_ptr lost_horizontal = get_lost_condition(side_to_move, 0, y, 1, 0);
-	  lost_positions = shared_dfa_ptr(new union_dfa_type(*lost_positions, *lost_horizontal));
-	}
-
-      // diagonal lost conditions
-
-      shared_dfa_ptr diagonal_plus = get_lost_condition(side_to_move, 0, 0, 1, 1);
-      lost_positions = shared_dfa_ptr(new union_dfa_type(*lost_positions, *diagonal_plus));
-
-      shared_dfa_ptr diagonal_negative = get_lost_condition(side_to_move, 0, n - 1, 1, -1);
-      lost_positions = shared_dfa_ptr(new union_dfa_type(*lost_positions, *diagonal_negative));
-
-      // done
-
-      singletons[side_to_move] = lost_positions;
+      shared_dfa_ptr lost_vertical = get_lost_condition(side_to_move, x, 0, 0, 1);
+      lost_positions = shared_dfa_ptr(new union_dfa_type(*lost_positions, *lost_vertical));
     }
 
-  return singletons[side_to_move];
+  // horizontal lost conditions
+  for(int y = 0; y < n; ++y)
+    {
+      shared_dfa_ptr lost_horizontal = get_lost_condition(side_to_move, 0, y, 1, 0);
+      lost_positions = shared_dfa_ptr(new union_dfa_type(*lost_positions, *lost_horizontal));
+    }
+
+  // diagonal lost conditions
+
+  shared_dfa_ptr diagonal_plus = get_lost_condition(side_to_move, 0, 0, 1, 1);
+  lost_positions = shared_dfa_ptr(new union_dfa_type(*lost_positions, *diagonal_plus));
+
+  shared_dfa_ptr diagonal_negative = get_lost_condition(side_to_move, 0, n - 1, 1, -1);
+  lost_positions = shared_dfa_ptr(new union_dfa_type(*lost_positions, *diagonal_negative));
+
+  // done
+
+  return lost_positions;
 }
 
 template<int n, int... shape_pack>

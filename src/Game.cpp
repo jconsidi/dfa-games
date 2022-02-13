@@ -13,6 +13,28 @@ Game<ndim, shape_pack...>::Game()
 }
 
 template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_initial_positions() const
+{
+  if(!(this->singleton_initial_positions))
+    {
+      this->singleton_initial_positions = this->get_initial_positions_internal();
+    }
+
+  return this->singleton_initial_positions;
+}
+
+template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_lost_positions(int side_to_move) const
+{
+  if(!(this->singleton_lost_positions[side_to_move]))
+    {
+      this->singleton_lost_positions[side_to_move] = this->get_lost_positions_internal(side_to_move);
+    }
+
+  return this->singleton_lost_positions[side_to_move];
+}
+
+template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_forward(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
 {
   rule_vector rules = get_rules(side_to_move);
