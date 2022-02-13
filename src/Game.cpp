@@ -28,7 +28,9 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   if(!(this->singleton_lost_positions[side_to_move]))
     {
+      std::cout << "Game::get_lost_positions(" << side_to_move << ")" << std::endl;
       this->singleton_lost_positions[side_to_move] = this->get_lost_positions_internal(side_to_move);
+      std::cout << "Game::get_lost_positions(" << side_to_move << ") => " << this->singleton_lost_positions[side_to_move]->states() << " states, " << this->singleton_lost_positions[side_to_move]->size() << " positions" << std::endl;
     }
 
   return this->singleton_lost_positions[side_to_move];
