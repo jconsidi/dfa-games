@@ -19,6 +19,8 @@ struct BinaryBuildCache
   const DFA<ndim, shape_pack...>& right;
   BinaryBuildCacheLayer layers[ndim] = {};
   uint64_t (*leaf_func)(uint64_t, uint64_t);
+  uint64_t left_sink;
+  uint64_t right_sink;
 
   BinaryBuildCache(const DFA<ndim, shape_pack...>& left_in,
 		   const DFA<ndim, shape_pack...>& right_in,
@@ -34,6 +36,38 @@ struct BinaryBuildCache
     if(!right_in.ready())
       {
 	throw std::logic_error("right DFA is not ready");
+      }
+
+    // check for left sink
+
+    if((leaf_func(0, 0) == 0) && (leaf_func(0, 1) == 0))
+      {
+	left_sink = 0;
+      }
+    else if((leaf_func(1, 0) == 1) && (leaf_func(1, 1) == 1))
+      {
+	left_sink = 1;
+      }
+    else
+      {
+	// no left sink
+	left_sink = ~0ULL;
+      }
+
+    // check for right sink
+
+    if((leaf_func(0, 0) == 0) && (leaf_func(1, 0)) == 0)
+      {
+	right_sink = 0;
+      }
+    else if((leaf_func(0, 1) == 1) && (leaf_func(1, 1) == 1))
+      {
+	right_sink = 1;
+      }
+    else
+      {
+	// no right sink
+	right_sink = ~0ULL;
       }
   }
 };
