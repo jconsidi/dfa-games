@@ -129,6 +129,11 @@ uint64_t BinaryDFA<ndim, shape_pack...>::binary_build(int layer,
       return cache.leaf_func(left_index, right_index);
     }
 
+  if((layer > 0) && (left_index <= 1) && (right_index <= 1))
+    {
+      return cache.leaf_func(left_index, right_index);
+    }
+
   BinaryBuildCacheLayer& layer_cache = cache.layers[layer];
   BinaryBuildCacheLayerKey key(left_index, right_index);
   if(layer_cache.contains(key))
