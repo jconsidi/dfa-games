@@ -148,9 +148,10 @@ uint64_t BinaryDFA<ndim, shape_pack...>::binary_build(int layer,
 
   BinaryBuildCacheLayer& layer_cache = cache.layers[layer];
   BinaryBuildCacheLayerKey key(left_index, right_index);
-  if(layer_cache.contains(key))
+  auto key_search = layer_cache.find(key);
+  if(key_search != layer_cache.end())
     {
-      return layer_cache[key];
+      return key_search->second;
     }
 
   const DFATransitions& left_transitions(cache.left.get_transitions(layer, left_index));
