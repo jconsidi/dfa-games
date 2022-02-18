@@ -88,6 +88,26 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       // defer rule post-conditions
       rule_outputs_by_post_condition.try_emplace(post_condition);
       rule_outputs_by_post_condition.at(post_condition).push_back(positions);
+
+      // partially merge the rule outputs to reduce memory usage
+      auto& current_outputs = rule_outputs_by_post_condition.at(post_condition);
+      while(current_outputs.size() > 1)
+	{
+	  int s = current_outputs.size();
+	  if(current_outputs[s-2]->states() > current_outputs[s-1]->states())
+	    {
+	      // remaining sizes are decreasing. so handwavy logarithmic number of them.
+	      break;
+	    }
+
+	  // merge the last two entries
+	  shared_dfa_ptr d1 = current_outputs.back();
+	  current_outputs.pop_back();
+	  shared_dfa_ptr d2 = current_outputs.back();
+	  current_outputs.pop_back();
+	  current_outputs.emplace_back(new union_dfa_type(*d1, *d2));
+	}
+      std::cout << "  " << current_outputs.size() << " partially combined rule outputs with this post-condition" << std::endl;
     }
 
   // combine rules with the same post-conditions, then apply post conditions
