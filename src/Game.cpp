@@ -107,7 +107,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 	  current_outputs.pop_back();
 	  current_outputs.emplace_back(new union_dfa_type(*d1, *d2));
 	}
-      std::cout << "  " << current_outputs.size() << " partially combined rule outputs with this post-condition" << std::endl;
+      std::cout << "  " << current_outputs.size() << " partially combined rule outputs with this post-condition, biggest => " << current_outputs[0]->states() << " states" << std::endl;
     }
 
   // combine rules with the same post-conditions, then apply post conditions
