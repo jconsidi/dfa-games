@@ -67,9 +67,10 @@ typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr IntersectionMa
     }
 
   std::pair<shared_dfa_ptr,shared_dfa_ptr> key(left_in, right_in);
-  if(intersect_cache.count(key))
+  auto search = intersect_cache.find(key);
+  if(search != intersect_cache.end())
     {
-      return intersect_cache.at(key);
+      return search->second;
     }
 
   shared_dfa_ptr output(new intersection_dfa_type(*left_in, *right_in));

@@ -90,9 +90,10 @@ int DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_st
 
   if(layer > 0)
     {
-      if(this->state_lookup[layer].count(next_states))
+      auto search = this->state_lookup[layer].find(next_states);
+      if(search != this->state_lookup[layer].end())
 	{
-	  return this->state_lookup[layer][next_states];
+	  return search->second;
 	}
     }
 

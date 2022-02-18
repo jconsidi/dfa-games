@@ -72,9 +72,10 @@ uint64_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, int state_index
       return state_index;
     }
 
-  if(this->change_cache[layer].count(state_index))
+  auto search = this->change_cache[layer].find(state_index);
+  if(search != this->change_cache[layer].end())
     {
-      return this->change_cache[layer][state_index];
+      return search->second;
     }
 
   const DFATransitions& old_transitions = dfa_temp->get_transitions(layer, state_index);
@@ -162,20 +163,24 @@ uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint
     }
   std::string key = key_builder.str();
 
-  if(!this->union_local_cache[layer].count(key))
+  auto search = this->union_local_cache[layer].find(key);
+  if(search != this->union_local_cache[layer].end())
     {
-      this->union_local_cache[layer][key] = this->add_state(layer, [&](int j)
-      {
-	std::vector<uint64_t> states_j;
-	for(int i = 0; i < num_states; ++i)
-	  {
-	    states_j.push_back(this->get_transitions(layer, states_in[i])[j]);
-	  }
-	return union_local(layer+1, states_j);
-      });
+      return search->second;
     }
 
-  return this->union_local_cache[layer].at(key);
+  auto output = this->add_state(layer, [&](int j)
+  {
+    std::vector<uint64_t> states_j;
+    for(int i = 0; i < num_states; ++i)
+      {
+	states_j.push_back(this->get_transitions(layer, states_in[i])[j]);
+      }
+    return union_local(layer+1, states_j);
+  });
+
+  this->union_local_cache[layer][key] = output;
+  return output;
 }
 
 // template instantiations
