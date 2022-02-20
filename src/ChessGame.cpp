@@ -12,10 +12,12 @@
 
 static bool chess_default_rule(int layer, int old_value, int new_value)
 {
+#if CHESS_SQUARE_OFFSET == 2
   if(layer < 2)
     {
       return new_value == old_value;
     }
+#endif
 
   // automatic piece changes
 
@@ -125,7 +127,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	  {
 	    int square = rank * 8 + file;
 
-	    add_requirement(new inverse_dfa_type(fixed_dfa_type(square + 2, character)));
+	    add_requirement(new inverse_dfa_type(fixed_dfa_type(square + CHESS_SQUARE_OFFSET, character)));
 	  }
       };
 
@@ -135,7 +137,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	  {
 	    int square = rank * 8 + file;
 
-	    add_requirement(new inverse_dfa_type(fixed_dfa_type(square + 2, character)));
+	    add_requirement(new inverse_dfa_type(fixed_dfa_type(square + CHESS_SQUARE_OFFSET, character)));
 	  }
       };
 
@@ -183,8 +185,10 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	}
 
       // king restrictions
+#if CHESS_SQUARE_OFFSET == 2
       requirements.push_back(get_king_positions(0));
       requirements.push_back(get_king_positions(1));
+#endif
 
       std::cout << "get_basic_positions() => " << requirements.size() << " requirements" << std::endl;
 
@@ -203,15 +207,19 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
     {
       std::cout << "ChessGame::get_check_positions(" << checked_side << ")" << std::endl;
 
+#if CHESS_SQUARE_OFFSET == 2
       shared_dfa_ptr king_positions = get_king_positions(checked_side);
+#endif
       int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
       std::vector<shared_dfa_ptr> checks;
       for(int square = 0; square < 64; ++square)
 	{
 	  std::vector<shared_dfa_ptr> square_requirements;
-	  square_requirements.emplace_back(new fixed_dfa_type(square + 2, king_character));
+	  square_requirements.emplace_back(new fixed_dfa_type(square + CHESS_SQUARE_OFFSET, king_character));
+#if CHESS_SQUARE_OFFSET == 2
 	  square_requirements.push_back(king_positions); // makes union much cheaper below
+#endif
 	  square_requirements.push_back(get_threat_positions(checked_side, square));
 
 	  checks.emplace_back(new intersection_dfa_type(square_requirements));
@@ -225,6 +233,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
   return singletons[checked_side];
 }
 
+#if CHESS_SQUARE_OFFSET == 2
 typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) const
 {
   static shared_dfa_ptr singletons[2] = {0, 0};
@@ -250,7 +259,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 
 	  for(int square = 0; square < 64; ++square)
 	    {
-	      shared_dfa_ptr king_on_square(new fixed_dfa_type(square + 2, king_character));
+	      shared_dfa_ptr king_on_square(new fixed_dfa_type(square + CHESS_SQUARE_OFFSET, king_character));
 	      assert(king_on_square->size() > 0);
 
 	      if(square == king_square)
@@ -277,6 +286,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 
   return singletons[king_side];
 }
+#endif
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatened_side, int threatened_square) const
 {
@@ -296,12 +306,12 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 	      }
 
 	    std::vector<shared_dfa_ptr> threat_components;
-	    threat_components.emplace_back(new fixed_dfa_type(threatening_square + 2, threatening_character));
+	    threat_components.emplace_back(new fixed_dfa_type(threatening_square + CHESS_SQUARE_OFFSET, threatening_character));
 
 	    BoardMask between_mask = between_masks.masks[threatening_square][threatened_square];
 	    for(int between_square = std::countr_zero(between_mask); between_square < 64; between_square += 1 + std::countr_zero(between_mask >> (between_square + 1)))
 	      {
-		threat_components.emplace_back(new fixed_dfa_type(between_square + 2, DFA_BLANK));
+		threat_components.emplace_back(new fixed_dfa_type(between_square + CHESS_SQUARE_OFFSET, DFA_BLANK));
 	      }
 
 	    threats.emplace_back(new intersection_dfa_type(threat_components));
@@ -492,12 +502,14 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 		int advance_square = advance_rank * 8 + from_file;
 		change_func advance_rule = [=](int layer, int old_value, int new_value)
 		{
+#if CHESS_SQUARE_OFFSET == 2
 		  if(layer < 2)
 		    {
 		      return chess_default_rule(layer, old_value, new_value);
 		    }
+#endif
 
-		  int square = layer - 2;
+		  int square = layer - CHESS_SQUARE_OFFSET;
 
 		  if(square == from_square)
 		    {
@@ -524,12 +536,14 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 		    int double_square = double_rank * 8 + from_file;
 		    change_func double_rule = [=](int layer, int old_value, int new_value)
 		    {
+#if CHESS_SQUARE_OFFSET == 2
 		      if(layer < 2)
 			{
 			  return chess_default_rule(layer, old_value, new_value);
 			}
+#endif
 
-		      int square = layer - 2;
+		      int square = layer - CHESS_SQUARE_OFFSET;
 
 		      if(square == from_square)
 			{
@@ -563,12 +577,14 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 		    int capture_square = advance_rank * 8 + capture_file;
 		    change_func capture_rule = [=](int layer, int old_value, int new_value)
 		    {
+#if 0
 		      if(layer < 2)
 			{
 			  return chess_default_rule(layer, old_value, new_value);
 			}
+#endif
 
-		      int square = layer - 2;
+		      int square = layer - CHESS_SQUARE_OFFSET;
 
 		      if(square == from_square)
 			{
@@ -592,12 +608,14 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 			int en_passant_square = from_rank * 8 + capture_file;
 			change_func en_passant_rule = [=](int layer, int old_value, int new_value)
 			{
+#if CHESS_SQUARE_OFFSET == 2
 			  if(layer < 2)
 			    {
 			      return chess_default_rule(layer, old_value, new_value);
 			    }
+#endif
 
-			  int square = layer - 2;
+			  int square = layer - CHESS_SQUARE_OFFSET;
 
 			  if(square == from_square)
 			    {
@@ -634,6 +652,7 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 	change_func castle_rule = [=](int layer, int old_value, int new_value)
 	{
+#if CHESS_SQUARE_OFFSET == 2
 	  if(layer < 2)
 	    {
 	      if((layer == 0) == (king_character == DFA_WHITE_KING))
@@ -643,8 +662,9 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 	      return chess_default_rule(layer, old_value, new_value);
 	    }
+#endif
 
-	  int square = layer - 2;
+	  int square = layer - CHESS_SQUARE_OFFSET;
 
 	  if(square == king_from_square)
 	    {

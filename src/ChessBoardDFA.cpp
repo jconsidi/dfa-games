@@ -7,8 +7,10 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
   const auto& pieces_by_side = board_in.pieces_by_side;
   const auto& pieces_by_side_type = board_in.pieces_by_side_type;
 
+#if CHESS_SQUARE_OFFSET == 2
   int white_king_position = std::countr_zero(pieces_by_side_type[SIDE_WHITE][PIECE_KING]);
   int black_king_position = std::countr_zero(pieces_by_side_type[SIDE_BLACK][PIECE_KING]);
+#endif
 
   ChessDFACharacter board_characters[64];
   int next_square = 0;
@@ -133,7 +135,7 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
   {
     assert((0 <= character) && (character < this->get_layer_shape(layer)));
 
-    if(layer == 65)
+    if(layer == 63 + CHESS_SQUARE_OFFSET)
       {
 	return this->add_state(layer, [=](int i)
 	{
@@ -151,12 +153,16 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
 
   for(int square = 63; square >= 0; --square)
     {
-      int layer = square + 2;
+      int layer = square + CHESS_SQUARE_OFFSET;
 
       auto accept_index = add_accept(layer, board_characters[square]);
-      assert(accept_index == 2);
+      if(layer > 0)
+	{
+	  assert(accept_index == 2);
+	}
     }
 
+#if CHESS_SQUARE_OFFSET == 2
   // black king index layer
   int black_king_accept_index = add_accept(1, black_king_position);
   assert(black_king_accept_index == 2);
@@ -164,6 +170,7 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
   // white king index layer
   int white_king_accept_index = add_accept(0, white_king_position);
   assert(white_king_accept_index == 0);
+#endif
 
   assert(this->size() == 1);
 }

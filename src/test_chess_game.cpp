@@ -19,8 +19,11 @@ shared_dfa_ptr initial_positions_manual()
     ++next_square;
   };
 
+#if CHESS_SQUARE_OFFSET == 2
   set_square(60); // white king position
   set_square(4); // black king position
+#endif
+
   // black back line
   set_square(DFA_BLACK_ROOK_CASTLE);
   set_square(DFA_BLACK_KNIGHT);
@@ -56,7 +59,7 @@ shared_dfa_ptr initial_positions_manual()
   set_square(DFA_WHITE_KNIGHT);
   set_square(DFA_WHITE_ROOK_CASTLE);
 
-  assert(next_square == 66);
+  assert(next_square == 64 + CHESS_SQUARE_OFFSET);
   assert(output->size() == 1);
 
   return output;
