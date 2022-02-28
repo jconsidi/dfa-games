@@ -8,9 +8,6 @@
 #include <map>
 #include <vector>
 
-template <int ndim, int... shape_pack>
-class UnionDFA;
-
 typedef std::vector<uint64_t> DFATransitions;
 
 struct DFATransitionsCompare
@@ -78,8 +75,6 @@ class DFA
   bool ready() const;
   double size() const;
   int states() const;
-
-  friend class UnionDFA<ndim, shape_pack...>;
 };
 
 #define TEST_DFA_PARAMS 4, 1, 2, 3, 4
