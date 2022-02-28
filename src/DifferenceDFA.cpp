@@ -3,7 +3,7 @@
 #include "DifferenceDFA.h"
 
 template<int ndim, int... shape_pack>
-uint64_t DifferenceDFA<ndim, shape_pack...>::difference_mask(uint64_t left_mask, uint64_t right_mask)
+dfa_state_t DifferenceDFA<ndim, shape_pack...>::difference_mask(dfa_state_t left_mask, dfa_state_t right_mask)
 {
   return left_mask & ~right_mask;
 }

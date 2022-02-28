@@ -10,7 +10,7 @@
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
-					  uint64_t (*leaf_func)(uint64_t, uint64_t))
+					  dfa_state_t (*leaf_func)(dfa_state_t, dfa_state_t))
   : DFA<ndim, shape_pack...>()
 {
   BinaryBuildCache<ndim, shape_pack...> cache(left_in, right_in, leaf_func);
@@ -19,7 +19,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_i
 
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in,
-					  uint64_t (*leaf_func)(uint64_t, uint64_t))
+					  dfa_state_t (*leaf_func)(dfa_state_t, dfa_state_t))
   : DFA<ndim, shape_pack...>()
 {
   // confirm commutativity
@@ -119,9 +119,9 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 }
 
 template <int ndim, int... shape_pack>
-uint64_t BinaryDFA<ndim, shape_pack...>::binary_build(int layer,
-						      uint64_t left_index,
-						      uint64_t right_index,
+dfa_state_t BinaryDFA<ndim, shape_pack...>::binary_build(int layer,
+						      dfa_state_t left_index,
+						      dfa_state_t right_index,
 						      BinaryBuildCache<ndim, shape_pack...>& cache)
 {
   if(layer == ndim)
@@ -167,7 +167,7 @@ uint64_t BinaryDFA<ndim, shape_pack...>::binary_build(int layer,
 				    cache);
     }
 
-  uint64_t new_state = this->add_state(layer, transitions);
+  dfa_state_t new_state = this->add_state(layer, transitions);
   layer_cache[key] = new_state;
   return new_state;
 }

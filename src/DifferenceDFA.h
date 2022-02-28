@@ -8,7 +8,7 @@
 template<int ndim, int... shape_pack>
 class DifferenceDFA : public BinaryDFA<ndim, shape_pack...>
 {
-  static uint64_t difference_mask(uint64_t left_mask, uint64_t right_mask);
+  static dfa_state_t difference_mask(dfa_state_t left_mask, dfa_state_t right_mask);
 
 public:
 

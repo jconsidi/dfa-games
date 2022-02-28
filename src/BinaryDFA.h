@@ -9,8 +9,8 @@
 
 #include "DFA.h"
 
-typedef std::pair<uint64_t, uint64_t> BinaryBuildCacheLayerKey;
-typedef std::map<BinaryBuildCacheLayerKey, uint64_t> BinaryBuildCacheLayer;
+typedef std::pair<dfa_state_t, dfa_state_t> BinaryBuildCacheLayerKey;
+typedef std::map<BinaryBuildCacheLayerKey, dfa_state_t> BinaryBuildCacheLayer;
 
 template <int ndim, int... shape_pack>
 struct BinaryBuildCache
@@ -18,13 +18,13 @@ struct BinaryBuildCache
   const DFA<ndim, shape_pack...>& left;
   const DFA<ndim, shape_pack...>& right;
   BinaryBuildCacheLayer layers[ndim] = {};
-  uint64_t (*leaf_func)(uint64_t, uint64_t);
-  uint64_t left_sink;
-  uint64_t right_sink;
+  dfa_state_t (*leaf_func)(dfa_state_t, dfa_state_t);
+  dfa_state_t left_sink;
+  dfa_state_t right_sink;
 
   BinaryBuildCache(const DFA<ndim, shape_pack...>& left_in,
 		   const DFA<ndim, shape_pack...>& right_in,
-		   uint64_t (*leaf_func_in)(uint64_t, uint64_t))
+		   dfa_state_t (*leaf_func_in)(dfa_state_t, dfa_state_t))
     : left(left_in),
       right(right_in),
       leaf_func(leaf_func_in)
@@ -51,7 +51,7 @@ struct BinaryBuildCache
     else
       {
 	// no left sink
-	left_sink = ~0ULL;
+	left_sink = ~dfa_state_t(0);
       }
 
     // check for right sink
@@ -67,7 +67,7 @@ struct BinaryBuildCache
     else
       {
 	// no right sink
-	right_sink = ~0ULL;
+	right_sink = ~dfa_state_t(0);
       }
   }
 };
@@ -75,12 +75,12 @@ struct BinaryBuildCache
 template <int ndim, int... shape_pack>
 class BinaryDFA : public DFA<ndim, shape_pack...>
 {
-  uint64_t binary_build(int, uint64_t, uint64_t, BinaryBuildCache<ndim, shape_pack...>&);
+  dfa_state_t binary_build(int, dfa_state_t, dfa_state_t, BinaryBuildCache<ndim, shape_pack...>&);
 
 public:
 
-  BinaryDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, uint64_t (*)(uint64_t, uint64_t));
-  BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>&, uint64_t (*)(uint64_t, uint64_t));
+  BinaryDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, dfa_state_t (*)(dfa_state_t, dfa_state_t));
+  BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>&, dfa_state_t (*)(dfa_state_t, dfa_state_t));
 };
 
 #endif

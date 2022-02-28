@@ -113,7 +113,7 @@ int DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_st
 }
 
 template<int ndim, int... shape_pack>
-int DFA<ndim, shape_pack...>::add_state(int layer, std::function<uint64_t(int)> transition_func)
+int DFA<ndim, shape_pack...>::add_state(int layer, std::function<dfa_state_t(int)> transition_func)
 {
   int layer_shape = shape[layer];
 
@@ -131,10 +131,10 @@ void DFA<ndim, shape_pack...>::add_uniform_states()
 {
   for(int layer = ndim - 1; layer >= 1; --layer)
     {
-      uint64_t reject_state = add_state(layer, [](int i){return 0;});
+      dfa_state_t reject_state = add_state(layer, [](int i){return 0;});
       assert(reject_state == 0);
 
-      uint64_t accept_state = add_state(layer, [](int i){return 1;});
+      dfa_state_t accept_state = add_state(layer, [](int i){return 1;});
       assert(accept_state == 1);
     }
 }

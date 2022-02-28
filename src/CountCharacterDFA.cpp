@@ -15,7 +15,7 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in
       throw std::invalid_argument("count_in must be between 0 and ndim (inclusive)");
     }
 
-  std::vector<uint64_t> logical_states[ndim+1];
+  std::vector<dfa_state_t> logical_states[ndim+1];
 
   // dummy layer at end
   {

@@ -65,7 +65,7 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_p
 }
 
 template<int ndim, int... shape_pack>
-uint64_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, int state_index)
+dfa_state_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, dfa_state_t state_index)
 {
   if(layer == ndim)
     {
@@ -80,11 +80,11 @@ uint64_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, int state_index
 
   const DFATransitions& old_transitions = dfa_temp->get_transitions(layer, state_index);
 
-  int new_index = this->add_state(layer, [=](int new_value)
+  dfa_state_t new_index = this->add_state(layer, [=](int new_value)
   {
     const std::vector<int>& old_values = new_values_to_old_values_by_layer[layer][new_value];
 
-    std::vector<uint64_t> states_to_union;
+    std::vector<dfa_state_t> states_to_union;
     for(int i = 0; i < old_values.size(); ++i)
       {
 	states_to_union.push_back(change_state(layer+1, old_transitions[old_values[i]]));
@@ -98,7 +98,7 @@ uint64_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, int state_index
 }
 
 template<int ndim, int... shape_pack>
-uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint64_t>& states_in)
+dfa_state_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<dfa_state_t>& states_in)
 {
   assert((1 <= layer) && (layer <= ndim));
 
@@ -171,7 +171,7 @@ uint64_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<uint
 
   auto output = this->add_state(layer, [&](int j)
   {
-    std::vector<uint64_t> states_j;
+    std::vector<dfa_state_t> states_j;
     for(int i = 0; i < num_states; ++i)
       {
 	states_j.push_back(this->get_transitions(layer, states_in[i])[j]);

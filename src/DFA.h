@@ -3,12 +3,12 @@
 #ifndef DFA_H
 #define DFA_H
 
-#include <cstdint>
 #include <iostream>
 #include <map>
 #include <vector>
 
-typedef std::vector<uint64_t> DFATransitions;
+typedef int dfa_state_t;
+typedef std::vector<dfa_state_t> DFATransitions;
 
 struct DFATransitionsCompare
 {
@@ -42,7 +42,7 @@ struct DFATransitionsCompare
   }
 };
 
-typedef std::map<DFATransitions, uint64_t, DFATransitionsCompare> DFATransitionsMap;
+typedef std::map<DFATransitions, dfa_state_t, DFATransitionsCompare> DFATransitionsMap;
 
 template <int ndim, int... shape_pack>
 class DFA
@@ -59,7 +59,7 @@ class DFA
   DFA();
 
   int add_state(int, const DFATransitions&);
-  int add_state(int, std::function<uint64_t(int)>);
+  int add_state(int, std::function<dfa_state_t(int)>);
   void add_uniform_states();
 
  public:

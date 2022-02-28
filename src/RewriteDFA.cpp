@@ -12,10 +12,10 @@ RewriteDFA<ndim, shape_pack...>::RewriteDFA(const DFA<ndim, shape_pack...>& dfa_
   // rewrite input DFA
 
   // rewrite mask layer by splitting into separate states and reassembling
-  std::vector<uint64_t> states_rewritten = {0, 1};
+  std::vector<dfa_state_t> states_rewritten = {0, 1};
   for(int layer = ndim - 1; layer >= 0; --layer)
     {
-      std::vector<uint64_t> states_rewritten_previous = states_rewritten;
+      std::vector<dfa_state_t> states_rewritten_previous = states_rewritten;
       states_rewritten.clear();
       states_rewritten.push_back(0);
       states_rewritten.push_back(1);

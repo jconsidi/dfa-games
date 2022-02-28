@@ -3,7 +3,7 @@
 #include "IntersectionDFA.h"
 
 template<int ndim, int... shape_pack>
-uint64_t IntersectionDFA<ndim, shape_pack...>::intersection_mask(uint64_t left_mask, uint64_t right_mask)
+dfa_state_t IntersectionDFA<ndim, shape_pack...>::intersection_mask(dfa_state_t left_mask, dfa_state_t right_mask)
 {
   return left_mask & right_mask;
 }
