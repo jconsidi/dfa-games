@@ -10,16 +10,15 @@
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
-					  dfa_state_t (*leaf_func)(dfa_state_t, dfa_state_t))
+					  leaf_func_t leaf_func)
   : DFA<ndim, shape_pack...>()
 {
-  BinaryBuildCache<ndim, shape_pack...> cache(left_in, right_in, leaf_func);
-  binary_build(0, 0, 0, cache);
+  binary_build(left_in, right_in, leaf_func);
 }
 
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in,
-					  dfa_state_t (*leaf_func)(dfa_state_t, dfa_state_t))
+					  leaf_func_t leaf_func)
   : DFA<ndim, shape_pack...>()
 {
   // confirm commutativity
@@ -53,8 +52,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
     case 2:
       {
 	// simple binary merge
-	BinaryBuildCache cache(*(dfas_in[0]), *(dfas_in[1]), leaf_func);
-	binary_build(0, 0, 0, cache);
+	binary_build(*(dfas_in[0]), *(dfas_in[1]), leaf_func);
 	return;
       }
     }
@@ -108,8 +106,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
       std::cerr << "  merging DFAs with " << d0->states() << " states and " << d1->states() << " states (final)" << std::endl;
     }
 
-  BinaryBuildCache cache(*d0, *d1, leaf_func);
-  binary_build(0, 0, 0, cache);
+  binary_build(*d0, *d1, leaf_func);
   assert(this->ready());
 
   if(this->states() >= 1024)
@@ -119,57 +116,126 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 }
 
 template <int ndim, int... shape_pack>
-dfa_state_t BinaryDFA<ndim, shape_pack...>::binary_build(int layer,
-						      dfa_state_t left_index,
-						      dfa_state_t right_index,
-						      BinaryBuildCache<ndim, shape_pack...>& cache)
+void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>& left_in,
+						  const DFA<ndim, shape_pack...>& right_in,
+						  leaf_func_t leaf_func)
 {
-  if(layer == ndim)
-    {
-      return cache.leaf_func(left_index, right_index);
-    }
+  // forward pass
 
-  if(layer > 0)
+  std::vector<std::pair<int, int>> forward_pairs[ndim+1];
+  std::vector<std::tuple<int, int, int, int>> forward_children[ndim];
+  forward_pairs[0].emplace_back(0, 0);
+  for(int layer = 0; layer < ndim; ++layer)
     {
-      if((left_index <= 1) && (right_index <= 1))
+      std::vector<std::pair<int, int>>& current_pairs = forward_pairs[layer];
+      int layer_shape = this->get_layer_shape(layer);
+      int forward_size = current_pairs.size();
+      std::cout << "layer[" << layer << "] forward pairs = " << forward_pairs[layer].size() << std::endl;
+
+      std::vector<std::tuple<int, int, int, int>>& current_children = forward_children[layer];
+      for(int i = 0; i < forward_size; ++i)
 	{
-	  return cache.leaf_func(left_index, right_index);
+	  const std::pair<int, int>& forward_pair = current_pairs[i];
+
+	  const DFATransitions& left_transitions = left_in.get_transitions(layer, std::get<0>(forward_pair));
+	  const DFATransitions& right_transitions = right_in.get_transitions(layer, std::get<1>(forward_pair));
+
+	  for(int j = 0; j < layer_shape; ++j)
+	    {
+	      current_children.emplace_back(left_transitions[j], right_transitions[j], i, j);
+	    }
+	}
+      std::cout << "layer[" << layer << "] forward children = " << forward_children[layer].size() << std::endl;
+
+      std::sort(current_children.begin(), current_children.end());
+
+      std::vector<std::pair<int, int>>& next_pairs = forward_pairs[layer+1];
+      next_pairs.emplace_back(std::get<0>(current_children[0]), std::get<1>(current_children[0]));
+      int children_size = current_children.size();
+      for(int k = 1; k < children_size; ++k)
+	{
+	  if((std::get<0>(current_children[k-1]) != std::get<0>(current_children[k])) ||
+	     (std::get<1>(current_children[k-1]) != std::get<1>(current_children[k])))
+	    {
+	      next_pairs.emplace_back(std::get<0>(current_children[k]), std::get<1>(current_children[k]));
+	    }
 	}
 
-      if(left_index == cache.left_sink)
-	{
-	  return left_index;
-	}
-      if(right_index == cache.right_sink)
-	{
-	  return right_index;
-	}
+      std::cout << "layer[" << layer << "] next pairs = " << next_pairs.size() << std::endl;
     }
 
-  BinaryBuildCacheLayer& layer_cache = cache.layers[layer];
-  BinaryBuildCacheLayerKey key(left_index, right_index);
-  auto key_search = layer_cache.find(key);
-  if(key_search != layer_cache.end())
+  // apply leaf function
+
+  std::vector<int> backward_mapping[ndim+1];
+  std::vector<int>& leaf_mapping = backward_mapping[ndim];
+
+  const std::vector<std::pair<int, int>>& leaf_pairs = forward_pairs[ndim];
+  for(int i = 0; i < leaf_pairs.size(); ++i)
     {
-      return key_search->second;
+      const std::pair<int, int>& leaf_pair = leaf_pairs[i];
+      leaf_mapping.emplace_back(leaf_func(std::get<0>(leaf_pair), std::get<1>(leaf_pair)));
     }
 
-  const DFATransitions& left_transitions(cache.left.get_transitions(layer, left_index));
-  const DFATransitions& right_transitions(cache.right.get_transitions(layer, right_index));
+  // backward pass
 
-  int layer_shape = this->get_layer_shape(layer);
-  DFATransitions transitions(layer_shape);
-  for(int i = 0; i < layer_shape; ++i)
+  for(int layer = ndim - 1; layer >= 0; --layer)
     {
-      transitions[i] = binary_build(layer + 1,
-				    left_transitions[i],
-				    right_transitions[i],
-				    cache);
+      std::cout << "layer[" << layer << "] backwards" << std::endl;
+
+      assert(backward_mapping[layer+1].size() > 0);
+      assert(backward_mapping[layer].size() == 0);
+
+      // apply previous mapping to previously sorted children
+
+      std::vector<std::tuple<int, int, int, int>>& current_children = forward_children[layer];
+
+      int mapped_size = current_children.size();
+      std::vector<int> mapped_children;
+
+      std::vector<int>& mapped_pairs = backward_mapping[layer+1];
+      int mapped_index = 0;
+      mapped_children.emplace_back(mapped_pairs[mapped_index]);
+      for(int k = 1; k < mapped_size; ++k)
+	{
+	  if((std::get<0>(current_children[k]) != std::get<0>(current_children[k-1])) ||
+	     (std::get<1>(current_children[k]) != std::get<1>(current_children[k-1])))
+	    {
+	      mapped_index += 1;
+	    }
+
+	  mapped_children.emplace_back(mapped_pairs[mapped_index]);
+	}
+      assert(mapped_children.size() == mapped_size);
+
+      // reconstitute transitions
+
+      std::vector<int> combined_transitions(mapped_size);
+
+      int layer_shape = this->get_layer_shape(layer);
+      for(int k = 0; k < mapped_size; ++k)
+	{
+	  int i = std::get<2>(current_children[k]);
+	  int j = std::get<3>(current_children[k]);
+
+	  combined_transitions.at(i * layer_shape + j) = mapped_children[k];
+	}
+
+      // add states for this layer
+
+      std::vector<int>& output_mapping = backward_mapping[layer];
+      int output_size = forward_pairs[layer].size();
+      for(int i = 0; i < output_size; ++i)
+	{
+	  DFATransitions transitions(layer_shape);
+	  for(int j = 0; j < layer_shape; ++j)
+	    {
+	      transitions[j] = combined_transitions.at(i * layer_shape + j);
+	    }
+	  output_mapping.push_back(this->add_state(layer, transitions));
+	}
     }
 
-  dfa_state_t new_state = this->add_state(layer, transitions);
-  layer_cache[key] = new_state;
-  return new_state;
+  assert(this->ready());
 }
 
 // template instantiations
