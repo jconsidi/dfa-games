@@ -120,17 +120,17 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 						  const DFA<ndim, shape_pack...>& right_in,
 						  leaf_func_t leaf_func)
 {
+  std::vector<std::pair<int, int>> current_pairs;
+  current_pairs.emplace_back(0, 0);
+
   // forward pass
 
-  std::vector<std::pair<int, int>> forward_pairs[ndim+1];
   std::vector<std::tuple<int, int, int, int>> forward_children[ndim];
-  forward_pairs[0].emplace_back(0, 0);
   for(int layer = 0; layer < ndim; ++layer)
     {
-      std::vector<std::pair<int, int>>& current_pairs = forward_pairs[layer];
       int layer_shape = this->get_layer_shape(layer);
       int forward_size = current_pairs.size();
-      std::cout << "layer[" << layer << "] forward pairs = " << forward_pairs[layer].size() << std::endl;
+      std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << std::endl;
 
       std::vector<std::tuple<int, int, int, int>>& current_children = forward_children[layer];
       for(int i = 0; i < forward_size; ++i)
@@ -149,19 +149,21 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       std::sort(current_children.begin(), current_children.end());
 
-      std::vector<std::pair<int, int>>& next_pairs = forward_pairs[layer+1];
-      next_pairs.emplace_back(std::get<0>(current_children[0]), std::get<1>(current_children[0]));
+      std::cout << "layer[" << layer << "] deduping" << std::endl;
+
+      current_pairs.clear();
+      current_pairs.emplace_back(std::get<0>(current_children[0]), std::get<1>(current_children[0]));
       int children_size = current_children.size();
       for(int k = 1; k < children_size; ++k)
 	{
 	  if((std::get<0>(current_children[k-1]) != std::get<0>(current_children[k])) ||
 	     (std::get<1>(current_children[k-1]) != std::get<1>(current_children[k])))
 	    {
-	      next_pairs.emplace_back(std::get<0>(current_children[k]), std::get<1>(current_children[k]));
+	      current_pairs.emplace_back(std::get<0>(current_children[k]), std::get<1>(current_children[k]));
 	    }
 	}
 
-      std::cout << "layer[" << layer << "] next pairs = " << next_pairs.size() << std::endl;
+      std::cout << "layer[" << layer << "] next pairs = " << current_pairs.size() << std::endl;
     }
 
   // apply leaf function
@@ -169,10 +171,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
   std::vector<int> backward_mapping[ndim+1];
   std::vector<int>& leaf_mapping = backward_mapping[ndim];
 
-  const std::vector<std::pair<int, int>>& leaf_pairs = forward_pairs[ndim];
-  for(int i = 0; i < leaf_pairs.size(); ++i)
+  for(int i = 0; i < current_pairs.size(); ++i)
     {
-      const std::pair<int, int>& leaf_pair = leaf_pairs[i];
+      const std::pair<int, int>& leaf_pair = current_pairs[i];
       leaf_mapping.emplace_back(leaf_func(std::get<0>(leaf_pair), std::get<1>(leaf_pair)));
     }
 
@@ -223,7 +224,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       // add states for this layer
 
       std::vector<int>& output_mapping = backward_mapping[layer];
-      int output_size = forward_pairs[layer].size();
+      int output_size = mapped_size / layer_shape;
       for(int i = 0; i < output_size; ++i)
 	{
 	  DFATransitions transitions(layer_shape);
