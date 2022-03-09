@@ -164,6 +164,10 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	}
       ForwardChild *current_children = (ForwardChild *) forward_children[layer];
 
+      int left_layer_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
+      std::vector<int> left_counts(left_layer_size);
+      assert(left_counts[0] == 0);
+      assert(left_counts[left_counts.size() - 1] == 0);
       for(int i = 0; i < forward_size; ++i)
 	{
 	  const std::pair<int, int>& forward_pair = current_pairs[i];
@@ -178,11 +182,64 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	      forward_child.right = right_transitions[j];
 	      forward_child.i = i;
 	      forward_child.j = j;
+
+	      left_counts[forward_child.left] += 1;
+	      assert(left_counts[forward_child.left]);
 	    }
 	}
       std::cout << "layer[" << layer << "] forward children = " << current_children_count << std::endl;
 
-      std::sort(current_children, current_children + forward_size * layer_shape, CompareForwardChild());
+      // linear time permutations to sort by left child based on
+      // Flashsort. http://www.ddj.com/architect/184410496
+
+      std::vector<int> left_edges(left_layer_size + 1);
+      left_edges[0] = 0;
+      for(int k = 0; k < left_layer_size; ++k)
+	{
+	  left_edges[k+1] = left_edges[k] + left_counts[k];
+	}
+      assert(left_edges[left_layer_size] == current_children_count);
+
+      std::vector<int> left_todo(left_layer_size);
+      for(int k = 0; k < left_layer_size; ++k)
+	{
+	  left_todo[k] = left_edges[k];
+	}
+
+      for(int k = 0; k < left_layer_size; ++k)
+	{
+	  for(int i = left_todo[k]; i < left_edges[k+1]; ++i)
+	    {
+	      if(current_children[i].left == k)
+		{
+		  // already in right range
+		  continue;
+		}
+
+	      ForwardChild temp = current_children[i];
+	      while(temp.left != k)
+		{
+		  int next_index = left_todo[temp.left]++;
+		  std::swap(temp, current_children[next_index]);
+		}
+	      current_children[i] = temp;
+	    }
+	}
+
+      for(int k = 0; k < left_layer_size; ++k)
+	{
+	  for(int i = left_edges[k]; i < left_edges[k+1]; ++i)
+	    {
+	      assert(current_children[i].left == k);
+	    }
+	}
+
+      std::cout << "layer[" << layer << "] left permutations done" << std::endl;
+
+      for(int k = 0; k < left_layer_size; ++k)
+	{
+	  std::sort(current_children + left_edges[k], current_children + left_edges[k+1], CompareForwardChild());
+	}
 
       std::cout << "layer[" << layer << "] deduping" << std::endl;
 
