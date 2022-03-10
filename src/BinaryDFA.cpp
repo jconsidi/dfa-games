@@ -192,6 +192,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       // linear time permutations to sort by left child based on
       // Flashsort. http://www.ddj.com/architect/184410496
 
+      std::cout << "layer[" << layer << "] left layer size = " << left_layer_size << std::endl;
+
       std::vector<int> left_edges(left_layer_size + 1);
       left_edges[0] = 0;
       for(int k = 0; k < left_layer_size; ++k)
@@ -235,6 +237,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	}
 
       std::cout << "layer[" << layer << "] left permutations done" << std::endl;
+
+      int right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
+      std::cout << "layer[" << layer << "] right layer size = " << right_layer_size << std::endl;
 
       for(int k = 0; k < left_layer_size; ++k)
 	{
