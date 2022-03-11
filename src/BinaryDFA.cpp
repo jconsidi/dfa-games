@@ -8,19 +8,11 @@
 #include <iostream>
 #include <queue>
 
-struct ForwardChild
-{
-  int left;
-  int right;
-  int i;
-  int j;
-};
-
 struct CompareForwardChild
 {
-  bool operator()(const ForwardChild& a, const ForwardChild& b) const
+  bool operator()(const BinaryDFAForwardChild& a, const BinaryDFAForwardChild& b) const
     {
-      return memcmp(&a, &b, sizeof(ForwardChild)) < 0;
+      return memcmp(&a, &b, sizeof(BinaryDFAForwardChild)) < 0;
     }
 };
 
@@ -156,13 +148,13 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       auto current_children_count = forward_children_counts[layer] = forward_size * layer_shape;
       assert(current_children_count / layer_shape == forward_size);
 
-      size_t current_children_length = forward_children_lengths[layer] = current_children_count * sizeof(ForwardChild);
+      size_t current_children_length = forward_children_lengths[layer] = current_children_count * sizeof(BinaryDFAForwardChild);
       forward_children[layer] = mmap(0, current_children_length, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
       if(forward_children[layer] == MAP_FAILED)
 	{
 	  throw std::logic_error("mmap failed");
 	}
-      ForwardChild *current_children = (ForwardChild *) forward_children[layer];
+      BinaryDFAForwardChild *current_children = (BinaryDFAForwardChild *) forward_children[layer];
 
       int left_layer_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
       std::vector<int> left_counts(left_layer_size);
@@ -177,7 +169,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
 	  for(int j = 0; j < layer_shape; ++j)
 	    {
-	      ForwardChild& forward_child = current_children[i * layer_shape + j];
+	      BinaryDFAForwardChild& forward_child = current_children[i * layer_shape + j];
 	      forward_child.left = left_transitions[j];
 	      forward_child.right = right_transitions[j];
 	      forward_child.i = i;
@@ -218,7 +210,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 		  continue;
 		}
 
-	      ForwardChild temp = current_children[i];
+	      BinaryDFAForwardChild temp = current_children[i];
 	      while(temp.left != k)
 		{
 		  int next_index = left_todo[temp.left]++;
@@ -286,7 +278,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       // apply previous mapping to previously sorted children
 
       auto current_children_count = forward_children_counts[layer];
-      ForwardChild *current_children = (ForwardChild *) forward_children[layer];
+      BinaryDFAForwardChild *current_children = (BinaryDFAForwardChild *) forward_children[layer];
 
       int mapped_size = current_children_count;
       std::vector<int> mapped_children;
