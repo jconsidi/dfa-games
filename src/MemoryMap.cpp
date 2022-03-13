@@ -91,6 +91,8 @@ void MemoryMap<T>::munmap()
     {
       throw std::logic_error("munmap failed");
     }
+
+  _mapped = 0;
 }
 
 template<class T>
