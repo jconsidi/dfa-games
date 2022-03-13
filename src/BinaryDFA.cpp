@@ -313,6 +313,10 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  combined_transitions.at(i * layer_shape + j) = mapped_children[k];
 	}
 
+      // done with memory map
+
+      current_children.munmap();
+
       // add states for this layer
 
       std::cout << "layer[" << layer << "] adding states" << std::endl;
@@ -331,12 +335,6 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
     }
 
   assert(this->ready());
-
-  // clean up memory maps
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      forward_children[layer].munmap();
-    }
 }
 
 // template instantiations
