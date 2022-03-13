@@ -9,6 +9,7 @@
 #include <sstream>
 
 #include "MemoryMap.h"
+#include "Profile.h"
 
 struct CompareForwardChild
 {
@@ -131,6 +132,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 						  const DFA<ndim, shape_pack...>& right_in,
 						  leaf_func_t leaf_func)
 {
+  Profile profile("binary_build");
+
   std::vector<std::pair<int, int>> current_pairs;
   current_pairs.emplace_back(0, 0);
 
@@ -141,16 +144,20 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   for(int layer = 0; layer < ndim; ++layer)
     {
+      profile.tic("forward init");
+
       int layer_shape = this->get_layer_shape(layer);
       int forward_size = current_pairs.size();
       std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << std::endl;
 
+      profile.tic("forward mmap");
       std::ostringstream filename_builder;
       filename_builder << "/tmp/chess-binarydfa-" << layer << "-children.bin";
       forward_children.emplace_back(filename_builder.str(), forward_size * layer_shape);
       MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
       current_children.mmap();
 
+      profile.tic("forward children");
       int left_layer_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
       std::vector<int> left_counts(left_layer_size);
       assert(left_counts[0] == 0);
@@ -179,6 +186,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       // linear time permutations to sort by left child based on
       // Flashsort. http://www.ddj.com/architect/184410496
 
+      profile.tic("forward permute left");
       std::cout << "layer[" << layer << "] left layer size = " << left_layer_size << std::endl;
 
       std::vector<int> left_edges(left_layer_size + 1);
@@ -223,8 +231,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	    }
 	}
 
-      std::cout << "layer[" << layer << "] left permutations done" << std::endl;
-
+      profile.tic("forward permute right");
       int right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
       std::cout << "layer[" << layer << "] right layer size = " << right_layer_size << std::endl;
 
@@ -233,7 +240,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  std::sort(current_children.begin() + left_edges[k], current_children.begin() + left_edges[k+1], CompareForwardChild());
 	}
 
-      std::cout << "layer[" << layer << "] deduping" << std::endl;
+      profile.tic("forward dedupe");
 
       current_pairs.clear();
       current_pairs.emplace_back(current_children[0].left, current_children[0].right);
@@ -249,11 +256,13 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       std::cout << "layer[" << layer << "] next pairs = " << current_pairs.size() << std::endl;
 
+      profile.tic("forward munmap");
       current_children.munmap();
-      std::cout << "layer[" << layer << "] unmapped" << std::endl;
     }
 
   // apply leaf function
+
+  profile.tic("forward leaves");
 
   std::vector<int> backward_mapping[ndim+1];
   std::vector<int>& leaf_mapping = backward_mapping[ndim];
@@ -268,6 +277,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   for(int layer = ndim - 1; layer >= 0; --layer)
     {
+      profile.tic("backward init");
+
       std::cout << "layer[" << layer << "] mapping children " << forward_children[layer].size() << std::endl;
 
       assert(backward_mapping[layer+1].size() > 0);
@@ -275,13 +286,14 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       // apply previous mapping to previously sorted children
 
+      profile.tic("backward mmap");
       MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
       current_children.mmap();
-      std::cout << "layer[" << layer << "] remapped" << std::endl;
 
       int mapped_size = current_children.size();
       std::vector<int> mapped_children;
 
+      profile.tic("backward children");
       std::vector<int>& mapped_pairs = backward_mapping[layer+1];
       int mapped_index = 0;
       mapped_children.emplace_back(mapped_pairs[mapped_index]);
@@ -300,7 +312,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       // reconstitute transitions
 
-      std::cout << "layer[" << layer << "] permuting back to transitions" << std::endl;
+      profile.tic("backward transitions");
 
       std::vector<int> combined_transitions(mapped_size);
 
@@ -319,7 +331,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       // add states for this layer
 
-      std::cout << "layer[" << layer << "] adding states" << std::endl;
+      profile.tic("backward states");
 
       std::vector<int>& output_mapping = backward_mapping[layer];
       int output_size = mapped_size / layer_shape;
