@@ -248,6 +248,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	}
 
       std::cout << "layer[" << layer << "] next pairs = " << current_pairs.size() << std::endl;
+
+      current_children.munmap();
+      std::cout << "layer[" << layer << "] unmapped" << std::endl;
     }
 
   // apply leaf function
@@ -273,6 +276,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       // apply previous mapping to previously sorted children
 
       MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
+      current_children.mmap();
+      std::cout << "layer[" << layer << "] remapped" << std::endl;
 
       int mapped_size = current_children.size();
       std::vector<int> mapped_children;
