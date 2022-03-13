@@ -3,10 +3,12 @@
 #include "BinaryDFA.h"
 
 #include <assert.h>
-#include <sys/mman.h>
 
 #include <iostream>
 #include <queue>
+#include <sstream>
+
+#include "MemoryMap.h"
 
 struct CompareForwardChild
 {
@@ -134,9 +136,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   // forward pass
 
-  int forward_children_counts[ndim] = {0};
-  size_t forward_children_lengths[ndim] = {0};
-  void *forward_children[ndim] = {0};
+  std::vector<MemoryMap<BinaryDFAForwardChild>> forward_children;
+  forward_children.reserve(ndim);
 
   for(int layer = 0; layer < ndim; ++layer)
     {
@@ -144,17 +145,11 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       int forward_size = current_pairs.size();
       std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << std::endl;
 
-      assert(INT_MAX / layer_shape >= forward_size);
-      auto current_children_count = forward_children_counts[layer] = forward_size * layer_shape;
-      assert(current_children_count / layer_shape == forward_size);
-
-      size_t current_children_length = forward_children_lengths[layer] = current_children_count * sizeof(BinaryDFAForwardChild);
-      forward_children[layer] = mmap(0, current_children_length, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-      if(forward_children[layer] == MAP_FAILED)
-	{
-	  throw std::logic_error("mmap failed");
-	}
-      BinaryDFAForwardChild *current_children = (BinaryDFAForwardChild *) forward_children[layer];
+      std::ostringstream filename_builder;
+      filename_builder << "/tmp/chess-binarydfa-" << layer << "-children.bin";
+      forward_children.emplace_back(filename_builder.str(), forward_size * layer_shape);
+      MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
+      current_children.mmap();
 
       int left_layer_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
       std::vector<int> left_counts(left_layer_size);
@@ -179,7 +174,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	      assert(left_counts[forward_child.left]);
 	    }
 	}
-      std::cout << "layer[" << layer << "] forward children = " << current_children_count << std::endl;
+      std::cout << "layer[" << layer << "] forward children = " << current_children.size() << std::endl;
 
       // linear time permutations to sort by left child based on
       // Flashsort. http://www.ddj.com/architect/184410496
@@ -192,7 +187,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	{
 	  left_edges[k+1] = left_edges[k] + left_counts[k];
 	}
-      assert(left_edges[left_layer_size] == current_children_count);
+      assert(left_edges[left_layer_size] == current_children.size());
 
       std::vector<int> left_todo(left_layer_size);
       for(int k = 0; k < left_layer_size; ++k)
@@ -235,14 +230,14 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       for(int k = 0; k < left_layer_size; ++k)
 	{
-	  std::sort(current_children + left_edges[k], current_children + left_edges[k+1], CompareForwardChild());
+	  std::sort(current_children.begin() + left_edges[k], current_children.begin() + left_edges[k+1], CompareForwardChild());
 	}
 
       std::cout << "layer[" << layer << "] deduping" << std::endl;
 
       current_pairs.clear();
       current_pairs.emplace_back(current_children[0].left, current_children[0].right);
-      int children_size = current_children_count;
+      int children_size = current_children.size();
       for(int k = 1; k < children_size; ++k)
 	{
 	  if((current_children[k-1].left != current_children[k].left) ||
@@ -270,17 +265,16 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   for(int layer = ndim - 1; layer >= 0; --layer)
     {
-      std::cout << "layer[" << layer << "] mapping children " << forward_children_counts[layer] << std::endl;
+      std::cout << "layer[" << layer << "] mapping children " << forward_children[layer].size() << std::endl;
 
       assert(backward_mapping[layer+1].size() > 0);
       assert(backward_mapping[layer].size() == 0);
 
       // apply previous mapping to previously sorted children
 
-      auto current_children_count = forward_children_counts[layer];
-      BinaryDFAForwardChild *current_children = (BinaryDFAForwardChild *) forward_children[layer];
+      MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
 
-      int mapped_size = current_children_count;
+      int mapped_size = current_children.size();
       std::vector<int> mapped_children;
 
       std::vector<int>& mapped_pairs = backward_mapping[layer+1];
@@ -296,6 +290,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
 	  mapped_children.emplace_back(mapped_pairs[mapped_index]);
 	}
+      assert(mapped_index + 1 == mapped_pairs.size());
       assert(mapped_children.size() == mapped_size);
 
       // reconstitute transitions
@@ -335,10 +330,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
   // clean up memory maps
   for(int layer = 0; layer < ndim; ++layer)
     {
-      if(munmap(forward_children[layer], forward_children_lengths[layer]))
-	{
-	  throw std::logic_error("munmap failed");
-	}
+      forward_children[layer].munmap();
     }
 }
 
