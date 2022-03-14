@@ -157,37 +157,24 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
       current_children.mmap();
 
-      profile.tic("forward children");
+      profile.tic("forward left counts");
+
       int left_layer_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
       std::vector<int> left_counts(left_layer_size);
       assert(left_counts[0] == 0);
       assert(left_counts[left_counts.size() - 1] == 0);
+
       for(int i = 0; i < forward_size; ++i)
 	{
 	  const std::pair<int, int>& forward_pair = current_pairs[i];
 
 	  const DFATransitions& left_transitions = left_in.get_transitions(layer, std::get<0>(forward_pair));
-	  const DFATransitions& right_transitions = right_in.get_transitions(layer, std::get<1>(forward_pair));
 
 	  for(int j = 0; j < layer_shape; ++j)
 	    {
-	      BinaryDFAForwardChild& forward_child = current_children[i * layer_shape + j];
-	      forward_child.left = left_transitions[j];
-	      forward_child.right = right_transitions[j];
-	      forward_child.i = i;
-	      forward_child.j = j;
-
-	      left_counts[forward_child.left] += 1;
-	      assert(left_counts[forward_child.left]);
+	      left_counts[left_transitions[j]] += 1;
 	    }
 	}
-      std::cout << "layer[" << layer << "] forward children = " << current_children.size() << std::endl;
-
-      // linear time permutations to sort by left child based on
-      // Flashsort. http://www.ddj.com/architect/184410496
-
-      profile.tic("forward permute left");
-      std::cout << "layer[" << layer << "] left layer size = " << left_layer_size << std::endl;
 
       std::vector<int> left_edges(left_layer_size + 1);
       left_edges[0] = 0;
@@ -203,33 +190,29 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  left_todo[k] = left_edges[k];
 	}
 
-      for(int k = 0; k < left_layer_size; ++k)
-	{
-	  for(int i = left_todo[k]; i < left_edges[k+1]; ++i)
-	    {
-	      if(current_children[i].left == k)
-		{
-		  // already in right range
-		  continue;
-		}
+      profile.tic("forward children left");
 
-	      BinaryDFAForwardChild temp = current_children[i];
-	      while(temp.left != k)
-		{
-		  int next_index = left_todo[temp.left]++;
-		  std::swap(temp, current_children[next_index]);
-		}
-	      current_children[i] = temp;
+      // build forward children already sorted by left child.
+      // basically combining counting sort with the creation.
+
+      for(int i = 0; i < forward_size; ++i)
+	{
+	  const std::pair<int, int>& forward_pair = current_pairs[i];
+
+	  const DFATransitions& left_transitions = left_in.get_transitions(layer, std::get<0>(forward_pair));
+	  const DFATransitions& right_transitions = right_in.get_transitions(layer, std::get<1>(forward_pair));
+
+	  for(int j = 0; j < layer_shape; ++j)
+	    {
+	      auto left = left_transitions[j];
+	      BinaryDFAForwardChild& forward_child = current_children[left_todo[left]++];
+	      forward_child.left = left_transitions[j];
+	      forward_child.right = right_transitions[j];
+	      forward_child.i = i;
+	      forward_child.j = j;
 	    }
 	}
-
-      for(int k = 0; k < left_layer_size; ++k)
-	{
-	  for(int i = left_edges[k]; i < left_edges[k+1]; ++i)
-	    {
-	      assert(current_children[i].left == k);
-	    }
-	}
+      std::cout << "layer[" << layer << "] forward children = " << current_children.size() << std::endl;
 
       profile.tic("forward permute right");
       int right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
