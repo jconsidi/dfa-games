@@ -50,11 +50,11 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 	std::shared_ptr<const DFA<ndim, shape_pack...>> source = dfas_in[0];
 	for(int layer = ndim - 1; layer >= 0; --layer)
 	  {
-	    int layer_size = source->get_layer_size(layer);
-	    for(int state_index = 0; state_index < layer_size; ++state_index)
+	    dfa_state_t layer_size = source->get_layer_size(layer);
+	    for(dfa_state_t state_index = 0; state_index < layer_size; ++state_index)
 	      {
 		const DFATransitions& transitions(source->get_transitions(layer, state_index));
-		int new_state_index = this->add_state(layer, transitions);
+		dfa_state_t new_state_index = this->add_state(layer, transitions);
 		assert(new_state_index == state_index);
 	      }
 	  }
@@ -134,7 +134,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 {
   Profile profile("binary_build");
 
-  std::vector<std::pair<int, int>> current_pairs;
+  std::vector<std::pair<dfa_state_t, dfa_state_t>> current_pairs;
   current_pairs.emplace_back(0, 0);
 
   // forward pass
@@ -147,7 +147,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       profile.tic("forward init");
 
       int layer_shape = this->get_layer_shape(layer);
-      int forward_size = current_pairs.size();
+      size_t forward_size = current_pairs.size();
       std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << std::endl;
 
       profile.tic("forward mmap");
@@ -159,14 +159,14 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       profile.tic("forward left counts");
 
-      int left_layer_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
-      std::vector<int> left_counts(left_layer_size);
+      size_t left_layer_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
+      std::vector<size_t> left_counts(left_layer_size);
       assert(left_counts[0] == 0);
       assert(left_counts[left_counts.size() - 1] == 0);
 
-      for(int i = 0; i < forward_size; ++i)
+      for(size_t i = 0; i < forward_size; ++i)
 	{
-	  const std::pair<int, int>& forward_pair = current_pairs[i];
+	  const std::pair<dfa_state_t, dfa_state_t>& forward_pair = current_pairs[i];
 
 	  const DFATransitions& left_transitions = left_in.get_transitions(layer, std::get<0>(forward_pair));
 
@@ -176,16 +176,16 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	    }
 	}
 
-      std::vector<int> left_edges(left_layer_size + 1);
+      std::vector<size_t> left_edges(left_layer_size + 1);
       left_edges[0] = 0;
-      for(int k = 0; k < left_layer_size; ++k)
+      for(size_t k = 0; k < left_layer_size; ++k)
 	{
 	  left_edges[k+1] = left_edges[k] + left_counts[k];
 	}
       assert(left_edges[left_layer_size] == current_children.size());
 
-      std::vector<int> left_todo(left_layer_size);
-      for(int k = 0; k < left_layer_size; ++k)
+      std::vector<size_t> left_todo(left_layer_size);
+      for(size_t k = 0; k < left_layer_size; ++k)
 	{
 	  left_todo[k] = left_edges[k];
 	}
@@ -195,9 +195,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       // build forward children already sorted by left child.
       // basically combining counting sort with the creation.
 
-      for(int i = 0; i < forward_size; ++i)
+      for(size_t i = 0; i < forward_size; ++i)
 	{
-	  const std::pair<int, int>& forward_pair = current_pairs[i];
+	  const std::pair<dfa_state_t, dfa_state_t>& forward_pair = current_pairs[i];
 
 	  const DFATransitions& left_transitions = left_in.get_transitions(layer, std::get<0>(forward_pair));
 	  const DFATransitions& right_transitions = right_in.get_transitions(layer, std::get<1>(forward_pair));
@@ -215,10 +215,10 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       std::cout << "layer[" << layer << "] forward children = " << current_children.size() << std::endl;
 
       profile.tic("forward permute right");
-      int right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
+      size_t right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
       std::cout << "layer[" << layer << "] right layer size = " << right_layer_size << std::endl;
 
-      for(int k = 0; k < left_layer_size; ++k)
+      for(size_t k = 0; k < left_layer_size; ++k)
 	{
 	  std::sort(current_children.begin() + left_edges[k], current_children.begin() + left_edges[k+1], CompareForwardChild());
 	}
@@ -227,8 +227,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       current_pairs.clear();
       current_pairs.emplace_back(current_children[0].left, current_children[0].right);
-      int children_size = current_children.size();
-      for(int k = 1; k < children_size; ++k)
+      size_t children_size = current_children.size();
+      for(size_t k = 1; k < children_size; ++k)
 	{
 	  if((current_children[k-1].left != current_children[k].left) ||
 	     (current_children[k-1].right != current_children[k].right))
@@ -247,12 +247,12 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   profile.tic("forward leaves");
 
-  std::vector<int> backward_mapping[ndim+1];
-  std::vector<int>& leaf_mapping = backward_mapping[ndim];
+  std::vector<size_t> backward_mapping[ndim+1];
+  std::vector<size_t>& leaf_mapping = backward_mapping[ndim];
 
-  for(int i = 0; i < current_pairs.size(); ++i)
+  for(size_t i = 0; i < current_pairs.size(); ++i)
     {
-      const std::pair<int, int>& leaf_pair = current_pairs[i];
+      const std::pair<dfa_state_t, dfa_state_t>& leaf_pair = current_pairs[i];
       leaf_mapping.emplace_back(leaf_func(std::get<0>(leaf_pair), std::get<1>(leaf_pair)));
     }
 
@@ -273,14 +273,14 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
       current_children.mmap();
 
-      int mapped_size = current_children.size();
-      std::vector<int> mapped_children;
+      size_t mapped_size = current_children.size();
+      std::vector<size_t> mapped_children;
 
       profile.tic("backward children");
-      std::vector<int>& mapped_pairs = backward_mapping[layer+1];
-      int mapped_index = 0;
+      std::vector<size_t>& mapped_pairs = backward_mapping[layer+1];
+      size_t mapped_index = 0;
       mapped_children.emplace_back(mapped_pairs[mapped_index]);
-      for(int k = 1; k < mapped_size; ++k)
+      for(size_t k = 1; k < mapped_size; ++k)
 	{
 	  if((current_children[k].left != current_children[k-1].left) ||
 	     (current_children[k].right != current_children[k-1].right))
@@ -297,13 +297,13 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       profile.tic("backward transitions");
 
-      std::vector<int> combined_transitions(mapped_size);
+      std::vector<dfa_state_t> combined_transitions(mapped_size);
 
       int layer_shape = this->get_layer_shape(layer);
-      for(int k = 0; k < mapped_size; ++k)
+      for(size_t k = 0; k < mapped_size; ++k)
 	{
-	  int i = current_children[k].i;
-	  int j = current_children[k].j;
+	  size_t i = current_children[k].i;
+	  size_t j = current_children[k].j;
 
 	  combined_transitions.at(i * layer_shape + j) = mapped_children[k];
 	}
@@ -316,9 +316,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       profile.tic("backward states");
 
-      std::vector<int>& output_mapping = backward_mapping[layer];
-      int output_size = mapped_size / layer_shape;
-      for(int i = 0; i < output_size; ++i)
+      std::vector<size_t>& output_mapping = backward_mapping[layer];
+      size_t output_size = mapped_size / layer_shape;
+      for(size_t i = 0; i < output_size; ++i)
 	{
 	  DFATransitions transitions(layer_shape);
 	  for(int j = 0; j < layer_shape; ++j)

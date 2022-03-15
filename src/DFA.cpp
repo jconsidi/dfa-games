@@ -48,7 +48,7 @@ DFA<ndim, shape_pack...>::~DFA()
 }
 
 template<int ndim, int... shape_pack>
-int DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_states)
+dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_states)
 {
   assert(state_lookup);
   assert((0 <= layer) && (layer < ndim));
@@ -68,12 +68,12 @@ int DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_st
 
   // state range checks
 
-  int layer_shape = this->shape[layer];
+  size_t layer_shape = this->shape[layer];
 
   if(layer < ndim - 1)
     {
       // make sure next states exist
-      int next_layer_size = state_transitions[layer + 1].size();
+      size_t next_layer_size = state_transitions[layer + 1].size();
       for(int i = 0; i < layer_shape; ++i)
 	{
 	  assert(next_states[i] < next_layer_size);
@@ -99,7 +99,7 @@ int DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_st
 
   // add new state
 
-  int new_state_id = this->state_transitions[layer].size();
+  size_t new_state_id = this->state_transitions[layer].size();
   this->state_transitions[layer].emplace_back(next_states);
 
   assert(this->state_transitions[layer].size() == (new_state_id + 1));
@@ -113,7 +113,7 @@ int DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_st
 }
 
 template<int ndim, int... shape_pack>
-int DFA<ndim, shape_pack...>::add_state(int layer, std::function<dfa_state_t(int)> transition_func)
+dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, std::function<dfa_state_t(int)> transition_func)
 {
   int layer_shape = shape[layer];
 
@@ -180,7 +180,7 @@ void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
 
   // output first accepted state
 
-  int state_index = 0;
+  dfa_state_t state_index = 0;
   for(int layer = 0; layer < ndim; ++layer)
     {
       int layer_shape = this->get_layer_shape(layer);
@@ -206,13 +206,13 @@ int DFA<ndim, shape_pack...>::get_layer_shape(int layer) const
 }
 
 template<int ndim, int... shape_pack>
-int DFA<ndim, shape_pack...>::get_layer_size(int layer) const
+dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
 {
   return state_transitions[layer].size();
 }
 
 template<int ndim, int... shape_pack>
-const DFATransitions& DFA<ndim, shape_pack...>::get_transitions(int layer, int state_index) const
+const DFATransitions& DFA<ndim, shape_pack...>::get_transitions(int layer, dfa_state_t state_index) const
 {
   return state_transitions[layer].at(state_index);
 }
@@ -255,7 +255,7 @@ double DFA<ndim, shape_pack...>::size() const
 }
 
 template<int ndim, int... shape_pack>
-int DFA<ndim, shape_pack...>::states() const
+size_t DFA<ndim, shape_pack...>::states() const
 {
   int states_out = 0;
 

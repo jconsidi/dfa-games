@@ -3,19 +3,20 @@
 #ifndef DFA_H
 #define DFA_H
 
+#include <ctype.h>
 #include <iostream>
 #include <map>
 #include <vector>
 
-typedef int dfa_state_t;
+typedef uint32_t dfa_state_t;
 typedef std::vector<dfa_state_t> DFATransitions;
 
 struct DFATransitionsCompare
 {
   bool operator() (const DFATransitions& left, const DFATransitions& right) const
   {
-    int left_num_transitions = left.size();
-    int right_num_transitions = right.size();
+    size_t left_num_transitions = left.size();
+    size_t right_num_transitions = right.size();
 
     if(left_num_transitions < right_num_transitions)
       {
@@ -26,7 +27,7 @@ struct DFATransitionsCompare
 	return false;
       }
 
-    for(int i = 0; i < left_num_transitions; ++i)
+    for(size_t i = 0; i < left_num_transitions; ++i)
       {
 	if(left[i] < right[i])
 	  {
@@ -58,8 +59,8 @@ class DFA
 
   DFA();
 
-  int add_state(int, const DFATransitions&);
-  int add_state(int, std::function<dfa_state_t(int)>);
+  dfa_state_t add_state(int, const DFATransitions&);
+  dfa_state_t add_state(int, std::function<dfa_state_t(int)>);
   void add_uniform_states();
 
  public:
@@ -69,12 +70,12 @@ class DFA
   void debug_example(std::ostream&) const;
 
   int get_layer_shape(int) const;
-  int get_layer_size(int) const;
-  const DFATransitions& get_transitions(int, int) const;
+  dfa_state_t get_layer_size(int) const;
+  const DFATransitions& get_transitions(int, dfa_state_t) const;
 
   bool ready() const;
   double size() const;
-  int states() const;
+  size_t states() const;
 };
 
 #define TEST_DFA_PARAMS 4, 1, 2, 3, 4

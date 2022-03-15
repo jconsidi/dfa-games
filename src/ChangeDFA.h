@@ -28,7 +28,7 @@ private:
 
   const dfa_type *dfa_temp;
 
-  dfa_state_t change_state(int layer, int state_index);
+  dfa_state_t change_state(int layer, dfa_state_t state_index);
   dfa_state_t union_local(int layer, std::vector<dfa_state_t>& states_in);
 
 public:
