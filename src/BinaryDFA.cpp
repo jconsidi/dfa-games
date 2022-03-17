@@ -19,6 +19,78 @@ struct CompareForwardChild
     }
 };
 
+// flashsort in-situ permutation
+// https://en.m.wikipedia.org/wiki/Flashsort
+template<class T, class K>
+void flashsort_permutation
+(
+ T *begin,
+ T *end,
+ std::function<K(const T&)> key_func
+ )
+{
+  // LATER: tighten this up to reduce space usage. the original
+  // Flashsort publication only uses one auxiliary array.
+
+  // count occurrences of each key
+
+  std::vector<K> key_counts;
+  for(T *p = begin; p < end; ++p)
+    {
+      K key = key_func(*p);
+      // extend counts as needed
+      if(key_counts.size() <= key)
+	{
+	  key_counts.insert(key_counts.end(), key + 1 - key_counts.size(), 0);
+	}
+      assert(key < key_counts.size());
+
+      key_counts[key] += 1;
+    }
+
+  // calculate boundaries between key ranges
+
+  std::vector<T *> key_edges(key_counts.size() + 1);
+  key_edges[0] = begin;
+  for(K k = 0; k < key_counts.size(); ++k)
+    {
+      key_edges[k + 1] = key_edges[k] + key_counts[k];
+    }
+  assert(key_edges[key_counts.size()] == end);
+
+  // in-situ permutation
+
+  std::vector<T *> todo(key_counts.size());
+  for(K k = 0; k < key_counts.size(); ++k)
+    {
+      todo[k] = key_edges[k];
+    }
+
+  for(K k = 0; k < key_counts.size(); ++k)
+    {
+      for(T *p = todo[k]; p < key_edges[k+1]; ++p)
+	{
+	  K temp_key = key_func(*p);
+	  if(temp_key == k)
+	    {
+	      // already in right range
+	      continue;
+	    }
+
+	  T temp = *p;
+	  do
+	    {
+	      T *next = todo[temp_key]++;
+	      std::swap(temp, *next);
+	      temp_key = key_func(temp);
+	    }
+	  while(temp_key != k);
+
+	  *p = temp;
+       }
+    }
+}
+
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
@@ -218,9 +290,39 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       size_t right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
       std::cout << "layer[" << layer << "] right layer size = " << right_layer_size << std::endl;
 
-      for(size_t k = 0; k < left_layer_size; ++k)
+      std::vector<dfa_state_t> right_to_dense(right_layer_size);
+      std::vector<dfa_state_t> dense_to_right(right_layer_size);
+
+      for(size_t l = 0; l < left_layer_size; ++l)
 	{
-	  std::sort(current_children.begin() + left_edges[k], current_children.begin() + left_edges[k+1], CompareForwardChild());
+	  dfa_state_t dense_size = 0;
+
+	  // map right values to dense ids, and count the dense ids
+	  for(size_t k = left_edges[l]; k < left_edges[l+1]; ++k)
+	    {
+	      dfa_state_t right = current_children[k].right;
+	      dfa_state_t dense_id = right_to_dense[right];
+	      if((dense_id >= dense_size) || (dense_to_right[dense_id] != right))
+		{
+		  // new right value
+		  dense_id = right_to_dense[right] = dense_size++;
+		  dense_to_right[dense_id] = right;
+		}
+	    }
+
+	  // sort by dense mapping of right children. will not be
+	  // sorted overall, but matching left/right pairs will be
+	  // together.
+
+	  flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>
+	    (
+	     current_children.begin() + left_edges[l],
+	     current_children.begin() + left_edges[l+1],
+	     [&](const BinaryDFAForwardChild& v)
+	     {
+	       return right_to_dense.at(v.right);
+	     }
+	     );
 	}
 
       profile.tic("forward dedupe");
