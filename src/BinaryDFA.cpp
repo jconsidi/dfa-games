@@ -288,7 +288,6 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       profile.tic("forward permute right");
       size_t right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
-      std::cout << "layer[" << layer << "] right layer size = " << right_layer_size << std::endl;
 
       std::vector<dfa_state_t> right_to_dense(right_layer_size);
       std::vector<dfa_state_t> dense_to_right(right_layer_size);
