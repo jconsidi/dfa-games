@@ -2,6 +2,8 @@
 
 #include "ChessBoardDFA.h"
 
+#include <bit>
+
 ChessBoardDFA::ChessBoardDFA(const Board& board_in)
 {
   const auto& pieces_by_side = board_in.pieces_by_side;
