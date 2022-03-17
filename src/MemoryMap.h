@@ -24,7 +24,7 @@ class MemoryMap
   MemoryMap(MemoryMap&&);
   ~MemoryMap();
 
-  T& operator[](int);
+  T& operator[](size_t);
 
   T *begin();
   T *end();

@@ -36,7 +36,7 @@ MemoryMap<T>::~MemoryMap()
 }
 
 template<class T>
-T& MemoryMap<T>::operator[](int i)
+T& MemoryMap<T>::operator[](size_t i)
 {
   assert(_mapped);
   return ((T *) _mapped)[i];
