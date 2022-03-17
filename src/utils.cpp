@@ -1,5 +1,7 @@
 // util.cpp
 
+#include <bit>
+
 #include "chess.h"
 
 std::string mask_to_square(BoardMask mask)
