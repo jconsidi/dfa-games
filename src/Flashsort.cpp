@@ -8,65 +8,88 @@
 template<class T, class K>
 void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func)
 {
-  // LATER: tighten this up to reduce space usage. the original
-  // Flashsort publication only uses one auxiliary array.
+  if(begin >= end)
+    {
+      return;
+    }
 
-  // count occurrences of each key
+  // count occurrences of each key with extra space left at beginning
 
-  std::vector<K> key_counts;
+  std::vector<K> auxiliary;
   for(T *p = begin; p < end; ++p)
     {
       K key = key_func(*p);
       // extend counts as needed
-      if(key_counts.size() <= key)
+      if(auxiliary.size() <= key + 1)
 	{
-	  key_counts.insert(key_counts.end(), key + 1 - key_counts.size(), 0);
+	  auxiliary.insert(auxiliary.end(), key + 2 - auxiliary.size(), 0);
 	}
-      assert(key < key_counts.size());
+      assert(key + 1 < auxiliary.size());
 
-      key_counts[key] += 1;
+      auxiliary[key + 1] += 1;
     }
 
-  // calculate boundaries between key ranges
+  // convert from counts to cumulative counts
 
-  std::vector<T *> key_edges(key_counts.size() + 1);
-  key_edges[0] = begin;
-  for(K k = 0; k < key_counts.size(); ++k)
+  for(K k = 1; k < auxiliary.size(); ++k)
     {
-      key_edges[k + 1] = key_edges[k] + key_counts[k];
+      auxiliary[k] += auxiliary[k-1];
     }
-  assert(key_edges[key_counts.size()] == end);
+
+  assert(auxiliary[auxiliary.size() - 1] == end - begin);
+
+  // convert from cumulative counts to L vector pointing at last entry
+  // that needs to be moved.
+
+  for(K k = 1; k < auxiliary.size(); ++k)
+    {
+      if(auxiliary[k] > 0)
+	{
+	  --auxiliary[k];
+	}
+    }
+  assert(auxiliary[auxiliary.size() - 1] + 1 == end - begin);
 
   // in-situ permutation
 
-  std::vector<T *> todo(key_counts.size());
-  for(K k = 0; k < key_counts.size(); ++k)
+  K c = 0;
+  while(c + 1 < auxiliary.size())
     {
-      todo[k] = key_edges[k];
-    }
-
-  for(K k = 0; k < key_counts.size(); ++k)
-    {
-      for(T *p = todo[k]; p < key_edges[k+1]; ++p)
+      size_t i = auxiliary[c + 1];
+      assert(begin + i < end);
+      if(i == auxiliary[c])
 	{
-	  K temp_key = key_func(*p);
-	  if(temp_key == k)
-	    {
-	      // already in right range
-	      continue;
-	    }
+	  ++c;
+	  continue;
+	}
 
-	  T temp = *p;
-	  do
-	    {
-	      T *next = todo[temp_key]++;
-	      std::swap(temp, *next);
-	      temp_key = key_func(temp);
-	    }
-	  while(temp_key != k);
+      K temp_key = key_func(begin[i]);
+      if(temp_key < c)
+	{
+	  // previous buckets were already finished
+	  ++c;
+	  continue;
+	}
 
-	  *p = temp;
-       }
+      if(temp_key == c)
+	{
+	  // already in the right bucket
+	  --auxiliary[c + 1];
+	  continue;
+	}
+
+      // need to shuffle keys
+
+      T temp = begin[i];
+      do
+	{
+	  T *next = begin + auxiliary[temp_key + 1]--;
+	  std::swap(temp, *next);
+	  temp_key = key_func(temp);
+	}
+      while(temp_key != c);
+
+      begin[i] = temp;
     }
 }
 
