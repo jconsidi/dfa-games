@@ -11,14 +11,6 @@
 #include "MemoryMap.h"
 #include "Profile.h"
 
-struct CompareForwardChild
-{
-  bool operator()(const BinaryDFAForwardChild& a, const BinaryDFAForwardChild& b) const
-    {
-      return memcmp(&a, &b, sizeof(BinaryDFAForwardChild)) < 0;
-    }
-};
-
 // flashsort in-situ permutation
 // https://en.m.wikipedia.org/wiki/Flashsort
 template<class T, class K>
