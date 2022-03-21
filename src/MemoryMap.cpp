@@ -101,9 +101,21 @@ size_t MemoryMap<T>::size() const
   return _size;
 }
 
+template <class T>
+void MemoryMap<T>::unlink()
+{
+  int res = ::unlink(_filename.c_str());
+  if(res != 0)
+    {
+      perror("unlink");
+      throw std::logic_error("unlink() failed");
+    }
+}
+
 // template instantiations
 
 #include "BinaryDFA.h"
 
 template class MemoryMap<BinaryDFAForwardChild>;
 template class MemoryMap<int>;
+template class MemoryMap<size_t>;

@@ -31,6 +31,7 @@ class MemoryMap
   void mmap();
   void munmap();
   size_t size() const;
+  void unlink();
 };
 
 #endif
