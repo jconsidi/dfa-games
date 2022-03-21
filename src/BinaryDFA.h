@@ -24,7 +24,6 @@ public:
 
 struct BinaryDFAForwardChild
 {
-  int left;
   int right;
   int i;
   int j;

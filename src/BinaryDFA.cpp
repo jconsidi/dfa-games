@@ -198,7 +198,6 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	    {
 	      auto left = left_transitions[j];
 	      BinaryDFAForwardChild& forward_child = current_children[left_todo[left]++];
-	      forward_child.left = left_transitions[j];
 	      forward_child.right = right_transitions[j];
 	      forward_child.i = i;
 	      forward_child.j = j;
@@ -255,21 +254,34 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       profile.tic("forward dedupe and logical");
 
       current_pairs.clear();
-      current_pairs.emplace_back(current_children[0].left, current_children[0].right);
-      current_children_logical[current_children[0].i * layer_shape + current_children[0].j] = 0;
       size_t current_logical = 0;
-      size_t children_size = current_children.size();
-      for(size_t k = 1; k < children_size; ++k)
+      for(size_t l = 0; l < left_layer_size; ++l)
 	{
-	  if((current_children[k-1].left != current_children[k].left) ||
-	     (current_children[k-1].right != current_children[k].right))
+	  if(left_edges[l] == left_edges[l+1])
 	    {
-	      current_pairs.emplace_back(current_children[k].left, current_children[k].right);
-	      ++current_logical;
+	      // no children with this left state
+	      continue;
 	    }
 
-	  current_children_logical[current_children[k].i * layer_shape + current_children[k].j] = current_logical;
+	  const BinaryDFAForwardChild& first_child = current_children[left_edges[l]];
+	  current_pairs.emplace_back(l, first_child.right);
+	  current_children_logical[first_child.i * layer_shape + first_child.j] = current_logical;
+
+	  for(size_t k = left_edges[l] + 1; k < left_edges[l+1]; ++k)
+	    {
+	      const BinaryDFAForwardChild& current_child = current_children[k];
+	      if(current_children[k-1].right != current_child.right)
+		{
+		  current_pairs.emplace_back(l, current_child.right);
+		  ++current_logical;
+		}
+	      current_children_logical[current_child.i * layer_shape + current_child.j] = current_logical;
+	    }
+
+	  // done with this left value
+	  ++current_logical;
 	}
+      assert(current_logical == current_pairs.size());
 
       std::cout << "layer[" << layer << "] next pairs = " << current_pairs.size() << std::endl;
 
