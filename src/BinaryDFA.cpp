@@ -132,8 +132,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   // forward pass
 
-  std::vector<MemoryMap<BinaryDFAForwardChild>> forward_children;
-  forward_children.reserve(ndim);
+  std::vector<MemoryMap<size_t>> forward_children_logical;
+  forward_children_logical.reserve(ndim);
 
   for(int layer = 0; layer < ndim; ++layer)
     {
@@ -146,8 +146,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       profile.tic("forward mmap");
       std::ostringstream filename_builder;
       filename_builder << "/tmp/chess-binarydfa-" << layer << "-children.bin";
-      forward_children.emplace_back(filename_builder.str(), forward_size * layer_shape);
-      MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
+      MemoryMap<BinaryDFAForwardChild> current_children(filename_builder.str(), forward_size * layer_shape);
       current_children.mmap();
 
       profile.tic("forward left counts");
@@ -245,10 +244,20 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	     );
 	}
 
-      profile.tic("forward dedupe");
+      profile.tic("forward logical mmap");
+
+      std::ostringstream logical_filename_builder;
+      logical_filename_builder << "/tmp/chess-binarydfa-" << layer << "-logical.bin";
+      forward_children_logical.emplace_back(logical_filename_builder.str(), forward_size * layer_shape);
+      MemoryMap<size_t>& current_children_logical = forward_children_logical.at(layer);
+      current_children_logical.mmap();
+
+      profile.tic("forward dedupe and logical");
 
       current_pairs.clear();
       current_pairs.emplace_back(current_children[0].left, current_children[0].right);
+      current_children_logical[current_children[0].i * layer_shape + current_children[0].j] = 0;
+      size_t current_logical = 0;
       size_t children_size = current_children.size();
       for(size_t k = 1; k < children_size; ++k)
 	{
@@ -256,13 +265,22 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	     (current_children[k-1].right != current_children[k].right))
 	    {
 	      current_pairs.emplace_back(current_children[k].left, current_children[k].right);
+	      ++current_logical;
 	    }
+
+	  current_children_logical[current_children[k].i * layer_shape + current_children[k].j] = current_logical;
 	}
 
       std::cout << "layer[" << layer << "] next pairs = " << current_pairs.size() << std::endl;
 
-      profile.tic("forward munmap");
+      profile.tic("forward logical unmap");
+      current_children_logical.munmap();
+
+      profile.tic("forward children unmap");
       current_children.munmap();
+
+      profile.tic("forward children unlink");
+      current_children.unlink();
     }
 
   // apply leaf function
@@ -283,59 +301,40 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
     {
       profile.tic("backward init");
 
-      std::cout << "layer[" << layer << "] mapping children " << forward_children[layer].size() << std::endl;
-
       assert(backward_mapping.size() > 0);
 
       // apply previous mapping to previously sorted children
 
       profile.tic("backward mmap");
-      MemoryMap<BinaryDFAForwardChild>& current_children = forward_children[layer];
-      current_children.mmap();
-
-      size_t mapped_size = current_children.size();
-      std::vector<size_t> mapped_children;
-
-      profile.tic("backward children");
-      size_t mapped_index = 0;
-      mapped_children.emplace_back(backward_mapping[mapped_index]);
-      for(size_t k = 1; k < mapped_size; ++k)
-	{
-	  if((current_children[k].left != current_children[k-1].left) ||
-	     (current_children[k].right != current_children[k-1].right))
-	    {
-	      mapped_index += 1;
-	    }
-
-	  mapped_children.emplace_back(backward_mapping[mapped_index]);
-	}
-      assert(mapped_index + 1 == backward_mapping.size());
-      assert(mapped_children.size() == mapped_size);
+      MemoryMap<size_t>& current_children_logical = forward_children_logical[layer];
+      current_children_logical.mmap();
 
       // reconstitute transitions
 
       profile.tic("backward transitions");
 
+      size_t mapped_size = current_children_logical.size();
       std::vector<dfa_state_t> combined_transitions(mapped_size);
 
-      int layer_shape = this->get_layer_shape(layer);
       for(size_t k = 0; k < mapped_size; ++k)
 	{
-	  size_t i = current_children[k].i;
-	  size_t j = current_children[k].j;
-
-	  combined_transitions.at(i * layer_shape + j) = mapped_children[k];
+	  combined_transitions[k] = backward_mapping.at(current_children_logical[k]);
 	}
 
       // done with memory map
 
-      current_children.munmap();
+      profile.tic("backward munmap");
+      current_children_logical.munmap();
+
+      profile.tic("backward unlink");
+      current_children_logical.unlink();
 
       // add states for this layer
 
       profile.tic("backward states");
 
       backward_mapping.clear();
+      int layer_shape = this->get_layer_shape(layer);
       size_t output_size = mapped_size / layer_shape;
       for(size_t i = 0; i < output_size; ++i)
 	{
