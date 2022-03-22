@@ -144,7 +144,12 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << std::endl;
 
       profile.tic("forward mmap");
-      MemoryMap<BinaryDFAForwardChild> current_children(forward_size * layer_shape);
+
+      size_t current_children_size = forward_size * layer_shape;
+      MemoryMap<BinaryDFAForwardChild> current_children =
+	(current_children_size < size_t(1) << 31)
+	? MemoryMap<BinaryDFAForwardChild>(current_children_size)
+	: MemoryMap<BinaryDFAForwardChild>("/tmp/chess-binarydfa-index.bin", current_children_size);
 
       profile.tic("forward left counts");
 
