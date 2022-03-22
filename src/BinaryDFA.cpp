@@ -208,39 +208,72 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       profile.tic("forward permute right");
       size_t right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
 
+      double right_factor = double(left_layer_size) * double(right_layer_size) / double(current_children.size());
+      std::cout << "layer[" << layer << "] right factor = " << right_factor << std::endl;
+
       std::vector<dfa_state_t> right_to_dense(right_layer_size);
       std::vector<dfa_state_t> dense_to_right(right_layer_size);
 
       for(size_t l = 0; l < left_layer_size; ++l)
 	{
-	  dfa_state_t dense_size = 0;
-
-	  // map right values to dense ids, and count the dense ids
-	  for(size_t k = left_edges[l]; k < left_edges[l+1]; ++k)
+	  size_t left_count = left_edges[l + 1] - left_edges[l];
+	  if(left_count == 0)
 	    {
-	      dfa_state_t right = current_children[k].right;
-	      dfa_state_t dense_id = right_to_dense[right];
-	      if((dense_id >= dense_size) || (dense_to_right[dense_id] != right))
-		{
-		  // new right value
-		  dense_id = right_to_dense[right] = dense_size++;
-		  dense_to_right[dense_id] = right;
-		}
+	      continue;
 	    }
 
-	  // sort by dense mapping of right children. will not be
-	  // sorted overall, but matching left/right pairs will be
-	  // together.
+	  if(left_count < right_layer_size / 2)
+	    {
+	      // sparse case
+	      std::cout << "sparse " << left_count << " vs " << right_layer_size << std::endl;
 
-	  flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>
-	    (
-	     current_children.begin() + left_edges[l],
-	     current_children.begin() + left_edges[l+1],
-	     [&](const BinaryDFAForwardChild& v)
-	     {
-	       return right_to_dense.at(v.right);
-	     }
-	     );
+	      // map to dense mapping to run linear in left_count
+	      // instead of linear in right_layer_size.
+
+	      dfa_state_t dense_size = 0;
+
+	      // map right values to dense ids, and count the dense ids
+	      for(size_t k = left_edges[l]; k < left_edges[l+1]; ++k)
+		{
+		  dfa_state_t right = current_children[k].right;
+		  dfa_state_t dense_id = right_to_dense[right];
+		  if((dense_id >= dense_size) || (dense_to_right[dense_id] != right))
+		    {
+		      // new right value
+		      dense_id = right_to_dense[right] = dense_size++;
+		      dense_to_right[dense_id] = right;
+		    }
+		}
+
+	      // sort by dense mapping of right children. will not be
+	      // sorted overall, but matching left/right pairs will be
+	      // together.
+
+	      flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>
+		(
+		 current_children.begin() + left_edges[l],
+		 current_children.begin() + left_edges[l+1],
+		 [&](const BinaryDFAForwardChild& v)
+		 {
+		   return right_to_dense.at(v.right);
+		 }
+		 );
+	    }
+	  else
+	    {
+	      // dense case
+	      std::cout << "dense " << left_count << " vs " << right_layer_size << std::endl;
+
+	      flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>
+		(
+		 current_children.begin() + left_edges[l],
+		 current_children.begin() + left_edges[l+1],
+		 [&](const BinaryDFAForwardChild& v)
+		 {
+		   return v.right;
+		 }
+		 );
+	    }
 	}
 
       profile.tic("forward logical mmap");
