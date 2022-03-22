@@ -11,14 +11,17 @@ template<class T>
 class MemoryMap
 {
  private:
-  std::string _filename;
   size_t _size;
   size_t _length;
 
   void *_mapped;
 
- public:
+  void mmap(int, int);
+  void munmap();
 
+public:
+
+  MemoryMap(size_t);
   MemoryMap(std::string, size_t);
   MemoryMap(const MemoryMap&) = delete;
   MemoryMap(MemoryMap&&);
@@ -28,10 +31,7 @@ class MemoryMap
 
   T *begin();
   T *end();
-  void mmap();
-  void munmap();
   size_t size() const;
-  void unlink();
 };
 
 #endif
