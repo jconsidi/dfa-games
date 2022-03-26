@@ -139,6 +139,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       std::cout << "layer[" << layer << "] forward" << std::endl;
       profile.tic("forward init");
 
+#define GET_RIGHT(child) (right_in.get_transitions(layer, std::get<1>(current_pairs[child.i]))[child.j])
+
       int layer_shape = this->get_layer_shape(layer);
       size_t forward_size = current_pairs.size();
       std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << std::endl;
@@ -194,13 +196,11 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  const std::pair<dfa_state_t, dfa_state_t>& forward_pair = current_pairs[i];
 
 	  const DFATransitions& left_transitions = left_in.get_transitions(layer, std::get<0>(forward_pair));
-	  const DFATransitions& right_transitions = right_in.get_transitions(layer, std::get<1>(forward_pair));
 
 	  for(int j = 0; j < layer_shape; ++j)
 	    {
 	      auto left = left_transitions[j];
 	      BinaryDFAForwardChild& forward_child = current_children[left_todo[left]++];
-	      forward_child.right = right_transitions[j];
 	      forward_child.i = i;
 	      forward_child.j = j;
 	    }
@@ -237,7 +237,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	      // map right values to dense ids, and count the dense ids
 	      for(size_t k = left_edges[l]; k < left_edges[l+1]; ++k)
 		{
-		  dfa_state_t right = current_children[k].right;
+		  dfa_state_t right = GET_RIGHT(current_children[k]);
 		  dfa_state_t dense_id = right_to_dense[right];
 		  if((dense_id >= dense_size) || (dense_to_right[dense_id] != right))
 		    {
@@ -257,7 +257,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 		 current_children.begin() + left_edges[l+1],
 		 [&](const BinaryDFAForwardChild& v)
 		 {
-		   return right_to_dense.at(v.right);
+		   return right_to_dense.at(GET_RIGHT(v));
 		 }
 		 );
 	    }
@@ -272,7 +272,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 		 current_children.begin() + left_edges[l+1],
 		 [&](const BinaryDFAForwardChild& v)
 		 {
-		   return v.right;
+		   return GET_RIGHT(v);
 		 }
 		 );
 	    }
@@ -285,7 +285,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       profile.tic("forward dedupe and logical");
 
-      current_pairs.clear();
+      std::vector<std::pair<dfa_state_t, dfa_state_t>> next_pairs;
       size_t current_logical = 0;
       for(size_t l = 0; l < left_layer_size; ++l)
 	{
@@ -296,15 +296,15 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	    }
 
 	  const BinaryDFAForwardChild& first_child = current_children[left_edges[l]];
-	  current_pairs.emplace_back(l, first_child.right);
+	  next_pairs.emplace_back(l, GET_RIGHT(first_child));
 	  current_children_logical[first_child.i * layer_shape + first_child.j] = current_logical;
 
 	  for(size_t k = left_edges[l] + 1; k < left_edges[l+1]; ++k)
 	    {
 	      const BinaryDFAForwardChild& current_child = current_children[k];
-	      if(current_children[k-1].right != current_child.right)
+	      if(GET_RIGHT(current_children[k-1]) != GET_RIGHT(current_child))
 		{
-		  current_pairs.emplace_back(l, current_child.right);
+		  next_pairs.emplace_back(l, GET_RIGHT(current_child));
 		  ++current_logical;
 		}
 	      current_children_logical[current_child.i * layer_shape + current_child.j] = current_logical;
@@ -313,12 +313,16 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  // done with this left value
 	  ++current_logical;
 	}
-      assert(current_logical == current_pairs.size());
+      assert(current_logical == next_pairs.size());
 
-      std::cout << "layer[" << layer << "] next pairs = " << current_pairs.size() << std::endl;
+      std::cout << "layer[" << layer << "] next pairs = " << next_pairs.size() << std::endl;
+
+      std::swap(current_pairs, next_pairs);
 
       // cleanup in destructors
       profile.tic("forward cleanup");
+
+#undef GET_RIGHT
     }
 
   // apply leaf function
