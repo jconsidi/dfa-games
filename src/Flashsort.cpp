@@ -2,18 +2,24 @@
 
 #include "Flashsort.h"
 
+#include "Profile.h"
+
 // flashsort in-situ permutation
 // https://en.m.wikipedia.org/wiki/Flashsort
 
 template<class T, class K>
 void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func)
 {
+  Profile profile("flashsort_permutation");
+
   if(begin + 1 >= end)
     {
       return;
     }
 
   // count occurrences of each key with extra space left at beginning
+
+  profile.tic("auxiliary count");
 
   std::vector<K> auxiliary;
   for(T *p = begin; p < end; ++p)
@@ -31,6 +37,8 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
 
   // convert from counts to cumulative counts
 
+  profile.tic("auxiliary cumulative");
+
   for(K k = 1; k < auxiliary.size(); ++k)
     {
       auxiliary[k] += auxiliary[k-1];
@@ -40,6 +48,8 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
 
   // convert from cumulative counts to L vector pointing at last entry
   // that needs to be moved.
+
+  profile.tic("auxiliary l-vector");
 
   for(K k = 1; k < auxiliary.size(); ++k)
     {
@@ -54,6 +64,7 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
 
   if(auxiliary.size() >= 1000000)
     {
+      profile.tic("recursion for locality");
       flashsort_permutation<T,K>(begin, end, [&](const T& v)
       {
 	return key_func(v) / 1000;
@@ -61,6 +72,8 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
     }
 
   // in-situ permutation
+
+  profile.tic("permutation");
 
   K c = 0;
   while(c + 1 < auxiliary.size())
