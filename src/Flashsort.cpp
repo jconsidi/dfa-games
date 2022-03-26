@@ -50,6 +50,16 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
     }
   assert(auxiliary[auxiliary.size() - 1] + 1 == end - begin);
 
+  // coarse sort to improve locality of bigger instances
+
+  if(auxiliary.size() >= 1000000)
+    {
+      flashsort_permutation<T,K>(begin, end, [&](const T& v)
+      {
+	return key_func(v) / 1000;
+      });
+    }
+
   // in-situ permutation
 
   K c = 0;
