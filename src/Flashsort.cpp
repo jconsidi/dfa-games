@@ -8,7 +8,7 @@
 template<class T, class K>
 void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func)
 {
-  if(begin >= end)
+  if(begin + 1 >= end)
     {
       return;
     }
