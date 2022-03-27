@@ -155,8 +155,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       profile.tic("forward left counts");
 
-      size_t left_layer_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
-      std::vector<size_t> left_counts(left_layer_size);
+      size_t next_left_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
+      std::vector<size_t> left_counts(next_left_size);
       assert(left_counts[0] == 0);
       assert(left_counts[left_counts.size() - 1] == 0);
 
@@ -172,16 +172,16 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	    }
 	}
 
-      std::vector<size_t> left_edges(left_layer_size + 1);
+      std::vector<size_t> left_edges(next_left_size + 1);
       left_edges[0] = 0;
-      for(size_t k = 0; k < left_layer_size; ++k)
+      for(size_t k = 0; k < next_left_size; ++k)
 	{
 	  left_edges[k+1] = left_edges[k] + left_counts[k];
 	}
-      assert(left_edges[left_layer_size] == current_children.size());
+      assert(left_edges[next_left_size] == current_children.size());
 
-      std::vector<size_t> left_todo(left_layer_size);
-      for(size_t k = 0; k < left_layer_size; ++k)
+      std::vector<size_t> left_todo(next_left_size);
+      for(size_t k = 0; k < next_left_size; ++k)
 	{
 	  left_todo[k] = left_edges[k];
 	}
@@ -208,15 +208,15 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       std::cout << "layer[" << layer << "] forward children = " << current_children.size() << std::endl;
 
       profile.tic("forward permute right");
-      size_t right_layer_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
+      size_t next_right_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
 
-      double right_factor = double(left_layer_size) * double(right_layer_size) / double(current_children.size());
+      double right_factor = double(next_left_size) * double(next_right_size) / double(current_children.size());
       std::cout << "layer[" << layer << "] right factor = " << right_factor << std::endl;
 
-      std::vector<dfa_state_t> right_to_dense(right_layer_size);
-      std::vector<dfa_state_t> dense_to_right(right_layer_size);
+      std::vector<dfa_state_t> right_to_dense(next_right_size);
+      std::vector<dfa_state_t> dense_to_right(next_right_size);
 
-      for(size_t l = 0; l < left_layer_size; ++l)
+      for(size_t l = 0; l < next_left_size; ++l)
 	{
 	  size_t left_count = left_edges[l + 1] - left_edges[l];
 	  if(left_count == 0)
@@ -224,13 +224,13 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	      continue;
 	    }
 
-	  if(left_count < right_layer_size / 2)
+	  if(left_count < next_right_size / 2)
 	    {
 	      // sparse case
-	      std::cout << "sparse " << left_count << " vs " << right_layer_size << std::endl;
+	      std::cout << "sparse " << left_count << " vs " << next_right_size << std::endl;
 
 	      // map to dense mapping to run linear in left_count
-	      // instead of linear in right_layer_size.
+	      // instead of linear in next_right_size.
 
 	      dfa_state_t dense_size = 0;
 
@@ -264,7 +264,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  else
 	    {
 	      // dense case
-	      std::cout << "dense " << left_count << " vs " << right_layer_size << std::endl;
+	      std::cout << "dense " << left_count << " vs " << next_right_size << std::endl;
 
 	      flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>
 		(
@@ -287,7 +287,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       std::vector<std::pair<dfa_state_t, dfa_state_t>> next_pairs;
       size_t current_logical = 0;
-      for(size_t l = 0; l < left_layer_size; ++l)
+      for(size_t l = 0; l < next_left_size; ++l)
 	{
 	  if(left_edges[l] == left_edges[l+1])
 	    {
