@@ -139,11 +139,14 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       std::cout << "layer[" << layer << "] forward" << std::endl;
       profile.tic("forward init");
 
+#define GET_LEFT(child) (left_in.get_transitions(layer, std::get<0>(current_pairs[child.i]))[child.j])
 #define GET_RIGHT(child) (right_in.get_transitions(layer, std::get<1>(current_pairs[child.i]))[child.j])
 
       int layer_shape = this->get_layer_shape(layer);
       size_t forward_size = current_pairs.size();
-      std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << std::endl;
+
+      std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << " vs " << left_in.get_layer_size(layer) << " x " << right_in.get_layer_size(layer) << " = " << (left_in.get_layer_size(layer) * right_in.get_layer_size(layer)) << std::endl;
+      assert(current_pairs.size() <= left_in.get_layer_size(layer) * right_in.get_layer_size(layer));
 
       profile.tic("forward mmap");
 
@@ -213,6 +216,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       double right_factor = double(next_left_size) * double(next_right_size) / double(current_children.size());
       std::cout << "layer[" << layer << "] right factor = " << right_factor << std::endl;
 
+      std::cout << "layer[" << layer << "] pairs = " << current_pairs.size() << " => children = " << current_children.size() << " from " << next_left_size << " x " << next_right_size << " => current length = " << current_children.length() << " vs bit vector length = " << (((next_left_size * next_right_size + 63) / 64) * sizeof(uint64_t)) << std::endl;
+
       std::vector<dfa_state_t> right_to_dense(next_right_size);
       std::vector<dfa_state_t> dense_to_right(next_right_size);
 
@@ -275,6 +280,14 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 		   return GET_RIGHT(v);
 		 }
 		 );
+
+#ifdef PARANOIA
+	      for(size_t k = left_edges[l]; k + 1 < left_edges[l+1]; ++k)
+		{
+		  assert(GET_LEFT(current_children[k]) == GET_LEFT(current_children[k+1]));
+		  assert(GET_RIGHT(current_children[k]) <= GET_RIGHT(current_children[k+1]));
+		}
+#endif
 	    }
 	}
 
@@ -314,6 +327,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  ++current_logical;
 	}
       assert(current_logical == next_pairs.size());
+      assert(next_pairs.size() <= next_left_size * next_right_size);
 
       std::cout << "layer[" << layer << "] next pairs = " << next_pairs.size() << std::endl;
 
