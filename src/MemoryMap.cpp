@@ -107,6 +107,12 @@ void MemoryMap<T>::munmap()
 }
 
 template<class T>
+size_t MemoryMap<T>::length() const
+{
+  return _length;
+}
+
+template<class T>
 size_t MemoryMap<T>::size() const
 {
   return _size;

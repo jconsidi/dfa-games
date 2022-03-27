@@ -31,6 +31,7 @@ public:
 
   T *begin();
   T *end();
+  size_t length() const;
   size_t size() const;
 };
 
