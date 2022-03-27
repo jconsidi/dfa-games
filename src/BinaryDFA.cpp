@@ -153,7 +153,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	? MemoryMap<BinaryDFAForwardChild>(current_children_size)
 	: MemoryMap<BinaryDFAForwardChild>("/tmp/chess-binarydfa-index.bin", current_children_size);
 
-      profile.tic("forward left counts");
+      profile.tic("forward count left");
 
       size_t next_left_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
       std::vector<size_t> left_counts(next_left_size);
@@ -186,7 +186,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  left_todo[k] = left_edges[k];
 	}
 
-      profile.tic("forward children left");
+      profile.tic("forward partition left");
 
       // build forward children already sorted by left child.
       // basically combining counting sort with the creation.
@@ -207,7 +207,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	}
       std::cout << "layer[" << layer << "] forward children = " << current_children.size() << std::endl;
 
-      profile.tic("forward permute right");
+      profile.tic("forward partition right");
       size_t next_right_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
 
       double right_factor = double(next_left_size) * double(next_right_size) / double(current_children.size());
