@@ -17,7 +17,7 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
       return;
     }
 
-  // count occurrences of each key with extra space left at beginning
+  // count occurrences of each key
 
   profile.tic("auxiliary count");
 
@@ -26,13 +26,20 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
     {
       K key = key_func(*p);
       // extend counts as needed
-      if(auxiliary.size() <= key + 1)
+      if(auxiliary.size() <= key)
 	{
-	  auxiliary.insert(auxiliary.end(), key + 2 - auxiliary.size(), 0);
+	  auxiliary.insert(auxiliary.end(), key + 1 - auxiliary.size(), 0);
 	}
-      assert(key + 1 < auxiliary.size());
+      assert(key < auxiliary.size());
 
-      auxiliary[key + 1] += 1;
+      auxiliary[key] += 1;
+    }
+  assert(auxiliary.size() >= 1);
+
+  if(auxiliary.size() == 1)
+    {
+      // only key value was zero
+      return;
     }
 
   // convert from counts to cumulative counts
@@ -46,19 +53,11 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
 
   assert(auxiliary[auxiliary.size() - 1] == end - begin);
 
-  // convert from cumulative counts to L vector pointing at last entry
-  // that needs to be moved.
-
-  profile.tic("auxiliary l-vector");
-
-  for(K k = 1; k < auxiliary.size(); ++k)
+  if(auxiliary[auxiliary.size() - 2] == 0)
     {
-      if(auxiliary[k] > 0)
-	{
-	  --auxiliary[k];
-	}
+      // only one key value
+      return;
     }
-  assert(auxiliary[auxiliary.size() - 1] + 1 == end - begin);
 
   // coarse sort to improve locality of bigger instances
 
@@ -76,15 +75,17 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
   profile.tic("permutation");
 
   K c = 0;
-  while(c + 1 < auxiliary.size())
+  while(c < auxiliary.size())
     {
-      size_t i = auxiliary[c + 1];
-      assert(begin + i < end);
-      if(i == auxiliary[c])
+      if(auxiliary[c] == 0)
 	{
+	  // c is done and previous c values had no entries
 	  ++c;
 	  continue;
 	}
+
+      size_t i = auxiliary[c] - 1;
+      assert(begin + i < end);
 
       K temp_key = key_func(begin[i]);
       if(temp_key < c)
@@ -97,7 +98,7 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
       if(temp_key == c)
 	{
 	  // already in the right bucket
-	  --auxiliary[c + 1];
+	  --auxiliary[c];
 	  continue;
 	}
 
@@ -106,7 +107,10 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
       T temp = begin[i];
       do
 	{
-	  T *next = begin + auxiliary[temp_key + 1]--;
+	  size_t j = --auxiliary[temp_key];
+	  assert(begin + j < end);
+
+	  T *next = begin + j;
 	  std::swap(temp, *next);
 	  temp_key = key_func(temp);
 	}
@@ -114,6 +118,17 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
 
       begin[i] = temp;
     }
+
+#ifdef PARANOIA
+  // sanity check
+  for(T *p = begin; p < end; ++p)
+    {
+      if(p > begin)
+	{
+	  assert(key_func(*(p-1)) <= key_func(*p));
+	}
+    }
+#endif
 }
 
 // template instantiations
