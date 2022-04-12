@@ -24,7 +24,7 @@ class Game
 public:
 
   typedef DFA<ndim, shape_pack...> dfa_type;
-  typedef DFAString<ndim, shape_pack...> position_type;
+  typedef DFAString<ndim, shape_pack...> dfa_string_type;
   typedef std::shared_ptr<const dfa_type> shared_dfa_ptr;
 
   typedef AcceptDFA<ndim, shape_pack...> accept_dfa_type;
@@ -66,6 +66,8 @@ public:
   shared_dfa_ptr get_moves_reverse(int, shared_dfa_ptr) const;
   shared_dfa_ptr get_winning_positions(int, int) const;
   shared_dfa_ptr get_winning_positions(int, int, shared_dfa_ptr) const;
+
+  virtual std::string position_to_string(const dfa_string_type&) const = 0;
 };
 
 #endif

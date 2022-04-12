@@ -747,3 +747,8 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
   return singletons[side_to_move];
 }
+
+std::string ChessGame::position_to_string(const dfa_string_type&) const
+{
+  return "ChessGame::position_to_string not implemented\n";
+}

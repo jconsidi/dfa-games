@@ -26,7 +26,7 @@ template<int n, int... shape_pack>
  public:
 
   typedef typename Game<n*n, shape_pack...>::dfa_type dfa_type;
-  typedef typename Game<n*n, shape_pack...>::position_type position_type;
+  typedef typename Game<n*n, shape_pack...>::dfa_string_type dfa_string_type;
   typedef typename Game<n*n, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
   typedef typename Game<n*n, shape_pack...>::rule_vector rule_vector;
 
@@ -41,9 +41,8 @@ template<int n, int... shape_pack>
 
  public:
 
-  static std::string position_to_string(const position_type&);
-
   virtual const rule_vector& get_rules(int) const;
+  virtual std::string position_to_string(const dfa_string_type&) const;
 };
 
 #define TICTACTOE2_SHAPE_PACK 3, 3, 3, 3

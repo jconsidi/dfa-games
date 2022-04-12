@@ -26,7 +26,7 @@ int test()
       iter < initial_positions->cend();
       ++iter)
     {
-      std::cout << T::position_to_string(*iter) << std::endl;
+      std::cout << tictactoe.position_to_string(*iter) << std::endl;
     }
 
   std::cout << " perft_u" << std::endl;

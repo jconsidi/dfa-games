@@ -12,6 +12,7 @@ MemoryMap<T>::MemoryMap(size_t size_in)
     _length(sizeof(T) * _size),
     _mapped(0)
 {
+  assert(size_in > 0);
   assert(_length / sizeof(T) == _size);
 
   this->mmap(MAP_ANONYMOUS, 0);
@@ -23,6 +24,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
     _length(sizeof(T) * _size),
     _mapped(0)
 {
+  assert(size_in > 0);
   assert(_length / sizeof(T) == _size);
 
   int fildes = open(filename_in.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -65,6 +67,7 @@ template<class T>
 T& MemoryMap<T>::operator[](size_t i)
 {
   assert(_mapped);
+  assert(i < _size);
   return ((T *) _mapped)[i];
 }
 

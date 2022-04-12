@@ -43,6 +43,8 @@ public:
   shared_dfa_ptr get_threat_positions(int, int) const;
 
   virtual const rule_vector& get_rules(int) const;
+
+  virtual std::string position_to_string(const dfa_string_type&) const;
 };
 
 typedef DFA<CHESS_DFA_PARAMS> ChessDFA;
