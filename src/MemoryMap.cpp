@@ -125,6 +125,6 @@ size_t MemoryMap<T>::size() const
 
 #include "BinaryDFA.h"
 
-template class MemoryMap<BinaryDFAForwardChild>;
 template class MemoryMap<int>;
 template class MemoryMap<size_t>;
+template class MemoryMap<uint64_t>;

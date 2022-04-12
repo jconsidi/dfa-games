@@ -4,6 +4,7 @@
 
 #include <assert.h>
 
+#include <bit>
 #include <iostream>
 #include <queue>
 
@@ -127,297 +128,174 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 {
   Profile profile("binary_build");
 
-  std::vector<std::pair<dfa_state_t, dfa_state_t>> current_pairs;
-  current_pairs.emplace_back(left_in.get_initial_state(), right_in.get_initial_state());
+  std::vector<MemoryMap<uint64_t>> pairs_by_layer;
+  pairs_by_layer.reserve(ndim + 1);
+
+  // first layer is always 1 x 1
+  pairs_by_layer.emplace_back(1);
+  pairs_by_layer[0][0] = 1 << (left_in.get_initial_state() * right_in.get_layer_size(0) + right_in.get_initial_state());
 
   // forward pass
 
-  std::vector<MemoryMap<size_t>> forward_children_logical;
-  forward_children_logical.reserve(ndim);
-
   for(int layer = 0; layer < ndim; ++layer)
     {
-#if 0
-      std::cout << "layer[" << layer << "] forward" << std::endl;
-#endif
       profile.tic("forward init");
 
-#define GET_LEFT(child) (left_in.get_transitions(layer, std::get<0>(current_pairs[child.i]))[child.j])
-#define GET_RIGHT(child) (right_in.get_transitions(layer, std::get<1>(current_pairs[child.i]))[child.j])
+      int curr_layer_shape = this->get_layer_shape(layer);
 
-      int layer_shape = this->get_layer_shape(layer);
-      size_t forward_size = current_pairs.size();
+      // get size of current layer and next layer.
+      //
+      // using size_t for product calculations...
 
-#if 0
-      std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << " vs " << left_in.get_layer_size(layer) << " x " << right_in.get_layer_size(layer) << " = " << (left_in.get_layer_size(layer) * right_in.get_layer_size(layer)) << std::endl;
-#endif
-      assert(current_pairs.size() <= left_in.get_layer_size(layer) * right_in.get_layer_size(layer));
+      size_t curr_left_size = left_in.get_layer_size(layer);
+      size_t curr_right_size = right_in.get_layer_size(layer);
+
+      size_t next_left_size = left_in.get_layer_size(layer + 1);
+      size_t next_right_size = right_in.get_layer_size(layer + 1);
 
       profile.tic("forward mmap");
 
-      size_t current_children_size = forward_size * layer_shape;
-      MemoryMap<BinaryDFAForwardChild> current_children =
-	(current_children_size < size_t(1) << 31)
-	? MemoryMap<BinaryDFAForwardChild>(current_children_size)
-	: MemoryMap<BinaryDFAForwardChild>("/tmp/chess-binarydfa-index.bin", current_children_size);
+      assert(pairs_by_layer.size() == layer + 1);
+      pairs_by_layer.emplace_back((next_left_size * next_right_size + 63) / 64);
+      assert(pairs_by_layer.size() == layer + 2);
 
-      profile.tic("forward count left");
+      MemoryMap<uint64_t>& curr_layer = pairs_by_layer.at(layer);
+      MemoryMap<uint64_t>& next_layer = pairs_by_layer.at(layer + 1);
 
-      size_t next_left_size = (layer < ndim - 1) ? left_in.get_layer_size(layer+1) : 2;
-      std::vector<size_t> left_counts(next_left_size);
-      assert(left_counts[0] == 0);
-      assert(left_counts[left_counts.size() - 1] == 0);
+      profile.tic("forward pairs");
 
-      for(size_t i = 0; i < forward_size; ++i)
+      for(size_t i_high = 0; i_high < curr_layer.size(); ++i_high)
 	{
-	  const std::pair<dfa_state_t, dfa_state_t>& forward_pair = current_pairs[i];
-
-	  const DFATransitions& left_transitions = left_in.get_transitions(layer, std::get<0>(forward_pair));
-
-	  for(int j = 0; j < layer_shape; ++j)
+	  uint64_t m64 = curr_layer[i_high];
+	  if(m64)
 	    {
-	      left_counts[left_transitions[j]] += 1;
-	    }
-	}
-
-      std::vector<size_t> left_edges(next_left_size + 1);
-      left_edges[0] = 0;
-      for(size_t k = 0; k < next_left_size; ++k)
-	{
-	  left_edges[k+1] = left_edges[k] + left_counts[k];
-	}
-      assert(left_edges[next_left_size] == current_children.size());
-
-      std::vector<size_t> left_todo(next_left_size);
-      for(size_t k = 0; k < next_left_size; ++k)
-	{
-	  left_todo[k] = left_edges[k];
-	}
-
-      profile.tic("forward partition left");
-
-      // build forward children already sorted by left child.
-      // basically combining counting sort with the creation.
-
-      for(size_t i = 0; i < forward_size; ++i)
-	{
-	  const std::pair<dfa_state_t, dfa_state_t>& forward_pair = current_pairs[i];
-
-	  const DFATransitions& left_transitions = left_in.get_transitions(layer, std::get<0>(forward_pair));
-
-	  for(int j = 0; j < layer_shape; ++j)
-	    {
-	      auto left = left_transitions[j];
-	      BinaryDFAForwardChild& forward_child = current_children[left_todo[left]++];
-	      forward_child.i = i;
-	      forward_child.j = j;
-	    }
-	}
-#if 0
-      std::cout << "layer[" << layer << "] forward children = " << current_children.size() << std::endl;
-#endif
-
-      profile.tic("forward partition right");
-      size_t next_right_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
-
-#if 0
-      double right_factor = double(next_left_size) * double(next_right_size) / double(current_children.size());
-      std::cout << "layer[" << layer << "] right factor = " << right_factor << std::endl;
-#endif
-
-#if 0
-      std::cout << "layer[" << layer << "] pairs = " << current_pairs.size() << " => children = " << current_children.size() << " from " << next_left_size << " x " << next_right_size << " => current length = " << current_children.length() << " vs bit vector length = " << (((next_left_size * next_right_size + 63) / 64) * sizeof(uint64_t)) << std::endl;
-#endif
-
-      std::vector<dfa_state_t> right_to_dense(next_right_size);
-      std::vector<dfa_state_t> dense_to_right(next_right_size);
-
-      for(size_t l = 0; l < next_left_size; ++l)
-	{
-	  size_t left_count = left_edges[l + 1] - left_edges[l];
-	  if(left_count == 0)
-	    {
-	      continue;
-	    }
-
-	  if(left_count < next_right_size / 2)
-	    {
-	      // sparse case
-#if 0
-	      std::cout << "sparse " << left_count << " vs " << next_right_size << std::endl;
-#endif
-
-	      // map to dense mapping to run linear in left_count
-	      // instead of linear in next_right_size.
-
-	      dfa_state_t dense_size = 0;
-
-	      // map right values to dense ids, and count the dense ids
-	      for(size_t k = left_edges[l]; k < left_edges[l+1]; ++k)
+	      for(size_t i_low = 0; i_low < 64; ++i_low)
 		{
-		  dfa_state_t right = GET_RIGHT(current_children[k]);
-		  dfa_state_t dense_id = right_to_dense[right];
-		  if((dense_id >= dense_size) || (dense_to_right[dense_id] != right))
+		  if(m64 & (1ULL << i_low))
 		    {
-		      // new right value
-		      dense_id = right_to_dense[right] = dense_size++;
-		      dense_to_right[dense_id] = right;
+		      size_t curr_i = i_high * 64 + i_low;
+		      assert(curr_i < curr_left_size * curr_right_size);
+		      dfa_state_t curr_left_state = curr_i / curr_right_size;
+		      dfa_state_t curr_right_state = curr_i % curr_right_size;
+
+		      const DFATransitions& left_transitions = left_in.get_transitions(layer, curr_left_state);
+		      const DFATransitions& right_transitions = right_in.get_transitions(layer, curr_right_state);
+
+		      for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
+			{
+			  size_t next_left_state = left_transitions.at(curr_j);
+			  assert(next_left_state < next_left_size);
+			  size_t next_right_state = right_transitions.at(curr_j);
+			  assert(next_right_state < next_right_size);
+			  size_t next_i = next_left_state * next_right_size + next_right_state;
+
+			  size_t next_i_high = next_i / 64;
+			  size_t next_i_low = next_i % 64;
+			  next_layer[next_i_high] |= 1ULL << next_i_low;}
 		    }
 		}
-
-	      // sort by dense mapping of right children. will not be
-	      // sorted overall, but matching left/right pairs will be
-	      // together.
-
-	      flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>
-		(
-		 current_children.begin() + left_edges[l],
-		 current_children.begin() + left_edges[l+1],
-		 [&](const BinaryDFAForwardChild& v)
-		 {
-		   return right_to_dense.at(GET_RIGHT(v));
-		 }
-		 );
-	    }
-	  else
-	    {
-	      // dense case
-#if 0
-	      std::cout << "dense " << left_count << " vs " << next_right_size << std::endl;
-#endif
-
-	      flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>
-		(
-		 current_children.begin() + left_edges[l],
-		 current_children.begin() + left_edges[l+1],
-		 [&](const BinaryDFAForwardChild& v)
-		 {
-		   return GET_RIGHT(v);
-		 }
-		 );
-
-#ifdef PARANOIA
-	      for(size_t k = left_edges[l]; k + 1 < left_edges[l+1]; ++k)
-		{
-		  assert(GET_LEFT(current_children[k]) == GET_LEFT(current_children[k+1]));
-		  assert(GET_RIGHT(current_children[k]) <= GET_RIGHT(current_children[k+1]));
-		}
-#endif
 	    }
 	}
-
-      profile.tic("forward logical mmap");
-
-      forward_children_logical.emplace_back(forward_size * layer_shape);
-      MemoryMap<size_t>& current_children_logical = forward_children_logical.at(layer);
-
-      profile.tic("forward dedupe and logical");
-
-      std::vector<std::pair<dfa_state_t, dfa_state_t>> next_pairs;
-      size_t current_logical = 0;
-      for(size_t l = 0; l < next_left_size; ++l)
-	{
-	  if(left_edges[l] == left_edges[l+1])
-	    {
-	      // no children with this left state
-	      continue;
-	    }
-
-	  const BinaryDFAForwardChild& first_child = current_children[left_edges[l]];
-	  next_pairs.emplace_back(l, GET_RIGHT(first_child));
-	  current_children_logical[first_child.i * layer_shape + first_child.j] = current_logical;
-
-	  for(size_t k = left_edges[l] + 1; k < left_edges[l+1]; ++k)
-	    {
-	      const BinaryDFAForwardChild& current_child = current_children[k];
-	      if(GET_RIGHT(current_children[k-1]) != GET_RIGHT(current_child))
-		{
-		  next_pairs.emplace_back(l, GET_RIGHT(current_child));
-		  ++current_logical;
-		}
-	      current_children_logical[current_child.i * layer_shape + current_child.j] = current_logical;
-	    }
-
-	  // done with this left value
-	  ++current_logical;
-	}
-      assert(current_logical == next_pairs.size());
-      assert(next_pairs.size() <= next_left_size * next_right_size);
-
-#if 0
-      std::cout << "layer[" << layer << "] next pairs = " << next_pairs.size() << std::endl;
-#endif
-
-      std::swap(current_pairs, next_pairs);
-
-      // cleanup in destructors
-      profile.tic("forward cleanup");
-
-#undef GET_RIGHT
     }
+
+  assert(pairs_by_layer.size() == ndim + 1);
 
   // apply leaf function
 
-  profile.tic("forward leaves");
+  profile.tic("leaves");
 
-  std::vector<size_t> backward_mapping;
+  MemoryMap<uint64_t>& leaf_pairs = pairs_by_layer.at(ndim);
+  assert(leaf_pairs.size() == 1);
 
-  for(size_t i = 0; i < current_pairs.size(); ++i)
+  uint64_t leaf_mask = leaf_pairs[0];
+  assert(leaf_mask < (1 << 4));
+
+  std::vector<dfa_state_t> next_pair_mapping;
+  for(int leaf_i = 0; leaf_i < 4; ++leaf_i)
     {
-      const std::pair<dfa_state_t, dfa_state_t>& leaf_pair = current_pairs[i];
-      backward_mapping.emplace_back(leaf_func(std::get<0>(leaf_pair), std::get<1>(leaf_pair)));
+      if(leaf_mask & (1ULL << leaf_i))
+	{
+	  size_t leaf_left_state = leaf_i / 2;
+	  size_t leaf_right_state = leaf_i % 2;
+	  next_pair_mapping.emplace_back(leaf_func(leaf_left_state, leaf_right_state));
+	}
     }
 
   // backward pass
 
   for(int layer = ndim - 1; layer >= 0; --layer)
     {
-#if 0
-      std::cout << "layer[" << layer << "] backward" << std::endl;
-#endif
       profile.tic("backward init");
 
-      assert(backward_mapping.size() > 0);
+      assert(next_pair_mapping.size() > 0);
 
-      // apply previous mapping to previously sorted children
+      MemoryMap<uint64_t>& curr_layer = pairs_by_layer.at(layer);
+      std::vector<dfa_state_t> curr_pair_mapping;
 
-      MemoryMap<size_t>& current_children_logical = forward_children_logical[layer];
+      size_t curr_left_size = left_in.get_layer_size(layer);
+      size_t curr_right_size = right_in.get_layer_size(layer);
 
-      // reconstitute transitions
+      profile.tic("backward index");
 
-      profile.tic("backward transitions");
+      size_t next_right_size = right_in.get_layer_size(layer + 1);
+      MemoryMap<uint64_t>& next_layer = pairs_by_layer.at(layer + 1);
+      MemoryMap<size_t> next_index(next_layer.size() + 1);
 
-      size_t mapped_size = current_children_logical.size();
-      std::vector<dfa_state_t> combined_transitions(mapped_size);
-
-      for(size_t k = 0; k < mapped_size; ++k)
+      next_index[0] = 0;
+      for(int i = 1; i <= next_layer.size(); ++i)
 	{
-	  combined_transitions[k] = backward_mapping.at(current_children_logical[k]);
+	  next_index[i] = next_index[i - 1] + std::popcount(next_layer[i - 1]);
 	}
-
-      // add states for this layer
+      assert(next_index[next_layer.size()] == next_pair_mapping.size());
 
       profile.tic("backward states");
 
-      backward_mapping.clear();
-      int layer_shape = this->get_layer_shape(layer);
-      size_t output_size = mapped_size / layer_shape;
-      for(size_t i = 0; i < output_size; ++i)
+      for(size_t i_high = 0; i_high < curr_layer.size(); ++i_high)
 	{
-	  DFATransitions transitions(layer_shape);
-	  for(int j = 0; j < layer_shape; ++j)
+	  uint64_t m64 = curr_layer[i_high];
+	  if(m64)
 	    {
-	      transitions[j] = combined_transitions.at(i * layer_shape + j);
+	      for(size_t i_low = 0; i_low < 64; ++i_low)
+		{
+		  if(m64 & (1ULL << i_low))
+		    {
+		      size_t curr_i = i_high * 64 + i_low;
+		      dfa_state_t curr_left_state = curr_i / curr_right_size;
+		      dfa_state_t curr_right_state = curr_i % curr_right_size;
+
+		      assert(curr_left_state < curr_left_size);
+
+		      const DFATransitions& left_transitions = left_in.get_transitions(layer, curr_left_state);
+		      const DFATransitions& right_transitions = right_in.get_transitions(layer, curr_right_state);
+
+		      curr_pair_mapping.emplace_back(this->add_state(layer, [&](int j)
+		      {
+			size_t next_left_state = left_transitions.at(j);
+			size_t next_right_state = right_transitions.at(j);
+			size_t next_i = next_left_state * next_right_size + next_right_state;
+
+			size_t next_i_high = next_i >> 6;
+			size_t next_i_low = next_i & 0x3f;
+
+			size_t next_logical = next_index[next_i_high] + std::popcount(next_layer[next_i_high] & ((1ULL << next_i_low) - 1));
+			return next_pair_mapping.at(next_logical);
+		      }));
+		    }
+		}
 	    }
-	  backward_mapping.push_back(this->add_state(layer, transitions));
 	}
+      next_pair_mapping.clear();
+      std::swap(next_pair_mapping, curr_pair_mapping);
+
+      assert(next_pair_mapping.size() > 0);
+      assert(curr_pair_mapping.size() == 0);
 
       // cleanup in destructors
       profile.tic("backward cleanup");
     }
 
-  assert(backward_mapping.size() == 1);
-  this->set_initial_state(backward_mapping[0]);
+  assert(next_pair_mapping.size() == 1);
+  this->set_initial_state(next_pair_mapping[0]);
 
   assert(this->ready());
   profile.tic("final cleanup");

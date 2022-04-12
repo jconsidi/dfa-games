@@ -132,8 +132,3 @@ void flashsort_permutation(T *begin, T *end, std::function<K(const T&)> key_func
 }
 
 // template instantiations
-
-#include "BinaryDFA.h"
-#include "DFA.h"
-
-template void flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>(BinaryDFAForwardChild *begin, BinaryDFAForwardChild *end, std::function<dfa_state_t(const BinaryDFAForwardChild&)> key_func);

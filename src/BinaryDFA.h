@@ -22,10 +22,4 @@ public:
   BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>&, leaf_func_t);
 };
 
-struct BinaryDFAForwardChild
-{
-  int i;
-  int j;
-};
-
 #endif
