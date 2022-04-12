@@ -232,7 +232,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  if(left_count < next_right_size / 2)
 	    {
 	      // sparse case
+#if 0
 	      std::cout << "sparse " << left_count << " vs " << next_right_size << std::endl;
+#endif
 
 	      // map to dense mapping to run linear in left_count
 	      // instead of linear in next_right_size.
@@ -269,7 +271,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  else
 	    {
 	      // dense case
+#if 0
 	      std::cout << "dense " << left_count << " vs " << next_right_size << std::endl;
+#endif
 
 	      flashsort_permutation<BinaryDFAForwardChild, dfa_state_t>
 		(
