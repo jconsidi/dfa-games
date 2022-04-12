@@ -204,12 +204,20 @@ template<int ndim, int... shape_pack>
 int DFA<ndim, shape_pack...>::get_layer_shape(int layer) const
 {
   assert((0 <= layer) && (layer < ndim));
-  return shape[layer];
+
+  return shape.at(layer);
 }
 
 template<int ndim, int... shape_pack>
 dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
 {
+  assert(layer <= ndim);
+
+  if(layer == ndim)
+    {
+      return 2;
+    }
+
   return state_transitions[layer].size();
 }
 
