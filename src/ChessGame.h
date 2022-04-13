@@ -33,9 +33,7 @@ private:
   virtual shared_dfa_ptr get_lost_positions_internal(int) const;
 
   shared_dfa_ptr get_basic_positions() const;
-#if CHESS_SQUARE_OFFSET == 2
   shared_dfa_ptr get_king_positions(int) const;
-#endif
 
 public:
 

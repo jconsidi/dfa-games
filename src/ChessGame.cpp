@@ -8,6 +8,7 @@
 
 #include "BetweenMasks.h"
 #include "ChessBoardDFA.h"
+#include "CountCharacterDFA.h"
 #include "MoveSet.h"
 
 static bool chess_default_rule(int layer, int old_value, int new_value)
@@ -185,10 +186,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	}
 
       // king restrictions
-#if CHESS_SQUARE_OFFSET == 2
       requirements.push_back(get_king_positions(0));
       requirements.push_back(get_king_positions(1));
-#endif
 
       std::cout << "get_basic_positions() => " << requirements.size() << " requirements" << std::endl;
 
@@ -207,9 +206,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
     {
       std::cout << "ChessGame::get_check_positions(" << checked_side << ")" << std::endl;
 
-#if CHESS_SQUARE_OFFSET == 2
       shared_dfa_ptr king_positions = get_king_positions(checked_side);
-#endif
       int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
       std::vector<shared_dfa_ptr> checks;
@@ -217,9 +214,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
 	{
 	  std::vector<shared_dfa_ptr> square_requirements;
 	  square_requirements.emplace_back(new fixed_dfa_type(square + CHESS_SQUARE_OFFSET, king_character));
-#if CHESS_SQUARE_OFFSET == 2
 	  square_requirements.push_back(king_positions); // makes union much cheaper below
-#endif
 	  square_requirements.push_back(get_threat_positions(checked_side, square));
 
 	  checks.emplace_back(new intersection_dfa_type(square_requirements));
@@ -233,7 +228,6 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
   return singletons[checked_side];
 }
 
-#if CHESS_SQUARE_OFFSET == 2
 typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) const
 {
   static shared_dfa_ptr singletons[2] = {0, 0};
@@ -243,6 +237,9 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 
       int king_character = (king_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
+#if CHESS_SQUARE_OFFSET == 0
+      singletons[king_side] = shared_dfa_ptr(new CountCharacterDFA<CHESS_DFA_PARAMS>(king_character, 1));
+#elif CHESS_SQUARE_OFFSET == 2
       std::vector<shared_dfa_ptr> king_choices;
       for(int king_square = 0; king_square < 64; ++king_square)
 	{
@@ -282,11 +279,12 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 
       std::cout << "ChessGame::get_king_positions(" << king_side << ") => " << singletons[king_side]->size() << " positions, " << singletons[king_side]->states() << " states" << std::endl;
       assert(singletons[king_side]->size() > 0);
+#else
+#error
+#endif
     }
-
   return singletons[king_side];
 }
-#endif
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatened_side, int threatened_square) const
 {
