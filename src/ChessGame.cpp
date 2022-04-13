@@ -10,6 +10,7 @@
 #include "ChessBoardDFA.h"
 #include "CountCharacterDFA.h"
 #include "MoveSet.h"
+#include "Profile.h"
 
 static bool chess_default_rule(int layer, int old_value, int new_value)
 {
@@ -112,7 +113,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
   static shared_dfa_ptr singleton;
   if(!singleton)
     {
-      std::cout << "ChessGame::get_basic_positions()" << std::endl;
+      Profile profile("ChessGame::get_basic_positions()");
+      profile.tic("singleton");
 
       std::vector<shared_dfa_ptr> requirements;
       std::function<void(ChessDFA *)> add_requirement = [&](ChessDFA *requirement)
@@ -204,7 +206,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[checked_side])
     {
-      std::cout << "ChessGame::get_check_positions(" << checked_side << ")" << std::endl;
+      Profile profile(std::ostringstream() << "ChessGame::get_check_positions(" << checked_side << ")");
+      profile.tic("singleton");
 
       shared_dfa_ptr king_positions = get_king_positions(checked_side);
       int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
@@ -233,7 +236,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[king_side])
     {
-      std::cout << "ChessGame::get_king_positions(" << king_side << ")" << std::endl;
+      Profile profile(std::ostringstream() << "ChessGame::get_king_positions(" << king_side << ")");
+      profile.tic("singleton");
 
       int king_character = (king_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
