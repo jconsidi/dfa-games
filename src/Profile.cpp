@@ -12,6 +12,11 @@ Profile::Profile(std::string name_in)
 {
 }
 
+Profile::Profile(const std::ostringstream& oss)
+  : Profile(oss.str())
+{
+}
+
 Profile::~Profile()
 {
   tic("done");

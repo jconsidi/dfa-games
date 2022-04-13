@@ -4,6 +4,7 @@
 #define PROFILE_H
 
 #include <chrono>
+#include <sstream>
 #include <string>
 
 class Profile
@@ -15,6 +16,7 @@ class Profile
  public:
 
   Profile(std::string);
+  Profile(const std::ostringstream&);
   ~Profile();
 
   void tic(std::string);
