@@ -27,7 +27,9 @@ void Profile::tic(std::string label_in)
       std::cout << name << " " << last_label << " took " << diff.count() << "s" << std::endl;
     }
 
+#if 0
   std::cout << name << " " << label_in << " starting" << std::endl;
+#endif
   last_label = label_in;
   last_time = std::chrono::steady_clock::now();
 }

@@ -136,7 +136,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   for(int layer = 0; layer < ndim; ++layer)
     {
+#if 0
       std::cout << "layer[" << layer << "] forward" << std::endl;
+#endif
       profile.tic("forward init");
 
 #define GET_LEFT(child) (left_in.get_transitions(layer, std::get<0>(current_pairs[child.i]))[child.j])
@@ -145,7 +147,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       int layer_shape = this->get_layer_shape(layer);
       size_t forward_size = current_pairs.size();
 
+#if 0
       std::cout << "layer[" << layer << "] forward pairs = " << current_pairs.size() << " vs " << left_in.get_layer_size(layer) << " x " << right_in.get_layer_size(layer) << " = " << (left_in.get_layer_size(layer) * right_in.get_layer_size(layer)) << std::endl;
+#endif
       assert(current_pairs.size() <= left_in.get_layer_size(layer) * right_in.get_layer_size(layer));
 
       profile.tic("forward mmap");
@@ -208,15 +212,21 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	      forward_child.j = j;
 	    }
 	}
+#if 0
       std::cout << "layer[" << layer << "] forward children = " << current_children.size() << std::endl;
+#endif
 
       profile.tic("forward partition right");
       size_t next_right_size = (layer < ndim - 1) ? right_in.get_layer_size(layer+1) : 2;
 
+#if 0
       double right_factor = double(next_left_size) * double(next_right_size) / double(current_children.size());
       std::cout << "layer[" << layer << "] right factor = " << right_factor << std::endl;
+#endif
 
+#if 0
       std::cout << "layer[" << layer << "] pairs = " << current_pairs.size() << " => children = " << current_children.size() << " from " << next_left_size << " x " << next_right_size << " => current length = " << current_children.length() << " vs bit vector length = " << (((next_left_size * next_right_size + 63) / 64) * sizeof(uint64_t)) << std::endl;
+#endif
 
       std::vector<dfa_state_t> right_to_dense(next_right_size);
       std::vector<dfa_state_t> dense_to_right(next_right_size);
@@ -333,7 +343,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       assert(current_logical == next_pairs.size());
       assert(next_pairs.size() <= next_left_size * next_right_size);
 
+#if 0
       std::cout << "layer[" << layer << "] next pairs = " << next_pairs.size() << std::endl;
+#endif
 
       std::swap(current_pairs, next_pairs);
 
@@ -359,7 +371,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   for(int layer = ndim - 1; layer >= 0; --layer)
     {
+#if 0
       std::cout << "layer[" << layer << "] backward" << std::endl;
+#endif
       profile.tic("backward init");
 
       assert(backward_mapping.size() > 0);
