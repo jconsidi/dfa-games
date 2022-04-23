@@ -55,8 +55,27 @@ int test()
       current_size = current_positions->size();
       current_states = current_positions->states();
 
-      std::cout << "  ply " << (previous_ply + 1) << ": " << current_size << " positions, " << current_states << " states" << std::endl;
+      int current_ply = previous_ply + 1;
+      std::cout << "  ply " << current_ply << ": " << current_size << " positions, " << current_states << " states" << std::endl;
       assert(current_size == expected_size);
+
+      if(!previous_wins)
+	{
+	  // if no previous wins, then can trivially construct the
+	  // possible boards by counting pieces.
+
+	  int moves_0 = (current_ply + 1) / 2;
+	  int moves_1 = (current_ply + 0) / 2;
+	  std::cout << "  calculating expected positions using " << moves_0 << "," << moves_1 << std::endl;
+
+	  typename T::shared_dfa_ptr expected_positions(new typename T::intersection_dfa_type(typename T::count_character_dfa_type(0 + 1, moves_0),
+											      typename T::count_character_dfa_type(1 + 1, moves_1)));
+	  std::cout << "  expected positions => " << expected_positions->size() << std::endl;
+	  assert(expected_positions->size() == expected_size);
+
+	  typename T::shared_dfa_ptr difference(new typename T::difference_dfa_type(*expected_positions, *current_positions));
+	  assert(difference->size() == 0);
+	}
 
       if(current_size == 0)
 	{

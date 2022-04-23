@@ -9,6 +9,7 @@
 
 #include "AcceptDFA.h"
 #include "ChangeDFA.h"
+#include "CountCharacterDFA.h"
 #include "DFA.h"
 #include "DifferenceDFA.h"
 #include "FixedDFA.h"
@@ -27,6 +28,7 @@ public:
 
   typedef AcceptDFA<ndim, shape_pack...> accept_dfa_type;
   typedef ChangeDFA<ndim, shape_pack...> change_dfa_type;
+  typedef CountCharacterDFA<ndim, shape_pack...> count_character_dfa_type;
   typedef DifferenceDFA<ndim, shape_pack...> difference_dfa_type;
   typedef FixedDFA<ndim, shape_pack...> fixed_dfa_type;
   typedef IntersectionDFA<ndim, shape_pack...> intersection_dfa_type;
