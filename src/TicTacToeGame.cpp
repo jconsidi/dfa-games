@@ -2,6 +2,49 @@
 
 #include "TicTacToeGame.h"
 
+#include <sstream>
+
+template<int n, int... shape_pack>
+std::string TicTacToeGame<n, shape_pack...>::position_to_string(const position_type& position_in)
+{
+  std::ostringstream builder;
+
+  int index = 0;
+  for(int row = 0; row < n; ++row)
+    {
+      for(int col = 0; col < n; ++col, ++index)
+	{
+	  int c = position_in[index];
+	  if(c == 0)
+	    {
+	      builder << " ";
+	    }
+	  else
+	    {
+	      builder << (c - 1);
+	    }
+
+	  if(col + 1 < n)
+	    {
+	      builder << "|";
+	    }
+	}
+      builder << std::endl;
+
+      if(row + 1 < n)
+	{
+	  for(int i = 0; i < 2 * n - 1; ++i)
+	    {
+	      builder << ((i % 2 == 0) ? "-" : "+");
+	    }
+	  builder << std::endl;
+	}
+    }
+  assert(index == n * n);
+
+  return builder.str();
+}
+
 template<int n, int... shape_pack>
 typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_initial_positions_internal() const
 {

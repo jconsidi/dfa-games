@@ -24,6 +24,7 @@ class Game
 public:
 
   typedef DFA<ndim, shape_pack...> dfa_type;
+  typedef DFAString<ndim, shape_pack...> position_type;
   typedef std::shared_ptr<const dfa_type> shared_dfa_ptr;
 
   typedef AcceptDFA<ndim, shape_pack...> accept_dfa_type;

@@ -46,6 +46,20 @@ struct DFATransitionsCompare
 typedef std::map<DFATransitions, dfa_state_t, DFATransitionsCompare> DFATransitionsMap;
 
 template <int ndim, int... shape_pack>
+class DFAString
+{
+  std::vector<int> characters;
+
+public:
+
+  DFAString(const std::vector<int>& characters_in);
+  int operator[](int) const;
+};
+
+template <int ndim, int... shape_pack>
+class DFAIterator;
+
+template <int ndim, int... shape_pack>
 class DFA
 {
   std::vector<int> shape = {};
@@ -70,6 +84,9 @@ class DFA
 
   ~DFA();
 
+  DFAIterator<ndim, shape_pack...> cbegin() const;
+  DFAIterator<ndim, shape_pack...> cend() const;
+
   void debug_example(std::ostream&) const;
 
   dfa_state_t get_initial_state() const;
@@ -80,6 +97,24 @@ class DFA
   bool ready() const;
   double size() const;
   size_t states() const;
+};
+
+template <int ndim, int... shape_pack>
+class DFAIterator
+{
+  friend class DFA<ndim, shape_pack...>;
+
+  std::vector<int> shape;
+  const DFA<ndim, shape_pack...>& dfa;
+  std::vector<int> characters;
+
+  DFAIterator(const DFA<ndim, shape_pack...>& dfa_in, const std::vector<int>& characters_in);
+
+public:
+
+  DFAString<ndim, shape_pack...> operator*() const;
+  DFAIterator& operator++(); // prefix ++
+  bool operator<(const DFAIterator&) const;
 };
 
 #define TEST_DFA_PARAMS 4, 1, 2, 3, 4

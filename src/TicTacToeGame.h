@@ -3,6 +3,8 @@
 #ifndef TICTACTOE_GAME_H
 #define TICTACTOE_GAME_H
 
+#include <string>
+
 #include "AcceptDFA.h"
 #include "FixedDFA.h"
 #include "InverseDFA.h"
@@ -24,6 +26,7 @@ template<int n, int... shape_pack>
  public:
 
   typedef typename Game<n*n, shape_pack...>::dfa_type dfa_type;
+  typedef typename Game<n*n, shape_pack...>::position_type position_type;
   typedef typename Game<n*n, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
   typedef typename Game<n*n, shape_pack...>::rule_vector rule_vector;
 
@@ -37,6 +40,8 @@ template<int n, int... shape_pack>
   static shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta);
 
  public:
+
+  static std::string position_to_string(const position_type&);
 
   virtual const rule_vector& get_rules(int) const;
 };
