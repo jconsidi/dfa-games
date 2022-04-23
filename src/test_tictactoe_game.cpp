@@ -41,18 +41,13 @@ int test()
       typename T::shared_dfa_ptr previous_positions = current_positions;
       int previous_size = current_size;
 
+      bool previous_wins_expected = previous_ply >= n + (n - 1);
+
       typename T::shared_dfa_ptr just_lost_positions(new typename T::intersection_dfa_type(*(lost_positions[side_to_move]),
 											   *previous_positions));
       int just_lost_size = just_lost_positions->size();
-      if((previous_ply + 1) / 2 >= n)
-	{
-	  // other player had enough moves for a win
-	  assert(just_lost_size > 0);
-	}
-      else
-	{
-	  assert(just_lost_size == 0);
-	}
+      bool previous_wins = just_lost_size > 0;
+      assert(previous_wins == previous_wins_expected);
 
       int expected_size = (previous_size - just_lost_size) * (n2 - previous_ply) / (previous_ply / 2 + 1);
 
