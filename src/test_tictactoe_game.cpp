@@ -34,7 +34,7 @@ int test()
   typename T::shared_dfa_ptr current_positions = initial_positions;
   int current_size = current_positions->size();
   int current_states = current_positions->states();
-  for(int previous_ply = 0; previous_ply < 2 * n; ++previous_ply)
+  for(int previous_ply = 0; previous_ply <= n * n; ++previous_ply)
     {
       int side_to_move = previous_ply % 2;
 
@@ -49,36 +49,46 @@ int test()
       bool previous_wins = just_lost_size > 0;
       assert(previous_wins == previous_wins_expected);
 
-      int expected_size = (previous_size - just_lost_size) * (n2 - previous_ply) / (previous_ply / 2 + 1);
+      int current_ply = previous_ply + 1;
 
       current_positions = tictactoe.get_moves_forward(side_to_move, current_positions);
       current_size = current_positions->size();
       current_states = current_positions->states();
 
-      int current_ply = previous_ply + 1;
       std::cout << "  ply " << current_ply << ": " << current_size << " positions, " << current_states << " states" << std::endl;
-      assert(current_size == expected_size);
+
+      // move counts by side after current move
+      int moves_0 = (current_ply + 1) / 2;
+      int moves_1 = (current_ply + 0) / 2;
+      int moves_this_side = (side_to_move == 0) ? moves_0 : moves_1;
+
+      // construct bounding set based on just piece counts. if there were no wins yet, this will be exact.
+      typename T::shared_dfa_ptr count_positions(new typename T::intersection_dfa_type(typename T::count_character_dfa_type(0 + 1, moves_0),
+										       typename T::count_character_dfa_type(1 + 1, moves_1)));
+
+      // make sure no boards have the wrong number of moves by each side.
+      typename T::shared_dfa_ptr wrong_counts(new typename T::difference_dfa_type(*current_positions, *count_positions));
+      assert(wrong_counts->size() == 0);
 
       if(!previous_wins)
 	{
-	  // if no previous wins, then can trivially construct the
-	  // possible boards by counting pieces.
+	  // if no previous wins, then the count positions are exactly
+	  // the expected positions.
 
-	  int moves_0 = (current_ply + 1) / 2;
-	  int moves_1 = (current_ply + 0) / 2;
-	  std::cout << "  calculating expected positions using " << moves_0 << "," << moves_1 << std::endl;
-
-	  typename T::shared_dfa_ptr expected_positions(new typename T::intersection_dfa_type(typename T::count_character_dfa_type(0 + 1, moves_0),
-											      typename T::count_character_dfa_type(1 + 1, moves_1)));
-	  std::cout << "  expected positions => " << expected_positions->size() << std::endl;
-	  assert(expected_positions->size() == expected_size);
-
-	  typename T::shared_dfa_ptr difference(new typename T::difference_dfa_type(*expected_positions, *current_positions));
-	  assert(difference->size() == 0);
+	  assert(current_size == count_positions->size());
+	}
+      else if(moves_this_side <= n)
+	{
+	  // this formula only works up to n moves by the side, since
+	  // a win on this move could be permutated to winning
+	  // earlier.
+	  int expected_size = (previous_size - just_lost_size) * (n2 - previous_ply) / moves_this_side;
+	  assert(current_size == expected_size);
 	}
 
       if(current_size == 0)
 	{
+	  // stop if no more games going this long
 	  break;
 	}
     }
