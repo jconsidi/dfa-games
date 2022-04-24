@@ -39,14 +39,14 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_p
 
   // pre-cache rejects
 
-  for(int layer = 1; layer < ndim; ++layer)
+  for(int layer = 0; layer < ndim; ++layer)
     {
       change_cache[layer][0] = 0;
     }
 
   // trigger whole change process
 
-  this->change_state(0, 0);
+  this->set_initial_state(this->change_state(0, dfa_in.get_initial_state()));
 
   assert(this->ready());
 

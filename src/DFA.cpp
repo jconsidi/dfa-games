@@ -54,18 +54,6 @@ dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions&
   assert((0 <= layer) && (layer < ndim));
   assert(next_states.size() == this->shape[layer]);
 
-  if(layer == 0)
-    {
-      // only one initial state allowed
-      if(state_transitions[0].size() > 0)
-	{
-	  throw std::logic_error("tried to add second initial state");
-	}
-
-      delete[] state_lookup;
-      state_lookup = 0;
-    }
-
   // state range checks
 
   size_t layer_shape = this->shape[layer];
@@ -88,13 +76,10 @@ dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions&
 	}
     }
 
-  if(layer > 0)
+  auto search = this->state_lookup[layer].find(next_states);
+  if(search != this->state_lookup[layer].end())
     {
-      auto search = this->state_lookup[layer].find(next_states);
-      if(search != this->state_lookup[layer].end())
-	{
-	  return search->second;
-	}
+      return search->second;
     }
 
   // add new state
@@ -104,10 +89,7 @@ dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions&
 
   assert(this->state_transitions[layer].size() == (new_state_id + 1));
 
-  if(layer > 0)
-    {
-      this->state_lookup[layer][next_states] = new_state_id;
-    }
+  this->state_lookup[layer][next_states] = new_state_id;
 
   return new_state_id;
 }
@@ -129,7 +111,7 @@ dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, std::function<dfa_sta
 template<int ndim, int... shape_pack>
 void DFA<ndim, shape_pack...>::add_uniform_states()
 {
-  for(int layer = ndim - 1; layer >= 1; --layer)
+  for(int layer = ndim - 1; layer >= 0; --layer)
     {
       dfa_state_t reject_state = add_state(layer, [](int i){return 0;});
       assert(reject_state == 0);
@@ -137,6 +119,19 @@ void DFA<ndim, shape_pack...>::add_uniform_states()
       dfa_state_t accept_state = add_state(layer, [](int i){return 1;});
       assert(accept_state == 1);
     }
+}
+
+template<int ndim, int... shape_pack>
+void DFA<ndim, shape_pack...>::set_initial_state(dfa_state_t initial_state_in)
+{
+  assert(initial_state == ~dfa_state_t(0));
+
+  assert(initial_state_in < state_transitions[0].size());
+  initial_state = initial_state_in;
+
+  // block further state creation
+  delete[] state_lookup;
+  state_lookup = 0;
 }
 
 template<int ndim, int... shape_pack>
@@ -199,6 +194,13 @@ void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
 }
 
 template<int ndim, int... shape_pack>
+dfa_state_t DFA<ndim, shape_pack...>::get_initial_state() const
+{
+  assert(initial_state != ~dfa_state_t(0));
+  return initial_state;
+}
+
+template<int ndim, int... shape_pack>
 int DFA<ndim, shape_pack...>::get_layer_shape(int layer) const
 {
   assert((0 <= layer) && (layer < ndim));
@@ -226,7 +228,7 @@ bool DFA<ndim, shape_pack...>::ready() const
 template<int ndim, int... shape_pack>
 double DFA<ndim, shape_pack...>::size() const
 {
-  assert(state_transitions[0].size() == 1);
+  assert(initial_state != ~dfa_state_t(0));
 
   std::vector<double> previous_counts({0, 1}); // reject, accept
   for(int layer = ndim - 1; layer >= 0; --layer)
@@ -249,9 +251,7 @@ double DFA<ndim, shape_pack...>::size() const
       previous_counts = current_counts;
     }
 
-  assert(previous_counts.size() == 1);
-
-  return previous_counts[0];
+  return previous_counts.at(initial_state);
 }
 
 template<int ndim, int... shape_pack>

@@ -42,6 +42,8 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in
 	  logical_states[layer].push_back(this->add_state(layer, next_states));
 	}
     }
+
+  this->set_initial_state(logical_states[0].at(0));
 }
 
 // template instantiations

@@ -171,8 +171,10 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
 
   // white king index layer
   int white_king_accept_index = add_accept(0, white_king_position);
-  assert(white_king_accept_index == 0);
+  assert(white_king_accept_index == 2);
 #endif
+
+  this->set_initial_state(2);
 
   assert(this->size() == 1);
 }

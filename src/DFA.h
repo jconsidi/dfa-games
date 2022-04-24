@@ -55,6 +55,8 @@ class DFA
 
   DFATransitionsMap *state_lookup = 0;
 
+  dfa_state_t initial_state = ~dfa_state_t(0);
+
  protected:
 
   DFA();
@@ -62,6 +64,7 @@ class DFA
   dfa_state_t add_state(int, const DFATransitions&);
   dfa_state_t add_state(int, std::function<dfa_state_t(int)>);
   void add_uniform_states();
+  void set_initial_state(dfa_state_t);
 
  public:
 
@@ -69,6 +72,7 @@ class DFA
 
   void debug_example(std::ostream&) const;
 
+  dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   dfa_state_t get_layer_size(int) const;
   const DFATransitions& get_transitions(int, dfa_state_t) const;

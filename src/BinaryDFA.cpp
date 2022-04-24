@@ -50,6 +50,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 		assert(new_state_index == state_index);
 	      }
 	  }
+	this->set_initial_state(source->get_initial_state());
 	return;
       }
 
@@ -127,7 +128,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
   Profile profile("binary_build");
 
   std::vector<std::pair<dfa_state_t, dfa_state_t>> current_pairs;
-  current_pairs.emplace_back(0, 0);
+  current_pairs.emplace_back(left_in.get_initial_state(), right_in.get_initial_state());
 
   // forward pass
 
@@ -414,6 +415,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       // cleanup in destructors
       profile.tic("backward cleanup");
     }
+
+  assert(backward_mapping.size() == 1);
+  this->set_initial_state(backward_mapping[0]);
 
   assert(this->ready());
   profile.tic("final cleanup");

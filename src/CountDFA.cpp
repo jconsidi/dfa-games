@@ -11,8 +11,6 @@
 template<int ndim, int... shape_pack>
 CountDFA<ndim, shape_pack...>::CountDFA(int num_pieces)
 {
-  this->add_uniform_states();
-
   // current layer states
 
   std::vector<dfa_state_t> current_layer_states;
@@ -41,6 +39,9 @@ CountDFA<ndim, shape_pack...>::CountDFA(int num_pieces)
 	  current_layer_states.push_back(this->add_state(layer, next_states));
 	}
     }
+
+  assert(current_layer_states.size() == 1);
+  this->set_initial_state(current_layer_states[0]);
 }
 
 // template instantiations

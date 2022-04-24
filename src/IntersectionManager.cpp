@@ -7,25 +7,16 @@
 template<int ndim, int... shape_pack>
 std::optional<bool> IntersectionManager<ndim, shape_pack...>::check_constant(typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
 {
-  int state_index = 0;
-  for(int layer = 0; layer < ndim; ++layer)
+  int initial_state = dfa_in->get_initial_state();
+  if(initial_state < 2)
     {
-      int layer_shape = dfa_in->get_layer_shape(layer);
-
-      const DFATransitions& transitions = dfa_in->get_transitions(layer, state_index);
-      for(int i = 1; i < layer_shape; ++i)
-	{
-	  if(transitions[i] != transitions[0])
-	    {
-	      // found a difference
-	      return std::optional<bool>();
-	    }
-
-	  state_index = transitions[0];
-	}
+      return std::optional<bool>(bool(initial_state));
     }
-
-  return std::optional<bool>(bool(state_index));
+  else
+    {
+      // found a difference
+      return std::optional<bool>();
+    }
 }
 
 template<int ndim, int... shape_pack>

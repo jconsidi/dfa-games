@@ -5,6 +5,13 @@
 template<int ndim, int... shape_pack>
 InverseDFA<ndim, shape_pack...>::InverseDFA(const DFA<ndim, shape_pack...>& dfa_in)
 {
+  if(dfa_in.get_initial_state() < 2)
+    {
+      // accept all or reject all input
+      this->set_initial_state(1 - dfa_in.get_initial_state());
+      return;
+    }
+
   // same transitions as original DFA, but final masks are inverted.
 
   int last_layer_size = dfa_in.get_layer_size(ndim - 1);
@@ -19,7 +26,7 @@ InverseDFA<ndim, shape_pack...>::InverseDFA(const DFA<ndim, shape_pack...>& dfa_
     {
       int layer_size = dfa_in.get_layer_size(layer);
 
-      for(int old_state_index = (layer > 0) ? 2 : 0; old_state_index < layer_size; ++old_state_index)
+      for(int old_state_index = 2; old_state_index < layer_size; ++old_state_index)
 	{
 	  const DFATransitions &old_transitions = dfa_in.get_transitions(layer, old_state_index);
 	  int new_state_index = this->add_state(layer, [&](int i)
@@ -38,6 +45,8 @@ InverseDFA<ndim, shape_pack...>::InverseDFA(const DFA<ndim, shape_pack...>& dfa_
 	  assert(new_state_index == old_state_index);
 	}
     }
+
+  this->set_initial_state(dfa_in.get_initial_state());
 }
 
 // template instantiations

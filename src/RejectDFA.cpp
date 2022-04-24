@@ -5,10 +5,7 @@
 template <int ndim, int... shape_pack>
 RejectDFA<ndim, shape_pack...>::RejectDFA()
 {
-  this->add_uniform_states();
-
-  // reject state at top
-  this->add_state(0, [](int i) {return 0;});
+  this->set_initial_state(0);
 }
 
 // template instantiations

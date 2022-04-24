@@ -5,16 +5,7 @@
 template <int ndim, int... shape_pack>
 AcceptDFA<ndim, shape_pack...>::AcceptDFA()
 {
-  this->add_uniform_states();
-
-  // accept state at top
-  int top_shape = this->get_layer_shape(0);
-  DFATransitions next_states(top_shape);
-  for(int i = 0; i < top_shape; ++i)
-    {
-      next_states[i] = 1;
-    }
-  this->add_state(0, next_states);
+  this->set_initial_state(1);
 }
 
 // template instantiations

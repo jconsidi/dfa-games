@@ -42,6 +42,9 @@ FixedDFA<ndim, shape_pack...>::FixedDFA(int fixed_square, int fixed_character)
     {
       next_state_id = this->add_state(layer, [=](int i){return next_state_id;});
     }
+
+  // done
+  this->set_initial_state(next_state_id);
 }
 
 // template instantiations
