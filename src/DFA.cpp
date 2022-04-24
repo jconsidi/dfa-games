@@ -497,19 +497,22 @@ int DFAString<ndim, shape_pack...>::operator[](int layer_in) const
 #include "TicTacToeGame.h"
 
 template class DFA<CHESS_DFA_PARAMS>;
-template class DFA<TEST_DFA_PARAMS>;
+template class DFA<TEST4_DFA_PARAMS>;
+template class DFA<TEST5_DFA_PARAMS>;
 template class DFA<TICTACTOE2_DFA_PARAMS>;
 template class DFA<TICTACTOE3_DFA_PARAMS>;
 template class DFA<TICTACTOE4_DFA_PARAMS>;
 
 template class DFAIterator<CHESS_DFA_PARAMS>;
-template class DFAIterator<TEST_DFA_PARAMS>;
+template class DFAIterator<TEST4_DFA_PARAMS>;
+template class DFAIterator<TEST5_DFA_PARAMS>;
 template class DFAIterator<TICTACTOE2_DFA_PARAMS>;
 template class DFAIterator<TICTACTOE3_DFA_PARAMS>;
 template class DFAIterator<TICTACTOE4_DFA_PARAMS>;
 
 template class DFAString<CHESS_DFA_PARAMS>;
-template class DFAString<TEST_DFA_PARAMS>;
+template class DFAString<TEST4_DFA_PARAMS>;
+template class DFAString<TEST5_DFA_PARAMS>;
 template class DFAString<TICTACTOE2_DFA_PARAMS>;
 template class DFAString<TICTACTOE3_DFA_PARAMS>;
 template class DFAString<TICTACTOE4_DFA_PARAMS>;

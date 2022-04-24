@@ -117,7 +117,7 @@ public:
   bool operator<(const DFAIterator&) const;
 };
 
-#define TEST_DFA_PARAMS 4, 1, 2, 3, 4
-typedef DFA<TEST_DFA_PARAMS> TestDFA;
+#define TEST4_DFA_PARAMS 4, 1, 2, 3, 4
+#define TEST5_DFA_PARAMS 5, 1, 2, 3, 4, 5
 
 #endif

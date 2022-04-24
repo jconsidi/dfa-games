@@ -27,7 +27,8 @@ UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<std::shared_ptr<const 
 #include "TicTacToeGame.h"
 
 template class UnionDFA<CHESS_DFA_PARAMS>;
-template class UnionDFA<TEST_DFA_PARAMS>;
+template class UnionDFA<TEST4_DFA_PARAMS>;
+template class UnionDFA<TEST5_DFA_PARAMS>;
 template class UnionDFA<TICTACTOE2_DFA_PARAMS>;
 template class UnionDFA<TICTACTOE3_DFA_PARAMS>;
 template class UnionDFA<TICTACTOE4_DFA_PARAMS>;

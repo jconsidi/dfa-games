@@ -49,4 +49,5 @@ CountDFA<ndim, shape_pack...>::CountDFA(int num_pieces)
 #include "ChessGame.h"
 
 template class CountDFA<CHESS_DFA_PARAMS>;
-template class CountDFA<TEST_DFA_PARAMS>;
+template class CountDFA<TEST4_DFA_PARAMS>;
+template class CountDFA<TEST5_DFA_PARAMS>;

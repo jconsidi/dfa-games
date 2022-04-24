@@ -26,7 +26,8 @@ IntersectionDFA<ndim, shape_pack...>::IntersectionDFA(const std::vector<std::sha
 #include "TicTacToeGame.h"
 
 template class IntersectionDFA<CHESS_DFA_PARAMS>;
-template class IntersectionDFA<TEST_DFA_PARAMS>;
+template class IntersectionDFA<TEST4_DFA_PARAMS>;
+template class IntersectionDFA<TEST5_DFA_PARAMS>;
 template class IntersectionDFA<TICTACTOE2_DFA_PARAMS>;
 template class IntersectionDFA<TICTACTOE3_DFA_PARAMS>;
 template class IntersectionDFA<TICTACTOE4_DFA_PARAMS>;
