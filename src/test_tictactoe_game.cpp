@@ -22,6 +22,12 @@ int test()
   typename T::shared_dfa_ptr initial_positions = tictactoe.get_initial_positions();
   assert(initial_positions);
   assert(initial_positions->size() == 1);
+  for(auto iter = initial_positions->cbegin();
+      iter < initial_positions->cend();
+      ++iter)
+    {
+      std::cout << T::position_to_string(*iter) << std::endl;
+    }
 
   std::cout << " perft_u" << std::endl;
 
