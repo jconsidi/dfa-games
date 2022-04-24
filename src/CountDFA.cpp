@@ -47,7 +47,11 @@ CountDFA<ndim, shape_pack...>::CountDFA(int num_pieces)
 // template instantiations
 
 #include "ChessGame.h"
+#include "TicTacToeGame.h"
 
 template class CountDFA<CHESS_DFA_PARAMS>;
 template class CountDFA<TEST4_DFA_PARAMS>;
 template class CountDFA<TEST5_DFA_PARAMS>;
+template class CountDFA<TICTACTOE2_DFA_PARAMS>;
+template class CountDFA<TICTACTOE3_DFA_PARAMS>;
+template class CountDFA<TICTACTOE4_DFA_PARAMS>;

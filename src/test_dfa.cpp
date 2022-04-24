@@ -1,6 +1,7 @@
 // test_union_dfa.cpp
 
 #include <iostream>
+#include <sstream>
 #include <string>
 
 #include "AcceptDFA.h"
@@ -10,7 +11,23 @@
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "RejectDFA.h"
+#include "TicTacToeGame.h"
 #include "UnionDFA.h"
+
+template<int ndim, int... shape_pack>
+std::string get_parameter_string()
+{
+  int shape[] = {shape_pack...};
+
+  std::ostringstream builder;
+  builder << ndim << "=" << shape[0];
+  for(int layer = 1; layer < ndim; ++layer)
+    {
+      builder << "/" << shape[layer];
+    }
+
+  return builder.str();
+}
 
 template<int ndim, int... shape_pack>
 void test_union_pair(std::string test_name, const DFA<ndim, shape_pack...>& left, const DFA<ndim, shape_pack...>& right, int expected_boards);
@@ -21,12 +38,12 @@ void test_helper(std::string test_name, const DFA<ndim, shape_pack...>& test_dfa
   int actual_boards = test_dfa.size();
   if(actual_boards != expected_boards)
     {
-      std::cerr << ndim << " " << test_name << ": expected " << expected_boards << std::endl;
-      std::cerr << ndim << " " << test_name << ":   actual " << actual_boards << std::endl;
+      std::cerr << get_parameter_string<ndim, shape_pack...>() << " " << test_name << ": expected " << expected_boards << std::endl;
+      std::cerr << get_parameter_string<ndim, shape_pack...>() << " " << test_name << ":   actual " << actual_boards << std::endl;
 
       throw std::logic_error(test_name + ": test failed");
     }
-  std::cout << ndim << " " << test_name << ": passed" << std::endl;
+  std::cout << get_parameter_string<ndim, shape_pack...>() << " " << test_name << ": passed" << std::endl;
   std::cout.flush();
 }
 
@@ -188,7 +205,12 @@ void test_suite()
   // count character tests
 
   std::shared_ptr<const DFA<ndim, shape_pack...>> zero0(new CountCharacterDFA<ndim, shape_pack...>(0, 0));
-  test_helper("zero0", *zero0, 0);
+  size_t zero0_expected = 1;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      zero0_expected *= shape[layer] - 1;
+    }
+  test_helper("zero0", *zero0, zero0_expected);
 
   std::shared_ptr<const DFA<ndim, shape_pack...>> zero1(new CountCharacterDFA<ndim, shape_pack...>(0, 1));
   size_t zero1_expected = 0;
@@ -228,7 +250,16 @@ void test_suite()
       one1_expected += l1_expected;
     }
   test_helper("one1", *one1, one1_expected);
-  test_intersection_pair("one1 + count1", *one1, *count1, ndim - 1);
+
+  size_t one1_count1_expected = 0;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      if(shape[layer] >= 2)
+	{
+	  ++one1_count1_expected;
+	}
+    }
+  test_intersection_pair("one1 + count1", *one1, *count1, one1_count1_expected);
 }
 
 int main()
@@ -237,6 +268,9 @@ int main()
     {
       test_suite<TEST4_DFA_PARAMS>();
       test_suite<TEST5_DFA_PARAMS>();
+      test_suite<TICTACTOE2_DFA_PARAMS>();
+      test_suite<TICTACTOE3_DFA_PARAMS>();
+      test_suite<TICTACTOE4_DFA_PARAMS>();
     }
   catch(std::logic_error e)
     {
