@@ -97,7 +97,8 @@ int main()
 
   // generic tests
 
-  test_game(chess);
+  std::vector<size_t> positions_expected({1, 20, 400});
+  test_forward(chess, positions_expected);
 
   // done
 
