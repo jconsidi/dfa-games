@@ -153,6 +153,19 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 }
 
 template <int ndim, int... shape_pack>
+const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>::get_rules(int side_to_move) const
+{
+  assert((0 <= side_to_move) && (side_to_move < 2));
+
+  if(singleton_rules[side_to_move].size() == 0)
+    {
+      singleton_rules[side_to_move] = this->get_rules_internal(side_to_move);
+    }
+
+  return singleton_rules[side_to_move];
+}
+
+template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_winning_positions(int side_to_move, int moves_max) const
 {
   return this->get_winning_positions(side_to_move, moves_max, 0);

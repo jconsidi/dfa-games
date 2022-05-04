@@ -36,12 +36,12 @@ template<int n, int... shape_pack>
 
   virtual shared_dfa_ptr get_initial_positions_internal() const;
   virtual shared_dfa_ptr get_lost_positions_internal(int) const;
+  virtual rule_vector get_rules_internal(int) const;
 
   static shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta);
 
  public:
 
-  virtual const rule_vector& get_rules(int) const;
   virtual std::string position_to_string(const dfa_string_type&) const;
 };
 

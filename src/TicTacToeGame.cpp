@@ -69,55 +69,50 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
 }
 
 template<int n, int... shape_pack>
-const typename TicTacToeGame<n, shape_pack...>::rule_vector& TicTacToeGame<n, shape_pack...>::get_rules(int side_to_move) const
+typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pack...>::get_rules_internal(int side_to_move) const
 {
-  static rule_vector singletons[2] = {};
+  shared_dfa_ptr lost_positions = this->get_lost_positions(side_to_move);
+  inverse_dfa_type not_lost_positions(*lost_positions);
 
-  if(!singletons[side_to_move].size())
+  int side_to_move_piece = 1 + side_to_move;
+
+  rule_vector output;
+  for(int move_index = 0; move_index < n * n; ++move_index)
     {
-      shared_dfa_ptr lost_positions = this->get_lost_positions(side_to_move);
-      inverse_dfa_type not_lost_positions(*lost_positions);
+      shared_dfa_ptr pre_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 0)));
 
-      int side_to_move_piece = 1 + side_to_move;
-
-      rule_vector output;
-      for(int move_index = 0; move_index < n * n; ++move_index)
-	{
-	  shared_dfa_ptr pre_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 0)));
-
-	  change_func change_rule = [=](int layer, int old_value, int new_value)
+      change_func change_rule = [=](int layer, int old_value, int new_value)
+      {
+	if(layer == move_index)
 	  {
-	    if(layer == move_index)
+	    if(old_value == 0)
 	      {
-		if(old_value == 0)
-		  {
-		    // square was blank, changing to side to move
-		    return new_value == side_to_move_piece;
-		  }
-		else
-		  {
-		    // square was not blank as required
-		    return false;
-		  }
+		// square was blank, changing to side to move
+		return new_value == side_to_move_piece;
 	      }
 	    else
 	      {
-		// square not changing
-		return old_value == new_value;
+		// square was not blank as required
+		return false;
 	      }
-	  };
+	  }
+	else
+	  {
+	    // square not changing
+	    return old_value == new_value;
+	  }
+      };
 
-	  shared_dfa_ptr post_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 1 + side_to_move)));
+      shared_dfa_ptr post_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 1 + side_to_move)));
 
-	  singletons[side_to_move].emplace_back(pre_condition,
-						change_rule,
-						post_condition);
-	}
-
-      assert(singletons[side_to_move].size() == n * n);
+      output.emplace_back(pre_condition,
+			  change_rule,
+			  post_condition);
     }
 
-  return singletons[side_to_move];
+  assert(output.size() == n * n);
+
+  return output;
 }
 
 template<int n, int... shape_pack>

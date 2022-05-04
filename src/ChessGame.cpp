@@ -363,146 +363,178 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions_internal(int si
 						*(this->get_has_moves(side_to_move))));
 }
 
-const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) const
+typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) const
 {
-  static rule_vector singletons[2] = {};
+  rule_vector output;
 
-  if(!singletons[side_to_move].size())
-    {
-      shared_dfa_ptr basic_positions = get_basic_positions();
-      shared_dfa_ptr check_positions = get_check_positions(side_to_move);
-      shared_dfa_ptr not_check_positions(new inverse_dfa_type(*check_positions));
+  shared_dfa_ptr basic_positions = get_basic_positions();
+  shared_dfa_ptr check_positions = get_check_positions(side_to_move);
+  shared_dfa_ptr not_check_positions(new inverse_dfa_type(*check_positions));
 
-      // shared pre/post conditions for all moves
-      shared_dfa_ptr pre_shared = basic_positions;
-      shared_dfa_ptr post_shared(new intersection_dfa_type(*basic_positions, *not_check_positions));
+  // shared pre/post conditions for all moves
+  shared_dfa_ptr pre_shared = basic_positions;
+  shared_dfa_ptr post_shared(new intersection_dfa_type(*basic_positions, *not_check_positions));
 
-      // collect rules
+  // collect rules
 
-      std::function<void(int, const MoveSet&)> add_basic_rules = [&](int character, const MoveSet& moves)
+  std::function<void(int, const MoveSet&)> add_basic_rules = [&](int character, const MoveSet& moves)
+  {
+    for(int from_square = 0; from_square < 64; ++from_square)
       {
-	for(int from_square = 0; from_square < 64; ++from_square)
+	for(int to_square = 0; to_square < 64; ++to_square)
 	  {
-	    for(int to_square = 0; to_square < 64; ++to_square)
+	    if(!(moves.moves[from_square] & (1ULL << to_square)))
 	      {
-		if(!(moves.moves[from_square] & (1ULL << to_square)))
-		  {
-		    continue;
-		  }
-		assert(to_square != from_square);
-
-		// require squares between from and to squares to be empty pre and post.
-		BoardMask between_mask = between_masks.masks[from_square][to_square];
-
-		change_func change_rule = [=](int layer, int old_value, int new_value)
-		{
-		  if(layer == SIDE_WHITE)
-		    {
-		      // white king index
-		      if(character == DFA_WHITE_KING)
-			{
-			  // moving this piece
-			  return (old_value == from_square) && (new_value == to_square);
-			}
-		      else
-			{
-			  // moving another piece
-			  return old_value == new_value;
-			}
-		    }
-
-		  if(layer == SIDE_BLACK)
-		    {
-		      // black king index
-		      if(character == DFA_BLACK_KING)
-			{
-			  // moving this piece
-			  return (old_value == from_square) && (new_value == to_square);
-			}
-		      else
-			{
-			  // moving another piece
-			  return old_value == new_value;
-			}
-		    }
-
-		  int square = layer - 2;
-
-		  // from square
-
-		  if(square == from_square)
-		    {
-		      return (old_value == character) && (new_value == DFA_BLANK);
-		    }
-
-		  // between squares
-
-		  if(between_mask & (1ULL << square))
-		    {
-		      return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
-		    }
-
-		  // to square
-
-		  if(square == to_square)
-		    {
-		      if(chess_is_friendly(side_to_move, old_value))
-			{
-			  return false;
-			}
-
-		      // specific castling losses after moving rooks
-
-		      if(character == DFA_WHITE_ROOK_CASTLE)
-			{
-			  return (new_value == DFA_WHITE_ROOK);
-			}
-
-		      if(character == DFA_BLACK_ROOK_CASTLE)
-			{
-			  return (new_value == DFA_BLACK_ROOK);
-			}
-
-		      // default to moving piece
-		      return (new_value == character);
-		    }
-
-		  // all castling lost after moving king
-
-		  if((character == DFA_WHITE_KING) && (old_value == DFA_WHITE_ROOK_CASTLE))
-		    {
-		      return new_value == DFA_WHITE_ROOK;
-		    }
-
-		  if((character == DFA_BLACK_KING) && (old_value == DFA_BLACK_ROOK_CASTLE))
-		    {
-		      return new_value == DFA_BLACK_ROOK;
-		    }
-
-		  // rest of board
-
-		  return chess_default_rule(layer, old_value, new_value);
-		};
-
-		singletons[side_to_move].emplace_back(pre_shared,
-						      change_rule,
-						      post_shared);
+		continue;
 	      }
+	    assert(to_square != from_square);
+
+	    // require squares between from and to squares to be empty pre and post.
+	    BoardMask between_mask = between_masks.masks[from_square][to_square];
+
+	    change_func change_rule = [=](int layer, int old_value, int new_value)
+	    {
+	      if(layer == SIDE_WHITE)
+		{
+		  // white king index
+		  if(character == DFA_WHITE_KING)
+		    {
+		      // moving this piece
+		      return (old_value == from_square) && (new_value == to_square);
+		    }
+		  else
+		    {
+		      // moving another piece
+		      return old_value == new_value;
+		    }
+		}
+
+	      if(layer == SIDE_BLACK)
+		{
+		  // black king index
+		  if(character == DFA_BLACK_KING)
+		    {
+		      // moving this piece
+		      return (old_value == from_square) && (new_value == to_square);
+		    }
+		  else
+		    {
+		      // moving another piece
+		      return old_value == new_value;
+		    }
+		}
+
+	      int square = layer - 2;
+
+	      // from square
+
+	      if(square == from_square)
+		{
+		  return (old_value == character) && (new_value == DFA_BLANK);
+		}
+
+	      // between squares
+
+	      if(between_mask & (1ULL << square))
+		{
+		  return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
+		}
+
+	      // to square
+
+	      if(square == to_square)
+		{
+		  if(chess_is_friendly(side_to_move, old_value))
+		    {
+		      return false;
+		    }
+
+		  // specific castling losses after moving rooks
+
+		  if(character == DFA_WHITE_ROOK_CASTLE)
+		    {
+		      return (new_value == DFA_WHITE_ROOK);
+		    }
+
+		  if(character == DFA_BLACK_ROOK_CASTLE)
+		    {
+		      return (new_value == DFA_BLACK_ROOK);
+		    }
+
+		  // default to moving piece
+		  return (new_value == character);
+		}
+
+	      // all castling lost after moving king
+
+	      if((character == DFA_WHITE_KING) && (old_value == DFA_WHITE_ROOK_CASTLE))
+		{
+		  return new_value == DFA_WHITE_ROOK;
+		}
+
+	      if((character == DFA_BLACK_KING) && (old_value == DFA_BLACK_ROOK_CASTLE))
+		{
+		  return new_value == DFA_BLACK_ROOK;
+		}
+
+	      // rest of board
+
+	      return chess_default_rule(layer, old_value, new_value);
+	    };
+
+	    output.emplace_back(pre_shared,
+				change_rule,
+				post_shared);
 	  }
-      };
+      }
+  };
 
-      std::function<void(int, int, int, int, int)> add_pawn_rules = [&](int pawn_character, int en_passant_character, int capture_en_passant_character, int rank_start, int rank_direction)
+  std::function<void(int, int, int, int, int)> add_pawn_rules = [&](int pawn_character, int en_passant_character, int capture_en_passant_character, int rank_start, int rank_direction)
+  {
+    for(int from_file = 0; from_file < 8; ++from_file)
       {
-	for(int from_file = 0; from_file < 8; ++from_file)
+	for(int previous_advancement = 0; previous_advancement < 6; ++previous_advancement)
 	  {
-	    for(int previous_advancement = 0; previous_advancement < 6; ++previous_advancement)
-	      {
-		int from_rank = rank_start + previous_advancement * rank_direction;
-		int from_square = from_rank * 8 + from_file;
+	    int from_rank = rank_start + previous_advancement * rank_direction;
+	    int from_square = from_rank * 8 + from_file;
 
-		int advance_rank = from_rank + rank_direction;
-		int advance_square = advance_rank * 8 + from_file;
-		change_func advance_rule = [=](int layer, int old_value, int new_value)
+	    int advance_rank = from_rank + rank_direction;
+	    int advance_square = advance_rank * 8 + from_file;
+	    change_func advance_rule = [=](int layer, int old_value, int new_value)
+	    {
+#if CHESS_SQUARE_OFFSET == 2
+	      if(layer < 2)
+		{
+		  return chess_default_rule(layer, old_value, new_value);
+		}
+#endif
+
+	      int square = layer - CHESS_SQUARE_OFFSET;
+
+	      if(square == from_square)
+		{
+		  return (old_value == pawn_character) && (new_value == DFA_BLANK);
+		}
+
+	      if(square == advance_square)
+		{
+		  return ((old_value == DFA_BLANK) &&
+			  chess_pawn_maybe_promote(side_to_move, previous_advancement, new_value));
+		}
+
+	      return chess_default_rule(layer, old_value, new_value);
+	    };
+	    output.emplace_back(pre_shared,
+				advance_rule,
+				post_shared);
+
+	    if(previous_advancement == 0)
+	      {
+		// initial double move
+
+		int double_rank = from_rank + rank_direction * 2;
+		int double_square = double_rank * 8 + from_file;
+		change_func double_rule = [=](int layer, int old_value, int new_value)
 		{
 #if CHESS_SQUARE_OFFSET == 2
 		  if(layer < 2)
@@ -520,23 +552,61 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 
 		  if(square == advance_square)
 		    {
-		      return ((old_value == DFA_BLANK) &&
+		      return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
+		    }
+
+		  if(square == double_square)
+		    {
+		      return (old_value == DFA_BLANK) && (new_value == en_passant_character);
+		    }
+
+		  return chess_default_rule(layer, old_value, new_value);
+		};
+		output.emplace_back(pre_shared,
+				    double_rule,
+				    post_shared);
+	      }
+
+	    for(int capture_file = from_file - 1; capture_file <= from_file + 1; capture_file += 2)
+	      {
+		if((capture_file < 0) || (8 <= capture_file))
+		  {
+		    continue;
+		  }
+
+		int capture_square = advance_rank * 8 + capture_file;
+		change_func capture_rule = [=](int layer, int old_value, int new_value)
+		{
+#if 0
+		  if(layer < 2)
+		    {
+		      return chess_default_rule(layer, old_value, new_value);
+		    }
+#endif
+
+		  int square = layer - CHESS_SQUARE_OFFSET;
+
+		  if(square == from_square)
+		    {
+		      return (old_value == pawn_character) && (new_value == DFA_BLANK);
+		    }
+
+		  if(square == capture_square)
+		    {
+		      return (chess_is_hostile(side_to_move, old_value) &&
 			      chess_pawn_maybe_promote(side_to_move, previous_advancement, new_value));
 		    }
 
 		  return chess_default_rule(layer, old_value, new_value);
 		};
-		singletons[side_to_move].emplace_back(pre_shared,
-                                                      advance_rule,
-                                                      post_shared);
+		output.emplace_back(pre_shared,
+				    capture_rule,
+				    post_shared);
 
-		if(previous_advancement == 0)
+		if(previous_advancement == 2)
 		  {
-		    // initial double move
-
-		    int double_rank = from_rank + rank_direction * 2;
-		    int double_square = double_rank * 8 + from_file;
-		    change_func double_rule = [=](int layer, int old_value, int new_value)
+		    int en_passant_square = from_rank * 8 + capture_file;
+		    change_func en_passant_rule = [=](int layer, int old_value, int new_value)
 		    {
 #if CHESS_SQUARE_OFFSET == 2
 		      if(layer < 2)
@@ -552,200 +622,126 @@ const typename ChessGame::rule_vector& ChessGame::get_rules(int side_to_move) co
 			  return (old_value == pawn_character) && (new_value == DFA_BLANK);
 			}
 
-		      if(square == advance_square)
+		      if(square == en_passant_square)
 			{
-			  return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
-			}
-
-		      if(square == double_square)
-			{
-			  return (old_value == DFA_BLANK) && (new_value == en_passant_character);
-			}
-
-		      return chess_default_rule(layer, old_value, new_value);
-		    };
-		    singletons[side_to_move].emplace_back(pre_shared,
-							  double_rule,
-							  post_shared);
-		  }
-
-		for(int capture_file = from_file - 1; capture_file <= from_file + 1; capture_file += 2)
-		  {
-		    if((capture_file < 0) || (8 <= capture_file))
-		      {
-			continue;
-		      }
-
-		    int capture_square = advance_rank * 8 + capture_file;
-		    change_func capture_rule = [=](int layer, int old_value, int new_value)
-		    {
-#if 0
-		      if(layer < 2)
-			{
-			  return chess_default_rule(layer, old_value, new_value);
-			}
-#endif
-
-		      int square = layer - CHESS_SQUARE_OFFSET;
-
-		      if(square == from_square)
-			{
-			  return (old_value == pawn_character) && (new_value == DFA_BLANK);
+			  return (old_value == capture_en_passant_character) && (new_value == DFA_BLANK);
 			}
 
 		      if(square == capture_square)
 			{
-			  return (chess_is_hostile(side_to_move, old_value) &&
-				  chess_pawn_maybe_promote(side_to_move, previous_advancement, new_value));
+			  return (old_value == DFA_BLANK) && (new_value == pawn_character);
 			}
 
 		      return chess_default_rule(layer, old_value, new_value);
 		    };
-		    singletons[side_to_move].emplace_back(pre_shared,
-                                                          capture_rule,
-                                                          post_shared);
-
-		    if(previous_advancement == 2)
-		      {
-			int en_passant_square = from_rank * 8 + capture_file;
-			change_func en_passant_rule = [=](int layer, int old_value, int new_value)
-			{
-#if CHESS_SQUARE_OFFSET == 2
-			  if(layer < 2)
-			    {
-			      return chess_default_rule(layer, old_value, new_value);
-			    }
-#endif
-
-			  int square = layer - CHESS_SQUARE_OFFSET;
-
-			  if(square == from_square)
-			    {
-			      return (old_value == pawn_character) && (new_value == DFA_BLANK);
-			    }
-
-			  if(square == en_passant_square)
-			    {
-			      return (old_value == capture_en_passant_character) && (new_value == DFA_BLANK);
-			    }
-
-			  if(square == capture_square)
-			    {
-			      return (old_value == DFA_BLANK) && (new_value == pawn_character);
-			    }
-
-			  return chess_default_rule(layer, old_value, new_value);
-			};
-			singletons[side_to_move].emplace_back(pre_shared,
-							      en_passant_rule,
-							      post_shared);
-		      }
+		    output.emplace_back(pre_shared,
+					en_passant_rule,
+					post_shared);
 		  }
 	      }
 	  }
-      };
+      }
+  };
 
-      std::function<void(int, int, int, int, int)> add_castle_rule = [&](int king_character, int rook_castle_character, int rook_character, int king_from_square, int rook_from_square)
-      {
-	int castle_direction = (rook_from_square > king_from_square) ? +1 : -1;
-	int king_to_square = king_from_square + castle_direction * 2;
-	int rook_to_square = king_from_square + castle_direction;
-	int maybe_extra_square = king_from_square + castle_direction * 3; // rook from or blank
+  std::function<void(int, int, int, int, int)> add_castle_rule = [&](int king_character, int rook_castle_character, int rook_character, int king_from_square, int rook_from_square)
+  {
+    int castle_direction = (rook_from_square > king_from_square) ? +1 : -1;
+    int king_to_square = king_from_square + castle_direction * 2;
+    int rook_to_square = king_from_square + castle_direction;
+    int maybe_extra_square = king_from_square + castle_direction * 3; // rook from or blank
 
-	change_func castle_rule = [=](int layer, int old_value, int new_value)
-	{
+    change_func castle_rule = [=](int layer, int old_value, int new_value)
+    {
 #if CHESS_SQUARE_OFFSET == 2
-	  if(layer < 2)
+      if(layer < 2)
+	{
+	  if((layer == 0) == (king_character == DFA_WHITE_KING))
 	    {
-	      if((layer == 0) == (king_character == DFA_WHITE_KING))
-		{
-		  return (old_value == king_from_square) && (new_value == king_to_square);
-		}
-
-	      return chess_default_rule(layer, old_value, new_value);
-	    }
-#endif
-
-	  int square = layer - CHESS_SQUARE_OFFSET;
-
-	  if(square == king_from_square)
-	    {
-	      // king start
-	      return (old_value == king_character) && (new_value == DFA_BLANK);
-	    }
-	  if(square == rook_to_square)
-	    {
-	      // rook new position
-	      return (old_value == DFA_BLANK) && (new_value == rook_character);
-	    }
-	  if(square == king_to_square)
-	    {
-	      // king end
-	      return (old_value == DFA_BLANK) && (new_value == king_character);
-	    }
-	  if(square == rook_from_square)
-	    {
-	      return (old_value == rook_castle_character) && (new_value == DFA_BLANK);
-	    }
-
-	  // this case is inaccessible for king-side castles since it
-	  // matches rook from square.
-	  if(square == maybe_extra_square)
-	    {
-	      return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
-	    }
-
-	  // remove castle eligibility from any other rooks
-	  if(old_value == rook_castle_character)
-	    {
-	      return new_value == rook_character;
+	      return (old_value == king_from_square) && (new_value == king_to_square);
 	    }
 
 	  return chess_default_rule(layer, old_value, new_value);
-	};
-
-	std::vector<shared_dfa_ptr> castle_threats;
-	castle_threats.push_back(get_threat_positions(side_to_move, king_from_square));
-	castle_threats.push_back(get_threat_positions(side_to_move, rook_to_square));
-	castle_threats.push_back(get_threat_positions(side_to_move, king_to_square));
-
-	shared_dfa_ptr castle_threat(new union_dfa_type(castle_threats));
-	shared_dfa_ptr pre_castle(new inverse_dfa_type(*castle_threat));
-
-	singletons[side_to_move].emplace_back(pre_castle,
-					      castle_rule,
-					      post_shared);
-      };
-
-      if(side_to_move == SIDE_WHITE)
-	{
-	  add_basic_rules(DFA_WHITE_BISHOP, bishop_moves);
-	  add_basic_rules(DFA_WHITE_KING, king_moves);
-	  add_basic_rules(DFA_WHITE_KNIGHT, knight_moves);
-	  add_basic_rules(DFA_WHITE_QUEEN, queen_moves);
-	  add_basic_rules(DFA_WHITE_ROOK, rook_moves);
-	  add_basic_rules(DFA_WHITE_ROOK_CASTLE, rook_moves);
-	  add_pawn_rules(DFA_WHITE_PAWN, DFA_WHITE_PAWN_EN_PASSANT, DFA_BLACK_PAWN_EN_PASSANT, 6, -1);
-
-	  add_castle_rule(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 56);
-	  add_castle_rule(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 63);
 	}
-      else
-	{
-	  add_basic_rules(DFA_BLACK_BISHOP, bishop_moves);
-	  add_basic_rules(DFA_BLACK_KING, king_moves);
-	  add_basic_rules(DFA_BLACK_KNIGHT, knight_moves);
-	  add_basic_rules(DFA_BLACK_QUEEN, queen_moves);
-	  add_basic_rules(DFA_BLACK_ROOK, rook_moves);
-	  add_basic_rules(DFA_BLACK_ROOK_CASTLE, rook_moves);
-	  add_pawn_rules(DFA_BLACK_PAWN, DFA_BLACK_PAWN_EN_PASSANT, DFA_WHITE_PAWN_EN_PASSANT, 1, 1);
+#endif
 
-	  add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 0);
-	  add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 7);
+      int square = layer - CHESS_SQUARE_OFFSET;
+
+      if(square == king_from_square)
+	{
+	  // king start
+	  return (old_value == king_character) && (new_value == DFA_BLANK);
 	}
+      if(square == rook_to_square)
+	{
+	  // rook new position
+	  return (old_value == DFA_BLANK) && (new_value == rook_character);
+	}
+      if(square == king_to_square)
+	{
+	  // king end
+	  return (old_value == DFA_BLANK) && (new_value == king_character);
+	}
+      if(square == rook_from_square)
+	{
+	  return (old_value == rook_castle_character) && (new_value == DFA_BLANK);
+	}
+
+      // this case is inaccessible for king-side castles since it
+      // matches rook from square.
+      if(square == maybe_extra_square)
+	{
+	  return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
+	}
+
+      // remove castle eligibility from any other rooks
+      if(old_value == rook_castle_character)
+	{
+	  return new_value == rook_character;
+	}
+
+      return chess_default_rule(layer, old_value, new_value);
+    };
+
+    std::vector<shared_dfa_ptr> castle_threats;
+    castle_threats.push_back(get_threat_positions(side_to_move, king_from_square));
+    castle_threats.push_back(get_threat_positions(side_to_move, rook_to_square));
+    castle_threats.push_back(get_threat_positions(side_to_move, king_to_square));
+
+    shared_dfa_ptr castle_threat(new union_dfa_type(castle_threats));
+    shared_dfa_ptr pre_castle(new inverse_dfa_type(*castle_threat));
+
+    output.emplace_back(pre_castle,
+			castle_rule,
+			post_shared);
+  };
+
+  if(side_to_move == SIDE_WHITE)
+    {
+      add_basic_rules(DFA_WHITE_BISHOP, bishop_moves);
+      add_basic_rules(DFA_WHITE_KING, king_moves);
+      add_basic_rules(DFA_WHITE_KNIGHT, knight_moves);
+      add_basic_rules(DFA_WHITE_QUEEN, queen_moves);
+      add_basic_rules(DFA_WHITE_ROOK, rook_moves);
+      add_basic_rules(DFA_WHITE_ROOK_CASTLE, rook_moves);
+      add_pawn_rules(DFA_WHITE_PAWN, DFA_WHITE_PAWN_EN_PASSANT, DFA_BLACK_PAWN_EN_PASSANT, 6, -1);
+
+      add_castle_rule(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 56);
+      add_castle_rule(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 63);
     }
+  else
+    {
+      add_basic_rules(DFA_BLACK_BISHOP, bishop_moves);
+      add_basic_rules(DFA_BLACK_KING, king_moves);
+      add_basic_rules(DFA_BLACK_KNIGHT, knight_moves);
+      add_basic_rules(DFA_BLACK_QUEEN, queen_moves);
+      add_basic_rules(DFA_BLACK_ROOK, rook_moves);
+      add_basic_rules(DFA_BLACK_ROOK_CASTLE, rook_moves);
+      add_pawn_rules(DFA_BLACK_PAWN, DFA_BLACK_PAWN_EN_PASSANT, DFA_WHITE_PAWN_EN_PASSANT, 1, 1);
 
-  return singletons[side_to_move];
+      add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 0);
+      add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 7);
+    }
+  return output;
 }
 
 std::string ChessGame::position_to_string(const dfa_string_type&) const
