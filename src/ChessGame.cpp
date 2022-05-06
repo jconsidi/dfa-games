@@ -209,7 +209,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
       Profile profile(std::ostringstream() << "ChessGame::get_check_positions(" << checked_side << ")");
       profile.tic("singleton");
 
-      shared_dfa_ptr king_positions = get_king_positions(checked_side);
+      shared_dfa_ptr basic_positions = get_basic_positions();
       int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
       std::vector<shared_dfa_ptr> checks;
@@ -217,7 +217,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
 	{
 	  std::vector<shared_dfa_ptr> square_requirements;
 	  square_requirements.emplace_back(new fixed_dfa_type(square + CHESS_SQUARE_OFFSET, king_character));
-	  square_requirements.push_back(king_positions); // makes union much cheaper below
+	  square_requirements.push_back(basic_positions); // makes union much cheaper below
 	  square_requirements.push_back(get_threat_positions(checked_side, square));
 
 	  checks.emplace_back(new intersection_dfa_type(square_requirements));
