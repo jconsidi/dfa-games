@@ -46,11 +46,11 @@ static bool chess_is_friendly(int side_to_move, int character)
 
   if(side_to_move == SIDE_WHITE)
     {
-      return (DFA_WHITE_KING <= character) && (character < DFA_BLACK_KING);
+      return character % 2 == 1;
     }
   else
     {
-      return DFA_BLACK_KING <= character;
+      return character % 2 == 0;
     }
 }
 
