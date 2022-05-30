@@ -6,6 +6,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <iostream>
+
 template<class T>
 MemoryMap<T>::MemoryMap(size_t size_in)
   : _size(size_in),
@@ -87,6 +89,11 @@ template<class T>
 void MemoryMap<T>::mmap(int flags, int fildes)
 {
   assert(!_mapped);
+
+  if(_length >> 30)
+    {
+      std::cout << "mmap length = " << (_length >> 30) << "GB" << std::endl;
+    }
 
   _mapped = ::mmap(0, _length, PROT_READ | PROT_WRITE, MAP_SHARED | flags, fildes, 0);
   if(_mapped == MAP_FAILED)
