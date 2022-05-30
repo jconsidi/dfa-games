@@ -7,6 +7,7 @@
 #include <bit>
 #include <iostream>
 #include <queue>
+#include <sstream>
 
 #include "Flashsort.h"
 #include "MemoryMap.h"
@@ -156,11 +157,33 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       profile.tic("forward mmap");
 
       assert(pairs_by_layer.size() == layer + 1);
-      pairs_by_layer.emplace_back((next_left_size * next_right_size + 63) / 64);
+      size_t next_size = (next_left_size * next_right_size + 63) / 64;
+      bool disk_mmap = next_size >= 1ULL << 29;
+      if(disk_mmap)
+	{
+	  std::ostringstream filename_builder;
+	  filename_builder << "/tmp/chess-binarydfa-" << (layer + 1) << "-children.bin";
+	  pairs_by_layer.emplace_back(filename_builder.str(), next_size);
+	}
+      else
+	{
+	  pairs_by_layer.emplace_back(next_size);
+	}
       assert(pairs_by_layer.size() == layer + 2);
 
       MemoryMap<uint64_t>& curr_layer = pairs_by_layer.at(layer);
       MemoryMap<uint64_t>& next_layer = pairs_by_layer.at(layer + 1);
+
+      if(disk_mmap)
+	{
+	  profile.tic("forward mmap zero");
+
+	  // zero out next layer (not needed if anonymous)
+	  for(size_t i = 0; i < next_layer.size(); ++i)
+	    {
+	      next_layer[i] = 0ULL;
+	    }
+	}
 
       profile.tic("forward pairs");
 
@@ -195,6 +218,18 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 		    }
 		}
 	    }
+	}
+
+      if(disk_mmap || next_layer.size() >= 1ULL << 28)
+	{
+	  size_t bits_set = 0;
+	  for(size_t i_high = 0; i_high < next_layer.size(); ++i_high)
+	    {
+	      bits_set += std::popcount(next_layer[i_high]);
+	    }
+
+	  size_t bits_total = next_layer.size() * 64;
+	  std::cout << "bits set = " << bits_set << " / " << bits_total << " ~ " << (double(bits_set) / double(bits_total)) << std::endl;
 	}
     }
 
