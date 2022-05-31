@@ -9,6 +9,7 @@
 #include <queue>
 #include <sstream>
 
+#include "BitSet.h"
 #include "Flashsort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
@@ -129,12 +130,11 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 {
   Profile profile("binary_build");
 
-  std::vector<MemoryMap<uint64_t>> pairs_by_layer;
+  std::vector<BitSet> pairs_by_layer;
   pairs_by_layer.reserve(ndim + 1);
 
-  // first layer is always 1 x 1
-  pairs_by_layer.emplace_back(1);
-  pairs_by_layer[0][0] = 1 << (left_in.get_initial_state() * right_in.get_layer_size(0) + right_in.get_initial_state());
+  pairs_by_layer.emplace_back(left_in.get_layer_size(0) * right_in.get_layer_size(0));
+  pairs_by_layer[0].add(left_in.get_initial_state() * right_in.get_layer_size(0) + right_in.get_initial_state());
 
   // forward pass
 
@@ -157,8 +157,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       profile.tic("forward mmap");
 
       assert(pairs_by_layer.size() == layer + 1);
-      size_t next_size = (next_left_size * next_right_size + 63) / 64;
-      bool disk_mmap = next_size >= 1ULL << 29;
+      size_t next_size = next_left_size * next_right_size;
+      bool disk_mmap = next_size >= 1ULL << 32;
       if(disk_mmap)
 	{
 	  std::ostringstream filename_builder;
@@ -171,64 +171,38 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	}
       assert(pairs_by_layer.size() == layer + 2);
 
-      MemoryMap<uint64_t>& curr_layer = pairs_by_layer.at(layer);
-      MemoryMap<uint64_t>& next_layer = pairs_by_layer.at(layer + 1);
-
-      if(disk_mmap)
-	{
-	  profile.tic("forward mmap zero");
-
-	  // zero out next layer (not needed if anonymous)
-	  for(size_t i = 0; i < next_layer.size(); ++i)
-	    {
-	      next_layer[i] = 0ULL;
-	    }
-	}
+      const BitSet& curr_layer = pairs_by_layer.at(layer);
+      BitSet& next_layer = pairs_by_layer.at(layer + 1);
 
       profile.tic("forward pairs");
 
-      for(size_t i_high = 0; i_high < curr_layer.size(); ++i_high)
+      for(auto iter = curr_layer.cbegin();
+	  iter < curr_layer.cend();
+	  ++iter)
 	{
-	  uint64_t m64 = curr_layer[i_high];
-	  if(m64)
+	  size_t curr_i = *iter;
+	  assert(curr_i < curr_left_size * curr_right_size);
+	  dfa_state_t curr_left_state = curr_i / curr_right_size;
+	  dfa_state_t curr_right_state = curr_i % curr_right_size;
+
+	  const DFATransitions& left_transitions = left_in.get_transitions(layer, curr_left_state);
+	  const DFATransitions& right_transitions = right_in.get_transitions(layer, curr_right_state);
+
+	  for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
 	    {
-	      for(size_t i_low = 0; i_low < 64; ++i_low)
-		{
-		  if(m64 & (1ULL << i_low))
-		    {
-		      size_t curr_i = i_high * 64 + i_low;
-		      assert(curr_i < curr_left_size * curr_right_size);
-		      dfa_state_t curr_left_state = curr_i / curr_right_size;
-		      dfa_state_t curr_right_state = curr_i % curr_right_size;
-
-		      const DFATransitions& left_transitions = left_in.get_transitions(layer, curr_left_state);
-		      const DFATransitions& right_transitions = right_in.get_transitions(layer, curr_right_state);
-
-		      for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
-			{
-			  size_t next_left_state = left_transitions.at(curr_j);
-			  assert(next_left_state < next_left_size);
-			  size_t next_right_state = right_transitions.at(curr_j);
-			  assert(next_right_state < next_right_size);
-			  size_t next_i = next_left_state * next_right_size + next_right_state;
-
-			  size_t next_i_high = next_i / 64;
-			  size_t next_i_low = next_i % 64;
-			  next_layer[next_i_high] |= 1ULL << next_i_low;}
-		    }
-		}
+	      size_t next_left_state = left_transitions.at(curr_j);
+	      assert(next_left_state < next_left_size);
+	      size_t next_right_state = right_transitions.at(curr_j);
+	      assert(next_right_state < next_right_size);
+	      size_t next_i = next_left_state * next_right_size + next_right_state;
+	      next_layer.add(next_i);
 	    }
 	}
 
-      if(disk_mmap || next_layer.size() >= 1ULL << 28)
+      if(disk_mmap)
 	{
-	  size_t bits_set = 0;
-	  for(size_t i_high = 0; i_high < next_layer.size(); ++i_high)
-	    {
-	      bits_set += std::popcount(next_layer[i_high]);
-	    }
-
-	  size_t bits_total = next_layer.size() * 64;
+	  size_t bits_set = next_layer.count();
+	  size_t bits_total = next_layer.size();
 	  std::cout << "bits set = " << bits_set << " / " << bits_total << " ~ " << (double(bits_set) / double(bits_total)) << std::endl;
 	}
     }
@@ -239,16 +213,13 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   profile.tic("leaves");
 
-  MemoryMap<uint64_t>& leaf_pairs = pairs_by_layer.at(ndim);
-  assert(leaf_pairs.size() == 1);
-
-  uint64_t leaf_mask = leaf_pairs[0];
-  assert(leaf_mask < (1 << 4));
+  BitSet& leaf_pairs = pairs_by_layer.at(ndim);
+  assert(leaf_pairs.size() <= 4);
 
   std::vector<dfa_state_t> next_pair_mapping;
   for(int leaf_i = 0; leaf_i < 4; ++leaf_i)
     {
-      if(leaf_mask & (1ULL << leaf_i))
+      if(leaf_pairs.check(leaf_i))
 	{
 	  size_t leaf_left_state = leaf_i / 2;
 	  size_t leaf_right_state = leaf_i % 2;
@@ -264,7 +235,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       assert(next_pair_mapping.size() > 0);
 
-      MemoryMap<uint64_t>& curr_layer = pairs_by_layer.at(layer);
+      const BitSet& curr_layer = pairs_by_layer.at(layer);
       std::vector<dfa_state_t> curr_pair_mapping;
 
       size_t curr_left_size = left_in.get_layer_size(layer);
@@ -272,52 +243,40 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       profile.tic("backward index");
 
+      size_t next_left_size = left_in.get_layer_size(layer + 1);
       size_t next_right_size = right_in.get_layer_size(layer + 1);
-      MemoryMap<uint64_t>& next_layer = pairs_by_layer.at(layer + 1);
-      MemoryMap<size_t> next_index(next_layer.size() + 1);
+      const BitSet& next_layer = pairs_by_layer.at(layer + 1);
 
-      next_index[0] = 0;
-      for(int i = 1; i <= next_layer.size(); ++i)
-	{
-	  next_index[i] = next_index[i - 1] + std::popcount(next_layer[i - 1]);
-	}
-      assert(next_index[next_layer.size()] == next_pair_mapping.size());
+      BitSetIndex next_index(next_layer);
 
       profile.tic("backward states");
 
-      for(size_t i_high = 0; i_high < curr_layer.size(); ++i_high)
+      for(auto iter = curr_layer.cbegin();
+	  iter < curr_layer.cend();
+	  ++iter)
 	{
-	  uint64_t m64 = curr_layer[i_high];
-	  if(m64)
-	    {
-	      for(size_t i_low = 0; i_low < 64; ++i_low)
-		{
-		  if(m64 & (1ULL << i_low))
-		    {
-		      size_t curr_i = i_high * 64 + i_low;
-		      dfa_state_t curr_left_state = curr_i / curr_right_size;
-		      dfa_state_t curr_right_state = curr_i % curr_right_size;
+	  size_t curr_i = *iter;
+	  dfa_state_t curr_left_state = curr_i / curr_right_size;
+	  dfa_state_t curr_right_state = curr_i % curr_right_size;
 
-		      assert(curr_left_state < curr_left_size);
+	  assert(curr_left_state < curr_left_size);
 
-		      const DFATransitions& left_transitions = left_in.get_transitions(layer, curr_left_state);
-		      const DFATransitions& right_transitions = right_in.get_transitions(layer, curr_right_state);
+	  const DFATransitions& left_transitions = left_in.get_transitions(layer, curr_left_state);
+	  const DFATransitions& right_transitions = right_in.get_transitions(layer, curr_right_state);
 
-		      curr_pair_mapping.emplace_back(this->add_state(layer, [&](int j)
-		      {
-			size_t next_left_state = left_transitions.at(j);
-			size_t next_right_state = right_transitions.at(j);
-			size_t next_i = next_left_state * next_right_size + next_right_state;
+	  curr_pair_mapping.emplace_back(this->add_state(layer, [&](int j)
+	  {
+	    size_t next_left_state = left_transitions.at(j);
+	    assert(next_left_state < next_left_size);
+	    size_t next_right_state = right_transitions.at(j);
+	    assert(next_right_state < next_right_size);
+	    size_t next_i = next_left_state * next_right_size + next_right_state;
+	    assert(next_i < next_left_size * next_right_size);
 
-			size_t next_i_high = next_i >> 6;
-			size_t next_i_low = next_i & 0x3f;
-
-			size_t next_logical = next_index[next_i_high] + std::popcount(next_layer[next_i_high] & ((1ULL << next_i_low) - 1));
-			return next_pair_mapping.at(next_logical);
-		      }));
-		    }
-		}
-	    }
+	    size_t next_logical = next_index[next_i];
+	    assert(next_logical < next_pair_mapping.size());
+	    return next_pair_mapping.at(next_logical);
+	  }));
 	}
       next_pair_mapping.clear();
       std::swap(next_pair_mapping, curr_pair_mapping);
