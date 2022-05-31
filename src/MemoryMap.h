@@ -28,6 +28,7 @@ public:
   ~MemoryMap();
 
   T& operator[](size_t);
+  T operator[](size_t) const;
 
   T *begin();
   T *end();

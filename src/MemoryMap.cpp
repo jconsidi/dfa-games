@@ -74,6 +74,14 @@ T& MemoryMap<T>::operator[](size_t i)
 }
 
 template<class T>
+T MemoryMap<T>::operator[](size_t i) const
+{
+  assert(_mapped);
+  assert(i < _size);
+  return ((T *) _mapped)[i];
+}
+
+template<class T>
 T *MemoryMap<T>::begin()
 {
   return ((T *) _mapped);
