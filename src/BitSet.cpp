@@ -90,7 +90,7 @@ size_t BitSet::size() const
 
 BitSetIndex::BitSetIndex(const BitSet& vector_in)
   : _vector(vector_in),
-    _index(vector_in.size() + 1)
+    _index(vector_in._memory_map->size() + 1)
 {
   auto mm = _vector._memory_map;
 
