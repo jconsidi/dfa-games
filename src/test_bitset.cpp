@@ -50,6 +50,10 @@ int main()
       test_vector(1024, vector({127}));
 
       test_vector(1024, vector({0, 1, 2, 3, 4, 5, 6, 7, 64, 65, 66}));
+
+      // big sparse examples
+      test_vector(1ULL << 23, vector({(1ULL << 20) + 4096, (1ULL << 20) + 32767, 1ULL << 22}));
+      test_vector(1ULL << 37, vector({0, 1ULL << 20, 1ULL << 30, 1ULL << 36}));
     }
   catch(std::logic_error e)
     {
