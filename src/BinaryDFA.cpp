@@ -15,6 +15,130 @@
 #include "Profile.h"
 
 template <int ndim, int... shape_pack>
+class LayerTransitionsIterator;
+
+template <int ndim, int... shape_pack>
+class LayerTransitions
+{
+  const DFA<ndim, shape_pack...>& left;
+  const DFA<ndim, shape_pack...>& right;
+  int layer;
+  const BitSet& layer_pairs;
+
+public:
+
+  LayerTransitions(const DFA<ndim, shape_pack...>& left_in,
+		   const DFA<ndim, shape_pack...>& right_in,
+		   int layer_in,
+		   const BitSet& layer_pairs_in)
+    : left(left_in),
+      right(right_in),
+      layer(layer_in),
+      layer_pairs(layer_pairs_in)
+  {
+  }
+
+  LayerTransitionsIterator<ndim, shape_pack...> cbegin() const
+  {
+    return LayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cbegin());
+  }
+
+  LayerTransitionsIterator<ndim, shape_pack...>  cend() const
+  {
+    return LayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cend());
+  }
+
+  friend LayerTransitionsIterator<ndim, shape_pack...>;
+};
+
+template <int ndim, int... shape_pack>
+class LayerTransitionsIterator
+{
+  const DFA<ndim, shape_pack...>& left;
+  const DFA<ndim, shape_pack...>& right;
+  int layer;
+  BitSetIterator iter;
+
+  int curr_layer_shape;
+  size_t curr_left_size;
+  size_t curr_right_size;
+  size_t next_left_size;
+  size_t next_right_size;
+
+  mutable size_t curr_i;
+  int curr_j;
+
+  LayerTransitionsIterator(const DFA<ndim, shape_pack...>& left_in,
+			   const DFA<ndim, shape_pack...>& right_in,
+			   int layer_in,
+			   BitSetIterator iter_in)
+    : left(left_in),
+      right(right_in),
+      layer(layer_in),
+      iter(iter_in),
+      curr_layer_shape(left.get_layer_shape(layer)),
+      curr_left_size(left.get_layer_size(layer)),
+      curr_right_size(right.get_layer_size(layer)),
+      next_left_size(left.get_layer_size(layer+1)),
+      next_right_size(right.get_layer_size(layer + 1)),
+      curr_i(0),
+      curr_j(0)
+  {
+  }
+
+public:
+
+  size_t operator*() const
+  {
+    if(curr_j == 0)
+      {
+	curr_i = *iter;
+      }
+
+    assert(curr_i < curr_left_size * curr_right_size);
+    dfa_state_t curr_left_state = curr_i / curr_right_size;
+    dfa_state_t curr_right_state = curr_i % curr_right_size;
+
+    const DFATransitions& left_transitions = left.get_transitions(layer, curr_left_state);
+    const DFATransitions& right_transitions = right.get_transitions(layer, curr_right_state);
+
+    size_t next_left_state = left_transitions.at(curr_j);
+    assert(next_left_state < next_left_size);
+    size_t next_right_state = right_transitions.at(curr_j);
+    assert(next_right_state < next_right_size);
+
+    return next_left_state * next_right_size + next_right_state;
+  }
+
+  LayerTransitionsIterator& operator++()
+  {
+    // prefix ++
+    curr_j = (curr_j + 1) % curr_layer_shape;
+    if(curr_j == 0)
+      {
+	++iter;
+      }
+    return *this;
+  }
+
+  bool operator<(const LayerTransitionsIterator& right_in) const
+  {
+    if(iter < right_in.iter)
+      {
+	return true;
+      }
+    else if(right_in.iter < iter)
+      {
+	return false;
+      }
+
+    return curr_j < right_in.curr_j;
+  }
+
+  friend LayerTransitions<ndim, shape_pack...>;
+};
+
+template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
 					  leaf_func_t leaf_func)
@@ -142,14 +266,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
     {
       profile.tic("forward init");
 
-      int curr_layer_shape = this->get_layer_shape(layer);
-
       // get size of current layer and next layer.
       //
       // using size_t for product calculations...
-
-      size_t curr_left_size = left_in.get_layer_size(layer);
-      size_t curr_right_size = right_in.get_layer_size(layer);
 
       size_t next_left_size = left_in.get_layer_size(layer + 1);
       size_t next_right_size = right_in.get_layer_size(layer + 1);
@@ -176,27 +295,14 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       profile.tic("forward pairs");
 
-      for(auto iter = curr_layer.cbegin();
-	  iter < curr_layer.cend();
+      LayerTransitions layer_transitions(left_in, right_in, layer, curr_layer);
+
+      for(auto iter = layer_transitions.cbegin();
+	  iter < layer_transitions.cend();
 	  ++iter)
 	{
-	  size_t curr_i = *iter;
-	  assert(curr_i < curr_left_size * curr_right_size);
-	  dfa_state_t curr_left_state = curr_i / curr_right_size;
-	  dfa_state_t curr_right_state = curr_i % curr_right_size;
-
-	  const DFATransitions& left_transitions = left_in.get_transitions(layer, curr_left_state);
-	  const DFATransitions& right_transitions = right_in.get_transitions(layer, curr_right_state);
-
-	  for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
-	    {
-	      size_t next_left_state = left_transitions.at(curr_j);
-	      assert(next_left_state < next_left_size);
-	      size_t next_right_state = right_transitions.at(curr_j);
-	      assert(next_right_state < next_right_size);
-	      size_t next_i = next_left_state * next_right_size + next_right_state;
-	      next_layer.add(next_i);
-	    }
+	  size_t next_i = *iter;
+	  next_layer.add(next_i);
 	}
 
       if(disk_mmap)
@@ -235,49 +341,37 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       assert(next_pair_mapping.size() > 0);
 
+      int curr_layer_shape = this->get_layer_shape(layer);
       const BitSet& curr_layer = pairs_by_layer.at(layer);
       std::vector<dfa_state_t> curr_pair_mapping;
 
-      size_t curr_left_size = left_in.get_layer_size(layer);
-      size_t curr_right_size = right_in.get_layer_size(layer);
-
       profile.tic("backward index");
 
-      size_t next_left_size = left_in.get_layer_size(layer + 1);
-      size_t next_right_size = right_in.get_layer_size(layer + 1);
       const BitSet& next_layer = pairs_by_layer.at(layer + 1);
 
       BitSetIndex next_index(next_layer);
 
       profile.tic("backward states");
 
-      for(auto iter = curr_layer.cbegin();
-	  iter < curr_layer.cend();
+      LayerTransitions layer_transitions(left_in, right_in, layer, curr_layer);
+
+      DFATransitions next_transitions;
+      for(auto iter = layer_transitions.cbegin();
+	  iter < layer_transitions.cend();
 	  ++iter)
 	{
-	  size_t curr_i = *iter;
-	  dfa_state_t curr_left_state = curr_i / curr_right_size;
-	  dfa_state_t curr_right_state = curr_i % curr_right_size;
+	  size_t next_i = *iter;
+	  size_t next_logical = next_index[next_i];
+	  assert(next_logical < next_pair_mapping.size());
+	  next_transitions.push_back(next_pair_mapping.at(next_logical));
 
-	  assert(curr_left_state < curr_left_size);
-
-	  const DFATransitions& left_transitions = left_in.get_transitions(layer, curr_left_state);
-	  const DFATransitions& right_transitions = right_in.get_transitions(layer, curr_right_state);
-
-	  curr_pair_mapping.emplace_back(this->add_state(layer, [&](int j)
-	  {
-	    size_t next_left_state = left_transitions.at(j);
-	    assert(next_left_state < next_left_size);
-	    size_t next_right_state = right_transitions.at(j);
-	    assert(next_right_state < next_right_size);
-	    size_t next_i = next_left_state * next_right_size + next_right_state;
-	    assert(next_i < next_left_size * next_right_size);
-
-	    size_t next_logical = next_index[next_i];
-	    assert(next_logical < next_pair_mapping.size());
-	    return next_pair_mapping.at(next_logical);
-	  }));
+	  if(next_transitions.size() == curr_layer_shape)
+	    {
+	      curr_pair_mapping.emplace_back(this->add_state(layer, next_transitions));
+	      next_transitions.clear();
+	    }
 	}
+      assert(next_transitions.size() == 0);
       next_pair_mapping.clear();
       std::swap(next_pair_mapping, curr_pair_mapping);
 
