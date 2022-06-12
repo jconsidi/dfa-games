@@ -1,16 +1,16 @@
-// BitSet.cpp
+// VectorBitSet.cpp
 
-#include "BitSet.h"
+#include "VectorBitSet.h"
 
 #include <bit>
 
-BitSet::BitSet(size_t size_in)
+VectorBitSet::VectorBitSet(size_t size_in)
   : _size(size_in),
     _memory_map(new MemoryMap<uint64_t>((size_in + 63) / 64))
 {
 }
 
-BitSet::BitSet(std::string filename_in, size_t size_in)
+VectorBitSet::VectorBitSet(std::string filename_in, size_t size_in)
   : _size(size_in),
     _memory_map(new MemoryMap<uint64_t>(filename_in, (size_in + 63) / 64))
 {
@@ -21,14 +21,14 @@ BitSet::BitSet(std::string filename_in, size_t size_in)
     }
 }
 
-BitSet::BitSet(BitSet&& old)
+VectorBitSet::VectorBitSet(VectorBitSet&& old)
   : _size(old._size),
     _memory_map(old._memory_map)
 {
   old._memory_map = 0;
 }
 
-BitSet::~BitSet()
+VectorBitSet::~VectorBitSet()
 {
   if(_memory_map)
     {
@@ -37,27 +37,27 @@ BitSet::~BitSet()
     }
 }
 
-void BitSet::add(size_t index_in)
+void VectorBitSet::add(size_t index_in)
 {
   assert(index_in < _size);
   (*_memory_map)[index_in / 64] |= 1ULL << (index_in & 0x3fL);
 }
 
-BitSetIterator BitSet::cbegin() const
+VectorBitSetIterator VectorBitSet::cbegin() const
 {
   for(size_t index_high = 0; index_high < _memory_map->size(); ++index_high)
     {
       uint64_t mask = (*_memory_map)[index_high];
       if(mask)
 	{
-	  return BitSetIterator(*this, index_high, std::countr_zero(mask));
+	  return VectorBitSetIterator(*this, index_high, std::countr_zero(mask));
 	}
     }
 
   return cend();
 }
 
-bool BitSet::check(size_t index) const
+bool VectorBitSet::check(size_t index) const
 {
   assert(index < _size);
 
@@ -67,12 +67,12 @@ bool BitSet::check(size_t index) const
   return ((*_memory_map)[index_high] & (1ULL << index_low)) != 0;
 }
 
-BitSetIterator BitSet::cend() const
+VectorBitSetIterator VectorBitSet::cend() const
 {
-  return BitSetIterator(*this, _memory_map->size(), 0ULL);
+  return VectorBitSetIterator(*this, _memory_map->size(), 0ULL);
 }
 
-size_t BitSet::count() const
+size_t VectorBitSet::count() const
 {
   size_t output = 0;
   for(size_t index_high = 0; index_high < _memory_map->size(); ++index_high)
@@ -83,12 +83,12 @@ size_t BitSet::count() const
   return output;
 }
 
-size_t BitSet::size() const
+size_t VectorBitSet::size() const
 {
   return _size;
 }
 
-BitSetIndex::BitSetIndex(const BitSet& vector_in)
+VectorBitSetIndex::VectorBitSetIndex(const VectorBitSet& vector_in)
   : _vector(vector_in),
     _index(vector_in._memory_map->size() + 1)
 {
@@ -101,7 +101,7 @@ BitSetIndex::BitSetIndex(const BitSet& vector_in)
     }
 }
 
-size_t BitSetIndex::operator[](size_t index) const
+size_t VectorBitSetIndex::operator[](size_t index) const
 {
   auto mm = _vector._memory_map;
 
@@ -113,19 +113,19 @@ size_t BitSetIndex::operator[](size_t index) const
   return output;
 }
 
-BitSetIterator::BitSetIterator(const BitSet& bit_vector_in, size_t index_high_in, size_t index_low_in)
+VectorBitSetIterator::VectorBitSetIterator(const VectorBitSet& bit_vector_in, size_t index_high_in, size_t index_low_in)
   : _bit_vector(bit_vector_in),
     _index_high(index_high_in),
     _index_low(index_low_in)
 {
 }
 
-size_t BitSetIterator::operator*() const
+size_t VectorBitSetIterator::operator*() const
 {
   return _index_high * 64 + _index_low;
 }
 
-BitSetIterator& BitSetIterator::operator++()
+VectorBitSetIterator& VectorBitSetIterator::operator++()
 {
   // prefix ++
 
@@ -157,7 +157,7 @@ BitSetIterator& BitSetIterator::operator++()
   return *this;
 }
 
-bool BitSetIterator::operator<(const BitSetIterator& right_in) const
+bool VectorBitSetIterator::operator<(const VectorBitSetIterator& right_in) const
 {
   if(this->_index_high < right_in._index_high)
     {

@@ -297,13 +297,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       LayerTransitions layer_transitions(left_in, right_in, layer, curr_layer);
 
-      for(auto iter = layer_transitions.cbegin();
-	  iter < layer_transitions.cend();
-	  ++iter)
-	{
-	  size_t next_i = *iter;
-	  next_layer.add(next_i);
-	}
+      populate_bitset<LayerTransitionsIterator<ndim, shape_pack...>>(next_layer, layer_transitions.cbegin(), layer_transitions.cend());
 
       if(disk_mmap)
 	{
