@@ -101,7 +101,7 @@ VectorBitSetIndex::VectorBitSetIndex(const VectorBitSet& vector_in)
     }
 }
 
-size_t VectorBitSetIndex::operator[](size_t index) const
+size_t VectorBitSetIndex::rank(size_t index) const
 {
   auto mm = _vector._memory_map;
 

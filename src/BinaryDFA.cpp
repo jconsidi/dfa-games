@@ -355,7 +355,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  ++iter)
 	{
 	  size_t next_i = *iter;
-	  size_t next_logical = next_index[next_i];
+	  size_t next_logical = next_index.rank(next_i);
 	  assert(next_logical < next_pair_mapping.size());
 	  next_transitions.push_back(next_pair_mapping.at(next_logical));
 

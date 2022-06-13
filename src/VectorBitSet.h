@@ -48,7 +48,7 @@ public:
 
   VectorBitSetIndex(const VectorBitSet&);
 
-  size_t operator[](size_t) const;
+  size_t rank(size_t) const;
 };
 
 class VectorBitSetIterator
