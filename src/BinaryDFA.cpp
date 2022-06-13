@@ -258,7 +258,11 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
   pairs_by_layer.reserve(ndim + 1);
 
   pairs_by_layer.emplace_back(left_in.get_layer_size(0) * right_in.get_layer_size(0));
-  pairs_by_layer[0].add(left_in.get_initial_state() * right_in.get_layer_size(0) + right_in.get_initial_state());
+
+  size_t initial_pair = left_in.get_initial_state() * right_in.get_layer_size(0) + right_in.get_initial_state();
+  pairs_by_layer[0].prepare(initial_pair);
+  pairs_by_layer[0].allocate();
+  pairs_by_layer[0].add(initial_pair);
 
   // forward pass
 
