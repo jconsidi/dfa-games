@@ -5,6 +5,8 @@
 
 #include <ctype.h>
 
+#include <string>
+
 #include "MemoryMap.h"
 
 class VectorBitSetIndex;
@@ -15,6 +17,7 @@ class VectorBitSet
 private:
 
   size_t _size;
+  std::string _filename;
   MemoryMap<uint64_t> *_memory_map;
 
 public:
@@ -42,7 +45,7 @@ class VectorBitSetIndex
 private:
 
   const VectorBitSet& _vector;
-  MemoryMap<size_t> _index;
+  MemoryMap<size_t> *_index;
 
 public:
 

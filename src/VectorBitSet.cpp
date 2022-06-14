@@ -6,12 +6,14 @@
 
 VectorBitSet::VectorBitSet(size_t size_in)
   : _size(size_in),
+    _filename(""),
     _memory_map(new MemoryMap<uint64_t>((size_in + 63) / 64))
 {
 }
 
 VectorBitSet::VectorBitSet(std::string filename_in, size_t size_in)
   : _size(size_in),
+    _filename(filename_in),
     _memory_map(new MemoryMap<uint64_t>(filename_in, (size_in + 63) / 64))
 {
   size_t s = _memory_map->size();
@@ -23,6 +25,7 @@ VectorBitSet::VectorBitSet(std::string filename_in, size_t size_in)
 
 VectorBitSet::VectorBitSet(VectorBitSet&& old)
   : _size(old._size),
+    _filename(old._filename),
     _memory_map(old._memory_map)
 {
   old._memory_map = 0;
@@ -90,14 +93,16 @@ size_t VectorBitSet::size() const
 
 VectorBitSetIndex::VectorBitSetIndex(const VectorBitSet& vector_in)
   : _vector(vector_in),
-    _index(vector_in._memory_map->size() + 1)
+    _index(_vector._filename != "" ?
+	   new MemoryMap<size_t>(_vector._filename + "-index", vector_in._memory_map->size() + 1) :
+	   new MemoryMap<size_t>(vector_in._memory_map->size() + 1))
 {
   auto mm = _vector._memory_map;
 
-  _index[0] = 0;
+  (*_index)[0] = 0;
   for(int i = 1; i <= mm->size(); ++i)
     {
-      _index[i] = _index[i - 1] + std::popcount((*mm)[i - 1]);
+      (*_index)[i] = (*_index)[i - 1] + std::popcount((*mm)[i - 1]);
     }
 }
 
@@ -108,7 +113,7 @@ size_t VectorBitSetIndex::rank(size_t index) const
   size_t index_high = index >> 6;
   size_t index_low = index & 0x3f;
 
-  auto output = _index[index_high] + std::popcount((*mm)[index_high] & ((1ULL << index_low) - 1));
+  auto output = (*_index)[index_high] + std::popcount((*mm)[index_high] & ((1ULL << index_low) - 1));
   assert(output <= index);
   return output;
 }
