@@ -285,7 +285,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       if(disk_mmap)
 	{
 	  std::ostringstream filename_builder;
-	  filename_builder << "/tmp/chess-binarydfa-" << (layer + 1) << "-children.bin";
+	  filename_builder << "/tmp/chess/binarydfa-" << (layer < 9 ? "0" : "") << (layer + 1);
 	  pairs_by_layer.emplace_back(filename_builder.str(), next_size);
 	}
       else
