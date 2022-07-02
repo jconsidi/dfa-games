@@ -23,8 +23,7 @@ UnionDFA<ndim, shape_pack...>::UnionDFA(const std::vector<std::shared_ptr<const 
 
 // template instantiations
 
-#include "ChessGame.h"
-#include "TicTacToeGame.h"
+#include "DFAParams.h"
 
 template class UnionDFA<CHESS_DFA_PARAMS>;
 template class UnionDFA<TEST4_DFA_PARAMS>;

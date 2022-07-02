@@ -11,7 +11,8 @@
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "RejectDFA.h"
-#include "TicTacToeGame.h"
+#include "TestDFAParams.h"
+#include "TicTacToeDFAParams.h"
 #include "UnionDFA.h"
 
 template<int ndim, int... shape_pack>

@@ -10,6 +10,7 @@
 #include "InverseDFA.h"
 #include "Game.h"
 #include "RejectDFA.h"
+#include "TicTacToeDFAParams.h"
 #include "UnionDFA.h"
 
 template<int n, int... shape_pack>
@@ -45,16 +46,8 @@ template<int n, int... shape_pack>
   virtual std::string position_to_string(const dfa_string_type&) const;
 };
 
-#define TICTACTOE2_SHAPE_PACK 3, 3, 3, 3
-#define TICTACTOE2_DFA_PARAMS 4, TICTACTOE2_SHAPE_PACK
 typedef class TicTacToeGame<2, TICTACTOE2_SHAPE_PACK> TicTacToe2Game;
-
-#define TICTACTOE3_SHAPE_PACK 3, 3, 3, 3, 3, 3, 3, 3, 3
-#define TICTACTOE3_DFA_PARAMS 9, TICTACTOE3_SHAPE_PACK
 typedef class TicTacToeGame<3, TICTACTOE3_SHAPE_PACK> TicTacToe3Game;
-
-#define TICTACTOE4_SHAPE_PACK 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
-#define TICTACTOE4_DFA_PARAMS 16, TICTACTOE4_SHAPE_PACK
 typedef class TicTacToeGame<4, TICTACTOE4_SHAPE_PACK> TicTacToe4Game;
 
 #endif

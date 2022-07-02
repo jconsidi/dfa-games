@@ -10,8 +10,7 @@ RejectDFA<ndim, shape_pack...>::RejectDFA()
 
 // template instantiations
 
-#include "ChessGame.h"
-#include "TicTacToeGame.h"
+#include "DFAParams.h"
 
 template class RejectDFA<CHESS_DFA_PARAMS>;
 template class RejectDFA<TEST4_DFA_PARAMS>;

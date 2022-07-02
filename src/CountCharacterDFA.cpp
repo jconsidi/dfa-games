@@ -48,8 +48,7 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in
 
 // template instantiations
 
-#include "ChessGame.h"
-#include "TicTacToeGame.h"
+#include "DFAParams.h"
 
 template class CountCharacterDFA<CHESS_DFA_PARAMS>;
 template class CountCharacterDFA<TEST4_DFA_PARAMS>;

@@ -493,8 +493,7 @@ int DFAString<ndim, shape_pack...>::operator[](int layer_in) const
 
 // template instantiations
 
-#include "ChessGame.h"
-#include "TicTacToeGame.h"
+#include "DFAParams.h"
 
 template class DFA<CHESS_DFA_PARAMS>;
 template class DFA<TEST4_DFA_PARAMS>;

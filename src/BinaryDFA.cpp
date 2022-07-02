@@ -389,8 +389,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
 // template instantiations
 
-#include "ChessGame.h"
-#include "TicTacToeGame.h"
+#include "DFAParams.h"
 
 template class BinaryDFA<CHESS_DFA_PARAMS>;
 template class BinaryDFA<TEST4_DFA_PARAMS>;
