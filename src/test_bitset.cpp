@@ -27,10 +27,7 @@ void test_iterator(const BitSet& set, const vector& expected)
 void test_vector(size_t size, const vector& inputs, const vector& expected)
 {
   BitSet set(size);
-  for(int i = 0; i < inputs.size(); ++i)
-    {
-      set.add(inputs[i]);
-    }
+  populate_bitset<decltype(inputs.cbegin())>(set, inputs.cbegin(), inputs.cend());
 
   test_iterator(set, expected);
 }
