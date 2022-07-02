@@ -1,0 +1,12 @@
+divide
+generate_moves
+random
+random_uci
+test_bitset
+test_chess_game
+test_chess_limited
+test_dfa
+test_memorymap
+test_perft
+test_perft_u
+test_tictactoe_game
