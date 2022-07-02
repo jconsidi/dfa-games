@@ -15,8 +15,6 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_p
   assert(dfa_in.ready());
   this->dfa_temp = &dfa_in;
 
-  this->add_uniform_states();
-
   // setup new_values_to_old_values_by_layer
 
   for(int layer = 0; layer < ndim; ++layer)

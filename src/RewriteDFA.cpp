@@ -5,10 +5,6 @@
 template<int ndim, int... shape_pack>
 RewriteDFA<ndim, shape_pack...>::RewriteDFA(const DFA<ndim, shape_pack...>& dfa_in, std::function<void(int, DFATransitions&)> rewrite_func)
 {
-  // setup reject/accept nodes to be available to rewrite_func
-
-  this->add_uniform_states();
-
   // rewrite input DFA
 
   // rewrite mask layer by splitting into separate states and reassembling

@@ -8,12 +8,13 @@
 #include <set>
 
 #include "DFA.h"
+#include "DedupedDFA.h"
 #include "UnionDFA.h"
 
 typedef std::function<bool(int, int, int)> change_func;
 
 template<int ndim, int... shape_pack>
-  class ChangeDFA : public DFA<ndim, shape_pack...>
+  class ChangeDFA : public DedupedDFA<ndim, shape_pack...>
 {
  public:
 

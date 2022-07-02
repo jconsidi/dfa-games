@@ -6,7 +6,7 @@
 #include "ChessGame.h"
 
 class ChessBoardDFA
-: public ChessGame::dfa_type
+: public ChessGame::deduped_dfa_type
 {
  public:
 

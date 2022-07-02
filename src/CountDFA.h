@@ -3,10 +3,10 @@
 #ifndef COUNT_DFA_H
 #define COUNT_DFA_H
 
-#include "DFA.h"
+#include "DedupedDFA.h"
 
 template<int ndim, int... shape_pack>
-class CountDFA : public DFA<ndim, shape_pack...>
+class CountDFA : public DedupedDFA<ndim, shape_pack...>
 {
  public:
 

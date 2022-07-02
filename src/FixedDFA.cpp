@@ -4,7 +4,7 @@
 
 template<int ndim, int... shape_pack>
 FixedDFA<ndim, shape_pack...>::FixedDFA(int fixed_square, int fixed_character)
-  : DFA<ndim,shape_pack...>()
+  : DedupedDFA<ndim,shape_pack...>()
 {
   // 1 state until the fixed square, then a reject state and accept
   // state until the penultimate (mask) layer.

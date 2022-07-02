@@ -8,11 +8,12 @@
 #include <vector>
 
 #include "DFA.h"
+#include "DedupedDFA.h"
 
 typedef dfa_state_t (*leaf_func_t)(dfa_state_t, dfa_state_t);
 
 template <int ndim, int... shape_pack>
-class BinaryDFA : public DFA<ndim, shape_pack...>
+class BinaryDFA : public DedupedDFA<ndim, shape_pack...>
 {
   void binary_build(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, leaf_func_t);
 

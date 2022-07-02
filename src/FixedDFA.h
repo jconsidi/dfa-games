@@ -5,10 +5,10 @@
 
 #include <vector>
 
-#include "DFA.h"
+#include "DedupedDFA.h"
 
 template <int ndim, int... shape_pack>
-class FixedDFA : public DFA<ndim, shape_pack...>
+class FixedDFA : public DedupedDFA<ndim, shape_pack...>
 {
  public:
   FixedDFA(int, int);

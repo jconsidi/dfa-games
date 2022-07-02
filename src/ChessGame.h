@@ -9,12 +9,6 @@
 
 class ChessGame : public Game<CHESS_DFA_PARAMS>
 {
-public:
-
-  typedef typename Game<CHESS_DFA_PARAMS>::dfa_type dfa_type;
-  typedef typename Game<CHESS_DFA_PARAMS>::shared_dfa_ptr shared_dfa_ptr;
-  typedef typename Game<CHESS_DFA_PARAMS>::rule_vector rule_vector;
-
 private:
 
   virtual shared_dfa_ptr get_initial_positions_internal() const;

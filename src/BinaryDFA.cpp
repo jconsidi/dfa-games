@@ -142,7 +142,7 @@ template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
 					  leaf_func_t leaf_func)
-  : DFA<ndim, shape_pack...>()
+  : DedupedDFA<ndim, shape_pack...>()
 {
   binary_build(left_in, right_in, leaf_func);
 }
@@ -150,7 +150,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_i
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in,
 					  leaf_func_t leaf_func)
-  : DFA<ndim, shape_pack...>()
+  : DedupedDFA<ndim, shape_pack...>()
 {
   // confirm commutativity
   assert(leaf_func(0, 1) == leaf_func(1, 0));
