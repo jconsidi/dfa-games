@@ -2,7 +2,7 @@
 
 CXX=c++
 
-CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g
+CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g -ferror-limit=1
 
 TARGETS=divide generate_moves random random_uci test_bitset test_chess_game test_dfa test_perft test_perft_u test_tictactoe_game
 
