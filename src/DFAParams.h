@@ -9,6 +9,9 @@
 
 #define INSTANTIATE_DFA_TEMPLATE(class_name) \
   template class class_name<CHESS_DFA_PARAMS>; \
+  template class class_name<TEST1_DFA_PARAMS>; \
+  template class class_name<TEST2_DFA_PARAMS>; \
+  template class class_name<TEST3_DFA_PARAMS>; \
   template class class_name<TEST4_DFA_PARAMS>; \
   template class class_name<TEST5_DFA_PARAMS>; \
   template class class_name<TICTACTOE2_DFA_PARAMS>; \

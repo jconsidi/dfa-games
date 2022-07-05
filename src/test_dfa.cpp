@@ -267,6 +267,9 @@ int main()
 {
   try
     {
+      test_suite<TEST1_DFA_PARAMS>();
+      test_suite<TEST2_DFA_PARAMS>();
+      test_suite<TEST3_DFA_PARAMS>();
       test_suite<TEST4_DFA_PARAMS>();
       test_suite<TEST5_DFA_PARAMS>();
       test_suite<TICTACTOE2_DFA_PARAMS>();
