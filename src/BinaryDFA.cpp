@@ -52,49 +52,38 @@ public:
 };
 
 template <int ndim, int... shape_pack>
-class LayerTransitionsIterator
+class LayerTransitionsHelper
 {
+protected:
+
   const DFA<ndim, shape_pack...>& left;
   const DFA<ndim, shape_pack...>& right;
-  int layer;
-  BitSetIterator iter;
+  const int layer;
 
-  int curr_layer_shape;
-  size_t curr_left_size;
-  size_t curr_right_size;
-  size_t next_left_size;
-  size_t next_right_size;
+  const int curr_layer_shape;
+  const size_t curr_left_size;
+  const size_t curr_right_size;
+  const size_t next_left_size;
+  const size_t next_right_size;
 
-  mutable size_t curr_i;
-  int curr_j;
+public:
 
-  LayerTransitionsIterator(const DFA<ndim, shape_pack...>& left_in,
-			   const DFA<ndim, shape_pack...>& right_in,
-			   int layer_in,
-			   BitSetIterator iter_in)
+  LayerTransitionsHelper(const DFA<ndim, shape_pack...>& left_in,
+			 const DFA<ndim, shape_pack...>& right_in,
+			 int layer_in)
     : left(left_in),
       right(right_in),
       layer(layer_in),
-      iter(iter_in),
       curr_layer_shape(left.get_layer_shape(layer)),
       curr_left_size(left.get_layer_size(layer)),
       curr_right_size(right.get_layer_size(layer)),
       next_left_size(left.get_layer_size(layer+1)),
-      next_right_size(right.get_layer_size(layer + 1)),
-      curr_i(0),
-      curr_j(0)
+      next_right_size(right.get_layer_size(layer + 1))
   {
   }
 
-public:
-
-  size_t operator*() const
+  size_t get_next_pair(size_t curr_i, int curr_j) const
   {
-    if(curr_j == 0)
-      {
-	curr_i = *iter;
-      }
-
     assert(curr_i < curr_left_size * curr_right_size);
     dfa_state_t curr_left_state = curr_i / curr_right_size;
     dfa_state_t curr_right_state = curr_i % curr_right_size;
@@ -109,11 +98,44 @@ public:
 
     return next_left_state * next_right_size + next_right_state;
   }
+};
+
+template <int ndim, int... shape_pack>
+class LayerTransitionsIterator
+  : public LayerTransitionsHelper<ndim, shape_pack...>
+{
+  BitSetIterator iter;
+
+  mutable size_t curr_i;
+  int curr_j;
+
+  LayerTransitionsIterator(const DFA<ndim, shape_pack...>& left_in,
+			   const DFA<ndim, shape_pack...>& right_in,
+			   int layer_in,
+			   BitSetIterator iter_in)
+    : LayerTransitionsHelper<ndim, shape_pack...>(left_in, right_in, layer_in),
+      iter(iter_in),
+      curr_i(0),
+      curr_j(0)
+  {
+  }
+
+public:
+
+  size_t operator*() const
+  {
+    if(curr_j == 0)
+      {
+	curr_i = *iter;
+      }
+
+    return this->get_next_pair(curr_i, curr_j);
+  }
 
   LayerTransitionsIterator& operator++()
   {
     // prefix ++
-    curr_j = (curr_j + 1) % curr_layer_shape;
+    curr_j = (curr_j + 1) % this->curr_layer_shape;
     if(curr_j == 0)
       {
 	++iter;
