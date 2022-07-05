@@ -4,6 +4,7 @@
 
 #include <assert.h>
 
+#include <algorithm>
 #include <bit>
 #include <iostream>
 #include <queue>
@@ -164,7 +165,7 @@ template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
 					  leaf_func_t leaf_func)
-  : DedupedDFA<ndim, shape_pack...>()
+  : ExplicitDFA<ndim, shape_pack...>()
 {
   binary_build(left_in, right_in, leaf_func);
 }
@@ -172,7 +173,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_i
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in,
 					  leaf_func_t leaf_func)
-  : DedupedDFA<ndim, shape_pack...>()
+  : ExplicitDFA<ndim, shape_pack...>()
 {
   // confirm commutativity
   assert(leaf_func(0, 1) == leaf_func(1, 0));
@@ -192,11 +193,10 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 	for(int layer = ndim - 1; layer >= 0; --layer)
 	  {
 	    dfa_state_t layer_size = source->get_layer_size(layer);
-	    for(dfa_state_t state_index = 0; state_index < layer_size; ++state_index)
+	    for(dfa_state_t state_index = 2; state_index < layer_size; ++state_index)
 	      {
 		const DFATransitions& transitions(source->get_transitions(layer, state_index));
-		dfa_state_t new_state_index = this->add_state(layer, transitions);
-		assert(new_state_index == state_index);
+		this->set_state(layer, state_index, transitions);
 	      }
 	  }
 	this->set_initial_state(source->get_initial_state());
@@ -365,33 +365,123 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       const BitSet& curr_layer = pairs_by_layer.at(layer);
       std::vector<dfa_state_t> curr_pair_mapping;
 
-      profile.tic("backward index");
+      profile.tic("backward curr index");
+
+      BitSetIndex curr_index(curr_layer);
+
+      profile.tic("backward next index");
 
       const BitSet& next_layer = pairs_by_layer.at(layer + 1);
 
       BitSetIndex next_index(next_layer);
 
-      profile.tic("backward states");
+      profile.tic("backward enumerate");
 
-      LayerTransitions layer_transitions(left_in, right_in, layer, curr_layer);
+      LayerTransitionsHelper<ndim, shape_pack...> helper(left_in, right_in, layer);
 
-      DFATransitions next_transitions;
-      for(auto iter = layer_transitions.cbegin();
-	  iter < layer_transitions.cend();
+      size_t curr_layer_count = curr_layer.count();
+      std::vector<size_t> curr_pairs;
+      curr_pairs.reserve(curr_layer_count);
+
+      for(auto iter = curr_layer.cbegin();
+	  iter < curr_layer.cend();
 	  ++iter)
 	{
-	  size_t next_i = *iter;
-	  size_t next_logical = next_index.rank(next_i);
-	  assert(next_logical < next_pair_mapping.size());
-	  next_transitions.push_back(next_pair_mapping.at(next_logical));
-
-	  if(next_transitions.size() == curr_layer_shape)
-	    {
-	      curr_pair_mapping.emplace_back(this->add_state(layer, next_transitions));
-	      next_transitions.clear();
-	    }
+	  curr_pairs.push_back(*iter);
 	}
-      assert(next_transitions.size() == 0);
+
+      auto get_next_state = [&](size_t curr_pair, int curr_j)
+      {
+	assert(curr_layer.check(curr_pair));
+	size_t next_pair = helper.get_next_pair(curr_pair, curr_j);
+	dfa_state_t next_compact = next_index.rank(next_pair);
+	assert(next_compact < next_pair_mapping.size());
+	dfa_state_t next_deduped = next_pair_mapping.at(next_compact);
+	return next_deduped;
+      };
+
+      auto compare_pair = [&](size_t curr_pair_a, size_t curr_pair_b)
+      {
+	for(int j = 0; j < curr_layer_shape; ++j)
+	  {
+	    dfa_state_t next_a = get_next_state(curr_pair_a, j);
+	    dfa_state_t next_b = get_next_state(curr_pair_b, j);
+
+	    if(next_a < next_b)
+	      {
+		return true;
+	      }
+	    else if(next_a > next_b)
+	      {
+		return false;
+	      }
+	  }
+
+	return false;
+      };
+
+      profile.tic("backward sort");
+
+      std::sort(curr_pairs.begin(), curr_pairs.end(), compare_pair);
+
+      profile.tic("backward states");
+
+      curr_pair_mapping.resize(curr_layer_count);
+
+      // figure out first two states used
+      dfa_state_t curr_logical = ~dfa_state_t(0);
+      dfa_state_t next_logical = 2; // next state to be set
+
+      auto set_helper = [&](size_t curr_pair)
+      {
+	DFATransitions set_transitions;
+	for(int j = 0; j < curr_layer_shape; ++j)
+	  {
+	    set_transitions.push_back(get_next_state(curr_pair, j));
+	  }
+
+	if(set_transitions.at(0) < 2)
+	  {
+	    // possible accept or reject state
+	    bool uniform_transitions = true;
+	    for(int j = 1; j < curr_layer_shape; ++j)
+	      {
+		if(set_transitions.at(j) != set_transitions.at(0))
+		  {
+		    uniform_transitions = false;
+		    break;
+		  }
+	      }
+
+	    if(uniform_transitions)
+	      {
+		// confirmed accept or reject state
+		curr_logical = set_transitions[0];
+		return;
+	      }
+	  }
+
+	curr_logical = next_logical;
+	++next_logical;
+
+	this->set_state(layer, curr_logical, set_transitions);
+      };
+
+      set_helper(curr_pairs[0]);
+
+      curr_pair_mapping[curr_index.rank(curr_pairs[0])] = curr_logical;
+
+      for(size_t k = 1; k < curr_layer_count; ++k)
+	{
+	  if(compare_pair(curr_pairs[k-1], curr_pairs[k]))
+	    {
+	      set_helper(curr_pairs[k]);
+	    }
+	  curr_pair_mapping[curr_index.rank(curr_pairs[k])] = curr_logical;
+	}
+
+      assert(curr_pair_mapping.size() == curr_layer_count);
+
       next_pair_mapping.clear();
       std::swap(next_pair_mapping, curr_pair_mapping);
 
