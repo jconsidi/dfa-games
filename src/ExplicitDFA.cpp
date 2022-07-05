@@ -25,9 +25,32 @@ void ExplicitDFA<ndim, shape_pack...>::set_state(int layer, dfa_state_t new_stat
   // sanity check transitions
   dfa_state_t next_layer_size = this->get_layer_size(layer + 1);
   int layer_shape = this->get_layer_shape(layer);
+
+  dfa_state_t transition_min = next_states[0];
+  dfa_state_t transition_max = next_states[0];
   for(int i = 0; i < layer_shape; ++i)
     {
       assert(next_states[i] < next_layer_size);
+
+      if(next_states[i] < transition_min)
+	{
+	  transition_min = next_states[i];
+	}
+      else if(next_states[i] > transition_max)
+	{
+	  transition_max = next_states[i];
+	}
+    }
+
+  if((transition_min == transition_max) && (transition_max < 2))
+    {
+      // accept or reject state
+      assert(new_state_id == transition_max);
+    }
+  else
+    {
+      // make sure not using a uniform state id
+      assert(new_state_id >= 2);
     }
 
   // add the state
