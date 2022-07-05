@@ -16,10 +16,6 @@ DifferenceDFA<ndim, shape_pack...>::DifferenceDFA(const DFA<ndim, shape_pack...>
 
 // template instantiations
 
-#include "ChessGame.h"
-#include "TicTacToeGame.h"
+#include "DFAParams.h"
 
-template class DifferenceDFA<CHESS_DFA_PARAMS>;
-template class DifferenceDFA<TICTACTOE2_DFA_PARAMS>;
-template class DifferenceDFA<TICTACTOE3_DFA_PARAMS>;
-template class DifferenceDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(DifferenceDFA);

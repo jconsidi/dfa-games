@@ -51,9 +51,4 @@ InverseDFA<ndim, shape_pack...>::InverseDFA(const DFA<ndim, shape_pack...>& dfa_
 
 #include "DFAParams.h"
 
-template class InverseDFA<CHESS_DFA_PARAMS>;
-template class InverseDFA<TEST4_DFA_PARAMS>;
-template class InverseDFA<TEST5_DFA_PARAMS>;
-template class InverseDFA<TICTACTOE2_DFA_PARAMS>;
-template class InverseDFA<TICTACTOE3_DFA_PARAMS>;
-template class InverseDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(InverseDFA);

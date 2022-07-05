@@ -1,4 +1,4 @@
-// count_dfa.cpp
+// CountDFA.cpp
 
 // internal state meanings:
 // logical k => k pieces in previous squares
@@ -48,9 +48,4 @@ CountDFA<ndim, shape_pack...>::CountDFA(int num_pieces)
 
 #include "DFAParams.h"
 
-template class CountDFA<CHESS_DFA_PARAMS>;
-template class CountDFA<TEST4_DFA_PARAMS>;
-template class CountDFA<TEST5_DFA_PARAMS>;
-template class CountDFA<TICTACTOE2_DFA_PARAMS>;
-template class CountDFA<TICTACTOE3_DFA_PARAMS>;
-template class CountDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(CountDFA);

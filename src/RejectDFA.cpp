@@ -12,9 +12,4 @@ RejectDFA<ndim, shape_pack...>::RejectDFA()
 
 #include "DFAParams.h"
 
-template class RejectDFA<CHESS_DFA_PARAMS>;
-template class RejectDFA<TEST4_DFA_PARAMS>;
-template class RejectDFA<TEST5_DFA_PARAMS>;
-template class RejectDFA<TICTACTOE2_DFA_PARAMS>;
-template class RejectDFA<TICTACTOE3_DFA_PARAMS>;
-template class RejectDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(RejectDFA);

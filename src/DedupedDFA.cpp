@@ -105,9 +105,4 @@ void DedupedDFA<ndim, shape_pack...>::set_initial_state(dfa_state_t initial_stat
 
 #include "DFAParams.h"
 
-template class DedupedDFA<CHESS_DFA_PARAMS>;
-template class DedupedDFA<TEST4_DFA_PARAMS>;
-template class DedupedDFA<TEST5_DFA_PARAMS>;
-template class DedupedDFA<TICTACTOE2_DFA_PARAMS>;
-template class DedupedDFA<TICTACTOE3_DFA_PARAMS>;
-template class DedupedDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(DedupedDFA);

@@ -52,9 +52,4 @@ void ExplicitDFA<ndim, shape_pack...>::set_state(int layer, dfa_state_t new_stat
 
 #include "DFAParams.h"
 
-template class ExplicitDFA<CHESS_DFA_PARAMS>;
-template class ExplicitDFA<TEST4_DFA_PARAMS>;
-template class ExplicitDFA<TEST5_DFA_PARAMS>;
-template class ExplicitDFA<TICTACTOE2_DFA_PARAMS>;
-template class ExplicitDFA<TICTACTOE3_DFA_PARAMS>;
-template class ExplicitDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(ExplicitDFA);

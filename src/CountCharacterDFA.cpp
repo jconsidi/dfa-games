@@ -50,9 +50,4 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in
 
 #include "DFAParams.h"
 
-template class CountCharacterDFA<CHESS_DFA_PARAMS>;
-template class CountCharacterDFA<TEST4_DFA_PARAMS>;
-template class CountCharacterDFA<TEST5_DFA_PARAMS>;
-template class CountCharacterDFA<TICTACTOE2_DFA_PARAMS>;
-template class CountCharacterDFA<TICTACTOE3_DFA_PARAMS>;
-template class CountCharacterDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(CountCharacterDFA);

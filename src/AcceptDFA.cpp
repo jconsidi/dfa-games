@@ -12,9 +12,4 @@ AcceptDFA<ndim, shape_pack...>::AcceptDFA()
 
 #include "DFAParams.h"
 
-template class AcceptDFA<CHESS_DFA_PARAMS>;
-template class AcceptDFA<TEST4_DFA_PARAMS>;
-template class AcceptDFA<TEST5_DFA_PARAMS>;
-template class AcceptDFA<TICTACTOE2_DFA_PARAMS>;
-template class AcceptDFA<TICTACTOE3_DFA_PARAMS>;
-template class AcceptDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(AcceptDFA);
