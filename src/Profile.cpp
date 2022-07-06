@@ -8,7 +8,8 @@
 Profile::Profile(std::string name_in)
   : name(name_in),
     last_label(""),
-    last_time(std::chrono::steady_clock::now())
+    last_time(std::chrono::steady_clock::now()),
+    prefix("")
 {
 }
 
@@ -22,6 +23,11 @@ Profile::~Profile()
   tic("done");
 }
 
+void Profile::set_prefix(std::string prefix_in)
+{
+  prefix = prefix_in;
+}
+
 void Profile::tic(std::string label_in)
 {
   auto finish_time = std::chrono::steady_clock::now();
@@ -29,7 +35,12 @@ void Profile::tic(std::string label_in)
   auto second = std::chrono::seconds(1);
   if(diff > second)
     {
-      std::cout << name << " " << last_label << " took " << diff.count() << "s" << std::endl;
+      std::cout << name << " ";
+      if(prefix != "")
+	{
+	  std::cout << prefix << " ";
+	}
+      std::cout << last_label << " took " << diff.count() << "s" << std::endl;
     }
 
 #if 0
