@@ -9,6 +9,7 @@
 #include <iostream>
 #include <queue>
 #include <sstream>
+#include <string>
 
 #include "BitSet.h"
 #include "Flashsort.h"
@@ -290,6 +291,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   for(int layer = 0; layer < ndim; ++layer)
     {
+      profile.set_prefix("layer=" + std::to_string(layer));
       profile.tic("forward init");
 
       // get size of current layer and next layer.
@@ -337,6 +339,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   // apply leaf function
 
+  profile.set_prefix("");
   profile.tic("leaves");
 
   BitSet& leaf_pairs = pairs_by_layer.at(ndim);
@@ -357,6 +360,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
   for(int layer = ndim - 1; layer >= 0; --layer)
     {
+      profile.set_prefix("layer=" + std::to_string(layer));
       profile.tic("backward init");
 
       assert(next_pair_mapping.size() > 0);
@@ -491,6 +495,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       // cleanup in destructors
       profile.tic("backward cleanup");
     }
+  profile.set_prefix("");
 
   assert(next_pair_mapping.size() == 1);
   this->set_initial_state(next_pair_mapping[0]);
