@@ -270,6 +270,13 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
     }
 }
 
+static std::string binary_build_file_prefix(int layer)
+{
+  std::ostringstream filename_builder;
+  filename_builder << "/tmp/chess/binarydfa-" << (layer < 9 ? "0" : "") << (layer + 1);
+  return filename_builder.str();
+}
+
 template <int ndim, int... shape_pack>
 void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>& left_in,
 						  const DFA<ndim, shape_pack...>& right_in,
@@ -308,9 +315,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       bool disk_mmap = next_size >= 1ULL << 32;
       if(disk_mmap)
 	{
-	  std::ostringstream filename_builder;
-	  filename_builder << "/tmp/chess/binarydfa-" << (layer < 9 ? "0" : "") << (layer + 1);
-	  pairs_by_layer.emplace_back(filename_builder.str(), next_size);
+	  pairs_by_layer.emplace_back(binary_build_file_prefix(layer), next_size);
 	}
       else
 	{
