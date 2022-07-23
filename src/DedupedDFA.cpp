@@ -67,10 +67,10 @@ dfa_state_t DedupedDFA<ndim, shape_pack...>::add_state(int layer, const DFATrans
 
   // add new state
 
-  size_t new_state_id = this->state_transitions[layer].size();
+  dfa_state_t new_state_id = this->get_layer_size(layer);
   this->state_transitions[layer].emplace_back(next_states);
 
-  assert(this->state_transitions[layer].size() == (new_state_id + 1));
+  assert(this->get_layer_size(layer) == (new_state_id + 1));
 
   this->state_lookup[layer][next_states] = new_state_id;
 
