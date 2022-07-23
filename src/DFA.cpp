@@ -224,7 +224,7 @@ double DFA<ndim, shape_pack...>::size() const
 template<int ndim, int... shape_pack>
 size_t DFA<ndim, shape_pack...>::states() const
 {
-  int states_out = 0;
+  size_t states_out = 0;
 
   for(int layer = 0; layer < ndim; ++layer)
     {
