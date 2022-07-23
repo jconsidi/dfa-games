@@ -389,15 +389,18 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       LayerTransitionsHelper<ndim, shape_pack...> helper(left_in, right_in, layer);
 
       size_t curr_layer_count = curr_layer.count();
-      std::vector<size_t> curr_pairs;
-      curr_pairs.reserve(curr_layer_count);
+      MemoryMap<size_t> curr_pairs = (curr_layer_count * sizeof(size_t) < 1ULL << 32)
+	? MemoryMap<size_t>(curr_layer_count)
+	: MemoryMap<size_t>(binary_build_file_prefix(layer) + "-sort", curr_layer_count);
 
+      size_t curr_pairs_k = 0;
       for(auto iter = curr_layer.cbegin();
 	  iter < curr_layer.cend();
-	  ++iter)
+	  ++curr_pairs_k, ++iter)
 	{
-	  curr_pairs.push_back(*iter);
+	  curr_pairs[curr_pairs_k] = *iter;
 	}
+      assert(curr_pairs_k == curr_pairs.size());
 
       auto get_next_state = [&](size_t curr_pair, int curr_j)
       {
