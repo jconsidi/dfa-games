@@ -61,7 +61,7 @@ DFAIterator<ndim, shape_pack...> DFA<ndim, shape_pack...>::cbegin() const
   for(int layer = 0; layer < ndim; ++layer)
     {
       int layer_shape = get_layer_shape(layer);
-      const DFATransitions& transitions = get_transitions(layer, current_state);
+      DFATransitions transitions = get_transitions(layer, current_state);
 
       // scan for first accepted character
       for(characters.push_back(0);
@@ -109,7 +109,7 @@ void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
       for(int state_index = 0; state_index < layer_size; ++state_index)
 	{
 	  bool maybe_reject = true;
-	  const DFATransitions& transitions = this->get_transitions(layer, state_index);
+	  DFATransitions transitions = this->get_transitions(layer, state_index);
 	  for(int i = 0; i < layer_shape; ++i)
 	    {
 	      if(transitions[i] != reject_states[layer+1])
@@ -138,7 +138,7 @@ void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
   for(int layer = 0; layer < ndim; ++layer)
     {
       int layer_shape = this->get_layer_shape(layer);
-      const DFATransitions& transitions = this->get_transitions(layer, state_index);
+      DFATransitions transitions = this->get_transitions(layer, state_index);
 
       for(int i = 0; i < layer_shape; ++i)
 	{
@@ -181,7 +181,7 @@ dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
 }
 
 template<int ndim, int... shape_pack>
-const DFATransitions& DFA<ndim, shape_pack...>::get_transitions(int layer, dfa_state_t state_index) const
+DFATransitions DFA<ndim, shape_pack...>::get_transitions(int layer, dfa_state_t state_index) const
 {
   return state_transitions[layer].at(state_index);
 }
@@ -206,7 +206,7 @@ double DFA<ndim, shape_pack...>::size() const
       dfa_state_t layer_size = get_layer_size(layer);
       for(dfa_state_t state_index = 0; state_index < layer_size; ++state_index)
 	{
-	  const DFATransitions& transitions = this->get_transitions(layer, state_index);
+	  DFATransitions transitions = this->get_transitions(layer, state_index);
 
 	  double state_count = 0;
 	  for(int i = 0; i < layer_shape; ++i)
@@ -300,7 +300,7 @@ DFAIterator<ndim, shape_pack...>& DFAIterator<ndim, shape_pack...>::operator++()
       int layer = states.size() - 1;
       int layer_shape = dfa.get_layer_shape(layer);
 
-      const DFATransitions& transitions = dfa.get_transitions(layer, states[layer]);
+      DFATransitions transitions = dfa.get_transitions(layer, states[layer]);
 
       // scan for the next accepting character choice
       assert(characters[layer] < layer_shape);
@@ -344,7 +344,7 @@ DFAIterator<ndim, shape_pack...>& DFAIterator<ndim, shape_pack...>::operator++()
     {
       // figure out first matching character for next layer
       int layer_shape = dfa.get_layer_shape(layer);
-      const DFATransitions& transitions = dfa.get_transitions(layer, states[layer]);
+      DFATransitions transitions = dfa.get_transitions(layer, states[layer]);
 
       for(characters.push_back(0);
 	  ((characters[layer] < layer_shape) &&

@@ -90,8 +90,8 @@ public:
     dfa_state_t curr_left_state = curr_i / curr_right_size;
     dfa_state_t curr_right_state = curr_i % curr_right_size;
 
-    const DFATransitions& left_transitions = left.get_transitions(layer, curr_left_state);
-    const DFATransitions& right_transitions = right.get_transitions(layer, curr_right_state);
+    DFATransitions left_transitions = left.get_transitions(layer, curr_left_state);
+    DFATransitions right_transitions = right.get_transitions(layer, curr_right_state);
 
     size_t next_left_state = left_transitions.at(curr_j);
     assert(next_left_state < next_left_size);
@@ -196,7 +196,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 	    dfa_state_t layer_size = source->get_layer_size(layer);
 	    for(dfa_state_t state_index = 2; state_index < layer_size; ++state_index)
 	      {
-		const DFATransitions& transitions(source->get_transitions(layer, state_index));
+		DFATransitions transitions(source->get_transitions(layer, state_index));
 		this->set_state(layer, state_index, transitions);
 	      }
 	  }

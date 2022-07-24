@@ -17,8 +17,8 @@ InverseDFA<ndim, shape_pack...>::InverseDFA(const DFA<ndim, shape_pack...>& dfa_
   int last_layer_size = dfa_in.get_layer_size(ndim - 1);
   for(int old_state_index = 2; old_state_index < last_layer_size; ++old_state_index)
     {
-      const DFATransitions& old_transitions = dfa_in.get_transitions(ndim - 1, old_state_index);
-      this->set_state(ndim - 1, old_state_index, [old_transitions](int i){return !old_transitions[i];});
+      DFATransitions old_transitions = dfa_in.get_transitions(ndim - 1, old_state_index);
+      this->set_state(ndim - 1, old_state_index, [&](int i){return !old_transitions[i];});
     }
 
   for(int layer = ndim - 2; layer >= 0; --layer)
@@ -27,7 +27,7 @@ InverseDFA<ndim, shape_pack...>::InverseDFA(const DFA<ndim, shape_pack...>& dfa_
 
       for(int old_state_index = 2; old_state_index < layer_size; ++old_state_index)
 	{
-	  const DFATransitions &old_transitions = dfa_in.get_transitions(layer, old_state_index);
+	  DFATransitions old_transitions = dfa_in.get_transitions(layer, old_state_index);
 	  this->set_state(layer, old_state_index, [&](int i)
 	  {
 	    if(old_transitions[i] < 2)

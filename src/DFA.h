@@ -53,7 +53,7 @@ class DFA
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   dfa_state_t get_layer_size(int) const;
-  const DFATransitions& get_transitions(int, dfa_state_t) const;
+  DFATransitions get_transitions(int, dfa_state_t) const;
 
   bool ready() const;
   double size() const;
