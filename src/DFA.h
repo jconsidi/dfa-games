@@ -32,13 +32,14 @@ class DFA
 
   dfa_state_t initial_state = ~dfa_state_t(0);
 
- protected:
-
   // ndim layers mapping (state, square contents) -> next state.
   std::vector<DFATransitions> *state_transitions = 0;
 
+ protected:
+
   DFA();
 
+  void emplace_transitions(int, const DFATransitions&);
   virtual void set_initial_state(dfa_state_t);
 
  public:

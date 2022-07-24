@@ -54,7 +54,7 @@ void ExplicitDFA<ndim, shape_pack...>::set_state(int layer, dfa_state_t new_stat
     }
 
   // add the state
-  this->state_transitions[layer].emplace_back(next_states);
+  this->emplace_transitions(layer, next_states);
 }
 
 template<int ndim, int... shape_pack>

@@ -153,6 +153,14 @@ void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
 }
 
 template<int ndim, int... shape_pack>
+void DFA<ndim, shape_pack...>::emplace_transitions(int layer, const DFATransitions& transitions)
+{
+  int layer_shape = get_layer_shape(layer);
+  assert(transitions.size() == layer_shape);
+  this->state_transitions[layer].emplace_back(transitions);
+}
+
+template<int ndim, int... shape_pack>
 dfa_state_t DFA<ndim, shape_pack...>::get_initial_state() const
 {
   assert(initial_state != ~dfa_state_t(0));
