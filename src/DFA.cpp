@@ -27,7 +27,7 @@ std::vector<int> shape_pack_to_vector()
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
-    state_transitions(new std::vector<DFATransitions>[ndim])
+    state_transitions(new std::vector<dfa_state_t>[ndim])
 {
   assert(shape.size() == ndim);
 }
@@ -157,7 +157,11 @@ void DFA<ndim, shape_pack...>::emplace_transitions(int layer, const DFATransitio
 {
   int layer_shape = get_layer_shape(layer);
   assert(transitions.size() == layer_shape);
-  this->state_transitions[layer].emplace_back(transitions);
+
+  for(int i = 0; i < layer_shape; ++i)
+    {
+      this->state_transitions[layer].emplace_back(transitions[i]);
+    }
 }
 
 template<int ndim, int... shape_pack>
@@ -185,13 +189,24 @@ dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
       return 2;
     }
 
-  return state_transitions[layer].size();
+  return state_transitions[layer].size() / shape.at(layer);
 }
 
 template<int ndim, int... shape_pack>
 DFATransitions DFA<ndim, shape_pack...>::get_transitions(int layer, dfa_state_t state_index) const
 {
-  return state_transitions[layer].at(state_index);
+  int layer_shape = get_layer_shape(layer);
+  size_t offset = size_t(state_index) * size_t(layer_shape);
+  assert(offset < state_transitions[layer].size());
+
+  const dfa_state_t *raw_states = state_transitions[layer].data() + offset;
+
+  DFATransitions output;
+  for(int i = 0; i < layer_shape; ++i)
+    {
+      output.push_back(raw_states[i]);
+    }
+  return output;
 }
 
 template<int ndim, int... shape_pack>
