@@ -7,10 +7,11 @@
 
 struct DFATransitionsCompare
 {
-  bool operator() (const DFATransitions& left, const DFATransitions& right) const
+  bool operator() (const DFATransitionsStaging& left, const DFATransitionsStaging& right) const
   {
     size_t left_num_transitions = left.size();
     size_t right_num_transitions = right.size();
+    assert(left_num_transitions == right_num_transitions);
 
     if(left_num_transitions < right_num_transitions)
       {
@@ -37,7 +38,7 @@ struct DFATransitionsCompare
   }
 };
 
-typedef std::map<DFATransitions, dfa_state_t, DFATransitionsCompare> DFATransitionsMap;
+typedef std::map<DFATransitionsStaging, dfa_state_t, DFATransitionsCompare> DFATransitionsMap;
 
 template <int ndim, int... shape_pack>
 class DedupedDFA
@@ -51,7 +52,7 @@ class DedupedDFA
 
   DedupedDFA();
 
-  dfa_state_t add_state(int, const DFATransitions&);
+  dfa_state_t add_state(int, const DFATransitionsStaging&);
   dfa_state_t add_state(int, std::function<dfa_state_t(int)>);
   virtual void set_initial_state(dfa_state_t);
 

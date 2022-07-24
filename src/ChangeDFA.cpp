@@ -76,7 +76,7 @@ dfa_state_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, dfa_state_t 
       return search->second;
     }
 
-  DFATransitions old_transitions = dfa_temp->get_transitions(layer, state_index);
+  DFATransitionsReference old_transitions = dfa_temp->get_transitions(layer, state_index);
 
   dfa_state_t new_index = this->add_state(layer, [=](int new_value)
   {

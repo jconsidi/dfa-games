@@ -13,7 +13,8 @@ class ExplicitDFA
 
   ExplicitDFA();
 
-  void set_state(int, dfa_state_t, const DFATransitions&);
+  void set_state(int, dfa_state_t, const DFATransitionsReference&);
+  void set_state(int, dfa_state_t, const DFATransitionsStaging&);
   void set_state(int, dfa_state_t, std::function<dfa_state_t(int)>);
 };
 

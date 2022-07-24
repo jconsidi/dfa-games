@@ -34,7 +34,7 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in
 
       for(int layer_count = 0; layer_count <= layer; ++layer_count)
 	{
-	  DFATransitions next_states(layer_shape);
+	  DFATransitionsStaging next_states(layer_shape);
 	  for(int i = 0; i < layer_shape; ++i)
 	    {
 	      next_states[i] = logical_states[layer+1].at((i == c_in) ? (layer_count + 1) : layer_count);

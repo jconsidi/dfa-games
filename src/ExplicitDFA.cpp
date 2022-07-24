@@ -17,7 +17,22 @@ ExplicitDFA<ndim, shape_pack...>::ExplicitDFA()
 }
 
 template<int ndim, int... shape_pack>
-void ExplicitDFA<ndim, shape_pack...>::set_state(int layer, dfa_state_t new_state_id, const DFATransitions& next_states)
+void ExplicitDFA<ndim, shape_pack...>::set_state(int layer, dfa_state_t new_state_id, const DFATransitionsReference& next_states)
+{
+  int layer_shape = this->get_layer_shape(layer);
+  assert(next_states.get_layer_shape() == layer_shape);
+
+  DFATransitionsStaging temp_states;
+  for(int i = 0; i < layer_shape; ++i)
+    {
+      temp_states.push_back(next_states[i]);
+    }
+
+  this->set_state(layer, new_state_id, temp_states);
+}
+
+template<int ndim, int... shape_pack>
+void ExplicitDFA<ndim, shape_pack...>::set_state(int layer, dfa_state_t new_state_id, const DFATransitionsStaging& next_states)
 {
   // check that this is the next state to be assigned
   assert(this->get_layer_size(layer) == new_state_id);
@@ -62,7 +77,7 @@ void ExplicitDFA<ndim, shape_pack...>::set_state(int layer, dfa_state_t new_stat
 {
   int layer_shape = this->get_layer_shape(layer);
 
-  DFATransitions transitions(layer_shape);
+  DFATransitionsStaging transitions(layer_shape);
   for(int i = 0; i < layer_shape; ++i)
     {
       transitions[i] = transition_func(i);

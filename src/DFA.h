@@ -9,7 +9,7 @@
 #include <vector>
 
 typedef uint32_t dfa_state_t;
-typedef std::vector<dfa_state_t> DFATransitions;
+typedef std::vector<dfa_state_t> DFATransitionsStaging;
 
 template <int ndim, int... shape_pack>
 class DFAString
@@ -20,6 +20,21 @@ public:
 
   DFAString(const std::vector<int>& characters_in);
   int operator[](int) const;
+};
+
+class DFATransitionsReference
+{
+  const std::vector<dfa_state_t>& state_transitions;
+  size_t offset;
+  int layer_shape;
+
+public:
+
+  DFATransitionsReference(const std::vector<dfa_state_t>&, dfa_state_t, int);
+  dfa_state_t operator[](int c) const {return at(c);}
+
+  dfa_state_t at(int c) const {assert(c < layer_shape); return state_transitions[offset + c];}
+  int get_layer_shape() const {return layer_shape;}
 };
 
 template <int ndim, int... shape_pack>
@@ -39,7 +54,7 @@ class DFA
 
   DFA();
 
-  void emplace_transitions(int, const DFATransitions&);
+  void emplace_transitions(int, const DFATransitionsStaging&);
   virtual void set_initial_state(dfa_state_t);
 
  public:
@@ -54,7 +69,7 @@ class DFA
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   dfa_state_t get_layer_size(int) const;
-  DFATransitions get_transitions(int, dfa_state_t) const;
+  DFATransitionsReference get_transitions(int, dfa_state_t) const;
 
   bool ready() const;
   double size() const;

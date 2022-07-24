@@ -27,7 +27,7 @@ CountDFA<ndim, shape_pack...>::CountDFA(int num_pieces)
       std::vector<dfa_state_t> previous_layer_states = current_layer_states;
       current_layer_states.clear();
 
-      DFATransitions next_states(layer_shape);
+      DFATransitionsStaging next_states(layer_shape);
 
       for(int previous_pieces = 0; previous_pieces <= layer; ++previous_pieces)
 	{

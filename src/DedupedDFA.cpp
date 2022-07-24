@@ -31,7 +31,7 @@ DedupedDFA<ndim, shape_pack...>::~DedupedDFA()
 }
 
 template<int ndim, int... shape_pack>
-dfa_state_t DedupedDFA<ndim, shape_pack...>::add_state(int layer, const DFATransitions& next_states)
+dfa_state_t DedupedDFA<ndim, shape_pack...>::add_state(int layer, const DFATransitionsStaging& next_states)
 {
   assert(state_lookup);
   assert((0 <= layer) && (layer < ndim));
@@ -82,7 +82,7 @@ dfa_state_t DedupedDFA<ndim, shape_pack...>::add_state(int layer, std::function<
 {
   int layer_shape = this->get_layer_shape(layer);
 
-  DFATransitions transitions(layer_shape);
+  DFATransitionsStaging transitions(layer_shape);
   for(int i = 0; i < layer_shape; ++i)
     {
       transitions[i] = transition_func(i);
