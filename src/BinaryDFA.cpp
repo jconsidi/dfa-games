@@ -368,6 +368,7 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       profile.set_prefix("layer=" + std::to_string(layer));
       profile.tic("backward init");
 
+      assert(pairs_by_layer.size() == layer + 2);
       assert(next_pair_mapping.size() > 0);
 
       int curr_layer_shape = this->get_layer_shape(layer);
@@ -500,11 +501,17 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       assert(next_pair_mapping.size() > 0);
       assert(curr_pair_mapping.size() == 0);
 
+      // shrink state
+
+      profile.tic("backward munmap");
+      pairs_by_layer.pop_back();
+
       // cleanup in destructors
       profile.tic("backward cleanup");
     }
   profile.set_prefix("");
 
+  assert(pairs_by_layer.size() == 1);
   assert(next_pair_mapping.size() == 1);
   this->set_initial_state(next_pair_mapping[0]);
 
