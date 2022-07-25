@@ -109,6 +109,7 @@ void MemoryMap<T>::mmap(int flags, int fildes)
       _mapped = 0;
       throw std::logic_error("mmap failed");
     }
+  assert(_mapped);
 }
 
 template<class T>
