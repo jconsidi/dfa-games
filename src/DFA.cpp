@@ -40,9 +40,16 @@ DFATransitionsReference::DFATransitionsReference(const std::vector<dfa_state_t>&
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
+    layer_sizes(),
     layer_transitions(new std::vector<dfa_state_t>[ndim])
 {
   assert(shape.size() == ndim);
+
+  for(int i = 0; i < ndim; ++i)
+    {
+      layer_sizes.push_back(0);
+    }
+  assert(layer_sizes.size() == ndim);
 }
 
 template<int ndim, int... shape_pack>
@@ -175,6 +182,8 @@ void DFA<ndim, shape_pack...>::emplace_transitions(int layer, const DFATransitio
     {
       this->layer_transitions[layer].emplace_back(transitions[i]);
     }
+  ++layer_sizes[layer];
+  assert(size_t(layer_sizes[layer]) * size_t(layer_shape) == this->layer_transitions[layer].size());
 }
 
 template<int ndim, int... shape_pack>
@@ -202,7 +211,7 @@ dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
       return 2;
     }
 
-  return layer_transitions[layer].size() / shape.at(layer);
+  return layer_sizes[layer];
 }
 
 template<int ndim, int... shape_pack>
