@@ -24,7 +24,7 @@ public:
 
 class DFATransitionsReference
 {
-  const std::vector<dfa_state_t>& state_transitions;
+  const std::vector<dfa_state_t>& layer_transitions;
   size_t offset;
   int layer_shape;
 
@@ -33,7 +33,7 @@ public:
   DFATransitionsReference(const std::vector<dfa_state_t>&, dfa_state_t, int);
   dfa_state_t operator[](int c) const {return at(c);}
 
-  dfa_state_t at(int c) const {assert(c < layer_shape); return state_transitions[offset + c];}
+  dfa_state_t at(int c) const {assert(c < layer_shape); return layer_transitions[offset + c];}
   int get_layer_shape() const {return layer_shape;}
 };
 
@@ -48,7 +48,7 @@ class DFA
   dfa_state_t initial_state = ~dfa_state_t(0);
 
   // ndim layers mapping (state, square contents) -> next state.
-  std::vector<dfa_state_t> *state_transitions = 0;
+  std::vector<dfa_state_t> *layer_transitions = 0;
 
  protected:
 

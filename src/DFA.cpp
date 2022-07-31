@@ -24,14 +24,14 @@ std::vector<int> shape_pack_to_vector()
   return output;
 }
 
-DFATransitionsReference::DFATransitionsReference(const std::vector<dfa_state_t>& state_transitions_in,
+DFATransitionsReference::DFATransitionsReference(const std::vector<dfa_state_t>& layer_transitions_in,
 						 dfa_state_t state_in,
 						 int layer_shape_in)
-  : state_transitions(state_transitions_in),
+  : layer_transitions(layer_transitions_in),
     offset(size_t(state_in) * size_t(layer_shape_in)),
     layer_shape(layer_shape_in)
 {
-  size_t size_temp = state_transitions.size();
+  size_t size_temp = layer_transitions.size();
   assert(layer_shape > 0);
   assert(offset < size_temp);
   assert(offset + layer_shape <= size_temp);
@@ -40,7 +40,7 @@ DFATransitionsReference::DFATransitionsReference(const std::vector<dfa_state_t>&
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
-    state_transitions(new std::vector<dfa_state_t>[ndim])
+    layer_transitions(new std::vector<dfa_state_t>[ndim])
 {
   assert(shape.size() == ndim);
 }
@@ -48,7 +48,7 @@ DFA<ndim, shape_pack...>::DFA()
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::~DFA()
 {
-  delete[] this->state_transitions;
+  delete[] this->layer_transitions;
 }
 
 template<int ndim, int... shape_pack>
@@ -173,7 +173,7 @@ void DFA<ndim, shape_pack...>::emplace_transitions(int layer, const DFATransitio
 
   for(int i = 0; i < layer_shape; ++i)
     {
-      this->state_transitions[layer].emplace_back(transitions[i]);
+      this->layer_transitions[layer].emplace_back(transitions[i]);
     }
 }
 
@@ -202,13 +202,13 @@ dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
       return 2;
     }
 
-  return state_transitions[layer].size() / shape.at(layer);
+  return layer_transitions[layer].size() / shape.at(layer);
 }
 
 template<int ndim, int... shape_pack>
 DFATransitionsReference DFA<ndim, shape_pack...>::get_transitions(int layer, dfa_state_t state_index) const
 {
-  return DFATransitionsReference(state_transitions[layer], state_index, get_layer_shape(layer));
+  return DFATransitionsReference(layer_transitions[layer], state_index, get_layer_shape(layer));
 }
 
 template<int ndim, int... shape_pack>
