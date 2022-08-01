@@ -27,6 +27,7 @@ public:
   MemoryMap(MemoryMap&&);
   ~MemoryMap();
 
+  MemoryMap& operator=(MemoryMap&&) noexcept;
   T& operator[](size_t);
   T operator[](size_t) const;
 

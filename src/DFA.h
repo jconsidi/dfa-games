@@ -6,7 +6,10 @@
 #include <ctype.h>
 #include <iostream>
 #include <map>
+#include <string>
 #include <vector>
+
+#include "MemoryMap.h"
 
 typedef uint32_t dfa_state_t;
 typedef std::vector<dfa_state_t> DFATransitionsStaging;
@@ -24,13 +27,13 @@ public:
 
 class DFATransitionsReference
 {
-  const std::vector<dfa_state_t>& layer_transitions;
+  const MemoryMap<dfa_state_t>& layer_transitions;
   size_t offset;
   int layer_shape;
 
 public:
 
-  DFATransitionsReference(const std::vector<dfa_state_t>&, dfa_state_t, int);
+  DFATransitionsReference(const MemoryMap<dfa_state_t>&, dfa_state_t, int);
   dfa_state_t operator[](int c) const {return at(c);}
 
   dfa_state_t at(int c) const {assert(c < layer_shape); return layer_transitions[offset + c];}
@@ -45,11 +48,15 @@ class DFA
 {
   std::vector<int> shape = {};
 
+  std::string file_prefix;
   dfa_state_t initial_state = ~dfa_state_t(0);
 
   // ndim layers mapping (state, square contents) -> next state.
+  std::vector<std::string> layer_file_names;
   std::vector<dfa_state_t> layer_sizes;
-  std::vector<dfa_state_t> *layer_transitions = 0;
+  std::vector<MemoryMap<dfa_state_t>> layer_transitions;
+
+  void finalize();
 
  protected:
 

@@ -66,6 +66,23 @@ MemoryMap<T>::~MemoryMap()
 }
 
 template<class T>
+MemoryMap<T>& MemoryMap<T>::operator=(MemoryMap<T>&& other) noexcept
+{
+  if(_mapped)
+    {
+      this->munmap();
+    }
+
+  _size = other._size;
+  _length = other._length;
+  _mapped = other._mapped;
+
+  other._mapped = 0;
+
+  return *this;
+}
+
+template<class T>
 T& MemoryMap<T>::operator[](size_t i)
 {
   assert(_mapped);
@@ -143,4 +160,5 @@ size_t MemoryMap<T>::size() const
 
 template class MemoryMap<int>;
 template class MemoryMap<size_t>;
+template class MemoryMap<uint32_t>;
 template class MemoryMap<uint64_t>;

@@ -1,10 +1,14 @@
 // DFA.cpp
 
 #include <assert.h>
+#include <sys/stat.h>
 
 #include <iostream>
+#include <string>
 
 #include "DFA.h"
+
+static int next_dfa_id = 0;
 
 template<int... shape_pack>
 std::vector<int> shape_pack_to_vector()
@@ -24,15 +28,15 @@ std::vector<int> shape_pack_to_vector()
   return output;
 }
 
-DFATransitionsReference::DFATransitionsReference(const std::vector<dfa_state_t>& layer_transitions_in,
+DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& layer_transitions_in,
 						 dfa_state_t state_in,
 						 int layer_shape_in)
   : layer_transitions(layer_transitions_in),
     offset(size_t(state_in) * size_t(layer_shape_in)),
     layer_shape(layer_shape_in)
 {
-  size_t size_temp = layer_transitions.size();
   assert(layer_shape > 0);
+  size_t size_temp = layer_transitions.size();
   assert(offset < size_temp);
   assert(offset + layer_shape <= size_temp);
 }
@@ -40,22 +44,30 @@ DFATransitionsReference::DFATransitionsReference(const std::vector<dfa_state_t>&
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
+    file_prefix("/tmp/chess/dfa-" + std::to_string(next_dfa_id++)),
+    layer_file_names(),
     layer_sizes(),
-    layer_transitions(new std::vector<dfa_state_t>[ndim])
+    layer_transitions()
 {
   assert(shape.size() == ndim);
 
-  for(int i = 0; i < ndim; ++i)
+  mkdir(file_prefix.c_str(), 0700);
+
+  for(int layer = 0; layer < ndim; ++layer)
     {
+      layer_file_names.push_back(file_prefix + "/layer=" + std::to_string(layer));
       layer_sizes.push_back(0);
+      layer_transitions.emplace_back(layer_file_names.at(layer), 1024);
     }
+
   assert(layer_sizes.size() == ndim);
+  assert(layer_file_names.size() == ndim);
+  assert(layer_transitions.size() == ndim);
 }
 
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::~DFA()
 {
-  delete[] this->layer_transitions;
 }
 
 template<int ndim, int... shape_pack>
@@ -65,6 +77,8 @@ void DFA<ndim, shape_pack...>::set_initial_state(dfa_state_t initial_state_in)
 
   assert(initial_state_in < get_layer_size(0));
   initial_state = initial_state_in;
+
+  finalize();
 }
 
 template<int ndim, int... shape_pack>
@@ -175,15 +189,45 @@ void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
 template<int ndim, int... shape_pack>
 void DFA<ndim, shape_pack...>::emplace_transitions(int layer, const DFATransitionsStaging& transitions)
 {
+  assert(layer < ndim);
+
   int layer_shape = get_layer_shape(layer);
   assert(transitions.size() == layer_shape);
 
+  size_t current_offset = size_t(layer_sizes[layer]) * size_t(layer_shape);
+  size_t next_offset = current_offset + size_t(layer_shape);
+
+  MemoryMap<dfa_state_t>& current_transitions = layer_transitions[layer];
+  size_t current_size = current_transitions.size();
+  if(next_offset > current_size)
+    {
+      size_t next_size = current_size * 2;
+      std::cout << "expanding " << layer_file_names[layer] << " from " << current_size << " to " << next_size << std::endl;
+      current_transitions = MemoryMap<dfa_state_t>(layer_file_names[layer], next_size);
+    }
+
   for(int i = 0; i < layer_shape; ++i)
     {
-      this->layer_transitions[layer].emplace_back(transitions[i]);
+      current_transitions[current_offset + i] = transitions[i];
     }
+
   ++layer_sizes[layer];
-  assert(size_t(layer_sizes[layer]) * size_t(layer_shape) == this->layer_transitions[layer].size());
+}
+
+template<int ndim, int... shape_pack>
+void DFA<ndim, shape_pack...>::finalize()
+{
+  assert(ready());
+
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      int layer_shape = get_layer_shape(layer);
+      size_t expected_transitions_size = size_t(layer_sizes[layer]) * size_t(layer_shape);
+      if(layer_transitions[layer].size() != expected_transitions_size)
+	{
+	  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], expected_transitions_size);
+	}
+    }
 }
 
 template<int ndim, int... shape_pack>
@@ -193,13 +237,13 @@ dfa_state_t DFA<ndim, shape_pack...>::get_initial_state() const
   return initial_state;
 }
 
-template<int ndim, int... shape_pack>
-int DFA<ndim, shape_pack...>::get_layer_shape(int layer) const
-{
-  assert((0 <= layer) && (layer < ndim));
+  template<int ndim, int... shape_pack>
+  int DFA<ndim, shape_pack...>::get_layer_shape(int layer) const
+  {
+    assert((0 <= layer) && (layer < ndim));
 
-  return shape.at(layer);
-}
+    return shape.at(layer);
+  }
 
 template<int ndim, int... shape_pack>
 dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
@@ -217,6 +261,8 @@ dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
 template<int ndim, int... shape_pack>
 DFATransitionsReference DFA<ndim, shape_pack...>::get_transitions(int layer, dfa_state_t state_index) const
 {
+  assert(layer < ndim);
+  assert(state_index < layer_sizes[layer]);
   return DFATransitionsReference(layer_transitions[layer], state_index, get_layer_shape(layer));
 }
 
