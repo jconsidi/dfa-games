@@ -202,7 +202,6 @@ void DFA<ndim, shape_pack...>::emplace_transitions(int layer, const DFATransitio
   if(next_offset > current_size)
     {
       size_t next_size = current_size * 2;
-      std::cout << "expanding " << layer_file_names[layer] << " from " << current_size << " to " << next_size << std::endl;
       current_transitions = MemoryMap<dfa_state_t>(layer_file_names[layer], next_size);
     }
 
