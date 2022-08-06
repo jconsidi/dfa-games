@@ -169,6 +169,19 @@ void test_suite()
     }
   test_helper("count3", *count3, count3_expected);
 
+  // save tests
+
+  std::shared_ptr<DFA<ndim, shape_pack...>> save(new CountDFA<ndim, shape_pack...>(0));
+  save->save("test");
+  save = 0; // trigger destructor
+
+  std::shared_ptr<const DFA<ndim, shape_pack...>> load(new DFA<ndim, shape_pack...>("test"));
+  test_helper("load", *load, 1);
+
+  std::shared_ptr<DFA<ndim, shape_pack...>> save2(new AcceptDFA<ndim, shape_pack...>());
+  // overwrite save
+  save2->save("test");
+
   // intersection tests
 
   test_intersection_pair("count0+count0", *count0, *count0, count0->size());

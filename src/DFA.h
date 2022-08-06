@@ -48,7 +48,7 @@ class DFA
 {
   std::vector<int> shape = {};
 
-  std::string directory;
+  mutable std::string directory;
   dfa_state_t initial_state = ~dfa_state_t(0);
 
   // ndim layers mapping (state, square contents) -> next state.
@@ -56,7 +56,7 @@ class DFA
   std::vector<dfa_state_t> layer_sizes;
   std::vector<MemoryMap<dfa_state_t>> layer_transitions;
 
-  bool temporary;
+  mutable bool temporary;
 
   void finalize();
 
@@ -69,6 +69,7 @@ class DFA
 
  public:
 
+  DFA(std::string);
   virtual ~DFA() noexcept(false);
 
   DFAIterator<ndim, shape_pack...> cbegin() const;
@@ -82,6 +83,7 @@ class DFA
   DFATransitionsReference get_transitions(int, dfa_state_t) const;
 
   bool ready() const;
+  void save(std::string) const;
   double size() const;
   size_t states() const;
 };

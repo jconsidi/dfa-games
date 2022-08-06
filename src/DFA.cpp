@@ -1,6 +1,9 @@
 // DFA.cpp
 
 #include <assert.h>
+#include <dirent.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -57,7 +60,7 @@ DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& l
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
-    directory("/tmp/chess/dfa-" + std::to_string(next_dfa_id++)),
+    directory("/tmp/chess/temp-" + std::to_string(next_dfa_id++)),
     layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
     layer_transitions(),
@@ -76,6 +79,33 @@ DFA<ndim, shape_pack...>::DFA()
   assert(layer_sizes.size() == ndim);
   assert(layer_file_names.size() == ndim);
   assert(layer_transitions.size() == ndim);
+}
+
+template<int ndim, int... shape_pack>
+DFA<ndim, shape_pack...>::DFA(std::string name_in)
+  : shape(shape_pack_to_vector<shape_pack...>()),
+    directory("/tmp/chess/" + name_in),
+    layer_file_names(get_layer_file_names(ndim, directory)),
+    layer_sizes(),
+    layer_transitions(),
+    temporary(false)
+{
+  assert(shape.size() == ndim);
+
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      layer_transitions.emplace_back(layer_file_names.at(layer));
+
+      int layer_shape = get_layer_shape(layer);
+      layer_sizes.push_back(layer_transitions[layer].size() / layer_shape);
+    }
+
+  MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state");
+  if(initial_state_mmap.size() != 1)
+    {
+      throw std::runtime_error("initial_state file has an invalid size");
+    }
+  set_initial_state(initial_state_mmap[0]);
 }
 
 template<int ndim, int... shape_pack>
@@ -301,6 +331,60 @@ template<int ndim, int... shape_pack>
 bool DFA<ndim, shape_pack...>::ready() const
 {
   return initial_state != ~dfa_state_t(0);
+}
+
+template<int ndim, int... shape_pack>
+void DFA<ndim, shape_pack...>::save(std::string name_in) const
+{
+  assert(ready());
+  assert(temporary);
+
+  // write initial state to disk
+  MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state", 1);
+  initial_state_mmap[0] = initial_state;
+
+  std::string directory_new = std::string("/tmp/chess/") + name_in;
+  DIR *dir = opendir(directory_new.c_str());
+  if(dir)
+    {
+      // DFA was previously saved with this name?
+
+      for(struct dirent *dirent = readdir(dir);
+	  dirent;
+	  dirent = readdir(dir))
+	{
+	  if(strncmp(dirent->d_name, ".", sizeof(dirent->d_name)) &&
+	     strncmp(dirent->d_name, "..", sizeof(dirent->d_name)))
+	    {
+	      std::string old_file_name = directory_new + "/" + dirent->d_name;
+	      int unlink_ret = unlink(old_file_name.c_str());
+	      if(unlink_ret)
+		{
+		  perror("DFA save unlink");
+		  throw std::runtime_error("DFA save unlink failed");
+		}
+	    }
+	}
+
+      closedir(dir);
+
+      int rmdir_ret = rmdir(directory_new.c_str());
+      if(rmdir_ret)
+	{
+	  perror("DFA save rmdir");
+	  throw std::runtime_error("DFA save rmdir failed");
+	}
+    }
+
+  int ret = rename(directory.c_str(), directory_new.c_str());
+  if(ret)
+    {
+      perror("DFA save rename");
+      throw std::runtime_error("DFA save rename failed");
+    }
+
+  directory = directory_new;
+  temporary = false;
 }
 
 template<int ndim, int... shape_pack>
