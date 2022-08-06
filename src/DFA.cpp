@@ -26,6 +26,41 @@ std::vector<std::string> get_layer_file_names(int ndim, std::string directory)
   return output;
 }
 
+void remove_directory(std::string directory)
+{
+  DIR *dir = opendir(directory.c_str());
+  if(dir)
+    {
+      // DFA was previously saved with this name?
+
+      for(struct dirent *dirent = readdir(dir);
+	  dirent;
+	  dirent = readdir(dir))
+	{
+	  if(strncmp(dirent->d_name, ".", sizeof(dirent->d_name)) &&
+	     strncmp(dirent->d_name, "..", sizeof(dirent->d_name)))
+	    {
+	      std::string old_file_name = directory + "/" + dirent->d_name;
+	      int unlink_ret = unlink(old_file_name.c_str());
+	      if(unlink_ret)
+		{
+		  perror("DFA save unlink");
+		  throw std::runtime_error("DFA save unlink failed");
+		}
+	    }
+	}
+
+      closedir(dir);
+
+      int rmdir_ret = rmdir(directory.c_str());
+      if(rmdir_ret)
+	{
+	  perror("DFA save rmdir");
+	  throw std::runtime_error("DFA save rmdir failed");
+	}
+    }
+}
+
 template<int... shape_pack>
 std::vector<int> shape_pack_to_vector()
 {
@@ -113,22 +148,7 @@ DFA<ndim, shape_pack...>::~DFA() noexcept(false)
 {
   if(temporary)
     {
-      for(int layer = 0; layer < ndim; ++layer)
-	{
-	  int ret = unlink(layer_file_names.at(layer).c_str());
-	  if(ret)
-	    {
-	      perror("DFA file cleanup");
-	      throw std::runtime_error("DFA file cleanup failed");
-	    }
-	}
-
-      int ret = rmdir(directory.c_str());
-      if(ret)
-	{
-	  perror("DFA directory cleanup");
-	  throw std::runtime_error("DFA directory cleanup failed");
-	}
+      remove_directory(directory);
     }
 }
 
@@ -344,37 +364,7 @@ void DFA<ndim, shape_pack...>::save(std::string name_in) const
   initial_state_mmap[0] = initial_state;
 
   std::string directory_new = std::string("/tmp/chess/") + name_in;
-  DIR *dir = opendir(directory_new.c_str());
-  if(dir)
-    {
-      // DFA was previously saved with this name?
-
-      for(struct dirent *dirent = readdir(dir);
-	  dirent;
-	  dirent = readdir(dir))
-	{
-	  if(strncmp(dirent->d_name, ".", sizeof(dirent->d_name)) &&
-	     strncmp(dirent->d_name, "..", sizeof(dirent->d_name)))
-	    {
-	      std::string old_file_name = directory_new + "/" + dirent->d_name;
-	      int unlink_ret = unlink(old_file_name.c_str());
-	      if(unlink_ret)
-		{
-		  perror("DFA save unlink");
-		  throw std::runtime_error("DFA save unlink failed");
-		}
-	    }
-	}
-
-      closedir(dir);
-
-      int rmdir_ret = rmdir(directory_new.c_str());
-      if(rmdir_ret)
-	{
-	  perror("DFA save rmdir");
-	  throw std::runtime_error("DFA save rmdir failed");
-	}
-    }
+  remove_directory(directory_new);
 
   int ret = rename(directory.c_str(), directory_new.c_str());
   if(ret)
