@@ -44,18 +44,18 @@ DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& l
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
-    file_prefix("/tmp/chess/dfa-" + std::to_string(next_dfa_id++)),
+    directory("/tmp/chess/dfa-" + std::to_string(next_dfa_id++)),
     layer_file_names(),
     layer_sizes(),
     layer_transitions()
 {
   assert(shape.size() == ndim);
 
-  mkdir(file_prefix.c_str(), 0700);
+  mkdir(directory.c_str(), 0700);
 
   for(int layer = 0; layer < ndim; ++layer)
     {
-      layer_file_names.push_back(file_prefix + "/layer=" + std::to_string(layer));
+      layer_file_names.push_back(directory + "/layer=" + std::to_string(layer));
       layer_sizes.push_back(0);
       layer_transitions.emplace_back(layer_file_names.at(layer), 1024);
     }

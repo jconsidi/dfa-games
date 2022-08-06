@@ -48,7 +48,7 @@ class DFA
 {
   std::vector<int> shape = {};
 
-  std::string file_prefix;
+  std::string directory;
   dfa_state_t initial_state = ~dfa_state_t(0);
 
   // ndim layers mapping (state, square contents) -> next state.
