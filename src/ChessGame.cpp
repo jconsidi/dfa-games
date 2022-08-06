@@ -5,12 +5,15 @@
 #include <bit>
 #include <functional>
 #include <iostream>
+#include <string>
 
 #include "BetweenMasks.h"
 #include "ChessBoardDFA.h"
 #include "CountCharacterDFA.h"
 #include "MoveSet.h"
 #include "Profile.h"
+
+static std::string dfa_name_base = "chess-offset=" + std::to_string(CHESS_SQUARE_OFFSET) + ",";
 
 static bool chess_default_rule(int layer, int old_value, int new_value)
 {
@@ -57,6 +60,28 @@ static bool chess_is_friendly(int side_to_move, int character)
 static bool chess_is_hostile(int side_to_move, int character)
 {
   return chess_is_friendly(1 - side_to_move, character);
+}
+
+static ChessGame::shared_dfa_ptr chess_load_or_build(std::string dfa_name_in, std::function<ChessGame::shared_dfa_ptr()> build_func)
+{
+  std::string dfa_name = dfa_name_base + dfa_name_in;
+
+  try
+    {
+      ChessGame::shared_dfa_ptr output = ChessGame::shared_dfa_ptr(new ChessDFA(dfa_name));
+      std::cout << "loaded " << dfa_name << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
+
+      return output;
+    }
+  catch(std::runtime_error e)
+    {
+    }
+
+  std::cout << "building " << dfa_name << std::endl;
+  ChessGame::shared_dfa_ptr output = build_func();
+  std::cout << "built " << dfa_name_in << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
+  output->save(dfa_name);
+  return output;
 }
 
 static bool chess_pawn_maybe_promote(int side_to_move, int previous_advancement, int character)
@@ -113,89 +138,90 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
   static shared_dfa_ptr singleton;
   if(!singleton)
     {
-      Profile profile("ChessGame::get_basic_positions()");
-      profile.tic("singleton");
-
-      std::vector<shared_dfa_ptr> requirements;
-      std::function<void(ChessDFA *)> add_requirement = [&](ChessDFA *requirement)
+      singleton = chess_load_or_build("basic_positions", [=]()
       {
-	assert(requirement->states() > 0);
-	assert(requirement->ready());
-	requirements.emplace_back(requirement);
-      };
+	Profile profile("ChessGame::get_basic_positions()");
+	profile.tic("singleton");
 
-      std::function<void(int, int)> block_file = [&](int file, int character)
-      {
-	for(int rank = 0; rank < 8; ++rank)
+	std::vector<shared_dfa_ptr> requirements;
+	std::function<void(ChessDFA *)> add_requirement = [&](ChessDFA *requirement)
+	{
+	  assert(requirement->states() > 0);
+	  assert(requirement->ready());
+	  requirements.emplace_back(requirement);
+	};
+
+	std::function<void(int, int)> block_file = [&](int file, int character)
+	{
+	  for(int rank = 0; rank < 8; ++rank)
+	    {
+	      int square = rank * 8 + file;
+
+	      add_requirement(new inverse_dfa_type(fixed_dfa_type(square + CHESS_SQUARE_OFFSET, character)));
+	    }
+	};
+
+	std::function<void(int, int)> block_row = [&](int rank, int character)
+	{
+	  for(int file = 0; file < 8; ++file)
+	    {
+	      int square = rank * 8 + file;
+
+	      add_requirement(new inverse_dfa_type(fixed_dfa_type(square + CHESS_SQUARE_OFFSET, character)));
+	    }
+	};
+
+	// pawn restrictions
+
+	block_row(0, DFA_BLACK_PAWN);
+	block_row(7, DFA_BLACK_PAWN);
+	block_row(0, DFA_WHITE_PAWN);
+	block_row(7, DFA_WHITE_PAWN);
+
+	// en-passant pawn restrictions
+
+	block_row(0, DFA_BLACK_PAWN_EN_PASSANT);
+	block_row(1, DFA_BLACK_PAWN_EN_PASSANT);
+	block_row(2, DFA_BLACK_PAWN_EN_PASSANT);
+	block_row(4, DFA_BLACK_PAWN_EN_PASSANT);
+	block_row(5, DFA_BLACK_PAWN_EN_PASSANT);
+	block_row(6, DFA_BLACK_PAWN_EN_PASSANT);
+	block_row(7, DFA_BLACK_PAWN_EN_PASSANT);
+
+	block_row(0, DFA_WHITE_PAWN_EN_PASSANT);
+	block_row(1, DFA_WHITE_PAWN_EN_PASSANT);
+	block_row(2, DFA_WHITE_PAWN_EN_PASSANT);
+	block_row(3, DFA_WHITE_PAWN_EN_PASSANT);
+	block_row(5, DFA_WHITE_PAWN_EN_PASSANT);
+	block_row(6, DFA_WHITE_PAWN_EN_PASSANT);
+	block_row(7, DFA_WHITE_PAWN_EN_PASSANT);
+
+	// castle/rook restrictions
+
+	for(int file = 1; file < 7; ++file)
 	  {
-	    int square = rank * 8 + file;
-
-	    add_requirement(new inverse_dfa_type(fixed_dfa_type(square + CHESS_SQUARE_OFFSET, character)));
+	    block_file(file, DFA_BLACK_ROOK_CASTLE);
+	    block_file(file, DFA_WHITE_ROOK_CASTLE);
 	  }
-      };
 
-      std::function<void(int, int)> block_row = [&](int rank, int character)
-      {
-	for(int file = 0; file < 8; ++file)
+	for(int rank = 1; rank < 8; ++rank)
 	  {
-	    int square = rank * 8 + file;
-
-	    add_requirement(new inverse_dfa_type(fixed_dfa_type(square + CHESS_SQUARE_OFFSET, character)));
+	    block_row(rank, DFA_BLACK_ROOK_CASTLE);
 	  }
-      };
 
-      // pawn restrictions
+	for(int rank = 0; rank < 7; ++rank)
+	  {
+	    block_row(rank, DFA_WHITE_ROOK_CASTLE);
+	  }
 
-      block_row(0, DFA_BLACK_PAWN);
-      block_row(7, DFA_BLACK_PAWN);
-      block_row(0, DFA_WHITE_PAWN);
-      block_row(7, DFA_WHITE_PAWN);
+	// king restrictions
+	requirements.push_back(get_king_positions(0));
+	requirements.push_back(get_king_positions(1));
 
-      // en-passant pawn restrictions
+	std::cout << "get_basic_positions() => " << requirements.size() << " requirements" << std::endl;
 
-      block_row(0, DFA_BLACK_PAWN_EN_PASSANT);
-      block_row(1, DFA_BLACK_PAWN_EN_PASSANT);
-      block_row(2, DFA_BLACK_PAWN_EN_PASSANT);
-      block_row(4, DFA_BLACK_PAWN_EN_PASSANT);
-      block_row(5, DFA_BLACK_PAWN_EN_PASSANT);
-      block_row(6, DFA_BLACK_PAWN_EN_PASSANT);
-      block_row(7, DFA_BLACK_PAWN_EN_PASSANT);
-
-      block_row(0, DFA_WHITE_PAWN_EN_PASSANT);
-      block_row(1, DFA_WHITE_PAWN_EN_PASSANT);
-      block_row(2, DFA_WHITE_PAWN_EN_PASSANT);
-      block_row(3, DFA_WHITE_PAWN_EN_PASSANT);
-      block_row(5, DFA_WHITE_PAWN_EN_PASSANT);
-      block_row(6, DFA_WHITE_PAWN_EN_PASSANT);
-      block_row(7, DFA_WHITE_PAWN_EN_PASSANT);
-
-      // castle/rook restrictions
-
-      for(int file = 1; file < 7; ++file)
-	{
-	  block_file(file, DFA_BLACK_ROOK_CASTLE);
-	  block_file(file, DFA_WHITE_ROOK_CASTLE);
-	}
-
-      for(int rank = 1; rank < 8; ++rank)
-	{
-	  block_row(rank, DFA_BLACK_ROOK_CASTLE);
-	}
-
-      for(int rank = 0; rank < 7; ++rank)
-	{
-	  block_row(rank, DFA_WHITE_ROOK_CASTLE);
-	}
-
-      // king restrictions
-      requirements.push_back(get_king_positions(0));
-      requirements.push_back(get_king_positions(1));
-
-      std::cout << "get_basic_positions() => " << requirements.size() << " requirements" << std::endl;
-
-      singleton = shared_dfa_ptr(new intersection_dfa_type(requirements));
-
-      std::cout << "ChessGame::get_basic_positions() => " << singleton->size() << " positions, " << singleton->states() << " states" << std::endl;
+	return shared_dfa_ptr(new intersection_dfa_type(requirements));
+      });
     }
 
   return singleton;
@@ -206,26 +232,27 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[checked_side])
     {
-      Profile profile(std::ostringstream() << "ChessGame::get_check_positions(" << checked_side << ")");
-      profile.tic("singleton");
+      singletons[checked_side] = chess_load_or_build("side=" + std::to_string(checked_side) + ",check_positions", [=]()
+      {
+	Profile profile(std::ostringstream() << "ChessGame::get_check_positions(" << checked_side << ")");
+	profile.tic("singleton");
 
-      shared_dfa_ptr basic_positions = get_basic_positions();
-      int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+	shared_dfa_ptr basic_positions = get_basic_positions();
+	int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
-      std::vector<shared_dfa_ptr> checks;
-      for(int square = 0; square < 64; ++square)
-	{
-	  std::vector<shared_dfa_ptr> square_requirements;
-	  square_requirements.emplace_back(new fixed_dfa_type(square + CHESS_SQUARE_OFFSET, king_character));
-	  square_requirements.push_back(basic_positions); // makes union much cheaper below
-	  square_requirements.push_back(get_threat_positions(checked_side, square));
+	std::vector<shared_dfa_ptr> checks;
+	for(int square = 0; square < 64; ++square)
+	  {
+	    std::vector<shared_dfa_ptr> square_requirements;
+	    square_requirements.emplace_back(new fixed_dfa_type(square + CHESS_SQUARE_OFFSET, king_character));
+	    square_requirements.push_back(basic_positions); // makes union much cheaper below
+	    square_requirements.push_back(get_threat_positions(checked_side, square));
 
-	  checks.emplace_back(new intersection_dfa_type(square_requirements));
-	}
+	    checks.emplace_back(new intersection_dfa_type(square_requirements));
+	  }
 
-      singletons[checked_side] = shared_dfa_ptr(new union_dfa_type(checks));
-
-      std::cout << "ChessGame::get_check_positions(" << checked_side << ") => " << singletons[checked_side]->size() << " positions, " << singletons[checked_side]->states() << " states" << std::endl;
+	return shared_dfa_ptr(new union_dfa_type(checks));
+      });
     }
 
   return singletons[checked_side];
