@@ -11,6 +11,18 @@
 
 static int next_dfa_id = 0;
 
+std::vector<std::string> get_layer_file_names(int ndim, std::string directory)
+{
+  std::vector<std::string> output;
+
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      output.push_back(directory + "/layer=" + std::to_string(layer));
+    }
+
+  return output;
+}
+
 template<int... shape_pack>
 std::vector<int> shape_pack_to_vector()
 {
@@ -46,7 +58,7 @@ template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
     directory("/tmp/chess/dfa-" + std::to_string(next_dfa_id++)),
-    layer_file_names(),
+    layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
     layer_transitions(),
     temporary(true)
@@ -57,7 +69,6 @@ DFA<ndim, shape_pack...>::DFA()
 
   for(int layer = 0; layer < ndim; ++layer)
     {
-      layer_file_names.push_back(directory + "/layer=" + std::to_string(layer));
       layer_sizes.push_back(0);
       layer_transitions.emplace_back(layer_file_names.at(layer), 1024);
     }
