@@ -56,6 +56,8 @@ class DFA
   std::vector<dfa_state_t> layer_sizes;
   std::vector<MemoryMap<dfa_state_t>> layer_transitions;
 
+  bool temporary;
+
   void finalize();
 
  protected:
@@ -67,7 +69,7 @@ class DFA
 
  public:
 
-  virtual ~DFA();
+  virtual ~DFA() noexcept(false);
 
   DFAIterator<ndim, shape_pack...> cbegin() const;
   DFAIterator<ndim, shape_pack...> cend() const;

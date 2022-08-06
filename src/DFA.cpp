@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <iostream>
 #include <string>
@@ -47,7 +48,8 @@ DFA<ndim, shape_pack...>::DFA()
     directory("/tmp/chess/dfa-" + std::to_string(next_dfa_id++)),
     layer_file_names(),
     layer_sizes(),
-    layer_transitions()
+    layer_transitions(),
+    temporary(true)
 {
   assert(shape.size() == ndim);
 
@@ -66,8 +68,27 @@ DFA<ndim, shape_pack...>::DFA()
 }
 
 template<int ndim, int... shape_pack>
-DFA<ndim, shape_pack...>::~DFA()
+DFA<ndim, shape_pack...>::~DFA() noexcept(false)
 {
+  if(temporary)
+    {
+      for(int layer = 0; layer < ndim; ++layer)
+	{
+	  int ret = unlink(layer_file_names.at(layer).c_str());
+	  if(ret)
+	    {
+	      perror("DFA file cleanup");
+	      throw std::runtime_error("DFA file cleanup failed");
+	    }
+	}
+
+      int ret = rmdir(directory.c_str());
+      if(ret)
+	{
+	  perror("DFA directory cleanup");
+	  throw std::runtime_error("DFA directory cleanup failed");
+	}
+    }
 }
 
 template<int ndim, int... shape_pack>
