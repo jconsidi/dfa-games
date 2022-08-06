@@ -68,6 +68,11 @@ MemoryMap<T>::~MemoryMap()
 template<class T>
 MemoryMap<T>& MemoryMap<T>::operator=(MemoryMap<T>&& other) noexcept
 {
+  if(this == &other)
+    {
+      return *this;
+    }
+
   if(_mapped)
     {
       this->munmap();
