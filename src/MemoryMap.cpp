@@ -4,6 +4,7 @@
 
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -18,6 +19,39 @@ MemoryMap<T>::MemoryMap(size_t size_in)
   assert(_length / sizeof(T) == _size);
 
   this->mmap(MAP_ANONYMOUS, 0);
+}
+
+template<class T>
+MemoryMap<T>::MemoryMap(std::string filename_in)
+  : _size(0),
+    _length(),
+    _mapped(0)
+{
+  int fildes = open(filename_in.c_str(), O_RDWR);
+  if(fildes == -1)
+    {
+      perror("open");
+      throw std::runtime_error("open() failed");
+    }
+
+  struct stat stat_buffer;
+  int stat_ret = fstat(fildes, &stat_buffer);
+  if(stat_ret != 0)
+    {
+      perror("MemoryMap stat");
+      throw std::runtime_error("MemoryMap stat failed");
+    }
+  if(stat_buffer.st_size % sizeof(T) != 0)
+    {
+      throw std::runtime_error("invalid length of file to mmap");
+    }
+
+  _length = stat_buffer.st_size;
+  _size = _length / sizeof(T);
+
+  this->mmap(0, fildes);
+
+  close(fildes);
 }
 
 template<class T>

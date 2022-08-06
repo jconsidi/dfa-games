@@ -22,6 +22,7 @@ class MemoryMap
 public:
 
   MemoryMap(size_t);
+  MemoryMap(std::string);
   MemoryMap(std::string, size_t);
   MemoryMap(const MemoryMap&) = delete;
   MemoryMap(MemoryMap&&);
