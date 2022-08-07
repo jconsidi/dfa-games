@@ -69,7 +69,7 @@ static ChessGame::shared_dfa_ptr chess_load_or_build(std::string dfa_name_in, st
   try
     {
       ChessGame::shared_dfa_ptr output = ChessGame::shared_dfa_ptr(new ChessDFA(dfa_name));
-      std::cout << "loaded " << dfa_name << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
+      std::cout << "loaded " << dfa_name << " => " << output->states() << " states" << std::endl;
 
       return output;
     }
