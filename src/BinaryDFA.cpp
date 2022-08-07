@@ -273,7 +273,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 static std::string binary_build_file_prefix(int layer)
 {
   std::ostringstream filename_builder;
-  filename_builder << "/tmp/chess/binarydfa-" << (layer < 9 ? "0" : "") << (layer + 1);
+  filename_builder << "/tmp/chess/binarydfa/layer=" << (layer < 9 ? "0" : "") << (layer + 1);
   return filename_builder.str();
 }
 
