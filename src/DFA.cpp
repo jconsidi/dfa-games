@@ -95,7 +95,7 @@ DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& l
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
-    directory("/tmp/chess/temp-" + std::to_string(next_dfa_id++)),
+    directory("/tmp/chess/temp/" + std::to_string(next_dfa_id++)),
     layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
     layer_transitions(),
