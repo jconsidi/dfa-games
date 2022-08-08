@@ -380,7 +380,15 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
     {
       left_sink = 1;
     }
-  // dfa_state_t right_sink = ~dfa_state_t(0);
+  dfa_state_t right_sink = ~dfa_state_t(0);
+  if((leaf_func(0, 0) == 0) && (leaf_func(1, 0) == 0))
+    {
+      right_sink = 0;
+    }
+  else if((leaf_func(0, 1) == 1) && (leaf_func(1, 1) == 1))
+    {
+      right_sink = 1;
+    }
 
   // apply shortcircuit logic to previously detected cases
   std::function<dfa_state_t(dfa_state_t, dfa_state_t)> shortcircuit_func = [=](dfa_state_t left_in, dfa_state_t right_in)
@@ -388,6 +396,11 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
     if(left_in == left_sink)
       {
 	return left_in;
+      }
+
+    if(right_in == right_sink)
+      {
+	return right_in;
       }
 
     // do not use this function unless shortcircuit evaluation
