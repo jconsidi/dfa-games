@@ -20,6 +20,9 @@ template <int ndim, int... shape_pack>
 class LayerTransitionsIterator;
 
 template <int ndim, int... shape_pack>
+class FilteredLayerTransitionsIterator;
+
+template <int ndim, int... shape_pack>
 class LayerTransitions
 {
   const DFA<ndim, shape_pack...>& left;
@@ -45,9 +48,19 @@ public:
     return LayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cbegin());
   }
 
-  LayerTransitionsIterator<ndim, shape_pack...>  cend() const
+  FilteredLayerTransitionsIterator<ndim, shape_pack...> cbegin_filtered(std::function<bool(dfa_state_t, dfa_state_t)> filter_func) const
+  {
+    return FilteredLayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cbegin(), layer_pairs.cend(), filter_func);
+  }
+
+  LayerTransitionsIterator<ndim, shape_pack...> cend() const
   {
     return LayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cend());
+  }
+
+  FilteredLayerTransitionsIterator<ndim, shape_pack...> cend_filtered() const
+  {
+    return FilteredLayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cend(), layer_pairs.cend(), [](dfa_state_t, dfa_state_t){return false;});
   }
 
   friend LayerTransitionsIterator<ndim, shape_pack...>;
@@ -84,6 +97,16 @@ public:
   {
   }
 
+  dfa_state_t decode_next_left(size_t next_pair) const
+  {
+    return next_pair / next_right_size;
+  }
+
+  dfa_state_t decode_next_right(size_t next_pair) const
+  {
+    return next_pair % next_right_size;
+  }
+
   size_t get_next_pair(size_t curr_i, int curr_j) const
   {
     assert(curr_i < curr_left_size * curr_right_size);
@@ -106,10 +129,16 @@ template <int ndim, int... shape_pack>
 class LayerTransitionsIterator
   : public LayerTransitionsHelper<ndim, shape_pack...>
 {
+protected:
+
   BitSetIterator iter;
+
+private:
 
   mutable size_t curr_i;
   int curr_j;
+
+protected:
 
   LayerTransitionsIterator(const DFA<ndim, shape_pack...>& left_in,
 			   const DFA<ndim, shape_pack...>& right_in,
@@ -157,6 +186,61 @@ public:
       }
 
     return curr_j < right_in.curr_j;
+  }
+
+  friend LayerTransitions<ndim, shape_pack...>;
+};
+
+template <int ndim, int... shape_pack>
+class FilteredLayerTransitionsIterator
+  : public LayerTransitionsIterator<ndim, shape_pack...>
+{
+  const BitSetIterator end;
+  std::function<bool(dfa_state_t, dfa_state_t)> filter_func;
+
+  FilteredLayerTransitionsIterator(const DFA<ndim, shape_pack...>& left_in,
+				   const DFA<ndim, shape_pack...>& right_in,
+				   int layer_in,
+				   BitSetIterator begin_in,
+				   BitSetIterator end_in,
+				   std::function<bool(dfa_state_t, dfa_state_t)> filter_in)
+    : LayerTransitionsIterator<ndim, shape_pack...>(left_in, right_in, layer_in, begin_in),
+      end(end_in),
+      filter_func(filter_in)
+  {
+    if(check_filter())
+      {
+	++(*this);
+      }
+  }
+
+public:
+
+  bool check_filter()
+  {
+    if(!(this->iter < end))
+      {
+	return false;
+      }
+
+    size_t pair = *(*this);
+
+    dfa_state_t left = this->decode_next_left(pair);
+    dfa_state_t right = this->decode_next_right(pair);
+
+    return filter_func(left, right);
+  }
+
+  FilteredLayerTransitionsIterator& operator++()
+  {
+    LayerTransitionsIterator<ndim, shape_pack...> *this2 = this;
+    ++(*this2);
+    while(check_filter())
+      {
+	++(*this2);
+      }
+
+    return *this;
   }
 
   friend LayerTransitions<ndim, shape_pack...>;
@@ -284,12 +368,58 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 {
   Profile profile("binary_build");
 
+  // identify cases where leaf_func allows full evaluation without
+  // going to leaves...
+
+  dfa_state_t left_sink = ~dfa_state_t(0);
+  if((leaf_func(0, 0) == 0) && (leaf_func(0, 1) == 0))
+    {
+      left_sink = 0;
+    }
+  else if((leaf_func(1, 0) == 1) && (leaf_func(1, 1) == 1))
+    {
+      left_sink = 1;
+    }
+  // dfa_state_t right_sink = ~dfa_state_t(0);
+
+  // apply shortcircuit logic to previously detected cases
+  std::function<dfa_state_t(dfa_state_t, dfa_state_t)> shortcircuit_func = [=](dfa_state_t left_in, dfa_state_t right_in)
+  {
+    if(left_in == left_sink)
+      {
+	return left_in;
+      }
+
+    // do not use this function unless shortcircuit evaluation
+    assert(0);
+  };
+
+  // decide whether shortcircuit evaluation applies and we can filter
+  // out these pairs from further evaluation.
+  std::function<bool(dfa_state_t, dfa_state_t)> filter_func = [=](dfa_state_t left_in, dfa_state_t right_in)
+  {
+    if(left_in == left_sink)
+      {
+	return true;
+      }
+
+    return false;
+  };
+
   std::vector<BitSet> pairs_by_layer;
   pairs_by_layer.reserve(ndim + 1);
 
   pairs_by_layer.emplace_back(left_in.get_layer_size(0) * right_in.get_layer_size(0));
 
-  size_t initial_pair = left_in.get_initial_state() * right_in.get_layer_size(0) + right_in.get_initial_state();
+  dfa_state_t initial_left = left_in.get_initial_state();
+  dfa_state_t initial_right = right_in.get_initial_state();
+  if(filter_func(initial_left, initial_right))
+    {
+      this->set_initial_state(shortcircuit_func(initial_left, initial_right));
+      return;
+    }
+
+  size_t initial_pair = initial_left * right_in.get_layer_size(0) + initial_right;
   pairs_by_layer[0].prepare(initial_pair);
   pairs_by_layer[0].allocate();
   pairs_by_layer[0].add(initial_pair);
@@ -330,7 +460,9 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 
       LayerTransitions layer_transitions(left_in, right_in, layer, curr_layer);
 
-      populate_bitset<LayerTransitionsIterator<ndim, shape_pack...>>(next_layer, layer_transitions.cbegin(), layer_transitions.cend());
+      populate_bitset<FilteredLayerTransitionsIterator<ndim, shape_pack...>>(next_layer,
+									     layer_transitions.cbegin_filtered(filter_func),
+									     layer_transitions.cend_filtered());
 
       if(disk_mmap)
 	{
@@ -338,38 +470,45 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	  size_t bits_total = next_layer.size();
 	  std::cout << "bits set = " << bits_set << " / " << bits_total << " ~ " << (double(bits_set) / double(bits_total)) << std::endl;
 	}
-    }
 
-  assert(pairs_by_layer.size() == ndim + 1);
+      if(next_layer.count() == 0)
+	{
+	  // all pairs in next layer were filtered. no need to continue.
+	  pairs_by_layer.pop_back();
+	  break;
+	}
+    }
 
   // apply leaf function
 
   profile.set_prefix("");
   profile.tic("leaves");
 
-  BitSet& leaf_pairs = pairs_by_layer.at(ndim);
-  assert(leaf_pairs.size() <= 4);
-
   std::vector<dfa_state_t> next_pair_mapping;
-  for(int leaf_i = 0; leaf_i < 4; ++leaf_i)
+  if(pairs_by_layer.size() == ndim + 1)
     {
-      if(leaf_pairs.check(leaf_i))
+      BitSet& leaf_pairs = pairs_by_layer.at(ndim);
+      assert(leaf_pairs.size() <= 4);
+
+      for(int leaf_i = 0; leaf_i < 4; ++leaf_i)
 	{
-	  size_t leaf_left_state = leaf_i / 2;
-	  size_t leaf_right_state = leaf_i % 2;
-	  next_pair_mapping.emplace_back(leaf_func(leaf_left_state, leaf_right_state));
+	  if(leaf_pairs.check(leaf_i))
+	    {
+	      size_t leaf_left_state = leaf_i / 2;
+	      size_t leaf_right_state = leaf_i % 2;
+	      next_pair_mapping.emplace_back(leaf_func(leaf_left_state, leaf_right_state));
+	    }
 	}
     }
 
   // backward pass
 
-  for(int layer = ndim - 1; layer >= 0; --layer)
+  for(int layer = pairs_by_layer.size() - 2; layer >= 0; --layer)
     {
       profile.set_prefix("layer=" + std::to_string(layer));
       profile.tic("backward init");
 
       assert(pairs_by_layer.size() == layer + 2);
-      assert(next_pair_mapping.size() > 0);
 
       int curr_layer_shape = this->get_layer_shape(layer);
       const BitSet& curr_layer = pairs_by_layer.at(layer);
@@ -407,10 +546,20 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
       {
 	assert(curr_layer.check(curr_pair));
 	size_t next_pair = helper.get_next_pair(curr_pair, curr_j);
-	dfa_state_t next_compact = next_index.rank(next_pair);
-	assert(next_compact < next_pair_mapping.size());
-	dfa_state_t next_deduped = next_pair_mapping.at(next_compact);
-	return next_deduped;
+	dfa_state_t next_left = helper.decode_next_left(next_pair);
+	dfa_state_t next_right = helper.decode_next_right(next_pair);
+
+	if(filter_func(next_left, next_right))
+	  {
+	    return shortcircuit_func(next_left, next_right);
+	  }
+	else
+	  {
+	    dfa_state_t next_compact = next_index.rank(next_pair);
+	    assert(next_compact < next_pair_mapping.size());
+	    dfa_state_t next_deduped = next_pair_mapping.at(next_compact);
+	    return next_deduped;
+	  }
       };
 
       auto compare_pair = [&](size_t curr_pair_a, size_t curr_pair_b)
