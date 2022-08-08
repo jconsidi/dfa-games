@@ -136,8 +136,15 @@ CompactBitSetIterator CompactBitSet::cend() const
 
 size_t CompactBitSet::count() const
 {
-  assert(_compact_bits);
-  return _compact_bits->count();
+  if(_compact_bits)
+    {
+      return _compact_bits->count();
+    }
+  else
+    {
+      assert(_high_bits->count() == 0);
+      return 0;
+    }
 }
 
 void CompactBitSet::prepare(size_t index_in)
