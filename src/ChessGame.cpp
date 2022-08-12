@@ -304,54 +304,58 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 
   if(!singletons[threatened_side][threatened_square])
     {
-      BoardMask threatened_mask = 1ULL << threatened_square;
-      std::vector<shared_dfa_ptr> threats;
-      std::function<void(int, const MoveSet&)> add_threat = [&](int threatening_character, const MoveSet& moves)
-      {
-	for(int threatening_square = 0; threatening_square < 64; ++threatening_square)
+      singletons[threatened_side][threatened_square] = \
+	load_or_build("threat_positions-side=" + std::to_string(threatened_side) + ",square=" + std::to_string(threatened_square), [=]()
+	{
+	  BoardMask threatened_mask = 1ULL << threatened_square;
+	  std::vector<shared_dfa_ptr> threats;
+	  std::function<void(int, const MoveSet&)> add_threat = [&](int threatening_character, const MoveSet& moves)
 	  {
-	    if(!(moves.moves[threatening_square] & threatened_mask))
+	    for(int threatening_square = 0; threatening_square < 64; ++threatening_square)
 	      {
-		continue;
+		if(!(moves.moves[threatening_square] & threatened_mask))
+		  {
+		    continue;
+		  }
+
+		std::vector<shared_dfa_ptr> threat_components;
+		threat_components.emplace_back(new fixed_dfa_type(threatening_square + CHESS_SQUARE_OFFSET, threatening_character));
+
+		BoardMask between_mask = between_masks.masks[threatening_square][threatened_square];
+		for(int between_square = std::countr_zero(between_mask); between_square < 64; between_square += 1 + std::countr_zero(between_mask >> (between_square + 1)))
+		  {
+		    threat_components.emplace_back(new fixed_dfa_type(between_square + CHESS_SQUARE_OFFSET, DFA_BLANK));
+		  }
+
+		threats.emplace_back(new intersection_dfa_type(threat_components));
 	      }
+	  };
 
-	    std::vector<shared_dfa_ptr> threat_components;
-	    threat_components.emplace_back(new fixed_dfa_type(threatening_square + CHESS_SQUARE_OFFSET, threatening_character));
+	  if(threatened_side == SIDE_WHITE)
+	    {
+	      add_threat(DFA_BLACK_BISHOP, bishop_moves);
+	      add_threat(DFA_BLACK_KING, king_moves);
+	      add_threat(DFA_BLACK_KNIGHT, knight_moves);
+	      add_threat(DFA_BLACK_PAWN, pawn_captures_black);
+	      add_threat(DFA_BLACK_PAWN_EN_PASSANT, pawn_captures_black);
+	      add_threat(DFA_BLACK_QUEEN, queen_moves);
+	      add_threat(DFA_BLACK_ROOK, rook_moves);
+	      add_threat(DFA_BLACK_ROOK_CASTLE, rook_moves);
+	    }
+	  else
+	    {
+	      add_threat(DFA_WHITE_BISHOP, bishop_moves);
+	      add_threat(DFA_WHITE_KING, king_moves);
+	      add_threat(DFA_WHITE_KNIGHT, knight_moves);
+	      add_threat(DFA_WHITE_PAWN, pawn_captures_white);
+	      add_threat(DFA_WHITE_PAWN_EN_PASSANT, pawn_captures_white);
+	      add_threat(DFA_WHITE_QUEEN, queen_moves);
+	      add_threat(DFA_WHITE_ROOK, rook_moves);
+	      add_threat(DFA_WHITE_ROOK_CASTLE, rook_moves);
+	    }
 
-	    BoardMask between_mask = between_masks.masks[threatening_square][threatened_square];
-	    for(int between_square = std::countr_zero(between_mask); between_square < 64; between_square += 1 + std::countr_zero(between_mask >> (between_square + 1)))
-	      {
-		threat_components.emplace_back(new fixed_dfa_type(between_square + CHESS_SQUARE_OFFSET, DFA_BLANK));
-	      }
-
-	    threats.emplace_back(new intersection_dfa_type(threat_components));
-	  }
-      };
-
-      if(threatened_side == SIDE_WHITE)
-	{
-	  add_threat(DFA_BLACK_BISHOP, bishop_moves);
-	  add_threat(DFA_BLACK_KING, king_moves);
-	  add_threat(DFA_BLACK_KNIGHT, knight_moves);
-	  add_threat(DFA_BLACK_PAWN, pawn_captures_black);
-	  add_threat(DFA_BLACK_PAWN_EN_PASSANT, pawn_captures_black);
-	  add_threat(DFA_BLACK_QUEEN, queen_moves);
-	  add_threat(DFA_BLACK_ROOK, rook_moves);
-	  add_threat(DFA_BLACK_ROOK_CASTLE, rook_moves);
-	}
-      else
-	{
-	  add_threat(DFA_WHITE_BISHOP, bishop_moves);
-	  add_threat(DFA_WHITE_KING, king_moves);
-	  add_threat(DFA_WHITE_KNIGHT, knight_moves);
-	  add_threat(DFA_WHITE_PAWN, pawn_captures_white);
-	  add_threat(DFA_WHITE_PAWN_EN_PASSANT, pawn_captures_white);
-	  add_threat(DFA_WHITE_QUEEN, queen_moves);
-	  add_threat(DFA_WHITE_ROOK, rook_moves);
-	  add_threat(DFA_WHITE_ROOK_CASTLE, rook_moves);
-	}
-
-      singletons[threatened_side][threatened_square] = shared_dfa_ptr(new union_dfa_type(threats));
+	  return shared_dfa_ptr(new union_dfa_type(threats));
+	});
     }
 
   return singletons[threatened_side][threatened_square];
@@ -377,11 +381,17 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
   shared_dfa_ptr basic_positions = get_basic_positions();
   shared_dfa_ptr check_positions = get_check_positions(side_to_move);
-  shared_dfa_ptr not_check_positions(new inverse_dfa_type(*check_positions));
+  shared_dfa_ptr not_check_positions = load_or_build("not_check_positions-side=" + std::to_string(side_to_move), [=]()
+  {
+    return shared_dfa_ptr(new inverse_dfa_type(*check_positions));
+  });
 
   // shared pre/post conditions for all moves
   shared_dfa_ptr pre_shared = basic_positions;
-  shared_dfa_ptr post_shared(new intersection_dfa_type(*basic_positions, *not_check_positions));
+  shared_dfa_ptr post_shared = load_or_build("post_shared-side=" + std::to_string(side_to_move), [=]()
+  {
+    return shared_dfa_ptr(new intersection_dfa_type(*basic_positions, *not_check_positions));
+  });
 
   // collect rules
 
