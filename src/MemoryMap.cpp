@@ -30,6 +30,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in)
   int fildes = open(filename_in.c_str(), O_RDWR);
   if(fildes == -1)
     {
+      std::cerr << "open " << filename_in << " failed" << std::endl;
       perror("open");
       throw std::runtime_error("open() failed");
     }
