@@ -198,30 +198,51 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_winning_positions(int side_to_move, int moves_max, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
 {
+  Profile profile("get_winning_positions");
+
   int side_not_to_move = 1 - side_to_move;
 
+  profile.tic("opponent_has_move");
   shared_dfa_ptr opponent_has_move = this->get_has_moves(side_not_to_move);
 
+  profile.tic("lost");
   shared_dfa_ptr lost = this->get_lost_positions(side_not_to_move);
   shared_dfa_ptr losing = lost;
+
+  profile.tic("winning 0");
   shared_dfa_ptr winning = this->get_moves_reverse(side_to_move, losing);
   std::cout << "  move 0: " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
 
   for(int move = 1; move < moves_max; ++move)
     {
+      auto tic = [&](std::string label_in){profile.tic(label_in + " " + std::to_string(move));};
+
+      tic("not_yet_winning");
       shared_dfa_ptr not_yet_winning(new inverse_dfa_type(*winning));
+
+      tic("not_yet_losing");
       shared_dfa_ptr not_yet_losing(this->get_moves_reverse(side_not_to_move, not_yet_winning));
+
+      tic("losing_more_if_has_move");
       shared_dfa_ptr losing_more_if_has_move(new inverse_dfa_type(*not_yet_losing));
+
+      tic("losing_more");
       shared_dfa_ptr losing_more(new intersection_dfa_type(*losing_more_if_has_move, *opponent_has_move));
+
+      tic("finished check");
       if(difference_dfa_type(*losing_more, *losing).size() == 0)
 	{
 	  break;
 	}
 
+      tic("losing");
       losing = shared_dfa_ptr(new union_dfa_type(*losing, *losing_more));
+
+      tic("winning");
       winning = this->get_moves_reverse(side_to_move, losing);
       std::cout << "  move " << move << ": " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
 
+      tic("stats");
       if(positions_in && (difference_dfa_type(*winning, *positions_in).size() == 0))
 	{
 	  std::cout << "  target positions covered" << std::endl;
@@ -231,6 +252,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
   if(positions_in)
     {
+      profile.tic("filter winning");
       winning = shared_dfa_ptr(new intersection_dfa_type(*winning, *positions_in));
     }
 
