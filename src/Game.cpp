@@ -79,6 +79,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_internal(const typename Game<ndim, shape_pack...>::rule_vector& rules_in, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
 {
+  Profile profile("get_moves_internal");
+
   std::cout << "get_moves_internal(...)" << std::endl;
 
   assert(rules_in.size() > 0);
@@ -89,6 +91,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   int num_rules = rules_in.size();
   for(int i = 0; i < num_rules; ++i)
     {
+      profile.tic("rule init");
+
       std::cout << " rule " << i << "/" << num_rules << std::endl;
 
       const rule_type& rule = rules_in[i];
@@ -98,17 +102,24 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       const shared_dfa_ptr& post_condition = std::get<2>(rule);
 
       shared_dfa_ptr positions = 0;
+
       // apply rule pre-conditions
+      profile.tic("rule pre condition");
       positions = manager.intersect(positions_in, pre_condition);
       std::cout << "  pre-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
+
       // apply rule changes
+      profile.tic("rule change");
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
       std::cout << "  changes => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
+
       // defer rule post-conditions
+      profile.tic("rule defer");
       rule_outputs_by_post_condition.try_emplace(post_condition);
       rule_outputs_by_post_condition.at(post_condition).push_back(positions);
 
       // partially merge the rule outputs to reduce memory usage
+      profile.tic("rule merge partial");
       auto& current_outputs = rule_outputs_by_post_condition.at(post_condition);
       while(current_outputs.size() > 1)
 	{
@@ -135,9 +146,11 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   for(const auto& [post_condition, positions_vector] : rule_outputs_by_post_condition)
     {
       std::cout << " applying post condition to " << positions_vector.size() << " rule outputs" << std::endl;
+      profile.tic("post merge");
       shared_dfa_ptr positions(new union_dfa_type(positions_vector));
       std::cout << "  combined rule outputs => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
 
+      profile.tic("post condition");
       positions = manager.intersect(positions, post_condition);
       std::cout << "  post-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
 
@@ -146,6 +159,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
   // final output
 
+  profile.tic("final merge");
   std::cout << " combining " << rule_outputs.size() << " post-condition rule outputs" << std::endl;
   return shared_dfa_ptr(new UnionDFA(rule_outputs));
 }
