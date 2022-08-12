@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <map>
+#include <string>
 
 #include "IntersectionManager.h"
 
@@ -18,10 +19,13 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   if(!(this->singleton_has_moves[side_to_move]))
     {
-      shared_dfa_ptr all_positions(new accept_dfa_type());
-      std::cout << "Game::get_has_moves(" << side_to_move << ")" << std::endl;
-      this->singleton_has_moves[side_to_move] = this->get_moves_reverse(side_to_move, all_positions);
-      std::cout << "Game::get_has_moves(" << side_to_move << ") => " << this->singleton_has_moves[side_to_move]->states() << " states, " << this->singleton_has_moves[side_to_move]->size() << " positions" << std::endl;
+      this->singleton_has_moves[side_to_move] = \
+	load_or_build("has_moves-side=" + std::to_string(side_to_move),
+		      [=]()
+		      {
+			shared_dfa_ptr all_positions(new accept_dfa_type());
+			return this->get_moves_reverse(side_to_move, all_positions);
+		      });
     }
 
   return this->singleton_has_moves[side_to_move];
@@ -32,7 +36,12 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   if(!(this->singleton_initial_positions))
     {
-      this->singleton_initial_positions = this->get_initial_positions_internal();
+      this->singleton_initial_positions = \
+	load_or_build("initial_positions",
+		      [=]()
+		      {
+			return this->get_initial_positions_internal();
+		      });
     }
 
   return this->singleton_initial_positions;
@@ -43,9 +52,12 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   if(!(this->singleton_lost_positions[side_to_move]))
     {
-      std::cout << "Game::get_lost_positions(" << side_to_move << ")" << std::endl;
-      this->singleton_lost_positions[side_to_move] = this->get_lost_positions_internal(side_to_move);
-      std::cout << "Game::get_lost_positions(" << side_to_move << ") => " << this->singleton_lost_positions[side_to_move]->states() << " states, " << this->singleton_lost_positions[side_to_move]->size() << " positions" << std::endl;
+      this->singleton_lost_positions[side_to_move] = \
+	load_or_build("lost_positions-side=" + std::to_string(side_to_move),
+		      [=]()
+		      {
+			return this->get_lost_positions_internal(side_to_move);
+		      });
     }
 
   return this->singleton_lost_positions[side_to_move];
