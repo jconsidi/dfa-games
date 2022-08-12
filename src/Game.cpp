@@ -200,8 +200,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   int side_not_to_move = 1 - side_to_move;
 
-  shared_dfa_ptr accept_all(new accept_dfa_type());
-  shared_dfa_ptr opponent_has_move = this->get_moves_reverse(side_not_to_move, accept_all);
+  shared_dfa_ptr opponent_has_move = this->get_has_moves(side_not_to_move);
 
   shared_dfa_ptr lost = this->get_lost_positions(side_not_to_move);
   shared_dfa_ptr losing = lost;
