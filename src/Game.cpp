@@ -7,6 +7,7 @@
 #include <string>
 
 #include "IntersectionManager.h"
+#include "Profile.h"
 
 template <int ndim, int... shape_pack>
 Game<ndim, shape_pack...>::Game(std::string name_in)
@@ -66,7 +67,12 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_forward(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
 {
+  Profile profile("get_moves_forward");
+
+  profile.tic("get_rules");
   rule_vector rules = get_rules(side_to_move);
+
+  profile.tic("get_moves_internal");
   return get_moves_internal(rules, positions_in);
 }
 
@@ -147,8 +153,12 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_reverse(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
 {
+  Profile profile("get_moves_reverse");
+
+  profile.tic("get_rules");
   rule_vector rules_forward = get_rules(side_to_move);
 
+  profile.tic("rules_reverse");
   rule_vector rules_reverse;
   std::for_each(rules_forward.cbegin(), rules_forward.cend(), [&](const rule_type& rule_forward)
   {
@@ -162,6 +172,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 			       std::get<0>(rule_forward));
   });
 
+  profile.tic("get_moves_internal");
   return get_moves_internal(rules_reverse, positions_in);
 }
 
@@ -230,8 +241,11 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::load_or_build(std::string dfa_name_in, std::function<typename Game<ndim, shape_pack...>::shared_dfa_ptr ()> build_func) const
 {
+  Profile profile("load_or_build " + dfa_name_in);
+
   std::string dfa_name = name + "/" + dfa_name_in;
 
+  profile.tic("load");
   try
     {
       shared_dfa_ptr output = shared_dfa_ptr(new dfa_type(dfa_name));
@@ -243,9 +257,14 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::lo
     {
     }
 
+  profile.tic("build");
   std::cout << "building " << dfa_name << std::endl;
   shared_dfa_ptr output = build_func();
+
+  profile.tic("stats");
   std::cout << "built " << dfa_name << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
+
+  profile.tic("save");
   output->save(dfa_name);
   return output;
 }
