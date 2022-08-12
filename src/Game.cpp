@@ -8,7 +8,8 @@
 #include "IntersectionManager.h"
 
 template <int ndim, int... shape_pack>
-Game<ndim, shape_pack...>::Game()
+Game<ndim, shape_pack...>::Game(std::string name_in)
+  : name(name_in)
 {
 }
 
@@ -212,6 +213,29 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
     }
 
   return winning;
+}
+
+template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::load_or_build(std::string dfa_name_in, std::function<typename Game<ndim, shape_pack...>::shared_dfa_ptr ()> build_func) const
+{
+  std::string dfa_name = name + "/" + dfa_name_in;
+
+  try
+    {
+      shared_dfa_ptr output = shared_dfa_ptr(new dfa_type(dfa_name));
+      std::cout << "loaded " << dfa_name << " => " << output->states() << " states" << std::endl;
+
+      return output;
+    }
+  catch(std::runtime_error e)
+    {
+    }
+
+  std::cout << "building " << dfa_name << std::endl;
+  shared_dfa_ptr output = build_func();
+  std::cout << "built " << dfa_name << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
+  output->save(dfa_name);
+  return output;
 }
 
 // template instantiations

@@ -20,6 +20,8 @@ private:
 
 public:
 
+  ChessGame();
+
   static shared_dfa_ptr from_board(const Board& board);
 
   shared_dfa_ptr get_check_positions(int) const;

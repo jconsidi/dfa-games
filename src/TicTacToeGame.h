@@ -26,6 +26,8 @@ template<int n, int... shape_pack>
 
  public:
 
+  TicTacToeGame();
+
   typedef typename Game<n*n, shape_pack...>::dfa_type dfa_type;
   typedef typename Game<n*n, shape_pack...>::dfa_string_type dfa_string_type;
   typedef typename Game<n*n, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;

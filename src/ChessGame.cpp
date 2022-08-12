@@ -13,8 +13,6 @@
 #include "MoveSet.h"
 #include "Profile.h"
 
-static std::string dfa_name_base = "chess-offset=" + std::to_string(CHESS_SQUARE_OFFSET) + ",";
-
 static bool chess_default_rule(int layer, int old_value, int new_value)
 {
 #if CHESS_SQUARE_OFFSET == 2
@@ -62,28 +60,6 @@ static bool chess_is_hostile(int side_to_move, int character)
   return chess_is_friendly(1 - side_to_move, character);
 }
 
-static ChessGame::shared_dfa_ptr chess_load_or_build(std::string dfa_name_in, std::function<ChessGame::shared_dfa_ptr()> build_func)
-{
-  std::string dfa_name = dfa_name_base + dfa_name_in;
-
-  try
-    {
-      ChessGame::shared_dfa_ptr output = ChessGame::shared_dfa_ptr(new ChessDFA(dfa_name));
-      std::cout << "loaded " << dfa_name << " => " << output->states() << " states" << std::endl;
-
-      return output;
-    }
-  catch(std::runtime_error e)
-    {
-    }
-
-  std::cout << "building " << dfa_name << std::endl;
-  ChessGame::shared_dfa_ptr output = build_func();
-  std::cout << "built " << dfa_name_in << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
-  output->save(dfa_name);
-  return output;
-}
-
 static bool chess_pawn_maybe_promote(int side_to_move, int previous_advancement, int character)
 {
   if(previous_advancement < 5)
@@ -124,6 +100,11 @@ static bool chess_pawn_maybe_promote(int side_to_move, int previous_advancement,
     }
 }
 
+ChessGame::ChessGame()
+  : Game("chess+" + std::to_string(CHESS_SQUARE_OFFSET))
+{
+}
+
 typename ChessGame::shared_dfa_ptr ChessGame::from_board(const Board& board_in)
 {
   return shared_dfa_ptr(new ChessBoardDFA(board_in));
@@ -138,7 +119,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
   static shared_dfa_ptr singleton;
   if(!singleton)
     {
-      singleton = chess_load_or_build("basic_positions", [=]()
+      singleton = load_or_build("basic_positions", [=]()
       {
 	Profile profile("ChessGame::get_basic_positions()");
 	profile.tic("singleton");
@@ -232,7 +213,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[checked_side])
     {
-      singletons[checked_side] = chess_load_or_build("side=" + std::to_string(checked_side) + ",check_positions", [=]()
+      singletons[checked_side] = load_or_build("check_positions-side=" + std::to_string(checked_side), [=]()
       {
 	Profile profile(std::ostringstream() << "ChessGame::get_check_positions(" << checked_side << ")");
 	profile.tic("singleton");

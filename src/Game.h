@@ -4,6 +4,7 @@
 #define GAME_H
 
 #include <memory>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -22,6 +23,10 @@
 template <int ndim, int... shape_pack>
 class Game
 {
+private:
+
+  std::string name;
+
 public:
 
   typedef DFA<ndim, shape_pack...> dfa_type;
@@ -57,7 +62,10 @@ private:
 
 protected:
 
-  Game();
+  Game(std::string);
+
+  void save(std::string, shared_dfa_ptr) const;
+  shared_dfa_ptr load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr()> build_func) const;
 
 public:
 

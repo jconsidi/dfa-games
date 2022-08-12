@@ -3,6 +3,13 @@
 #include "TicTacToeGame.h"
 
 #include <sstream>
+#include <string>
+
+template<int n, int... shape_pack>
+TicTacToeGame<n, shape_pack...>::TicTacToeGame()
+  : Game<n*n, shape_pack...>("tictactoe" + std::to_string(n))
+{
+}
 
 template<int n, int... shape_pack>
 typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_initial_positions_internal() const

@@ -95,7 +95,7 @@ DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& l
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
-    directory("/tmp/chess/temp/" + std::to_string(next_dfa_id++)),
+    directory("scratch/temp/" + std::to_string(next_dfa_id++)),
     layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
     layer_transitions(),
@@ -119,7 +119,7 @@ DFA<ndim, shape_pack...>::DFA()
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA(std::string name_in)
   : shape(shape_pack_to_vector<shape_pack...>()),
-    directory("/tmp/chess/" + name_in),
+    directory("scratch/" + name_in),
     layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
     layer_transitions(),
@@ -363,7 +363,7 @@ void DFA<ndim, shape_pack...>::save(std::string name_in) const
   MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state", 1);
   initial_state_mmap[0] = initial_state;
 
-  std::string directory_new = std::string("/tmp/chess/") + name_in;
+  std::string directory_new = std::string("scratch/") + name_in;
   remove_directory(directory_new);
 
   int ret = rename(directory.c_str(), directory_new.c_str());
