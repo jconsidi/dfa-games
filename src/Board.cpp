@@ -697,61 +697,69 @@ bool Board::is_stalemate() const
   return !is_check() && (count_moves() == 0);
 }
 
-std::ostream& operator<<(std::ostream& os, const Board& board)
+std::string Board::to_string() const
 {
+  std::string output("");
+
   for(int i = 0; i < 64; ++i)
     {
       BoardMask mask = 1ULL << i;
       char c = '.';
       for(int p = 0; p < 2; ++p)
 	{
-	  if(!(board.pieces_by_side[p] & mask))
+	  if(!(this->pieces_by_side[p] & mask))
 	    continue;
 
-	  if(board.pieces_by_side_type[p][PIECE_PAWN] & mask)
+	  if(this->pieces_by_side_type[p][PIECE_PAWN] & mask)
 	    {
 	      c = 'p';
 	    }
-	  else if(board.pieces_by_side_type[p][PIECE_KING] & mask)
+	  else if(this->pieces_by_side_type[p][PIECE_KING] & mask)
 	    {
 	      c = 'k';
 	    }
-	  else if(board.pieces_by_side_type[p][PIECE_QUEEN] & mask)
+	  else if(this->pieces_by_side_type[p][PIECE_QUEEN] & mask)
 	    {
 	      c = 'q';
 	    }
-	  else if(board.pieces_by_side_type[p][PIECE_BISHOP] & mask)
+	  else if(this->pieces_by_side_type[p][PIECE_BISHOP] & mask)
 	    {
 	      c = 'b';
 	    }
-	  else if(board.pieces_by_side_type[p][PIECE_KNIGHT] & mask)
+	  else if(this->pieces_by_side_type[p][PIECE_KNIGHT] & mask)
 	    {
 	      c = 'n';
 	    }
-	  else if(board.pieces_by_side_type[p][PIECE_ROOK] & mask)
+	  else if(this->pieces_by_side_type[p][PIECE_ROOK] & mask)
 	    {
 	      c = 'r';
 	    }
 	}
 
-      if(board.pieces_by_side[SIDE_WHITE] & mask)
+      if(this->pieces_by_side[SIDE_WHITE] & mask)
 	{
 	  c = toupper(c);
 	}
 
       // output piece or blank square
-      os << c;
+      output += c;
 
       // space before next square or new line
       if(i % 8 < 7)
 	{
-	  os << ' ';
+	  output += ' ';
 	}
       else
 	{
-	  os << std::endl;
+	  output += "\n";
 	}
     }
 
+  return output;
+}
+
+std::ostream& operator<<(std::ostream& os, const Board& board)
+{
+  os << board.to_string();
   return os;
 }

@@ -56,6 +56,7 @@ class Board
   bool is_draw_by_rule() const;
   bool is_final() const;
   bool is_stalemate() const;
+  std::string to_string() const;
 
   friend std::ostream& operator<<(std::ostream& os, const Board& board);
   friend std::string uci_move(const Board& before, const Board& after);
