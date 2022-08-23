@@ -762,7 +762,151 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
   return output;
 }
 
-std::string ChessGame::position_to_string(const dfa_string_type&) const
+std::string ChessGame::position_to_string(const dfa_string_type& position_in) const
 {
-  return "ChessGame::position_to_string not implemented\n";
+  // will assemble sloppy fen string and pass to Board constructor
+  std::string fen_temp("");
+  std::string fen_castle("");
+  std::string fen_en_passant("");
+
+  for(int square = 0; square < 64; ++square)
+    {
+      int square_rank = (square / 8) + 1;
+      char square_file = 'a' + (square % 8);
+
+      int c = position_in[square + CHESS_SQUARE_OFFSET];
+      switch(c)
+	{
+	case DFA_BLANK:
+	  fen_temp += "1";
+	  break;
+
+	case DFA_WHITE_KING:
+	  fen_temp += "K";
+	  break;
+
+	case DFA_BLACK_KING:
+	  fen_temp += "k";
+	  break;
+
+	case DFA_WHITE_QUEEN:
+	  fen_temp += "Q";
+	  break;
+
+	case DFA_BLACK_QUEEN:
+	  fen_temp += "q";
+	  break;
+
+	case DFA_WHITE_BISHOP:
+	  fen_temp += "B";
+	  break;
+
+	case DFA_BLACK_BISHOP:
+	  fen_temp += "b";
+	  break;
+
+	case DFA_WHITE_KNIGHT:
+	  fen_temp += "N";
+	  break;
+
+	case DFA_BLACK_KNIGHT:
+	  fen_temp += "n";
+	  break;
+
+	case DFA_WHITE_ROOK:
+	  fen_temp += "R";
+	  break;
+
+	case DFA_BLACK_ROOK:
+	  fen_temp += "r";
+	  break;
+
+	case DFA_WHITE_PAWN:
+	  fen_temp += "P";
+	  break;
+
+	case DFA_BLACK_PAWN:
+	  fen_temp += "p";
+	  break;
+
+	case DFA_WHITE_PAWN_EN_PASSANT:
+	  fen_temp += "P";
+	  fen_en_passant = "";
+	  fen_en_passant += square_file;
+	  fen_en_passant += ('1' + (square_rank - 1));
+	  break;
+
+	case DFA_BLACK_PAWN_EN_PASSANT:
+	  fen_temp += "p";
+	  fen_en_passant = "";
+	  fen_en_passant += square_file;
+	  fen_en_passant += ('1' + (square_rank + 1));
+	  break;
+
+	case DFA_WHITE_ROOK_CASTLE:
+	  fen_temp += "R";
+	  if(square % 8 == 0)
+	    {
+	      // queen side
+	      fen_castle = "Q" + fen_castle;
+	    }
+	  else
+	    {
+	      // king side
+	      fen_castle = "K" + fen_castle;
+	    }
+	  break;
+
+	case DFA_BLACK_ROOK_CASTLE:
+	  fen_temp += "r";
+	  if(square % 8 == 0)
+	    {
+	      // queen side
+	      fen_castle = "q" + fen_castle;
+	    }
+	  else
+	    {
+	      // king side
+	      fen_castle = "k" + fen_castle;
+	    }
+	  break;
+
+	default:
+	  assert(0);
+	}
+
+      if((square % 8 == 7) && (square < 63))
+	{
+	  fen_temp += "/";
+	}
+    }
+  assert(fen_temp.length() == 64 + 7);
+
+  // assume white's move
+  fen_temp += " w";
+
+  if(fen_castle.length() > 0)
+    {
+      fen_temp += " " + fen_castle;
+    }
+  else
+    {
+      // no castling left
+      fen_temp += " -";
+    }
+
+  if(fen_en_passant.length() > 0)
+    {
+      fen_temp += " " + fen_en_passant;
+    }
+  else
+    {
+      fen_temp += " -";
+    }
+
+  // don't care about move counts
+  fen_temp += " 0 1";
+
+  Board board(fen_temp);
+  return board.to_string();
 }

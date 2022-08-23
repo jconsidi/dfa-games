@@ -1,6 +1,7 @@
 // test_chess_game.cpp
 
 #include <iostream>
+#include <string>
 
 #include "ChessGame.h"
 #include "Profile.h"
@@ -77,6 +78,25 @@ int main()
   shared_dfa_ptr initial_positions = chess.get_initial_positions();
   assert(initial_positions);
   assert(initial_positions->size() == 1);
+
+  for(auto iter = initial_positions->cbegin();
+      iter < initial_positions->cend();
+      ++iter)
+    {
+      auto position = *iter;
+      std::string position_string = chess.position_to_string(position);
+      std::cout << position_string << std::endl;
+
+      assert(position_string ==
+	     "r n b q k b n r\n"
+	     "p p p p p p p p\n"
+	     ". . . . . . . .\n"
+	     ". . . . . . . .\n"
+	     ". . . . . . . .\n"
+	     ". . . . . . . .\n"
+	     "P P P P P P P P\n"
+	     "R N B Q K B N R\n");
+    }
 
   profile.tic("initial_positions_manual");
   shared_dfa_ptr initial_positions_expected = initial_positions_manual();
