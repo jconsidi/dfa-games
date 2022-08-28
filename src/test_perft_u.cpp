@@ -12,6 +12,8 @@
 
 typedef ChessGame::shared_dfa_ptr shared_dfa_ptr;
 
+std::string get_example(shared_dfa_ptr positions_in);
+
 std::string log_prefix = "test_perft_u: ";
 
 shared_dfa_ptr boards_to_dfa(const std::set<Board>& boards)
@@ -53,8 +55,12 @@ void check_transition(int depth,
   shared_dfa_ptr missing_boards(new ChessGame::difference_dfa_type(*after_expected, *after_actual));
   if(missing_boards->size())
     {
-      std::cout << log_prefix << " found missing boards" << std::endl;
-      missing_boards->debug_example(std::cout);
+      std::cout << log_prefix << " found " << missing_boards->size() << " missing boards" << std::endl;
+      if(before_actual->size() == 1)
+	{
+	  std::cout << "BEFORE:\n" << get_example(before_actual) << std::endl;
+	}
+      std::cout << "MISSING:\n" << get_example(missing_boards) << std::endl;
     }
   assert(missing_boards->size() == 0);
 
@@ -63,13 +69,34 @@ void check_transition(int depth,
   shared_dfa_ptr extra_boards(new ChessGame::difference_dfa_type(*after_actual, *after_expected));
   if(extra_boards->size())
     {
-      std::cout << log_prefix << " found extra boards" << std::endl;
-      extra_boards->debug_example(std::cout);
+      std::cout << log_prefix << " found " << extra_boards->size() << " extra boards" << std::endl;
+      if(before_actual->size() == 1)
+	{
+	  std::cout << "BEFORE:\n" << get_example(before_actual) << std::endl;
+	}
+      std::cout << "EXTRA:\n" << get_example(extra_boards) << std::endl;
     }
   assert(extra_boards->size() == 0);
 
   // no differences found
   assert(after_actual->size() == after_boards.size());
+}
+
+std::string get_example(shared_dfa_ptr positions_in)
+{
+  // convenience object
+
+  ChessGame game;
+
+  for(auto iter = positions_in->cbegin();
+      iter < positions_in->cend();
+      ++iter)
+    {
+      return game.position_to_string(*iter);
+    }
+
+  assert(0);
+  return "n/a";
 }
 
 void test(const Board& board_in, int depth_max)
