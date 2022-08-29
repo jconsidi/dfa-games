@@ -44,7 +44,7 @@ public:
   typedef RejectDFA<ndim, shape_pack...> reject_dfa_type;
   typedef UnionDFA<ndim, shape_pack...> union_dfa_type;
 
-  typedef std::tuple<shared_dfa_ptr, change_func, shared_dfa_ptr> rule_type;
+  typedef std::tuple<shared_dfa_ptr, change_func, shared_dfa_ptr, std::string> rule_type;
   typedef std::vector<rule_type> rule_vector;
 
 private:

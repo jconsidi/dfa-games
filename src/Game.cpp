@@ -93,9 +93,9 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
     {
       profile.tic("rule init");
 
-      std::cout << " rule " << i << "/" << num_rules << std::endl;
-
       const rule_type& rule = rules_in[i];
+
+      std::cout << " rule " << i << "/" << num_rules << ": " << std::get<3>(rule) << std::endl;
 
       const shared_dfa_ptr& pre_condition = std::get<0>(rule);
       const change_func& change_rule = std::get<1>(rule);
@@ -183,7 +183,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 			       {
 				 return change_forward(layer, new_value, old_value);
 			       },
-			       std::get<0>(rule_forward));
+			       std::get<0>(rule_forward),
+			       std::get<3>(rule_forward));
   });
 
   profile.tic("get_moves_internal");

@@ -114,7 +114,8 @@ typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pac
 
       output.emplace_back(pre_condition,
 			  change_rule,
-			  post_condition);
+			  post_condition,
+			  "move_index=" + std::to_string(move_index));
     }
 
   assert(output.size() == n * n);
