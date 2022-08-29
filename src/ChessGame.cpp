@@ -412,6 +412,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 	    change_func change_rule = [=](int layer, int old_value, int new_value)
 	    {
+#if CHESS_SQUARE_OFFSET == 2
 	      if(layer == SIDE_WHITE)
 		{
 		  // white king index
@@ -441,8 +442,9 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		      return old_value == new_value;
 		    }
 		}
+#endif
 
-	      int square = layer - 2;
+	      int square = layer - CHESS_SQUARE_OFFSET;
 
 	      // from square
 
