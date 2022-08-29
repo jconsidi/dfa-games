@@ -143,6 +143,7 @@ void test(std::string name, std::string fen, int depth_max)
   std::cout << log_prefix << " FEN = " << fen << std::endl;
 
   Board board(fen);
+  std::cout << board << std::endl;
   test(board, depth_max);
 }
 
