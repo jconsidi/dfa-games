@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 	  for(int i = 1; i < argc; ++i)
 	    {
 	      std::string fen = argv[i];
-	      test("manual", fen, 2);
+	      test("manual", fen, 1);
 	    }
 
 	  return 0;
