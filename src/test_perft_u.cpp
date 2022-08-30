@@ -1,6 +1,7 @@
 // test_perft_u.cpp
 
 #include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <set>
 #include <string>
@@ -153,11 +154,9 @@ int main(int argc, char **argv)
     {
       if(argc > 1)
 	{
-	  for(int i = 1; i < argc; ++i)
-	    {
-	      std::string fen = argv[i];
-	      test("manual", fen, 1);
-	    }
+	  std::string fen = argv[1];
+	  int depth_max = (argc > 2) ? atoi(argv[2]) : 1;
+	  test("manual", fen, depth_max);
 
 	  return 0;
 	}
