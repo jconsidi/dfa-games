@@ -143,7 +143,7 @@ dfa_state_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<d
 
   if(states_in[0] == 1)
     {
-      return 0;
+      return 1;
     }
 
   // sanity checks
