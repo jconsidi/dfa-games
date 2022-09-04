@@ -10,6 +10,22 @@
 #include "Profile.h"
 
 template <int ndim, int... shape_pack>
+std::string quick_stats(const DFA<ndim, shape_pack...>& dfa_in)
+{
+  std::ostringstream stats_builder;
+
+  size_t states = dfa_in.states();
+  stats_builder << states << " states";
+
+  if(states <= 1000000)
+    {
+      stats_builder << ", " << dfa_in.size() << " positions";
+    }
+
+  return stats_builder.str();
+}
+
+template <int ndim, int... shape_pack>
 Game<ndim, shape_pack...>::Game(std::string name_in)
   : name(name_in)
 {
@@ -106,12 +122,12 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       // apply rule pre-conditions
       profile.tic("rule pre condition");
       positions = manager.intersect(positions_in, pre_condition);
-      std::cout << "  pre-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
+      std::cout << "  pre-condition => " << quick_stats(*positions) << std::endl;
 
       // apply rule changes
       profile.tic("rule change");
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
-      std::cout << "  changes => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
+      std::cout << "  changes => " << quick_stats(*positions) << std::endl;
 
       // defer rule post-conditions
       profile.tic("rule defer");
@@ -148,11 +164,11 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       std::cout << " applying post condition to " << positions_vector.size() << " rule outputs" << std::endl;
       profile.tic("post merge");
       shared_dfa_ptr positions(new union_dfa_type(positions_vector));
-      std::cout << "  combined rule outputs => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
+      std::cout << "  combined rule outputs => " << quick_stats(*positions) << std::endl;
 
       profile.tic("post condition");
       positions = manager.intersect(positions, post_condition);
-      std::cout << "  post-condition => " << positions->states() << " states, " << positions->size() << " positions" << std::endl;
+      std::cout << "  post-condition => " << quick_stats(*positions) << std::endl;
 
       rule_outputs.push_back(positions);
     }
@@ -285,7 +301,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::lo
   try
     {
       shared_dfa_ptr output = shared_dfa_ptr(new dfa_type(dfa_name));
-      std::cout << "loaded " << dfa_name << " => " << output->states() << " states" << std::endl;
+      std::cout << "loaded " << dfa_name << " => " << quick_stats(*output) << std::endl;
 
       return output;
     }
