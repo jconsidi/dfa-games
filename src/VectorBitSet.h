@@ -30,10 +30,12 @@ public:
   ~VectorBitSet();
 
   void add(size_t);
+  VectorBitSetIterator begin() const;
   VectorBitSetIterator cbegin() const;
   VectorBitSetIterator cend() const;
   bool check(size_t) const;
   size_t count() const;
+  VectorBitSetIterator end() const;
   size_t size() const;
 
   friend VectorBitSetIndex;
@@ -66,6 +68,7 @@ private:
 
 public:
 
+  bool operator!=(const VectorBitSetIterator&) const;
   size_t operator*() const;
   VectorBitSetIterator& operator++(); // prefix ++
   bool operator<(const VectorBitSetIterator&) const;

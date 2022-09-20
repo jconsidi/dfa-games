@@ -46,6 +46,11 @@ void VectorBitSet::add(size_t index_in)
   (*_memory_map)[index_in / 64] |= 1ULL << (index_in & 0x3fL);
 }
 
+VectorBitSetIterator VectorBitSet::begin() const
+{
+  return cbegin();
+}
+
 VectorBitSetIterator VectorBitSet::cbegin() const
 {
   for(size_t index_high = 0; index_high < _memory_map->size(); ++index_high)
@@ -86,6 +91,11 @@ size_t VectorBitSet::count() const
   return output;
 }
 
+VectorBitSetIterator VectorBitSet::end() const
+{
+  return cend();
+}
+
 size_t VectorBitSet::size() const
 {
   return _size;
@@ -123,6 +133,12 @@ VectorBitSetIterator::VectorBitSetIterator(const VectorBitSet& bit_vector_in, si
     _index_high(index_high_in),
     _index_low(index_low_in)
 {
+}
+
+bool VectorBitSetIterator::operator!=(const VectorBitSetIterator& right_in) const
+{
+  return ((this->_index_high != right_in._index_high) ||
+	  (this->_index_low != right_in._index_low));
 }
 
 size_t VectorBitSetIterator::operator*() const
