@@ -107,8 +107,21 @@ DFA<ndim, shape_pack...>::DFA()
 
   for(int layer = 0; layer < ndim; ++layer)
     {
-      layer_sizes.push_back(0);
+      // initialize each layer with the two uniform states
+
+      layer_sizes.push_back(2);
+      // TODO: make sure initial layer size is big enough for giant
+      // layer shapes
       layer_transitions.emplace_back(layer_file_names.at(layer), 1024);
+
+      int layer_shape = get_layer_shape(layer);
+      for(dfa_state_t state = 0; state < 2; ++state)
+	{
+	  for(int c = 0; c < layer_shape; ++c)
+	    {
+	      layer_transitions[layer][state * layer_shape + c] = state;
+	    }
+	}
     }
 
   assert(layer_sizes.size() == ndim);
@@ -150,6 +163,86 @@ DFA<ndim, shape_pack...>::~DFA() noexcept(false)
     {
       remove_directory(directory);
     }
+}
+
+template<int ndim, int... shape_pack>
+dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitionsStaging& transitions)
+{
+  assert((0 <= layer) && (layer < ndim));
+
+  int layer_shape = get_layer_shape(layer);
+  assert(transitions.size() == layer_shape);
+
+  // check for uniform states
+
+  if(transitions[0] < 2)
+    {
+      bool is_uniform = true;
+      for(int i = 1; i < layer_shape; ++i)
+	{
+	  if(transitions[i] != transitions[0])
+	    {
+	      is_uniform = false;
+	      break;
+	    }
+	}
+
+      if(is_uniform)
+	{
+	  return transitions[0];
+	}
+    }
+
+  // add new state
+
+  size_t current_offset = size_t(layer_sizes[layer]) * size_t(layer_shape);
+  size_t next_offset = current_offset + size_t(layer_shape);
+
+  MemoryMap<dfa_state_t>& current_transitions = layer_transitions[layer];
+  size_t current_size = current_transitions.size();
+  if(next_offset > current_size)
+    {
+      size_t next_size = current_size * 2;
+      current_transitions = MemoryMap<dfa_state_t>(layer_file_names[layer], next_size);
+    }
+
+  dfa_state_t transition_bound = this->get_layer_size(layer + 1);
+  for(int i = 0; i < layer_shape; ++i)
+    {
+      assert(transitions[i] < transition_bound);
+      current_transitions[current_offset + i] = transitions[i];
+    }
+
+  return layer_sizes[layer]++;
+}
+
+template<int ndim, int... shape_pack>
+dfa_state_t DFA<ndim, shape_pack...>::add_state_by_function(int layer, std::function<dfa_state_t(int)> transition_func)
+{
+  int layer_shape = this->get_layer_shape(layer);
+
+  DFATransitionsStaging transitions(layer_shape);
+  for(int i = 0; i < layer_shape; ++i)
+    {
+      transitions[i] = transition_func(i);
+    }
+
+  return add_state(layer, transitions);
+}
+
+template<int ndim, int... shape_pack>
+dfa_state_t DFA<ndim, shape_pack...>::add_state_by_reference(int layer, const DFATransitionsReference& next_states)
+{
+  int layer_shape = this->get_layer_shape(layer);
+  assert(next_states.get_layer_shape() == layer_shape);
+
+  DFATransitionsStaging temp_states;
+  for(int i = 0; i < layer_shape; ++i)
+    {
+      temp_states.push_back(next_states[i]);
+    }
+
+  return this->add_state(layer, temp_states);
 }
 
 template<int ndim, int... shape_pack>
@@ -266,33 +359,6 @@ void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
 	    }
 	}
     }
-}
-
-template<int ndim, int... shape_pack>
-void DFA<ndim, shape_pack...>::emplace_transitions(int layer, const DFATransitionsStaging& transitions)
-{
-  assert(layer < ndim);
-
-  int layer_shape = get_layer_shape(layer);
-  assert(transitions.size() == layer_shape);
-
-  size_t current_offset = size_t(layer_sizes[layer]) * size_t(layer_shape);
-  size_t next_offset = current_offset + size_t(layer_shape);
-
-  MemoryMap<dfa_state_t>& current_transitions = layer_transitions[layer];
-  size_t current_size = current_transitions.size();
-  if(next_offset > current_size)
-    {
-      size_t next_size = current_size * 2;
-      current_transitions = MemoryMap<dfa_state_t>(layer_file_names[layer], next_size);
-    }
-
-  for(int i = 0; i < layer_shape; ++i)
-    {
-      current_transitions[current_offset + i] = transitions[i];
-    }
-
-  ++layer_sizes[layer];
 }
 
 template<int ndim, int... shape_pack>

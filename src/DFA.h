@@ -64,7 +64,10 @@ class DFA
 
   DFA();
 
-  void emplace_transitions(int, const DFATransitionsStaging&);
+  virtual dfa_state_t add_state(int, const DFATransitionsStaging&);
+  dfa_state_t add_state_by_function(int, std::function<dfa_state_t(int)>);
+  dfa_state_t add_state_by_reference(int, const DFATransitionsReference&);
+
   virtual void set_initial_state(dfa_state_t);
 
  public:

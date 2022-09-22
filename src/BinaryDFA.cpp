@@ -250,7 +250,7 @@ template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
 					  leaf_func_t leaf_func)
-  : ExplicitDFA<ndim, shape_pack...>()
+  : DFA<ndim, shape_pack...>()
 {
   binary_build(left_in, right_in, leaf_func);
 }
@@ -258,7 +258,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_i
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in,
 					  leaf_func_t leaf_func)
-  : ExplicitDFA<ndim, shape_pack...>()
+  : DFA<ndim, shape_pack...>()
 {
   // confirm commutativity
   assert(leaf_func(0, 1) == leaf_func(1, 0));
@@ -281,7 +281,8 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const std::vector<std::shared_ptr<cons
 	    for(dfa_state_t state_index = 2; state_index < layer_size; ++state_index)
 	      {
 		DFATransitionsReference transitions(source->get_transitions(layer, state_index));
-		this->set_state(layer, state_index, transitions);
+		dfa_state_t new_state_index = this->add_state_by_reference(layer, transitions);
+		assert(new_state_index == state_index);
 	      }
 	  }
 	this->set_initial_state(source->get_initial_state());
@@ -639,7 +640,8 @@ void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>
 	curr_logical = next_logical;
 	++next_logical;
 
-	this->set_state(layer, curr_logical, set_transitions);
+	dfa_state_t new_state = this->add_state(layer, set_transitions);
+	assert(new_state == curr_logical);
       };
 
       set_helper(curr_pairs[0]);

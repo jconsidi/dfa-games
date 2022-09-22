@@ -78,7 +78,7 @@ dfa_state_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, dfa_state_t 
 
   DFATransitionsReference old_transitions = dfa_temp->get_transitions(layer, state_index);
 
-  dfa_state_t new_index = this->add_state(layer, [=](int new_value)
+  dfa_state_t new_index = this->add_state_by_function(layer, [=](int new_value)
   {
     const std::vector<int>& old_values = new_values_to_old_values_by_layer[layer][new_value];
 
@@ -167,7 +167,7 @@ dfa_state_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<d
       return search->second;
     }
 
-  auto output = this->add_state(layer, [&](int j)
+  auto output = this->add_state_by_function(layer, [&](int j)
   {
     std::vector<dfa_state_t> states_j;
     for(int i = 0; i < num_states; ++i)

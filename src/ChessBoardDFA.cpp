@@ -139,14 +139,14 @@ ChessBoardDFA::ChessBoardDFA(const Board& board_in)
 
     if(layer == 63 + CHESS_SQUARE_OFFSET)
       {
-	return this->add_state(layer, [=](int i)
+	return this->add_state_by_function(layer, [=](int i)
 	{
 	  return i == character;
 	});
       }
     else
       {
-	return this->add_state(layer, [=](int i)
+	return this->add_state_by_function(layer, [=](int i)
 	{
 	  return (i == character) ? 2 : 0;
 	});

@@ -52,8 +52,7 @@ class DedupedDFA
 
   DedupedDFA();
 
-  dfa_state_t add_state(int, const DFATransitionsStaging&);
-  dfa_state_t add_state(int, std::function<dfa_state_t(int)>);
+  virtual dfa_state_t add_state(int, const DFATransitionsStaging&);
   virtual void set_initial_state(dfa_state_t);
 
  public:
