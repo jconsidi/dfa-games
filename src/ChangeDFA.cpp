@@ -183,10 +183,6 @@ dfa_state_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<d
 
 // template instantiations
 
-#include "ChessDFAParams.h"
-#include "TicTacToeDFAParams.h"
+#include "DFAParams.h"
 
-template class ChangeDFA<CHESS_DFA_PARAMS>;
-template class ChangeDFA<TICTACTOE2_DFA_PARAMS>;
-template class ChangeDFA<TICTACTOE3_DFA_PARAMS>;
-template class ChangeDFA<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(ChangeDFA);

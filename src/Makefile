@@ -4,7 +4,7 @@ CXX=c++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g -ferror-limit=1
 
-TARGETS=divide generate_moves random random_uci test_bitset test_chess_game test_dfa test_perft test_perft_u test_tictactoe_game
+TARGETS=divide generate_moves random random_uci test_bitset test_change_dfa test_chess_game test_dfa test_perft test_perft_u test_tictactoe_game
 
 all : $(TARGETS)
 
@@ -18,6 +18,7 @@ test : all
 	./test_perft
 	./test_bitset
 	./test_dfa
+	./test_change_dfa
 	./test_tictactoe_game
 	./test_chess_game
 
@@ -54,6 +55,9 @@ random_uci : random_uci.o chess.a
 	$(CXX) -o $@ $^
 
 test_bitset : test_bitset.o chess.a
+	$(CXX) -o $@ $^
+
+test_change_dfa : test_change_dfa.o chess.a
 	$(CXX) -o $@ $^
 
 test_chess_game : test_chess_game.o chess.a test_utils.o
