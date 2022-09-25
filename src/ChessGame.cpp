@@ -13,7 +13,7 @@
 #include "MoveSet.h"
 #include "Profile.h"
 
-static bool chess_default_rule(int layer, int old_value, int new_value)
+static bool chess_default_rule(int side_to_move, int layer, int old_value, int new_value)
 {
 #if CHESS_SQUARE_OFFSET == 2
   if(layer < 2)
@@ -24,13 +24,33 @@ static bool chess_default_rule(int layer, int old_value, int new_value)
 
   // automatic piece changes
 
-  switch(old_value)
-    {
-    case DFA_BLACK_PAWN_EN_PASSANT:
-      return new_value == DFA_BLACK_PAWN;
+  int square = layer - CHESS_SQUARE_OFFSET;
+  int row = (square / 8);
 
-    case DFA_WHITE_PAWN_EN_PASSANT:
-      return new_value == DFA_WHITE_PAWN;
+  if(old_value == DFA_BLACK_PAWN_EN_PASSANT)
+    {
+      if((side_to_move == SIDE_WHITE) && (row == 3))
+	{
+	  return new_value == DFA_BLACK_PAWN;
+	}
+      else
+	{
+	  // illegal position?
+	  return false;
+	}
+    }
+
+  if(old_value == DFA_WHITE_PAWN_EN_PASSANT)
+    {
+      if((side_to_move == SIDE_BLACK) && (row == 4))
+	{
+	  return new_value == DFA_WHITE_PAWN;
+	}
+      else
+	{
+	  // illegal position?
+	  return false;
+	}
     }
 
   // no changes
@@ -481,7 +501,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 	      // rest of board
 
-	      return chess_default_rule(layer, old_value, new_value);
+	      return chess_default_rule(side_to_move, layer, old_value, new_value);
 	    };
 
 	    output.emplace_back(pre_shared,
@@ -508,7 +528,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 #if CHESS_SQUARE_OFFSET == 2
 	      if(layer < 2)
 		{
-		  return chess_default_rule(layer, old_value, new_value);
+		  return chess_default_rule(side_to_move, layer, old_value, new_value);
 		}
 #endif
 
@@ -525,7 +545,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 			  chess_pawn_maybe_promote(side_to_move, previous_advancement, new_value));
 		}
 
-	      return chess_default_rule(layer, old_value, new_value);
+	      return chess_default_rule(side_to_move, layer, old_value, new_value);
 	    };
 	    output.emplace_back(pre_shared,
 				advance_rule,
@@ -543,7 +563,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 #if CHESS_SQUARE_OFFSET == 2
 		  if(layer < 2)
 		    {
-		      return chess_default_rule(layer, old_value, new_value);
+		      return chess_default_rule(side_to_move, layer, old_value, new_value);
 		    }
 #endif
 
@@ -564,7 +584,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		      return (old_value == DFA_BLANK) && (new_value == en_passant_character);
 		    }
 
-		  return chess_default_rule(layer, old_value, new_value);
+		  return chess_default_rule(side_to_move, layer, old_value, new_value);
 		};
 		output.emplace_back(pre_shared,
 				    double_rule,
@@ -582,13 +602,6 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		int capture_square = advance_rank * 8 + capture_file;
 		change_func capture_rule = [=](int layer, int old_value, int new_value)
 		{
-#if 0
-		  if(layer < 2)
-		    {
-		      return chess_default_rule(layer, old_value, new_value);
-		    }
-#endif
-
 		  int square = layer - CHESS_SQUARE_OFFSET;
 
 		  if(square == from_square)
@@ -602,7 +615,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 			      chess_pawn_maybe_promote(side_to_move, previous_advancement, new_value));
 		    }
 
-		  return chess_default_rule(layer, old_value, new_value);
+		  return chess_default_rule(side_to_move, layer, old_value, new_value);
 		};
 		output.emplace_back(pre_shared,
 				    capture_rule,
@@ -617,7 +630,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 #if CHESS_SQUARE_OFFSET == 2
 		      if(layer < 2)
 			{
-			  return chess_default_rule(layer, old_value, new_value);
+			  return chess_default_rule(side_to_move, layer, old_value, new_value);
 			}
 #endif
 
@@ -638,7 +651,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 			  return (old_value == DFA_BLANK) && (new_value == pawn_character);
 			}
 
-		      return chess_default_rule(layer, old_value, new_value);
+		      return chess_default_rule(side_to_move, layer, old_value, new_value);
 		    };
 		    output.emplace_back(pre_shared,
 					en_passant_rule,
@@ -667,7 +680,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	      return (old_value == king_from_square) && (new_value == king_to_square);
 	    }
 
-	  return chess_default_rule(layer, old_value, new_value);
+	  return chess_default_rule(side_to_move, layer, old_value, new_value);
 	}
 #endif
 
@@ -706,7 +719,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	  return new_value == rook_character;
 	}
 
-      return chess_default_rule(layer, old_value, new_value);
+      return chess_default_rule(side_to_move, layer, old_value, new_value);
     };
 
     std::vector<shared_dfa_ptr> castle_threats;
