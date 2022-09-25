@@ -12,6 +12,8 @@ class CountCharacterDFA : public DedupedDFA<ndim, shape_pack...>
 
   CountCharacterDFA(int, int);
   CountCharacterDFA(int, int, int);
+  CountCharacterDFA(int, int, int, int);
+  CountCharacterDFA(int, int, int, int, int);
 };
 
 #endif
