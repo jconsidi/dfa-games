@@ -161,6 +161,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 
 	// en-passant pawn restrictions
 
+	add_requirement(new count_character_dfa_type(DFA_BLACK_PAWN_EN_PASSANT, 0, 1, CHESS_SQUARE_OFFSET));
 	block_row(0, DFA_BLACK_PAWN_EN_PASSANT);
 	block_row(1, DFA_BLACK_PAWN_EN_PASSANT);
 	block_row(2, DFA_BLACK_PAWN_EN_PASSANT);
@@ -169,6 +170,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	block_row(6, DFA_BLACK_PAWN_EN_PASSANT);
 	block_row(7, DFA_BLACK_PAWN_EN_PASSANT);
 
+	add_requirement(new count_character_dfa_type(DFA_WHITE_PAWN_EN_PASSANT, 0, 1, CHESS_SQUARE_OFFSET));
 	block_row(0, DFA_WHITE_PAWN_EN_PASSANT);
 	block_row(1, DFA_WHITE_PAWN_EN_PASSANT);
 	block_row(2, DFA_WHITE_PAWN_EN_PASSANT);
