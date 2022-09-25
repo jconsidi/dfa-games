@@ -9,10 +9,16 @@
 
 template<int ndim, int... shape_pack>
 CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in)
+  : CountCharacterDFA(c_in, count_in, count_in)
 {
-  if((count_in < 0) || ndim < count_in)
+}
+
+template<int ndim, int... shape_pack>
+CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_min, int count_max)
+{
+  if(!((0 <= count_min) && (count_min <= count_max) && (count_max <= ndim)))
     {
-      throw std::invalid_argument("count_in must be between 0 and ndim (inclusive)");
+      throw std::invalid_argument("must have 0 <= count_min <= count_max <= ndim");
     }
 
   std::vector<dfa_state_t> logical_states[ndim+1];
@@ -22,7 +28,7 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in
     int layer = ndim;
     for(int i = 0; i <= ndim; ++i)
       {
-	logical_states[layer].push_back(i == count_in);
+	logical_states[layer].push_back((count_min <= i) && (i <= count_max));
       }
   }
 
