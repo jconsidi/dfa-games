@@ -246,53 +246,33 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[king_side])
     {
-      Profile profile(std::ostringstream() << "ChessGame::get_king_positions(" << king_side << ")");
-      profile.tic("singleton");
+      singletons[king_side] = load_or_build("king_positions-side=" + std::to_string(king_side), [=]()
+      {
+	int king_character = (king_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
-      int king_character = (king_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+	shared_dfa_ptr count_constraint(new CountCharacterDFA<CHESS_DFA_PARAMS>(king_character, 1, 1, CHESS_SQUARE_OFFSET));
 
 #if CHESS_SQUARE_OFFSET == 0
-      singletons[king_side] = shared_dfa_ptr(new CountCharacterDFA<CHESS_DFA_PARAMS>(king_character, 1));
+	return count_constraint;
 #elif CHESS_SQUARE_OFFSET == 2
-      std::vector<shared_dfa_ptr> king_choices;
-      for(int king_square = 0; king_square < 64; ++king_square)
-	{
-	  std::vector<shared_dfa_ptr> king_square_requirements;
-	  std::function<void(ChessDFA *)> add_requirement = [&](ChessDFA *requirement)
+	std::vector<shared_dfa_ptr> king_choices;
+	for(int king_square = 0; king_square < 64; ++king_square)
 	  {
-	    assert(requirement->size() > 0);
-	    assert(requirement->states() > 0);
-	    assert(requirement->ready());
-	    king_square_requirements.emplace_back(requirement);
-	  };
+	    std::vector<shared_dfa_ptr> king_square_requirements;
 
-	  add_requirement(new fixed_dfa_type(king_side, king_square));
+	    // king index
+	    king_square_requirements.emplace_back(new fixed_dfa_type(king_side, king_square));
+	    // king on target square
+	    king_square_requirements.emplace_back(new fixed_dfa_type(CHESS_SQUARE_OFFSET + king_square, king_character));
+	    // exactly one king
+	    king_square_requirements.emplace_back(count_constraint);
 
-	  for(int square = 0; square < 64; ++square)
-	    {
-	      shared_dfa_ptr king_on_square(new fixed_dfa_type(square + CHESS_SQUARE_OFFSET, king_character));
-	      assert(king_on_square->size() > 0);
+	    king_choices.emplace_back(new intersection_dfa_type(king_square_requirements));
+	    assert(king_choices[king_square]->size() > 0);
+	  }
 
-	      if(square == king_square)
-		{
-		  king_square_requirements.push_back(king_on_square);
-		}
-	      else
-		{
-		  shared_dfa_ptr king_not_on_square(new inverse_dfa_type(*king_on_square));
-		  assert(king_not_on_square->size() > 0);
-		  king_square_requirements.push_back(king_not_on_square);
-		}
-	    }
-
-	  king_choices.emplace_back(new intersection_dfa_type(king_square_requirements));
-	  assert(king_choices[king_square]->size() > 0);
-	}
-
-      singletons[king_side] = shared_dfa_ptr(new union_dfa_type(king_choices));
-
-      std::cout << "ChessGame::get_king_positions(" << king_side << ") => " << singletons[king_side]->size() << " positions, " << singletons[king_side]->states() << " states" << std::endl;
-      assert(singletons[king_side]->size() > 0);
+	return shared_dfa_ptr(new union_dfa_type(king_choices));
+      });
 #else
 #error
 #endif
