@@ -292,10 +292,10 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 	  }
 
 	return shared_dfa_ptr(new union_dfa_type(king_choices));
-      });
 #else
 #error
 #endif
+      });
     }
   return singletons[king_side];
 }
@@ -380,6 +380,12 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions_internal(int si
 typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) const
 {
   rule_vector output;
+  auto add_simple = [&](shared_dfa_ptr pre_condition, change_func change_rule, shared_dfa_ptr post_condition, std::string rule_name)
+  {
+    std::vector<shared_dfa_ptr> pre_conditions = {pre_condition};
+    std::vector<shared_dfa_ptr> post_conditions = {post_condition};
+    output.emplace_back(pre_conditions, change_rule, post_conditions, rule_name);
+  };
 
   shared_dfa_ptr basic_positions = get_basic_positions();
   shared_dfa_ptr check_positions = get_check_positions(side_to_move);
@@ -504,10 +510,10 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	      return chess_default_rule(side_to_move, layer, old_value, new_value);
 	    };
 
-	    output.emplace_back(pre_shared,
-				change_rule,
-				post_shared,
-				"basic char=" + std::to_string(character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(to_square));
+	    add_simple(pre_shared,
+		       change_rule,
+		       post_shared,
+		       "basic char=" + std::to_string(character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(to_square));
 	  }
       }
   };
@@ -547,10 +553,10 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 	      return chess_default_rule(side_to_move, layer, old_value, new_value);
 	    };
-	    output.emplace_back(pre_shared,
-				advance_rule,
-				post_shared,
-				"pawn advance from_square=" + std::to_string(from_square) + ", advance_square=" + std::to_string(advance_square));
+	    add_simple(pre_shared,
+		       advance_rule,
+		       post_shared,
+		       "pawn advance from_square=" + std::to_string(from_square) + ", advance_square=" + std::to_string(advance_square));
 
 	    if(previous_advancement == 0)
 	      {
@@ -586,10 +592,10 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 		  return chess_default_rule(side_to_move, layer, old_value, new_value);
 		};
-		output.emplace_back(pre_shared,
-				    double_rule,
-				    post_shared,
-				    "pawn double from_square=" + std::to_string(from_square));
+		add_simple(pre_shared,
+			   double_rule,
+			   post_shared,
+			   "pawn double from_square=" + std::to_string(from_square));
 	      }
 
 	    for(int capture_file = from_file - 1; capture_file <= from_file + 1; capture_file += 2)
@@ -617,10 +623,10 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 		  return chess_default_rule(side_to_move, layer, old_value, new_value);
 		};
-		output.emplace_back(pre_shared,
-				    capture_rule,
-				    post_shared,
-				    "pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square));
+		add_simple(pre_shared,
+			   capture_rule,
+			   post_shared,
+			   "pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square));
 
 		if(previous_advancement == 2)
 		  {
@@ -653,10 +659,10 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 		      return chess_default_rule(side_to_move, layer, old_value, new_value);
 		    };
-		    output.emplace_back(pre_shared,
-					en_passant_rule,
-					post_shared,
-					"pawn en-passant from_square=" + std::to_string(from_square) + ", en_passant_square=" + std::to_string(en_passant_square));
+		    add_simple(pre_shared,
+			       en_passant_rule,
+			       post_shared,
+			       "pawn en-passant from_square=" + std::to_string(from_square) + ", en_passant_square=" + std::to_string(en_passant_square));
 		  }
 	      }
 	  }
@@ -730,10 +736,10 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
     shared_dfa_ptr castle_threat(new union_dfa_type(castle_threats));
     shared_dfa_ptr pre_castle(new inverse_dfa_type(*castle_threat));
 
-    output.emplace_back(pre_castle,
-			castle_rule,
-			post_shared,
-			"castle king_from_square=" + std::to_string(king_from_square) + ", king_to_square=" + std::to_string(king_to_square));
+    add_simple(pre_castle,
+	       castle_rule,
+	       post_shared,
+	       "castle king_from_square=" + std::to_string(king_from_square) + ", king_to_square=" + std::to_string(king_to_square));
   };
 
   if(side_to_move == SIDE_WHITE)

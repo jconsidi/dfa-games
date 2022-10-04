@@ -86,7 +86,8 @@ typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pac
   rule_vector output;
   for(int move_index = 0; move_index < n * n; ++move_index)
     {
-      shared_dfa_ptr pre_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 0)));
+      std::vector<shared_dfa_ptr> pre_conditions;
+      pre_conditions.emplace_back(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 0)));
 
       change_func change_rule = [=](int layer, int old_value, int new_value)
       {
@@ -110,11 +111,12 @@ typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pac
 	  }
       };
 
-      shared_dfa_ptr post_condition(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 1 + side_to_move)));
+      std::vector<shared_dfa_ptr> post_conditions;
+      post_conditions.emplace_back(new intersection_dfa_type(not_lost_positions, fixed_dfa_type(move_index, 1 + side_to_move)));
 
-      output.emplace_back(pre_condition,
+      output.emplace_back(pre_conditions,
 			  change_rule,
-			  post_condition,
+			  post_conditions,
 			  "move_index=" + std::to_string(move_index));
     }
 

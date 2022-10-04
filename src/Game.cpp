@@ -113,24 +113,38 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
       std::cout << " rule " << i << "/" << num_rules << ": " << std::get<3>(rule) << std::endl;
 
-      const shared_dfa_ptr& pre_condition = std::get<0>(rule);
+      const std::vector<shared_dfa_ptr> pre_conditions = std::get<0>(rule);
       const change_func& change_rule = std::get<1>(rule);
-      const shared_dfa_ptr& post_condition = std::get<2>(rule);
+      const std::vector<shared_dfa_ptr> post_conditions = std::get<2>(rule);
 
-      shared_dfa_ptr positions = 0;
+      shared_dfa_ptr positions = positions_in;
 
       // apply rule pre-conditions
-      profile.tic("rule pre condition");
-      positions = manager.intersect(positions_in, pre_condition);
-      std::cout << "  pre-condition => " << quick_stats(*positions) << std::endl;
+      profile.tic("rule pre conditions");
+      for(shared_dfa_ptr pre_condition : pre_conditions)
+	{
+	  positions = manager.intersect(positions, pre_condition);
+	}
+      std::cout << "  pre-conditions => " << quick_stats(*positions) << std::endl;
 
       // apply rule changes
       profile.tic("rule change");
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
       std::cout << "  changes => " << quick_stats(*positions) << std::endl;
 
-      // defer rule post-conditions
+      // apply all but last post condition (which is expensive for chess)
+      profile.tic("rule post conditions partial");
+      for(int i = 0; i < post_conditions.size() - 1; ++i)
+	{
+	  shared_dfa_ptr post_condition = post_conditions[i];
+	  positions = manager.intersect(positions, post_condition);
+	}
+
+      // defer last post condition
+
       profile.tic("rule defer");
+
+      shared_dfa_ptr post_condition = post_conditions[post_conditions.size() - 1];
       rule_outputs_by_post_condition.try_emplace(post_condition);
       rule_outputs_by_post_condition.at(post_condition).push_back(positions);
 
