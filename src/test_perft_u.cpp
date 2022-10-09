@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "ChessGame.h"
+#include "DFAUtil.h"
 #include "PerftTestCases.h"
 #include "chess.h"
 
@@ -27,7 +28,7 @@ shared_dfa_ptr boards_to_dfa(const std::set<Board>& boards)
   });
 
   std::cout << "merging " << board_dfas.size() << " board dfas" << std::endl;
-  return shared_dfa_ptr(new ChessGame::union_dfa_type(board_dfas));
+  return DFAUtil<CHESS_DFA_PARAMS>::get_union(board_dfas);
 }
 
 void check_transition(int depth,

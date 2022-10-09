@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 
+#include "DFAUtil.h"
 #include "DNFBuilder.h"
 #include "IntersectionManager.h"
 #include "Profile.h"
@@ -41,7 +42,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 	load_or_build("has_moves-side=" + std::to_string(side_to_move),
 		      [=]()
 		      {
-			shared_dfa_ptr all_positions(new accept_dfa_type());
+			shared_dfa_ptr all_positions = DFAUtil<ndim, shape_pack...>::get_accept();
 			return this->get_moves_reverse(side_to_move, all_positions);
 		      });
     }
@@ -218,16 +219,16 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       auto tic = [&](std::string label_in){profile.tic(label_in + " " + std::to_string(move));};
 
       tic("not_yet_winning");
-      shared_dfa_ptr not_yet_winning(new inverse_dfa_type(*winning));
+      shared_dfa_ptr not_yet_winning = DFAUtil<ndim, shape_pack...>::get_inverse(winning);
 
       tic("not_yet_losing");
       shared_dfa_ptr not_yet_losing(this->get_moves_reverse(side_not_to_move, not_yet_winning));
 
       tic("losing_more_if_has_move");
-      shared_dfa_ptr losing_more_if_has_move(new inverse_dfa_type(*not_yet_losing));
+      shared_dfa_ptr losing_more_if_has_move = DFAUtil<ndim, shape_pack...>::get_inverse(not_yet_losing);
 
       tic("losing_more");
-      shared_dfa_ptr losing_more(new intersection_dfa_type(*losing_more_if_has_move, *opponent_has_move));
+      shared_dfa_ptr losing_more = DFAUtil<ndim, shape_pack...>::get_intersection(losing_more_if_has_move, opponent_has_move);
 
       tic("finished check");
       if(difference_dfa_type(*losing_more, *losing).size() == 0)
@@ -236,7 +237,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 	}
 
       tic("losing");
-      losing = shared_dfa_ptr(new union_dfa_type(*losing, *losing_more));
+      losing = DFAUtil<ndim, shape_pack...>::get_union(losing, losing_more);
 
       tic("winning");
       winning = this->get_moves_reverse(side_to_move, losing);
@@ -253,7 +254,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   if(positions_in)
     {
       profile.tic("filter winning");
-      winning = shared_dfa_ptr(new intersection_dfa_type(*winning, *positions_in));
+      winning = DFAUtil<ndim, shape_pack...>::get_intersection(winning, positions_in);
     }
 
   return winning;

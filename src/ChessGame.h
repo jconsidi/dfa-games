@@ -30,6 +30,4 @@ public:
   virtual std::string position_to_string(const dfa_string_type&) const;
 };
 
-typedef DFA<CHESS_DFA_PARAMS> ChessDFA;
-
 #endif

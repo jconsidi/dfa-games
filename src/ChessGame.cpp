@@ -10,8 +10,11 @@
 #include "BetweenMasks.h"
 #include "ChessBoardDFA.h"
 #include "CountCharacterDFA.h"
+#include "DFAUtil.h"
 #include "MoveSet.h"
 #include "Profile.h"
+
+typedef DFAUtil<CHESS_DFA_PARAMS> ChessDFAUtil;
 
 static bool chess_default_rule(int side_to_move, int layer, int old_value, int new_value)
 {
@@ -145,7 +148,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	profile.tic("singleton");
 
 	std::vector<shared_dfa_ptr> requirements;
-	std::function<void(ChessDFA *)> add_requirement = [&](ChessDFA *requirement)
+	std::function<void(shared_dfa_ptr)> add_requirement = [&](shared_dfa_ptr requirement)
 	{
 	  assert(requirement->states() > 0);
 	  assert(requirement->ready());
@@ -158,7 +161,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	    {
 	      int square = rank * 8 + file;
 
-	      add_requirement(new inverse_dfa_type(fixed_dfa_type(square + CHESS_SQUARE_OFFSET, character)));
+	      add_requirement(ChessDFAUtil::get_inverse(ChessDFAUtil::get_fixed(square + CHESS_SQUARE_OFFSET, character)));
 	    }
 	};
 
@@ -168,7 +171,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	    {
 	      int square = rank * 8 + file;
 
-	      add_requirement(new inverse_dfa_type(fixed_dfa_type(square + CHESS_SQUARE_OFFSET, character)));
+	      add_requirement(ChessDFAUtil::get_inverse(ChessDFAUtil::get_fixed(square + CHESS_SQUARE_OFFSET, character)));
 	    }
 	};
 
@@ -181,7 +184,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 
 	// en-passant pawn restrictions
 
-	add_requirement(new count_character_dfa_type(DFA_BLACK_PAWN_EN_PASSANT, 0, 1, CHESS_SQUARE_OFFSET));
+	add_requirement(shared_dfa_ptr(new count_character_dfa_type(DFA_BLACK_PAWN_EN_PASSANT, 0, 1, CHESS_SQUARE_OFFSET)));
 	block_row(0, DFA_BLACK_PAWN_EN_PASSANT);
 	block_row(1, DFA_BLACK_PAWN_EN_PASSANT);
 	block_row(2, DFA_BLACK_PAWN_EN_PASSANT);
@@ -190,7 +193,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 	block_row(6, DFA_BLACK_PAWN_EN_PASSANT);
 	block_row(7, DFA_BLACK_PAWN_EN_PASSANT);
 
-	add_requirement(new count_character_dfa_type(DFA_WHITE_PAWN_EN_PASSANT, 0, 1, CHESS_SQUARE_OFFSET));
+	add_requirement(shared_dfa_ptr(new count_character_dfa_type(DFA_WHITE_PAWN_EN_PASSANT, 0, 1, CHESS_SQUARE_OFFSET)));
 	block_row(0, DFA_WHITE_PAWN_EN_PASSANT);
 	block_row(1, DFA_WHITE_PAWN_EN_PASSANT);
 	block_row(2, DFA_WHITE_PAWN_EN_PASSANT);
@@ -223,7 +226,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 
 	std::cout << "get_basic_positions() => " << requirements.size() << " requirements" << std::endl;
 
-	return shared_dfa_ptr(new intersection_dfa_type(requirements));
+	return ChessDFAUtil::get_intersection(requirements);
       });
     }
 
@@ -247,14 +250,14 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
 	for(int square = 0; square < 64; ++square)
 	  {
 	    std::vector<shared_dfa_ptr> square_requirements;
-	    square_requirements.emplace_back(new fixed_dfa_type(square + CHESS_SQUARE_OFFSET, king_character));
+	    square_requirements.emplace_back(ChessDFAUtil::get_fixed(square + CHESS_SQUARE_OFFSET, king_character));
 	    square_requirements.push_back(basic_positions); // makes union much cheaper below
 	    square_requirements.push_back(get_threat_positions(checked_side, square));
 
-	    checks.emplace_back(new intersection_dfa_type(square_requirements));
+	    checks.emplace_back(ChessDFAUtil::get_intersection(square_requirements));
 	  }
 
-	return shared_dfa_ptr(new union_dfa_type(checks));
+	return ChessDFAUtil::get_union(checks);
       });
     }
 
@@ -281,17 +284,17 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 	    std::vector<shared_dfa_ptr> king_square_requirements;
 
 	    // king index
-	    king_square_requirements.emplace_back(new fixed_dfa_type(king_side, king_square));
+	    king_square_requirements.emplace_back(ChessDFAUtil::get_fixed(king_side, king_square));
 	    // king on target square
-	    king_square_requirements.emplace_back(new fixed_dfa_type(CHESS_SQUARE_OFFSET + king_square, king_character));
+	    king_square_requirements.emplace_back(ChessDFAUtil::get_fixed(CHESS_SQUARE_OFFSET + king_square, king_character));
 	    // exactly one king
 	    king_square_requirements.emplace_back(count_constraint);
 
-	    king_choices.emplace_back(new intersection_dfa_type(king_square_requirements));
+	    king_choices.emplace_back(ChessDFAUtil::get_intersection(king_square_requirements));
 	    assert(king_choices[king_square]->size() > 0);
 	  }
 
-	return shared_dfa_ptr(new union_dfa_type(king_choices));
+	return ChessDFAUtil::get_union(king_choices);
 #else
 #error
 #endif
@@ -321,15 +324,15 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 		  }
 
 		std::vector<shared_dfa_ptr> threat_components;
-		threat_components.emplace_back(new fixed_dfa_type(threatening_square + CHESS_SQUARE_OFFSET, threatening_character));
+		threat_components.emplace_back(ChessDFAUtil::get_fixed(threatening_square + CHESS_SQUARE_OFFSET, threatening_character));
 
 		BoardMask between_mask = between_masks.masks[threatening_square][threatened_square];
 		for(int between_square = std::countr_zero(between_mask); between_square < 64; between_square += 1 + std::countr_zero(between_mask >> (between_square + 1)))
 		  {
-		    threat_components.emplace_back(new fixed_dfa_type(between_square + CHESS_SQUARE_OFFSET, DFA_BLANK));
+		    threat_components.emplace_back(ChessDFAUtil::get_fixed(between_square + CHESS_SQUARE_OFFSET, DFA_BLANK));
 		  }
 
-		threats.emplace_back(new intersection_dfa_type(threat_components));
+		threats.push_back(ChessDFAUtil::get_intersection(threat_components));
 	      }
 	  };
 
@@ -356,7 +359,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 	      add_threat(DFA_WHITE_ROOK_CASTLE, rook_moves);
 	    }
 
-	  return shared_dfa_ptr(new union_dfa_type(threats));
+	  return ChessDFAUtil::get_union(threats);
 	});
     }
 
@@ -391,14 +394,14 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
   shared_dfa_ptr check_positions = get_check_positions(side_to_move);
   shared_dfa_ptr not_check_positions = load_or_build("not_check_positions-side=" + std::to_string(side_to_move), [=]()
   {
-    return shared_dfa_ptr(new inverse_dfa_type(*check_positions));
+    return ChessDFAUtil::get_inverse(check_positions);
   });
 
   // shared pre/post conditions for all moves
   shared_dfa_ptr pre_shared = basic_positions;
   shared_dfa_ptr post_shared = load_or_build("post_shared-side=" + std::to_string(side_to_move), [=]()
   {
-    return shared_dfa_ptr(new intersection_dfa_type(*basic_positions, *not_check_positions));
+    return ChessDFAUtil::get_intersection(basic_positions, not_check_positions);
   });
 
   // collect rules
@@ -733,8 +736,8 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
     castle_threats.push_back(get_threat_positions(side_to_move, rook_to_square));
     castle_threats.push_back(get_threat_positions(side_to_move, king_to_square));
 
-    shared_dfa_ptr castle_threat(new union_dfa_type(castle_threats));
-    shared_dfa_ptr pre_castle(new inverse_dfa_type(*castle_threat));
+    shared_dfa_ptr castle_threat(ChessDFAUtil::get_union(castle_threats));
+    shared_dfa_ptr pre_castle(ChessDFAUtil::get_inverse(castle_threat));
 
     add_simple(pre_castle,
 	       castle_rule,

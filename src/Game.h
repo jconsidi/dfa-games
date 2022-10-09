@@ -8,17 +8,11 @@
 #include <tuple>
 #include <vector>
 
-#include "AcceptDFA.h"
 #include "ChangeDFA.h"
 #include "CountCharacterDFA.h"
 #include "DFA.h"
 #include "DedupedDFA.h"
 #include "DifferenceDFA.h"
-#include "FixedDFA.h"
-#include "IntersectionDFA.h"
-#include "InverseDFA.h"
-#include "RejectDFA.h"
-#include "UnionDFA.h"
 
 template <int ndim, int... shape_pack>
 class Game
@@ -33,16 +27,10 @@ public:
   typedef DFAString<ndim, shape_pack...> dfa_string_type;
   typedef std::shared_ptr<const dfa_type> shared_dfa_ptr;
 
-  typedef AcceptDFA<ndim, shape_pack...> accept_dfa_type;
   typedef ChangeDFA<ndim, shape_pack...> change_dfa_type;
   typedef CountCharacterDFA<ndim, shape_pack...> count_character_dfa_type;
   typedef DedupedDFA<ndim, shape_pack...> deduped_dfa_type;
   typedef DifferenceDFA<ndim, shape_pack...> difference_dfa_type;
-  typedef FixedDFA<ndim, shape_pack...> fixed_dfa_type;
-  typedef IntersectionDFA<ndim, shape_pack...> intersection_dfa_type;
-  typedef InverseDFA<ndim, shape_pack...> inverse_dfa_type;
-  typedef RejectDFA<ndim, shape_pack...> reject_dfa_type;
-  typedef UnionDFA<ndim, shape_pack...> union_dfa_type;
 
   typedef std::tuple<std::vector<shared_dfa_ptr>, change_func, std::vector<shared_dfa_ptr>, std::string> rule_type;
   typedef std::vector<rule_type> rule_vector;

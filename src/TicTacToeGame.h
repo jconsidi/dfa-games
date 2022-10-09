@@ -5,25 +5,12 @@
 
 #include <string>
 
-#include "AcceptDFA.h"
-#include "FixedDFA.h"
-#include "InverseDFA.h"
 #include "Game.h"
-#include "RejectDFA.h"
 #include "TicTacToeDFAParams.h"
-#include "UnionDFA.h"
 
 template<int n, int... shape_pack>
   class TicTacToeGame : public Game<n*n, shape_pack...>
 {
- private:
-
-  typedef AcceptDFA<n*n, shape_pack...> accept_dfa_type;
-  typedef FixedDFA<n*n, shape_pack...> fixed_dfa_type;
-  typedef InverseDFA<n*n, shape_pack...> inverse_dfa_type;
-  typedef RejectDFA<n*n, shape_pack...> reject_dfa_type;
-  typedef UnionDFA<n*n, shape_pack...> union_dfa_type;
-
  public:
 
   TicTacToeGame();
@@ -32,8 +19,6 @@ template<int n, int... shape_pack>
   typedef typename Game<n*n, shape_pack...>::dfa_string_type dfa_string_type;
   typedef typename Game<n*n, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
   typedef typename Game<n*n, shape_pack...>::rule_vector rule_vector;
-
-  typedef typename Game<n*n, shape_pack...>::intersection_dfa_type intersection_dfa_type;
 
  private:
 

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "ChessGame.h"
+#include "DFAUtil.h"
 #include "Profile.h"
 #include "test_utils.h"
 
@@ -11,12 +12,12 @@ typedef typename ChessGame::shared_dfa_ptr shared_dfa_ptr;
 
 shared_dfa_ptr initial_positions_manual()
 {
-  shared_dfa_ptr output(new ChessGame::accept_dfa_type());
+  shared_dfa_ptr output = DFAUtil<CHESS_DFA_PARAMS>::get_accept();
 
   int next_square = 0;
   std::function<void(int)> set_square = [&](int character)
   {
-    output = shared_dfa_ptr(new ChessGame::intersection_dfa_type(*output, ChessGame::fixed_dfa_type(next_square, character)));
+    output = DFAUtil<CHESS_DFA_PARAMS>::get_intersection(output, DFAUtil<CHESS_DFA_PARAMS>::get_fixed(next_square, character));
 
     ++next_square;
   };
@@ -104,7 +105,7 @@ int main()
   assert(initial_positions_expected->size() == 1);
 
   profile.tic("initial_positions_check");
-  shared_dfa_ptr initial_positions_check(new ChessGame::intersection_dfa_type(*initial_positions, *initial_positions_expected));
+  shared_dfa_ptr initial_positions_check = DFAUtil<CHESS_DFA_PARAMS>::get_intersection(initial_positions, initial_positions_expected);
   assert(initial_positions_check);
   assert(initial_positions_check->size() == 1);
 
@@ -117,14 +118,14 @@ int main()
   shared_dfa_ptr black_threat_12 = chess.get_threat_positions(SIDE_BLACK, 12);
 
   profile.tic("black_threat_confirmed");
-  shared_dfa_ptr black_threat_confirmed(new ChessGame::intersection_dfa_type(*black_check_dfa, *black_threat_12));
+  shared_dfa_ptr black_threat_confirmed = DFAUtil<CHESS_DFA_PARAMS>::get_intersection(black_check_dfa, black_threat_12);
   assert(black_threat_confirmed->size() > 0);
 
   profile.tic("black_check_positions");
   shared_dfa_ptr black_check_positions = chess.get_check_positions(SIDE_BLACK);
 
   profile.tic("black_check_confirmed");
-  shared_dfa_ptr black_check_confirmed(new ChessGame::intersection_dfa_type(*black_check_dfa, *black_check_positions));
+  shared_dfa_ptr black_check_confirmed = DFAUtil<CHESS_DFA_PARAMS>::get_intersection(black_check_dfa, black_check_positions);
   assert(black_check_confirmed->size() > 0);
 
   // generic tests
