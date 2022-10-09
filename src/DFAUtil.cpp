@@ -25,7 +25,9 @@ std::optional<bool> DFAUtil<ndim, shape_pack...>::check_constant(typename DFAUti
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_accept()
 {
-  return shared_dfa_ptr(new AcceptDFA<ndim, shape_pack...>());
+  static shared_dfa_ptr accept(new AcceptDFA<ndim, shape_pack...>());
+  assert(accept);
+  return accept;
 }
 
 template <int ndim, int... shape_pack>
@@ -37,7 +39,9 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_reject()
 {
-  return shared_dfa_ptr(new RejectDFA<ndim, shape_pack...>());
+  static shared_dfa_ptr reject(new RejectDFA<ndim, shape_pack...>());
+  assert(reject);
+  return reject;
 }
 
 template <int ndim, int... shape_pack>
