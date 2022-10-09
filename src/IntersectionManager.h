@@ -5,7 +5,6 @@
 
 #include <map>
 #include <memory>
-#include <utility>
 
 #include "IntersectionDFA.h"
 
@@ -20,8 +19,6 @@ template <int ndim, int... shape_pack>
   typedef IntersectionDFA<ndim, shape_pack...> intersection_dfa_type;
 
  private:
-
-  static std::optional<bool> check_constant(shared_dfa_ptr);
 
   std::map<std::pair<shared_dfa_ptr,shared_dfa_ptr>, shared_dfa_ptr> intersect_cache;
   shared_dfa_ptr reject_all;

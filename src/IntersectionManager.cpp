@@ -2,22 +2,8 @@
 
 #include "IntersectionManager.h"
 
+#include "DFAUtil.h"
 #include "RejectDFA.h"
-
-template<int ndim, int... shape_pack>
-std::optional<bool> IntersectionManager<ndim, shape_pack...>::check_constant(typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
-{
-  int initial_state = dfa_in->get_initial_state();
-  if(initial_state < 2)
-    {
-      return std::optional<bool>(bool(initial_state));
-    }
-  else
-    {
-      // found a difference
-      return std::optional<bool>();
-    }
-}
 
 template<int ndim, int... shape_pack>
 IntersectionManager<ndim, shape_pack...>::IntersectionManager()
@@ -29,7 +15,7 @@ IntersectionManager<ndim, shape_pack...>::IntersectionManager()
 template<int ndim, int... shape_pack>
 typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr IntersectionManager<ndim, shape_pack...>::intersect(typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr left_in, typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr right_in)
 {
-  std::optional<bool> left_constant = check_constant(left_in);
+  std::optional<bool> left_constant = DFAUtil<ndim, shape_pack...>::check_constant(left_in);
   if(left_constant.has_value())
     {
       bool left_value = *left_constant;
@@ -43,7 +29,7 @@ typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr IntersectionMa
 	}
     }
 
-  std::optional<bool> right_constant = check_constant(right_in);
+  std::optional<bool> right_constant = DFAUtil<ndim, shape_pack...>::check_constant(right_in);
   if(right_constant.has_value())
     {
       bool right_value = *right_constant;

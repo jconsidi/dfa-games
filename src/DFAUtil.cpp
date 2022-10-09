@@ -7,6 +7,21 @@
 #include "RejectDFA.h"
 #include "UnionDFA.h"
 
+template<int ndim, int... shape_pack>
+std::optional<bool> DFAUtil<ndim, shape_pack...>::check_constant(typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
+{
+  int initial_state = dfa_in->get_initial_state();
+  if(initial_state < 2)
+    {
+      return std::optional<bool>(bool(initial_state));
+    }
+  else
+    {
+      // found a difference
+      return std::optional<bool>();
+    }
+}
+
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_accept()
 {
