@@ -21,7 +21,6 @@ template <int ndim, int... shape_pack>
  private:
 
   std::map<std::pair<shared_dfa_ptr,shared_dfa_ptr>, shared_dfa_ptr> intersect_cache;
-  shared_dfa_ptr reject_all;
 
  public:
 
