@@ -4,10 +4,7 @@
 
 #include <stdexcept>
 
-#include "AcceptDFA.h"
-#include "IntersectionDFA.h"
-#include "UnionDFA.h"
-#include "RejectDFA.h"
+#include "DFAUtil.h"
 
 template <int ndim, int... shape_pack>
 DNFBuilder<ndim, shape_pack...>::DNFBuilder()
@@ -146,7 +143,7 @@ void DNFBuilder<ndim, shape_pack...>::compact_last()
   shared_dfa_ptr dfa_b = last_clause.back();
   last_clause.pop_back();
 
-  last_clause.emplace_back(new IntersectionDFA<ndim, shape_pack...>(*dfa_a, *dfa_b));
+  last_clause.emplace_back(DFAUtil<ndim, shape_pack...>::get_intersection(dfa_a, dfa_b));
 
   if(num_clauses > 1)
     {
@@ -166,7 +163,7 @@ void DNFBuilder<ndim, shape_pack...>::compact_last_two()
   // union last DFA of the last two clauses
   shared_dfa_ptr dfa_a = second_last.back();
   shared_dfa_ptr dfa_b = last_clause.back();
-  second_last.back() = shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(*dfa_a, *dfa_b));
+  second_last.back() = DFAUtil<ndim, shape_pack...>::get_union(dfa_a, dfa_b);
 
   // drop last clause
   clauses.pop_back();
@@ -177,7 +174,7 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
 {
   if(clauses.size() == 0)
     {
-      return shared_dfa_ptr(new RejectDFA<ndim, shape_pack...>);
+      return DFAUtil<ndim, shape_pack...>::get_reject();
     }
 
   // force compacting all clauses down to length 1
@@ -202,7 +199,7 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
     }
 
   assert(clauses[0].size() == 0);
-  return shared_dfa_ptr(new AcceptDFA<ndim, shape_pack...>);
+  return DFAUtil<ndim, shape_pack...>::get_accept();
 }
 
 // template instantiations
