@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 
+#include "DNFBuilder.h"
 #include "IntersectionManager.h"
 #include "Profile.h"
 
@@ -102,7 +103,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   assert(rules_in.size() > 0);
 
   IntersectionManager<ndim, shape_pack...> manager;
-  std::map<shared_dfa_ptr,std::vector<shared_dfa_ptr>> rule_outputs_by_post_condition;
+  DNFBuilder<ndim, shape_pack...> output_builder;
 
   int num_rules = rules_in.size();
   for(int i = 0; i < num_rules; ++i)
@@ -132,66 +133,20 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
       std::cout << "  changes => " << quick_stats(*positions) << std::endl;
 
-      // apply all but last post condition (which is expensive for chess)
-      profile.tic("rule post conditions partial");
-      for(int i = 0; i < post_conditions.size() - 1; ++i)
-	{
-	  shared_dfa_ptr post_condition = post_conditions[i];
-	  positions = manager.intersect(positions, post_condition);
-	}
+      // add changed positions and post conditions to output builder
 
-      // defer last post condition
+      profile.tic("add output clause");
 
-      profile.tic("rule defer");
-
-      shared_dfa_ptr post_condition = post_conditions[post_conditions.size() - 1];
-      rule_outputs_by_post_condition.try_emplace(post_condition);
-      rule_outputs_by_post_condition.at(post_condition).push_back(positions);
-
-      // partially merge the rule outputs to reduce memory usage
-      profile.tic("rule merge partial");
-      auto& current_outputs = rule_outputs_by_post_condition.at(post_condition);
-      while(current_outputs.size() > 1)
-	{
-	  int s = current_outputs.size();
-	  if(current_outputs[s-2]->states() > current_outputs[s-1]->states())
-	    {
-	      // remaining sizes are decreasing. so handwavy logarithmic number of them.
-	      break;
-	    }
-
-	  // merge the last two entries
-	  shared_dfa_ptr d1 = current_outputs.back();
-	  current_outputs.pop_back();
-	  shared_dfa_ptr d2 = current_outputs.back();
-	  current_outputs.pop_back();
-	  current_outputs.emplace_back(new union_dfa_type(*d1, *d2));
-	}
-      std::cout << "  " << current_outputs.size() << " partially combined rule outputs with this post-condition, biggest => " << current_outputs[0]->states() << " states" << std::endl;
-    }
-
-  // combine rules with the same post-conditions, then apply post conditions
-
-  std::vector<shared_dfa_ptr> rule_outputs;
-  for(const auto& [post_condition, positions_vector] : rule_outputs_by_post_condition)
-    {
-      std::cout << " applying post condition to " << positions_vector.size() << " rule outputs" << std::endl;
-      profile.tic("post merge");
-      shared_dfa_ptr positions(new union_dfa_type(positions_vector));
-      std::cout << "  combined rule outputs => " << quick_stats(*positions) << std::endl;
-
-      profile.tic("post condition");
-      positions = manager.intersect(positions, post_condition);
-      std::cout << "  post-condition => " << quick_stats(*positions) << std::endl;
-
-      rule_outputs.push_back(positions);
+      std::vector<shared_dfa_ptr> output_clause(post_conditions);
+      output_clause.push_back(positions);
+      output_builder.add_clause(output_clause);
     }
 
   // final output
 
-  profile.tic("final merge");
-  std::cout << " combining " << rule_outputs.size() << " post-condition rule outputs" << std::endl;
-  return shared_dfa_ptr(new UnionDFA(rule_outputs));
+  profile.tic("final output");
+
+  return output_builder.to_dfa();
 }
 
 template <int ndim, int... shape_pack>
