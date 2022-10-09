@@ -4,6 +4,7 @@
 #define DFA_UTIL_H
 
 #include <utility>
+#include <vector>
 
 #include "DFA.h"
 
@@ -18,9 +19,13 @@ class DFAUtil
   static std::optional<bool> check_constant(shared_dfa_ptr);
 
   static shared_dfa_ptr get_accept();
+  static shared_dfa_ptr get_fixed(int, int);
   static shared_dfa_ptr get_intersection(shared_dfa_ptr, shared_dfa_ptr);
+  static shared_dfa_ptr get_intersection(const std::vector<shared_dfa_ptr>&);
+  static shared_dfa_ptr get_inverse(shared_dfa_ptr);
   static shared_dfa_ptr get_reject();
   static shared_dfa_ptr get_union(shared_dfa_ptr, shared_dfa_ptr);
+  static shared_dfa_ptr get_union(const std::vector<shared_dfa_ptr>&);
 };
 
 #endif

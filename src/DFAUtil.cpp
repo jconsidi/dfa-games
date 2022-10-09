@@ -3,7 +3,9 @@
 #include "DFAUtil.h"
 
 #include "AcceptDFA.h"
+#include "FixedDFA.h"
 #include "IntersectionDFA.h"
+#include "InverseDFA.h"
 #include "RejectDFA.h"
 #include "UnionDFA.h"
 
@@ -28,6 +30,13 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
   static shared_dfa_ptr accept(new AcceptDFA<ndim, shape_pack...>());
   assert(accept);
   return accept;
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_fixed(int fixed_square, int fixed_character)
+{
+  // TODO: cache this?
+  return shared_dfa_ptr(new FixedDFA<ndim, shape_pack...>(fixed_square, fixed_character));
 }
 
 template <int ndim, int... shape_pack>
@@ -62,6 +71,20 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
     }
 
   return shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(*left_in, *right_in));
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_intersection(const std::vector<DFAUtil<ndim, shape_pack...>::shared_dfa_ptr>& dfas_in)
+{
+  // TODO : add short-circuit filtering
+  return shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(dfas_in));
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_inverse(DFAUtil<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
+{
+  // TODO : short-circuit logic for constants?
+  return shared_dfa_ptr(new InverseDFA<ndim, shape_pack...>(*dfa_in));
 }
 
 template <int ndim, int... shape_pack>
@@ -106,7 +129,12 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
   return shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(*left_in, *right_in));
 }
 
-
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_union(const std::vector<DFAUtil<ndim, shape_pack...>::shared_dfa_ptr>& dfas_in)
+{
+  // TODO : add short-circuit filtering
+  return shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(dfas_in));
+}
 
 // template instantiations
 
