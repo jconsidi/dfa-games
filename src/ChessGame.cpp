@@ -16,6 +16,16 @@
 
 typedef DFAUtil<CHESS_DFA_PARAMS> ChessDFAUtil;
 
+static void add_from_condition(int from_square,
+			       int from_character,
+			       std::vector<typename ChessGame::shared_dfa_ptr>& pre_conditions,
+			       std::vector<typename ChessGame::shared_dfa_ptr>& post_conditions)
+{
+  int from_layer = from_square + CHESS_SQUARE_OFFSET;
+  pre_conditions.push_back(DFAUtil<CHESS_DFA_PARAMS>::get_fixed(from_layer, from_character));
+  post_conditions.push_back(DFAUtil<CHESS_DFA_PARAMS>::get_fixed(from_layer, DFA_BLANK));
+}
+
 static bool chess_default_rule(int side_to_move, int layer, int old_value, int new_value)
 {
 #if CHESS_SQUARE_OFFSET == 2
@@ -432,6 +442,9 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		}
 	      }
 
+	    // from conditions - will be shared across simple move and captures
+	    add_from_condition(from_square, character, basic_pre_conditions, basic_post_conditions);
+
 	    change_func change_rule = [=](int layer, int old_value, int new_value)
 	    {
 #if CHESS_SQUARE_OFFSET == 2
@@ -540,6 +553,8 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	    std::vector<shared_dfa_ptr> advance_pre_conditions = {pre_shared};
 	    std::vector<shared_dfa_ptr> advance_post_conditions = {post_shared};
 
+	    add_from_condition(from_square, pawn_character, advance_pre_conditions, advance_post_conditions);
+
 	    change_func advance_rule = [=](int layer, int old_value, int new_value)
 	    {
 #if CHESS_SQUARE_OFFSET == 2
@@ -578,6 +593,8 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 		std::vector<shared_dfa_ptr> double_pre_conditions = {pre_shared};
 		std::vector<shared_dfa_ptr> double_post_conditions = {post_shared};
+
+		add_from_condition(from_square, pawn_character, double_pre_conditions, double_post_conditions);
 
 		change_func double_rule = [=](int layer, int old_value, int new_value)
 		{
@@ -625,6 +642,8 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		std::vector<shared_dfa_ptr> capture_pre_conditions = {pre_shared};
 		std::vector<shared_dfa_ptr> capture_post_conditions = {post_shared};
 
+		add_from_condition(from_square, pawn_character, capture_pre_conditions, capture_post_conditions);
+
 		change_func capture_rule = [=](int layer, int old_value, int new_value)
 		{
 		  int square = layer - CHESS_SQUARE_OFFSET;
@@ -653,6 +672,8 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 		    std::vector<shared_dfa_ptr> en_passant_pre_conditions = {pre_shared};
 		    std::vector<shared_dfa_ptr> en_passant_post_conditions = {post_shared};
+
+		    add_from_condition(from_square, pawn_character, en_passant_pre_conditions, en_passant_post_conditions);
 
 		    change_func en_passant_rule = [=](int layer, int old_value, int new_value)
 		    {
@@ -701,6 +722,8 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
     std::vector<shared_dfa_ptr> castle_pre_conditions = {pre_shared};
     std::vector<shared_dfa_ptr> castle_post_conditions = {post_shared};
+
+    add_from_condition(king_from_square, king_character, castle_pre_conditions, castle_post_conditions);
 
     change_func castle_rule = [=](int layer, int old_value, int new_value)
     {
