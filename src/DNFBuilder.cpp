@@ -4,7 +4,10 @@
 
 #include <stdexcept>
 
+#include "CountManager.h"
 #include "DFAUtil.h"
+
+static CountManager count_manager("DNFBuilder");
 
 template <int ndim, int... shape_pack>
 DNFBuilder<ndim, shape_pack...>::DNFBuilder()
@@ -144,6 +147,7 @@ void DNFBuilder<ndim, shape_pack...>::compact_last()
   last_clause.pop_back();
 
   last_clause.emplace_back(DFAUtil<ndim, shape_pack...>::get_intersection(dfa_a, dfa_b));
+  count_manager.inc("get_intersection");
 
   if(num_clauses > 1)
     {
@@ -164,6 +168,7 @@ void DNFBuilder<ndim, shape_pack...>::compact_last_two()
   shared_dfa_ptr dfa_a = second_last.back();
   shared_dfa_ptr dfa_b = last_clause.back();
   second_last.back() = DFAUtil<ndim, shape_pack...>::get_union(dfa_a, dfa_b);
+  count_manager.inc("get_union");
 
   // drop last clause
   clauses.pop_back();
