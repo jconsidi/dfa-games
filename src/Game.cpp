@@ -107,11 +107,14 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   // sort rules to improve intersection sharing...
 
   rule_vector rules = rules_in;
-  std::sort(rules.begin(), rules.end(), [](const rule_type& a, const rule_type& b)
+  std::stable_sort(rules.begin(), rules.end(), [](const rule_type& a, const rule_type& b)
   {
     // compare post conditions
     //
     // post condition order drives DNFBuilder merge strategy
+
+    // TODO : change the condition comparisons to be consistent
+    // instead of current pointer comparison
 
     auto post_a = std::get<2>(a);
     auto post_b = std::get<2>(b);
@@ -161,12 +164,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 	return false;
       }
 
-    // compare change rule
-
-    auto change_a = std::get<1>(a);
-    auto change_b = std::get<1>(b);
-
-    return &change_a < &change_b;
+    // do not compare change rule
+    return false;
   });
 
   IntersectionManager<ndim, shape_pack...> manager;
