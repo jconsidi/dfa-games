@@ -2,6 +2,8 @@
 
 #include "DFAUtil.h"
 
+#include <map>
+
 #include "AcceptDFA.h"
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
@@ -35,8 +37,18 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_fixed(int fixed_square, int fixed_character)
 {
-  // TODO: cache this?
-  return shared_dfa_ptr(new FixedDFA<ndim, shape_pack...>(fixed_square, fixed_character));
+  static std::map<std::pair<int, int>, shared_dfa_ptr> singletons;
+
+  std::pair<int, int> singleton_key(fixed_square, fixed_character);
+  auto search = singletons.find(singleton_key);
+  if(search != singletons.end())
+    {
+      return search->second;
+    }
+
+  shared_dfa_ptr output = shared_dfa_ptr(new FixedDFA<ndim, shape_pack...>(fixed_square, fixed_character));
+  singletons[singleton_key] = output;
+  return output;
 }
 
 template <int ndim, int... shape_pack>
