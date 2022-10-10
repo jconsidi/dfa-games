@@ -2,6 +2,7 @@
 
 #include "Game.h"
 
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <string>
@@ -103,15 +104,80 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
   assert(rules_in.size() > 0);
 
+  // sort rules to improve intersection sharing...
+
+  rule_vector rules = rules_in;
+  std::sort(rules.begin(), rules.end(), [](const rule_type& a, const rule_type& b)
+  {
+    // compare post conditions
+    //
+    // post condition order drives DNFBuilder merge strategy
+
+    auto post_a = std::get<2>(a);
+    auto post_b = std::get<2>(b);
+    for(int i = 0; (i < post_a.size()) && (i < post_b.size()); ++i)
+      {
+	if(post_a[i] < post_b[i])
+	  {
+	    return true;
+	  }
+	else if(post_a[i] > post_b[i])
+	  {
+	    return false;
+	  }
+      }
+
+    if(post_a.size() < post_b.size())
+      {
+	return true;
+      }
+    else if(post_b.size() < post_b.size())
+      {
+	return false;
+      }
+
+    // compare pre conditions
+
+    auto pre_a = std::get<0>(a);
+    auto pre_b = std::get<0>(b);
+    for(int i = 0; (i < pre_a.size()) && (i < pre_b.size()); ++i)
+      {
+	if(pre_a[i] < pre_b[i])
+	  {
+	    return true;
+	  }
+	else if(pre_a[i] > pre_b[i])
+	  {
+	    return false;
+	  }
+      }
+
+    if(pre_a.size() < pre_b.size())
+      {
+	return true;
+      }
+    else if(pre_b.size() < pre_b.size())
+      {
+	return false;
+      }
+
+    // compare change rule
+
+    auto change_a = std::get<1>(a);
+    auto change_b = std::get<1>(b);
+
+    return &change_a < &change_b;
+  });
+
   IntersectionManager<ndim, shape_pack...> manager;
   DNFBuilder<ndim, shape_pack...> output_builder;
 
-  int num_rules = rules_in.size();
+  int num_rules = rules.size();
   for(int i = 0; i < num_rules; ++i)
     {
       profile.tic("rule init");
 
-      const rule_type& rule = rules_in[i];
+      const rule_type& rule = rules[i];
 
       std::cout << " rule " << i << "/" << num_rules << ": " << std::get<3>(rule) << std::endl;
 
