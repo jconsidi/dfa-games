@@ -421,6 +421,16 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 	    // require squares between from and to squares to be empty pre and post.
 	    BoardMask between_mask = between_masks.masks[from_square][to_square];
+	    for(int square = 0; square < 64; ++square)
+	      {
+		if(between_mask & (1ULL << square))
+		  {
+		    int layer = square + CHESS_SQUARE_OFFSET;
+		    shared_dfa_ptr fixed_blank = DFAUtil<CHESS_DFA_PARAMS>::get_fixed(layer, DFA_BLANK);
+		    basic_pre_conditions.push_back(fixed_blank);
+		    basic_post_conditions.push_back(fixed_blank);
+		}
+	      }
 
 	    change_func change_rule = [=](int layer, int old_value, int new_value)
 	    {
@@ -463,13 +473,6 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	      if(square == from_square)
 		{
 		  return (old_value == character) && (new_value == DFA_BLANK);
-		}
-
-	      // between squares
-
-	      if(between_mask & (1ULL << square))
-		{
-		  return (old_value == DFA_BLANK) && (new_value == DFA_BLANK);
 		}
 
 	      // to square
