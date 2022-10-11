@@ -19,7 +19,7 @@ template<int ndim, int... shape_pack>
  public:
 
   typedef DFA<ndim, shape_pack...> dfa_type;
-  typedef std::shared_ptr<dfa_type> shared_dfa_ptr;
+  typedef std::shared_ptr<const dfa_type> shared_dfa_ptr;
 
 private:
 
