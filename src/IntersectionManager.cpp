@@ -5,28 +5,68 @@
 #include "CountManager.h"
 #include "DFAUtil.h"
 
+// invariant: output_trace[i] = intersection(input_trace[0] .. input_trace[i])
+
 static CountManager count_manager("IntersectionManager");
 
 template<int ndim, int... shape_pack>
 IntersectionManager<ndim, shape_pack...>::IntersectionManager()
-  : intersect_cache()
 {
 }
 
 template<int ndim, int... shape_pack>
 typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr IntersectionManager<ndim, shape_pack...>::intersect(typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr left_in, typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr right_in)
 {
-  std::pair<shared_dfa_ptr,shared_dfa_ptr> key(left_in, right_in);
-  auto search = intersect_cache.find(key);
-  if(search != intersect_cache.end())
+  for(int i = 0; i < input_trace.size(); ++i)
     {
-      return search->second;
+      if(output_trace[i] != left_in)
+	{
+	  continue;
+	}
+
+      // found left DFA. check if right DFA is next...
+
+      if((i + 1) >= input_trace.size())
+	{
+	  // end of trace, so must have be working on a new one.
+	  break;
+	}
+      else if(input_trace[i + 1] == right_in)
+	{
+	  // trace match continues, so we already calculated this
+	  // intersection.
+	  return output_trace[i + 1];
+	}
+      else
+	{
+	  // right DFA is not next, so clear rest of trace.
+	  input_trace.resize(i + 1);
+	  output_trace.resize(i + 1);
+	  break;
+	}
     }
 
-  shared_dfa_ptr output = DFAUtil<ndim, shape_pack...>::get_intersection(left_in, right_in);
-  intersect_cache[key] = output;
+  if((output_trace.size() > 0) && output_trace.back() != left_in)
+    {
+      // left DFA was not found, so we will start fresh traces.
+      input_trace.resize(0);
+      output_trace.resize(0);
+    }
+
+  if(input_trace.size() == 0)
+    {
+      // start new trace
+      input_trace.push_back(left_in);
+      output_trace.push_back(left_in);
+    }
+
+  // compute new intersection and add to end of trace
+  input_trace.push_back(right_in);
+  output_trace.push_back(DFAUtil<ndim, shape_pack...>::get_intersection(left_in, right_in));
+
   count_manager.inc("get_intersection");
-  return output;
+
+  return output_trace.back();
 }
 
 // template instantiations
