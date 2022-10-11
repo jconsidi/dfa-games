@@ -191,13 +191,36 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       for(shared_dfa_ptr pre_condition : pre_conditions)
 	{
 	  positions = manager.intersect(positions, pre_condition);
+#ifndef PARANOIA
+	  if(positions->is_constant(false))
+	    {
+	      // no matching positions
+	      break;
+	    }
+#endif
 	}
       std::cout << "  pre-conditions => " << quick_stats(*positions) << std::endl;
+
+#ifndef PARANOIA
+      if(positions->is_constant(false))
+	{
+	  // no matching positions
+	  continue;
+	}
+#endif
 
       // apply rule changes
       profile.tic("rule change");
       positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
       std::cout << "  changes => " << quick_stats(*positions) << std::endl;
+
+#ifndef PARANOIA
+      if(positions->is_constant(false))
+	{
+	  // no matching positions
+	  continue;
+	}
+#endif
 
       // add changed positions and post conditions to output builder
 
