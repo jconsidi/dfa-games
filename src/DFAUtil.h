@@ -16,6 +16,12 @@ class DFAUtil
   typedef DFA<ndim, shape_pack...> dfa_type;
   typedef std::shared_ptr<const dfa_type> shared_dfa_ptr;
 
+private:
+
+  static shared_dfa_ptr _singleton_if_constant(shared_dfa_ptr);
+
+public:
+
   static std::optional<bool> check_constant(shared_dfa_ptr);
 
   static shared_dfa_ptr get_accept();

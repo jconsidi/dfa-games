@@ -12,6 +12,22 @@
 #include "UnionDFA.h"
 
 template<int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::_singleton_if_constant(typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
+{
+  dfa_state_t initial_state = dfa_in->get_initial_state();
+  if(initial_state == 0)
+    {
+      return get_reject();
+    }
+  else if(initial_state == 1)
+    {
+      return get_accept();
+    }
+
+  return dfa_in;
+}
+
+template<int ndim, int... shape_pack>
 std::optional<bool> DFAUtil<ndim, shape_pack...>::check_constant(typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
 {
   int initial_state = dfa_in->get_initial_state();
@@ -82,7 +98,7 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 	}
     }
 
-  return shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(*left_in, *right_in));
+  return _singleton_if_constant(shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(*left_in, *right_in)));
 }
 
 template <int ndim, int... shape_pack>
@@ -138,7 +154,7 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 	}
     }
 
-  return shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(*left_in, *right_in));
+  return _singleton_if_constant(shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(*left_in, *right_in)));
 }
 
 template <int ndim, int... shape_pack>
