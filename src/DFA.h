@@ -34,6 +34,7 @@ class DFATransitionsReference
 public:
 
   DFATransitionsReference(const MemoryMap<dfa_state_t>&, dfa_state_t, int);
+  DFATransitionsReference(const DFATransitionsReference&);
   dfa_state_t operator[](int c) const {return at(c);}
 
   dfa_state_t at(int c) const {assert(c < layer_shape); return layer_transitions[offset + c];}

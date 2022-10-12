@@ -92,6 +92,18 @@ DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& l
   assert(offset + layer_shape <= size_temp);
 }
 
+DFATransitionsReference::DFATransitionsReference(const DFATransitionsReference& reference_in)
+  : layer_transitions(reference_in.layer_transitions),
+    offset(reference_in.offset),
+    layer_shape(reference_in.layer_shape)
+{
+  size_t size_temp = layer_transitions.size();
+  assert(offset < size_temp);
+
+  assert(layer_shape > 0);
+  assert(offset + layer_shape <= size_temp);
+}
+
 template<int ndim, int... shape_pack>
 DFA<ndim, shape_pack...>::DFA()
   : shape(shape_pack_to_vector<shape_pack...>()),
