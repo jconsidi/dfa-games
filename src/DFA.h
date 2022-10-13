@@ -85,6 +85,8 @@ class DFA
   dfa_state_t get_layer_size(int) const;
   DFATransitionsReference get_transitions(int, dfa_state_t) const;
 
+  bool is_constant(bool) const;
+
   bool ready() const;
   void save(std::string) const;
   double size() const;

@@ -414,6 +414,13 @@ DFATransitionsReference DFA<ndim, shape_pack...>::get_transitions(int layer, dfa
 }
 
 template<int ndim, int... shape_pack>
+bool DFA<ndim, shape_pack...>::is_constant(bool constant_in) const
+{
+  assert(ready());
+  return initial_state == int(constant_in);
+}
+
+template<int ndim, int... shape_pack>
 bool DFA<ndim, shape_pack...>::ready() const
 {
   return initial_state != ~dfa_state_t(0);
