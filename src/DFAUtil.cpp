@@ -27,21 +27,6 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
   return dfa_in;
 }
 
-template<int ndim, int... shape_pack>
-std::optional<bool> DFAUtil<ndim, shape_pack...>::check_constant(typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
-{
-  int initial_state = dfa_in->get_initial_state();
-  if(initial_state < 2)
-    {
-      return std::optional<bool>(bool(initial_state));
-    }
-  else
-    {
-      // found a difference
-      return std::optional<bool>();
-    }
-}
-
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_accept()
 {
@@ -70,32 +55,22 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_intersection(DFAUtil<ndim, shape_pack...>::shared_dfa_ptr left_in, DFAUtil<ndim, shape_pack...>::shared_dfa_ptr right_in)
 {
-  std::optional<bool> left_constant = check_constant(left_in);
-  if(left_constant.has_value())
+  if(left_in->is_constant(true))
     {
-      bool left_value = *left_constant;
-      if(left_value)
-	{
-	  return right_in;
-	}
-      else
-	{
-	  return get_reject();
-	}
+      return right_in;
+    }
+  else if(left_in->is_constant(false))
+    {
+      return get_reject();
     }
 
-  std::optional<bool> right_constant = check_constant(right_in);
-  if(right_constant.has_value())
+  if(right_in->is_constant(true))
     {
-      bool right_value = *right_constant;
-      if(right_value)
-	{
-	  return left_in;
-	}
-      else
-	{
-	  return get_reject();
-	}
+      return left_in;
+    }
+  else if(right_in->is_constant(false))
+    {
+      return get_reject();
     }
 
   return _singleton_if_constant(shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(*left_in, *right_in)));
@@ -126,32 +101,22 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_union(DFAUtil<ndim, shape_pack...>::shared_dfa_ptr left_in, DFAUtil<ndim, shape_pack...>::shared_dfa_ptr right_in)
 {
-  std::optional<bool> left_constant = check_constant(left_in);
-  if(left_constant.has_value())
+  if(left_in->is_constant(true))
     {
-      bool left_value = *left_constant;
-      if(left_value)
-	{
-	  return get_accept();
-	}
-      else
-	{
-	  return right_in;
-	}
+      return get_accept();
+    }
+  else if(left_in->is_constant(false))
+    {
+      return right_in;
     }
 
-  std::optional<bool> right_constant = check_constant(right_in);
-  if(right_constant.has_value())
+  if(right_in->is_constant(true))
     {
-      bool right_value = *right_constant;
-      if(right_value)
-	{
-	  return get_accept();
-	}
-      else
-	{
-	  return left_in;
-	}
+      return get_accept();
+    }
+  else if(right_in->is_constant(false))
+    {
+      return left_in;
     }
 
   return _singleton_if_constant(shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(*left_in, *right_in)));

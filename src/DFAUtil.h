@@ -3,7 +3,7 @@
 #ifndef DFA_UTIL_H
 #define DFA_UTIL_H
 
-#include <utility>
+#include <memory>
 #include <vector>
 
 #include "DFA.h"
@@ -21,8 +21,6 @@ private:
   static shared_dfa_ptr _singleton_if_constant(shared_dfa_ptr);
 
 public:
-
-  static std::optional<bool> check_constant(shared_dfa_ptr);
 
   static shared_dfa_ptr get_accept();
   static shared_dfa_ptr get_fixed(int, int);
