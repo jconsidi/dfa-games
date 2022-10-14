@@ -23,6 +23,7 @@ private:
 public:
 
   static shared_dfa_ptr get_accept();
+  static shared_dfa_ptr get_difference(shared_dfa_ptr, shared_dfa_ptr);
   static shared_dfa_ptr get_fixed(int, int);
   static shared_dfa_ptr get_intersection(shared_dfa_ptr, shared_dfa_ptr);
   static shared_dfa_ptr get_intersection(const std::vector<shared_dfa_ptr>&);

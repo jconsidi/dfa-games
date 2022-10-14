@@ -54,7 +54,7 @@ void check_transition(int depth,
 
   // check for missing boards first since that is more common
 
-  shared_dfa_ptr missing_boards(new ChessGame::difference_dfa_type(*after_expected, *after_actual));
+  shared_dfa_ptr missing_boards = DFAUtil<CHESS_DFA_PARAMS>::get_difference(after_expected, after_actual);
   if(missing_boards->size())
     {
       std::cout << log_prefix << " found " << missing_boards->size() << " missing boards" << std::endl;
@@ -68,7 +68,7 @@ void check_transition(int depth,
 
   // check for extra boards
 
-  shared_dfa_ptr extra_boards(new ChessGame::difference_dfa_type(*after_actual, *after_expected));
+  shared_dfa_ptr extra_boards = DFAUtil<CHESS_DFA_PARAMS>::get_difference(after_actual, after_expected);
   if(extra_boards->size())
     {
       std::cout << log_prefix << " found " << extra_boards->size() << " extra boards" << std::endl;

@@ -386,8 +386,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions_internal(int si
 {
   // lost if and only if check and no legal moves
 
-  return shared_dfa_ptr(new difference_dfa_type(*get_check_positions(side_to_move),
-						*(this->get_has_moves(side_to_move))));
+  return DFAUtil<CHESS_DFA_PARAMS>::get_difference(get_check_positions(side_to_move),
+						   this->get_has_moves(side_to_move));
 }
 
 typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) const

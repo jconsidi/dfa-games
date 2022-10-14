@@ -5,6 +5,7 @@
 #include <map>
 
 #include "AcceptDFA.h"
+#include "DifferenceDFA.h"
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
@@ -33,6 +34,30 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
   static shared_dfa_ptr accept(new AcceptDFA<ndim, shape_pack...>());
   assert(accept);
   return accept;
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_difference(DFAUtil<ndim, shape_pack...>::shared_dfa_ptr left_in, DFAUtil<ndim, shape_pack...>::shared_dfa_ptr right_in)
+{
+  if(left_in->is_constant(true))
+    {
+      return get_inverse(right_in);
+    }
+  else if(left_in->is_constant(false))
+    {
+      return get_reject();
+    }
+
+  if(right_in->is_constant(true))
+    {
+      return get_reject();
+    }
+  else if(right_in->is_constant(false))
+    {
+      return left_in;
+    }
+
+  return _singleton_if_constant(shared_dfa_ptr(new DifferenceDFA<ndim, shape_pack...>(*left_in, *right_in)));
 }
 
 template <int ndim, int... shape_pack>

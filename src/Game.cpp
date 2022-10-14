@@ -296,7 +296,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       shared_dfa_ptr losing_more = DFAUtil<ndim, shape_pack...>::get_intersection(losing_more_if_has_move, opponent_has_move);
 
       tic("finished check");
-      if(difference_dfa_type(*losing_more, *losing).size() == 0)
+      if(DFAUtil<ndim, shape_pack...>::get_difference(losing_more, losing)->is_constant(false))
 	{
 	  break;
 	}
@@ -309,7 +309,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       std::cout << "  move " << move << ": " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
 
       tic("stats");
-      if(positions_in && (difference_dfa_type(*winning, *positions_in).size() == 0))
+      if(positions_in && (DFAUtil<ndim, shape_pack...>::get_difference(winning, positions_in)->is_constant(false)))
 	{
 	  std::cout << "  target positions covered" << std::endl;
 	  break;
