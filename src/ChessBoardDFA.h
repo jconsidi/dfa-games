@@ -4,9 +4,10 @@
 #define CHESS_BOARD_DFA_H
 
 #include "ChessGame.h"
+#include "DedupedDFA.h"
 
 class ChessBoardDFA
-: public ChessGame::deduped_dfa_type
+: public DedupedDFA<CHESS_DFA_PARAMS>
 {
  public:
 

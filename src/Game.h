@@ -11,7 +11,6 @@
 #include "ChangeDFA.h"
 #include "CountCharacterDFA.h"
 #include "DFA.h"
-#include "DedupedDFA.h"
 
 template <int ndim, int... shape_pack>
 class Game
@@ -28,7 +27,6 @@ public:
 
   typedef ChangeDFA<ndim, shape_pack...> change_dfa_type;
   typedef CountCharacterDFA<ndim, shape_pack...> count_character_dfa_type;
-  typedef DedupedDFA<ndim, shape_pack...> deduped_dfa_type;
 
   typedef std::tuple<std::vector<shared_dfa_ptr>, change_func, std::vector<shared_dfa_ptr>, std::string> rule_type;
   typedef std::vector<rule_type> rule_vector;
