@@ -92,34 +92,25 @@ typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pac
       pre_conditions.push_back(not_lost_positions);
       pre_conditions.push_back(DFAUtil<n*n, shape_pack...>::get_fixed(move_index, 0));
 
-      change_func change_rule = [=](int layer, int old_value, int new_value)
-      {
-	if(layer == move_index)
-	  {
-	    if(old_value == 0)
-	      {
-		// square was blank, changing to side to move
-		return new_value == side_to_move_piece;
-	      }
-	    else
-	      {
-		// square was not blank as required
-		return false;
-	      }
-	  }
-	else
-	  {
-	    // square not changing
-	    return old_value == new_value;
-	  }
-      };
+      change_vector changes;
+      for(int layer = 0; layer < n * n; ++layer)
+	{
+	  if(layer == move_index)
+	    {
+	      changes.emplace_back(change_type(0, side_to_move_piece));
+	    }
+	  else
+	    {
+	      changes.emplace_back();
+	    }
+	}
 
       std::vector<shared_dfa_ptr> post_conditions;
       post_conditions.emplace_back(not_lost_positions);
       post_conditions.emplace_back(DFAUtil<n*n, shape_pack...>::get_fixed(move_index, 1 + side_to_move));
 
       output.emplace_back(pre_conditions,
-			  change_rule,
+			  changes,
 			  post_conditions,
 			  "move_index=" + std::to_string(move_index));
     }

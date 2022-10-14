@@ -192,7 +192,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       std::cout << " rule " << i << "/" << num_rules << ": " << std::get<3>(rule) << std::endl;
 
       const std::vector<shared_dfa_ptr> pre_conditions = std::get<0>(rule);
-      const change_func& change_rule = std::get<1>(rule);
+      const change_vector& changes = std::get<1>(rule);
       const std::vector<shared_dfa_ptr> post_conditions = std::get<2>(rule);
 
       shared_dfa_ptr positions = positions_in;
@@ -222,7 +222,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
       // apply rule changes
       profile.tic("rule change");
-      positions = shared_dfa_ptr(new change_dfa_type(*positions, change_rule));
+      positions = shared_dfa_ptr(new change_dfa_type(*positions, changes));
       std::cout << "  changes => " << quick_stats(*positions) << std::endl;
 
 #ifndef PARANOIA
@@ -261,13 +261,25 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   rule_vector rules_reverse;
   std::for_each(rules_forward.cbegin(), rules_forward.cend(), [&](const rule_type& rule_forward)
   {
-    const change_func& change_forward = std::get<1>(rule_forward);
+    const change_vector& changes_forward = std::get<1>(rule_forward);
+
+    change_vector changes_reverse;
+    for(int i = 0; i < changes_forward.size(); ++i)
+      {
+	const change_optional& change_forward = changes_forward[i];
+
+	if(change_forward.has_value())
+	  {
+	    changes_reverse.emplace_back(change_type(std::get<1>(*change_forward), std::get<0>(*change_forward)));
+	  }
+	else
+	  {
+	    changes_reverse.emplace_back();
+	  }
+      }
 
     rules_reverse.emplace_back(std::get<2>(rule_forward),
-			       [&](int layer, int old_value, int new_value)
-			       {
-				 return change_forward(layer, new_value, old_value);
-			       },
+			       changes_reverse,
 			       std::get<0>(rule_forward),
 			       std::get<3>(rule_forward));
   });

@@ -28,7 +28,7 @@ public:
   typedef ChangeDFA<ndim, shape_pack...> change_dfa_type;
   typedef CountCharacterDFA<ndim, shape_pack...> count_character_dfa_type;
 
-  typedef std::tuple<std::vector<shared_dfa_ptr>, change_func, std::vector<shared_dfa_ptr>, std::string> rule_type;
+  typedef std::tuple<std::vector<shared_dfa_ptr>, change_vector, std::vector<shared_dfa_ptr>, std::string> rule_type;
   typedef std::vector<rule_type> rule_vector;
 
 private:

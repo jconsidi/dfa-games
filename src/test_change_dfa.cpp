@@ -13,7 +13,7 @@
 #include "RejectDFA.h"
 
 template<int ndim, int... shape_pack>
-void test_change(std::string test_name, const DFA<ndim, shape_pack...>& dfa_in, change_func change_rule, const DFA<ndim, shape_pack...>& dfa_expected)
+void test_change(std::string test_name, const DFA<ndim, shape_pack...>& dfa_in, change_vector changes_in, const DFA<ndim, shape_pack...>& dfa_expected)
 {
   int shape[] = {shape_pack...};
   std::ostringstream builder;
@@ -27,7 +27,7 @@ void test_change(std::string test_name, const DFA<ndim, shape_pack...>& dfa_in, 
 
   std::cout << test_name_full << std::endl;
 
-  ChangeDFA<ndim, shape_pack...> change_test(dfa_in, change_rule);
+  ChangeDFA<ndim, shape_pack...> change_test(dfa_in, changes_in);
   std::cout << test_name_full << ": expected " << dfa_expected.size() << " matches, actually " << change_test.size() << " matches" << std::endl;
 
   DifferenceDFA<ndim, shape_pack...> extra_dfa(change_test, dfa_expected);
@@ -54,27 +54,21 @@ void test_suite()
   RejectDFA<ndim, shape_pack...> reject;
 
   // identity rule
-  change_func identity = [](int layer, int before, int after)
-  {
-    return before == after;
-  };
+  change_vector identity(ndim);
 
   test_change("accept identity", accept, identity, accept);
   test_change("reject identity", reject, identity, reject);
 
   // layer 0 change
 
-  change_func l0 = [](int layer, int before, int after)
-  {
-    if(layer == 0)
-      {
-	return (before == 0) && (after == 1);
-      }
-    else
-      {
-	return before == after;
-      }
-  };
+  if(accept.get_layer_shape(0) < 2)
+    {
+      // too small for this test
+      return;
+    }
+
+  change_vector l0(ndim);
+  l0[0] = change_type(0, 1);
 
   FixedDFA<ndim, shape_pack...> l0_expected(0, 1);
 

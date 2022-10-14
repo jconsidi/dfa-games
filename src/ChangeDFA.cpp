@@ -2,183 +2,157 @@
 
 #include "ChangeDFA.h"
 
-#include <algorithm>
-#include <iostream>
-#include <sstream>
+#include <functional>
+
+#include "MemoryMap.h"
+#include "VectorBitSet.h"
 
 template<int ndim, int... shape_pack>
-ChangeDFA<ndim, shape_pack...>::ChangeDFA(const typename ChangeDFA<ndim, shape_pack...>::dfa_type& dfa_in, change_func change_rule)
-  : new_values_to_old_values_by_layer(),
-    change_cache(ndim),
-    union_local_cache(ndim)
+ChangeDFA<ndim, shape_pack...>::ChangeDFA(const DFA<ndim, shape_pack...>& dfa_in,
+					  const change_vector& changes_in)
 {
-  assert(dfa_in.ready());
-  this->dfa_temp = &dfa_in;
+  assert(changes_in.size() == ndim);
 
-  // setup new_values_to_old_values_by_layer
+  // 1. forward pass to identify all states reachable from initial
+  // state.
+  //
+  // 2. backward pass rewriting states reachable in forward pass.
 
-  for(int layer = 0; layer < ndim; ++layer)
+  ////////////////////////////////////////////////////////////
+  // forward pass finding reachable states ///////////////////
+  ////////////////////////////////////////////////////////////
+
+  std::vector<VectorBitSet> forward_reachable;
+
+  // first layer has just the initial state reachable
+  forward_reachable.emplace_back(dfa_in.get_layer_size(0));
+  forward_reachable[0].add(dfa_in.get_initial_state());
+
+  // expand each layer's reachable states to find next layer's
+  // reachable states.
+  for(int layer = 0; layer < ndim - 1; ++layer)
     {
-      int layer_shape = this->get_layer_shape(layer);
+      forward_reachable.emplace_back(dfa_in.get_layer_size(layer+1));
+      VectorBitSet& next_reachable = forward_reachable.back();
 
-      new_values_to_old_values_by_layer.emplace_back(layer_shape);
-      std::vector<std::vector<int>>& new_values_to_old_values = new_values_to_old_values_by_layer[layer];
-      for(int new_value = 0; new_value < layer_shape; ++new_value)
+      int layer_shape = dfa_in.get_layer_shape(layer);
+      change_optional layer_change = changes_in[layer];
+
+      if(layer_change.has_value())
 	{
-	  for(int old_value = 0; old_value < layer_shape; ++old_value)
+	  int before_character = std::get<0>(*layer_change);
+	  assert(0 <= before_character);
+	  assert(before_character < layer_shape);
+
+	  for(dfa_state_t curr_state: std::as_const(forward_reachable[layer]))
 	    {
-	      if(change_rule(layer, old_value, new_value))
+	      DFATransitionsReference curr_transitions = dfa_in.get_transitions(layer, dfa_state_t(curr_state));
+	      next_reachable.add(curr_transitions[before_character]);
+	    }
+	}
+      else
+	{
+	  for(dfa_state_t curr_state: std::as_const(forward_reachable[layer]))
+	    {
+	      DFATransitionsReference curr_transitions = dfa_in.get_transitions(layer, dfa_state_t(curr_state));
+	      for(int i = 0; i < layer_shape; ++i)
 		{
-		  new_values_to_old_values[new_value].push_back(old_value);
+		  next_reachable.add(curr_transitions[i]);
 		}
 	    }
 	}
     }
 
-  // pre-cache rejects
+  assert(forward_reachable.size() == ndim);
 
+  // prune if nothing reachable at the end
+
+  if(forward_reachable[ndim - 1].count() == 0)
+    {
+      this->set_initial_state(0);
+      return;
+    }
+
+  // expand dummy layer for terminal reject / accept
+  forward_reachable.emplace_back(2);
+  forward_reachable[ndim].add(0);
+  forward_reachable[ndim].add(1);
+
+  ////////////////////////////////////////////////////////////
+  // backward pass rewriting states //////////////////////////
+  ////////////////////////////////////////////////////////////
+
+  std::vector<MemoryMap<dfa_state_t>> changed_states;
   for(int layer = 0; layer < ndim; ++layer)
     {
-      change_cache[layer][0] = 0;
+      changed_states.emplace_back(forward_reachable.at(layer).count());
     }
 
-  // trigger whole change process
+  // terminal pseudo-layer
+  changed_states.emplace_back(2);
+  changed_states[ndim][0] = 0;
+  changed_states[ndim][1] = 1;
 
-  this->set_initial_state(this->change_state(0, dfa_in.get_initial_state()));
-
-  assert(this->ready());
-
-  // cleanup temporary state
-
-  this->dfa_temp = 0;
-
-  this->union_local_cache.clear();
-  this->union_local_cache.shrink_to_fit();
-
-  this->change_cache.clear();
-  this->change_cache.shrink_to_fit();
-
-  this->new_values_to_old_values_by_layer.clear();
-  this->new_values_to_old_values_by_layer.shrink_to_fit();
-}
-
-template<int ndim, int... shape_pack>
-dfa_state_t ChangeDFA<ndim, shape_pack...>::change_state(int layer, dfa_state_t state_index)
-{
-  if(layer == ndim)
+  // backward pass
+  for(int layer = ndim - 1; layer >= 0; --layer)
     {
-      return state_index;
-    }
+      VectorBitSetIndex next_index(forward_reachable[layer+1]);
 
-  auto search = this->change_cache[layer].find(state_index);
-  if(search != this->change_cache[layer].end())
-    {
-      return search->second;
-    }
+      int layer_shape = this->get_layer_shape(layer);
 
-  DFATransitionsReference old_transitions = dfa_temp->get_transitions(layer, state_index);
-
-  dfa_state_t new_index = this->add_state_by_function(layer, [=](int new_value)
-  {
-    const std::vector<int>& old_values = new_values_to_old_values_by_layer[layer][new_value];
-
-    std::vector<dfa_state_t> states_to_union;
-    for(int i = 0; i < old_values.size(); ++i)
+      std::function<dfa_state_t(dfa_state_t)> get_next_changed = [&](dfa_state_t next_state_in)
       {
-	states_to_union.push_back(change_state(layer+1, old_transitions[old_values[i]]));
-      }
+	assert(forward_reachable[layer+1].check(next_state_in));
+	return changed_states[layer+1][next_index.rank(next_state_in)];
+      };
 
-    return union_local(layer+1, states_to_union);
-  });
+      change_optional layer_change = changes_in[layer];
 
-  this->change_cache[layer][state_index] = new_index;
-  return new_index;
-}
+      DFATransitionsStaging transitions_temp(layer_shape, 0);
 
-template<int ndim, int... shape_pack>
-dfa_state_t ChangeDFA<ndim, shape_pack...>::union_local(int layer, std::vector<dfa_state_t>& states_in)
-{
-  assert((1 <= layer) && (layer <= ndim));
-
-  // sort to normalize
-
-  std::sort(states_in.begin(), states_in.end());
-
-  // dedupe inputs
-
-  for(int i = states_in.size() - 1; i >= 1; --i)
-    {
-      if(states_in[i] == states_in[i - 1])
+      dfa_state_t state_out = 0;
+      if(layer_change.has_value())
 	{
-	  states_in.erase(states_in.begin() + i);
+	  int before_character = std::get<0>(*layer_change);
+	  assert(0 <= before_character);
+	  assert(before_character < layer_shape);
+
+	  int after_character = std::get<1>(*layer_change);
+	  assert(0 <= after_character);
+	  assert(after_character < layer_shape);
+
+	  // transitions_temp is all zeros, and will repeatedly
+	  // rewrite the same "after" transition.
+	  for(dfa_state_t state_in : forward_reachable[layer])
+	    {
+	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
+	      transitions_temp[after_character] = get_next_changed(transitions_in[before_character]);
+	      changed_states[layer][state_out++] = this->add_state(layer, transitions_temp);
+	    }
 	}
-    }
-
-  // remove reject input (will be first)
-
-  if(states_in.size() > 0)
-    {
-      if(states_in[0] == 0)
+      else
 	{
-	  states_in.erase(states_in.begin());
+	  // rewrite all transitions for each state
+	  for(dfa_state_t state_in : forward_reachable[layer])
+	    {
+	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
+	      for(int i = 0; i < layer_shape; ++i)
+		{
+		  transitions_temp[i] = get_next_changed(transitions_in[i]);
+		}
+	      changed_states[layer][state_out++] = this->add_state(layer, transitions_temp);
+	    }
 	}
+      assert(state_out == changed_states[layer].size());
+
+      changed_states.pop_back();
+      assert(changed_states.size() == layer + 1);
     }
+  assert(changed_states.size() == 1);
 
-  // trivial cases based on number of remaining states
+  // done
 
-  int num_states = states_in.size();
-  if(num_states == 0)
-    {
-      // no inputs = reject all
-      return 0;
-    }
-
-  if(num_states == 1)
-    {
-      // identity since only one distinct state
-      return states_in[0];
-    }
-
-  // check for accept all state (will be first)
-
-  if(states_in[0] == 1)
-    {
-      return 1;
-    }
-
-  // sanity checks
-
-  assert(layer < ndim);
-  assert(states_in[num_states - 1] < this->get_layer_size(layer));
-
-  // union multiple states
-
-  std::ostringstream key_builder;
-  key_builder << states_in[0];
-  for(int i = 1; i < num_states; ++i)
-    {
-      key_builder << "/" << states_in[i];
-    }
-  std::string key = key_builder.str();
-
-  auto search = this->union_local_cache[layer].find(key);
-  if(search != this->union_local_cache[layer].end())
-    {
-      return search->second;
-    }
-
-  auto output = this->add_state_by_function(layer, [&](int j)
-  {
-    std::vector<dfa_state_t> states_j;
-    for(int i = 0; i < num_states; ++i)
-      {
-	states_j.push_back(this->get_transitions(layer, states_in[i])[j]);
-      }
-    return union_local(layer+1, states_j);
-  });
-
-  this->union_local_cache[layer][key] = output;
-  return output;
+  this->set_initial_state(changed_states[0][0]);
 }
 
 // template instantiations
