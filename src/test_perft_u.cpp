@@ -25,6 +25,14 @@ shared_dfa_ptr boards_to_dfa(const std::set<Board>& boards)
   std::for_each(boards.cbegin(), boards.cend(), [&](const Board& board)
   {
     board_dfas.push_back(ChessGame::from_board(board));
+
+    if(board_dfas.size() >= 100)
+      {
+	std::cout << "merging " << board_dfas.size() << " board dfas (intermediate)" << std::endl;
+	shared_dfa_ptr merged = DFAUtil<CHESS_DFA_PARAMS>::get_union(board_dfas);
+	board_dfas.resize(0);
+	board_dfas.push_back(merged);
+      }
   });
 
   std::cout << "merging " << board_dfas.size() << " board dfas" << std::endl;
