@@ -666,7 +666,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 			   capture_post_conditions,
 			   "pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square));
 
-		if(previous_advancement == 2)
+		if(previous_advancement == 3)
 		  {
 		    int en_passant_square = from_rank * 8 + capture_file;
 
