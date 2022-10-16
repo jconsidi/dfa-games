@@ -53,6 +53,7 @@ class DFA
 
   mutable std::string directory;
   dfa_state_t initial_state = ~dfa_state_t(0);
+  mutable std::string name;
 
   // ndim layers mapping (state, square contents) -> next state.
   std::vector<std::string> layer_file_names;
@@ -86,12 +87,14 @@ class DFA
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   dfa_state_t get_layer_size(int) const;
+  std::string get_name() const;
   DFATransitionsReference get_transitions(int, dfa_state_t) const;
 
   bool is_constant(bool) const;
 
   bool ready() const;
   void save(std::string) const;
+  void set_name(std::string) const;
   double size() const;
   size_t states() const;
 };

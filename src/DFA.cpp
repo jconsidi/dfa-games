@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <sstream>
 #include <string>
 
 #include "DFA.h"
@@ -418,6 +419,19 @@ dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
 }
 
 template<int ndim, int... shape_pack>
+std::string DFA<ndim, shape_pack...>::get_name() const
+{
+  if(name != "")
+    {
+      return name;
+    }
+
+  std::stringstream output;
+  output << this;
+  return output.str();
+}
+
+template<int ndim, int... shape_pack>
 DFATransitionsReference DFA<ndim, shape_pack...>::get_transitions(int layer, dfa_state_t state_index) const
 {
   assert(layer < ndim);
@@ -459,7 +473,14 @@ void DFA<ndim, shape_pack...>::save(std::string name_in) const
     }
 
   directory = directory_new;
+  name = name_in;
   temporary = false;
+}
+
+template<int ndim, int... shape_pack>
+void DFA<ndim, shape_pack...>::set_name(std::string name_in) const
+{
+  name = name_in;
 }
 
 template<int ndim, int... shape_pack>
