@@ -676,6 +676,25 @@ int DFAString<ndim, shape_pack...>::operator[](int layer_in) const
   return characters.at(layer_in);
 }
 
+template<int ndim, int... shape_pack>
+std::string DFAString<ndim, shape_pack...>::to_string() const
+{
+  std::string output("");
+
+  output += "[";
+  for(int i = 0; i < characters.size() - 1; ++i)
+    {
+      output += std::to_string(characters[i]) + ", ";
+    }
+  if(characters.size() > 0)
+    {
+      output += std::to_string(characters.back());
+    }
+  output += "]";
+
+  return output;
+}
+
 // template instantiations
 
 #include "DFAParams.h"

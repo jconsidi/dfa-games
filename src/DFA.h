@@ -23,6 +23,8 @@ public:
 
   DFAString(const std::vector<int>& characters_in);
   int operator[](int) const;
+
+  std::string to_string() const;
 };
 
 class DFATransitionsReference
