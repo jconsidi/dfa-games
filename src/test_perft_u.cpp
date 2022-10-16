@@ -183,6 +183,7 @@ int main(int argc, char **argv)
       test("castling state", "r1bqkbnr/pppppppp/n7/8/P7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 1", 3);
       test("capture promotion", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPPKBPpP/R1B4R b KQkq -", 1);
       test("en passant", "8/2p5/K5R1/1P3R2/7k/5R2/8/8 b - -", 2);
+      test("castle rights", "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", 1);
 
       // perft cases validated in test_perft
       for(int i = 0; i < perft_test_cases.size(); ++i)
