@@ -116,6 +116,17 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
     // TODO : change the condition comparisons to be consistent
     // instead of current pointer comparison
 
+    std::string name_a = std::get<3>(a);
+    std::string name_b = std::get<3>(b);
+    if(name_a < name_b)
+      {
+	return true;
+      }
+    else if(name_a > name_b)
+      {
+	return false;
+      }
+
     auto post_a = std::get<2>(a);
     auto post_b = std::get<2>(b);
     for(int i = 0; (i < post_a.size()) && (i < post_b.size()); ++i)
