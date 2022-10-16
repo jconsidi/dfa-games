@@ -73,6 +73,7 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
     }
 
   shared_dfa_ptr output = shared_dfa_ptr(new FixedDFA<ndim, shape_pack...>(fixed_layer, fixed_character));
+  output->set_name("get_fixed(fixed_layer=" + std::to_string(fixed_layer) + ", fixed_character=" + std::to_string(fixed_character) + ")");
   singletons[singleton_key] = output;
   return output;
 }
