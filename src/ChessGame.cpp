@@ -60,6 +60,17 @@ static void add_change(int square,
 {
   int layer = square + CHESS_SQUARE_OFFSET;
 
+  // clear rook's castle rights. done here so that the post condition
+  // doesn't try to keep them and conflict.
+  if(post_character == DFA_WHITE_ROOK_CASTLE)
+    {
+      post_character = DFA_WHITE_ROOK;
+    }
+  else if(post_character == DFA_BLACK_ROOK_CASTLE)
+    {
+      post_character = DFA_BLACK_ROOK;
+    }
+
   pre_conditions.push_back(DFAUtil<CHESS_DFA_PARAMS>::get_fixed(layer, pre_character));
 
   assert(!changes[layer].has_value());
@@ -471,21 +482,6 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		}
 	    };
 
-	  auto handle_solo_rook =
-	    [&](int rook_character, int rook_castle_character)
-	    {
-	      for(change_optional& change : std::get<1>(rule))
-		{
-		  if(change.has_value() and change->second == rook_castle_character)
-		    {
-		      change->second = rook_character;
-		    }
-		}
-
-	      name = name_original + ", clear solo castle rights";
-	      rules_out.push_back(rule);
-	    };
-
 	  if(check_from(rule, 4, DFA_BLACK_KING))
 	    {
 	      // black king moved from start
@@ -495,18 +491,6 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	    {
 	      // white king moved from start
 	      handle_side_castle_rights(56, 63, DFA_WHITE_ROOK, DFA_WHITE_ROOK_CASTLE);
-	    }
-	  else if(check_from(rule, 0, DFA_BLACK_ROOK_CASTLE) ||
-		  check_from(rule, 7, DFA_BLACK_ROOK_CASTLE))
-	    {
-	      // black rook with castle rights moved
-	      handle_solo_rook(DFA_BLACK_ROOK, DFA_BLACK_ROOK_CASTLE);
-	    }
-	  else if(check_from(rule, 56, DFA_WHITE_ROOK_CASTLE) ||
-		  check_from(rule, 63, DFA_WHITE_ROOK_CASTLE))
-	    {
-	      // white rook with castle rights moved
-	      handle_solo_rook(DFA_WHITE_ROOK, DFA_WHITE_ROOK_CASTLE);
 	    }
 	  else
 	    {
@@ -737,12 +721,22 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		{
 		  if(!chess_is_friendly(side_to_move, prev_character))
 		    {
-		      basic_changes[to_layer] = change_type(prev_character, character);
+		      add_change(to_square,
+				 prev_character,
+				 character,
+				 basic_pre_conditions,
+				 basic_changes,
+				 basic_post_conditions);
+
 		      basic_rules.emplace_back(basic_pre_conditions,
 					       basic_changes,
 					       basic_post_conditions,
 					       "basic from_char=" + std::to_string(character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(to_square) + ", prev_character=" + std::to_string(prev_character));
 
+		      // reverse change for next prev_character
+		      basic_post_conditions.pop_back();
+		      basic_changes[to_layer] = change_optional();
+		      basic_pre_conditions.pop_back();
 		    }
 		}
 	    }
@@ -777,10 +771,15 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 			 advance_pre_conditions,
 			 advance_changes,
 			 advance_post_conditions);
-	      advance_pre_conditions.push_back(DFAUtil<CHESS_DFA_PARAMS>::get_fixed(advance_layer, DFA_BLANK));
 
 	      // handle_promotion_pawns will take care of promotions
-	      advance_changes[advance_layer] = change_type(DFA_BLANK, pawn_character);
+	      add_change(advance_square,
+			 DFA_BLANK,
+			 pawn_character,
+			 advance_pre_conditions,
+			 advance_changes,
+			 advance_post_conditions);
+
 	      pawn_rules.emplace_back(advance_pre_conditions,
 				      advance_changes,
 				      advance_post_conditions,
@@ -792,7 +791,6 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
 		  int double_rank = from_rank + rank_direction * 2;
 		  int double_square = double_rank * 8 + from_file;
-		  int double_layer = double_square + CHESS_SQUARE_OFFSET;
 
 		  std::vector<shared_dfa_ptr> double_pre_conditions = {pre_shared};
 		  change_vector double_changes(64 + CHESS_SQUARE_OFFSET);
@@ -810,9 +808,13 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		  double_post_conditions.push_back(DFAUtil<CHESS_DFA_PARAMS>::get_fixed(advance_layer, DFA_BLANK));
 
 		  // double square must be blank before
-		  double_pre_conditions.push_back(DFAUtil<CHESS_DFA_PARAMS>::get_fixed(double_layer, DFA_BLANK));
+		  add_change(double_square,
+			     DFA_BLANK,
+			     en_passant_character,
+			     double_pre_conditions,
+			     double_changes,
+			     double_post_conditions);
 
-		  double_changes[double_layer] = change_type(DFA_BLANK, en_passant_character);
 		  pawn_rules.emplace_back(double_pre_conditions,
 					  double_changes,
 					  double_post_conditions,
@@ -846,18 +848,28 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		    {
 		      if(chess_is_hostile(side_to_move, prev_character))
 			{
-			  capture_changes[capture_layer] = change_type(prev_character, pawn_character);
+			  add_change(capture_square,
+				     prev_character,
+				     pawn_character,
+				     capture_pre_conditions,
+				     capture_changes,
+				     capture_post_conditions);
+
 			  pawn_rules.emplace_back(capture_pre_conditions,
 						  capture_changes,
 						  capture_post_conditions,
 						  "pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square) + ", prev_character=" + std::to_string(prev_character));
+
+			  // reverse changes for next prev_character
+			  capture_post_conditions.pop_back();
+			  capture_changes[capture_layer] = change_optional();
+			  capture_pre_conditions.pop_back();
 			}
 		    }
 
 		  if(previous_advancement == 3)
 		    {
 		      int en_passant_square = from_rank * 8 + capture_file;
-		      int en_passant_layer = en_passant_square + CHESS_SQUARE_OFFSET;
 
 		      std::vector<shared_dfa_ptr> en_passant_pre_conditions = {pre_shared};
 		      change_vector en_passant_changes(64 + CHESS_SQUARE_OFFSET);
@@ -870,8 +882,19 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 				 en_passant_changes,
 				 en_passant_post_conditions);
 
-		      en_passant_changes[en_passant_layer] = change_type(capture_en_passant_character, DFA_BLANK);
-		      en_passant_changes[capture_layer] = change_type(DFA_BLANK, pawn_character);
+		      add_change(capture_square,
+				 DFA_BLANK,
+				 pawn_character,
+				 en_passant_pre_conditions,
+				 en_passant_changes,
+				 en_passant_post_conditions);
+
+		      add_change(en_passant_square,
+				 capture_en_passant_character,
+				 DFA_BLANK,
+				 en_passant_pre_conditions,
+				 en_passant_changes,
+				 en_passant_post_conditions);
 
 		      pawn_rules.emplace_back(en_passant_pre_conditions,
 					      en_passant_changes,
@@ -917,9 +940,19 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
     castle_changes[side_to_move] = change_type(king_from_square, king_to_square);
 #endif
 
-    castle_changes[king_from_square + CHESS_SQUARE_OFFSET] = change_type(king_character, DFA_BLANK);
-    castle_changes[king_to_square + CHESS_SQUARE_OFFSET] = change_type(DFA_BLANK, king_character);
-    castle_changes[rook_to_square + CHESS_SQUARE_OFFSET] = change_type(DFA_BLANK, rook_character);
+    // TODO: reduce redundancy with between conditions above
+    add_change(king_to_square,
+	       DFA_BLANK,
+	       king_character,
+	       castle_pre_conditions,
+	       castle_changes,
+	       castle_post_conditions);
+    add_change(rook_to_square,
+	       DFA_BLANK,
+	       rook_character,
+	       castle_pre_conditions,
+	       castle_changes,
+	       castle_post_conditions);
 
     std::vector<shared_dfa_ptr> castle_threats;
     castle_threats.push_back(get_threat_positions(side_to_move, king_from_square));
