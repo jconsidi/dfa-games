@@ -116,21 +116,20 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
     // TODO : change the condition comparisons to be consistent
     // instead of current pointer comparison
 
-    std::string name_a = std::get<3>(a);
-    std::string name_b = std::get<3>(b);
-    if(name_a < name_b)
-      {
-	return true;
-      }
-    else if(name_a > name_b)
-      {
-	return false;
-      }
-
     auto post_a = std::get<2>(a);
     auto post_b = std::get<2>(b);
     for(int i = 0; (i < post_a.size()) && (i < post_b.size()); ++i)
       {
+	// sort more states first, so reversing comparisons
+	if(post_a[i]->states() > post_b[i]->states())
+	  {
+	    return true;
+	  }
+	else if(post_a[i]->states() < post_b[i]->states())
+	  {
+	    return false;
+	  }
+
 	if(post_a[i] < post_b[i])
 	  {
 	    return true;
@@ -156,6 +155,16 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
     auto pre_b = std::get<0>(b);
     for(int i = 0; (i < pre_a.size()) && (i < pre_b.size()); ++i)
       {
+	// sort more states first, so reversing comparisons
+	if(pre_a[i]->states() > pre_b[i]->states())
+	  {
+	    return true;
+	  }
+	else if(pre_a[i]->states() < pre_b[i]->states())
+	  {
+	    return false;
+	  }
+
 	if(pre_a[i] < pre_b[i])
 	  {
 	    return true;
