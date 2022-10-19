@@ -685,14 +685,6 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	      change_vector basic_changes(64 + CHESS_SQUARE_OFFSET);
 	      std::vector<shared_dfa_ptr> basic_post_conditions = {post_shared};
 
-	      // require squares between from and to squares to be empty pre and post.
-	      add_between_condition(from_square,
-				    to_square,
-				    basic_pre_conditions);
-	      add_between_condition(from_square,
-				    to_square,
-				    basic_post_conditions);
-
 	      // from conditions - will be shared across simple move and captures
 	      add_change(from_square,
 			 character,
@@ -700,6 +692,14 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 			 basic_pre_conditions,
 			 basic_changes,
 			 basic_post_conditions);
+
+	      // require squares between from and to squares to be empty pre and post.
+	      add_between_condition(from_square,
+				    to_square,
+				    basic_pre_conditions);
+	      add_between_condition(from_square,
+				    to_square,
+				    basic_post_conditions);
 
 #if CHESS_SQUARE_OFFSET == 2
 	      if(character == DFA_WHITE_KING)
@@ -920,6 +920,10 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
     change_vector castle_changes(64 + CHESS_SQUARE_OFFSET);
     std::vector<shared_dfa_ptr> castle_post_conditions = {post_shared};
 
+#if CHESS_SQUARE_OFFSET == 2
+    castle_changes[side_to_move] = change_type(king_from_square, king_to_square);
+#endif
+
     // add conditions in order matching up a rook move
     add_change(rook_from_square,
 	       rook_castle_character,
@@ -927,29 +931,28 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	       castle_pre_conditions,
 	       castle_changes,
 	       castle_post_conditions);
-    add_between_condition(rook_from_square, king_from_square, castle_pre_conditions);
+
+    // extra empty square for queen's side castle
+    add_between_condition(rook_from_square, king_to_square, castle_pre_conditions);
     add_between_condition(rook_from_square, king_to_square, castle_post_conditions);
-    add_change(king_from_square,
-	       king_character,
-	       DFA_BLANK,
-	       castle_pre_conditions,
-	       castle_changes,
-	       castle_post_conditions);
 
-#if CHESS_SQUARE_OFFSET == 2
-    castle_changes[side_to_move] = change_type(king_from_square, king_to_square);
-#endif
-
-    // TODO: reduce redundancy with between conditions above
     add_change(king_to_square,
 	       DFA_BLANK,
 	       king_character,
 	       castle_pre_conditions,
 	       castle_changes,
 	       castle_post_conditions);
+
     add_change(rook_to_square,
 	       DFA_BLANK,
 	       rook_character,
+	       castle_pre_conditions,
+	       castle_changes,
+	       castle_post_conditions);
+
+    add_change(king_from_square,
+	       king_character,
+	       DFA_BLANK,
 	       castle_pre_conditions,
 	       castle_changes,
 	       castle_post_conditions);
