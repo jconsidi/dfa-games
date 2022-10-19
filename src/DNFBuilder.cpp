@@ -2,6 +2,7 @@
 
 #include "DNFBuilder.h"
 
+#include <iostream>
 #include <stdexcept>
 
 #include "CountManager.h"
@@ -64,6 +65,8 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
       compact(shared_length + 1);
     }
 
+  std::cout << "  " << clauses.size() << " clauses after compact previous" << std::endl;
+
   // invariants
 
   profile.tic("check invariants");
@@ -101,6 +104,8 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
       profile.tic("compact_last_two");
       compact_last_two();
     }
+
+  std::cout << "  " << clauses.size() << " clauses after compact with new" << std::endl;
 
   profile.tic("done");
 }
@@ -215,12 +220,15 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
       assert(clauses[i].size() == 1);
     }
 
+  std::cout << "  " << clauses.size() << " clauses after compact" << std::endl;
+
   // merge all the remaining clauses
 
   while(clauses.size() > 1)
     {
       profile.tic("compact_last_two");
       compact_last_two();
+      std::cout << "  " << clauses.size() << " clauses remaining" << std::endl;
     }
   assert(clauses.size() == 1);
 
