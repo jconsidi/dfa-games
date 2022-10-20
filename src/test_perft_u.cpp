@@ -12,6 +12,7 @@
 #include "PerftTestCases.h"
 #include "chess.h"
 
+typedef ChessGame::dfa_string_type dfa_string_type;
 typedef ChessGame::shared_dfa_ptr shared_dfa_ptr;
 
 std::string get_example(shared_dfa_ptr positions_in);
@@ -21,22 +22,14 @@ std::string log_prefix = "test_perft_u: ";
 shared_dfa_ptr boards_to_dfa(const std::set<Board>& boards)
 {
   std::cout << "converting " << boards.size() << " boards to dfas" << std::endl;
-  std::vector<shared_dfa_ptr> board_dfas;
+
+  std::vector<dfa_string_type> board_strings;
   std::for_each(boards.cbegin(), boards.cend(), [&](const Board& board)
   {
-    board_dfas.push_back(ChessGame::from_board(board));
-
-    if(board_dfas.size() >= 100)
-      {
-	std::cout << "merging " << board_dfas.size() << " board dfas (intermediate)" << std::endl;
-	shared_dfa_ptr merged = DFAUtil<CHESS_DFA_PARAMS>::get_union(board_dfas);
-	board_dfas.resize(0);
-	board_dfas.push_back(merged);
-      }
+    board_strings.push_back(ChessGame::from_board_to_dfa_string(board));
   });
 
-  std::cout << "merging " << board_dfas.size() << " board dfas" << std::endl;
-  return DFAUtil<CHESS_DFA_PARAMS>::get_union(board_dfas);
+  return DFAUtil<CHESS_DFA_PARAMS>::from_strings(board_strings);
 }
 
 void check_transition(int depth,

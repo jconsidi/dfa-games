@@ -13,6 +13,7 @@ class DFAUtil
 {
  public:
 
+  typedef DFAString<ndim, shape_pack...> dfa_string_type;
   typedef DFA<ndim, shape_pack...> dfa_type;
   typedef std::shared_ptr<const dfa_type> shared_dfa_ptr;
 
@@ -22,6 +23,7 @@ private:
 
 public:
 
+  static shared_dfa_ptr from_strings(const std::vector<dfa_string_type>&);
   static shared_dfa_ptr get_accept();
   static shared_dfa_ptr get_difference(shared_dfa_ptr, shared_dfa_ptr);
   static shared_dfa_ptr get_fixed(int, int);

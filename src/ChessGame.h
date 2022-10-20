@@ -23,6 +23,7 @@ public:
   ChessGame();
 
   static shared_dfa_ptr from_board(const Board& board);
+  static dfa_string_type from_board_to_dfa_string(const Board& board);
 
   shared_dfa_ptr get_check_positions(int) const;
   shared_dfa_ptr get_threat_positions(int, int) const;

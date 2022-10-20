@@ -10,6 +10,7 @@
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "RejectDFA.h"
+#include "StringDFA.h"
 #include "UnionDFA.h"
 
 template<int ndim, int... shape_pack>
@@ -26,6 +27,21 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
     }
 
   return dfa_in;
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::from_strings(const std::vector<dfa_string_type>& strings_in)
+{
+  // degenerate case
+
+  if(strings_in.size() <= 0)
+    {
+      return get_reject();
+    }
+
+  // build new DFA
+
+  return shared_dfa_ptr(new StringDFA<ndim, shape_pack...>(strings_in));
 }
 
 template <int ndim, int... shape_pack>

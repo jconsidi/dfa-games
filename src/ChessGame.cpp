@@ -8,7 +8,6 @@
 #include <string>
 
 #include "BetweenMasks.h"
-#include "ChessBoardDFA.h"
 #include "CountCharacterDFA.h"
 #include "DFAUtil.h"
 #include "MoveSet.h"
@@ -143,7 +142,136 @@ ChessGame::ChessGame()
 
 typename ChessGame::shared_dfa_ptr ChessGame::from_board(const Board& board_in)
 {
-  return shared_dfa_ptr(new ChessBoardDFA(board_in));
+  std::vector<dfa_string_type> dfa_strings;
+  dfa_strings.push_back(from_board_to_dfa_string(board_in));
+
+  return DFAUtil<CHESS_DFA_PARAMS>::from_strings(dfa_strings);
+}
+
+typename ChessGame::dfa_string_type ChessGame::from_board_to_dfa_string(const Board& board_in)
+{
+  const auto& pieces_by_side = board_in.pieces_by_side;
+  const auto& pieces_by_side_type = board_in.pieces_by_side_type;
+
+  std::vector<int> board_characters;
+
+#if CHESS_SQUARE_OFFSET == 2
+  // white king index
+  board_characters.push_back(std::countr_zero(pieces_by_side_type[SIDE_WHITE][PIECE_KING]));
+  // black king index
+  board_characters.push_back(std::countr_zero(pieces_by_side_type[SIDE_BLACK][PIECE_KING]));
+#endif
+
+  for(int square = 0; square < 64; ++square)
+    {
+      int square_rank = square / 8;
+      int square_file = square % 8;
+
+      BoardMask square_mask = 1ULL << square;
+      std::function<bool(int,int)> check = [=](int s, int p) {
+	return (pieces_by_side_type[s][p] & square_mask) != 0;
+      };
+      if(pieces_by_side[SIDE_WHITE] & square_mask)
+	{
+	  if(check(SIDE_WHITE, PIECE_KING))
+	    {
+	      board_characters.push_back(DFA_WHITE_KING);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_QUEEN))
+	    {
+	      board_characters.push_back(DFA_WHITE_QUEEN);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_BISHOP))
+	    {
+	      board_characters.push_back(DFA_WHITE_BISHOP);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_KNIGHT))
+	    {
+	      board_characters.push_back(DFA_WHITE_KNIGHT);
+	    }
+	  else if(check(SIDE_WHITE, PIECE_ROOK))
+	    {
+	      if(board_in.castling_availability & square_mask)
+		{
+		  board_characters.push_back(DFA_WHITE_ROOK_CASTLE);
+		}
+	      else
+		{
+		  board_characters.push_back(DFA_WHITE_ROOK);
+		}
+	    }
+	  else if(check(SIDE_WHITE, PIECE_PAWN))
+	    {
+	      if((board_in.side_to_move == SIDE_BLACK) && (square_rank == 4) && (square_file == board_in.en_passant_file))
+		{
+		  board_characters.push_back(DFA_WHITE_PAWN_EN_PASSANT);
+		}
+	      else
+		{
+		  board_characters.push_back(DFA_WHITE_PAWN);
+		}
+	    }
+	  else
+	    {
+	      // invalid board
+	      assert(false);
+	    }
+	}
+      else if(pieces_by_side[SIDE_BLACK] & square_mask)
+	{
+	  if(check(SIDE_BLACK, PIECE_KING))
+	    {
+	      board_characters.push_back(DFA_BLACK_KING);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_QUEEN))
+	    {
+	      board_characters.push_back(DFA_BLACK_QUEEN);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_BISHOP))
+	    {
+	      board_characters.push_back(DFA_BLACK_BISHOP);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_KNIGHT))
+	    {
+	      board_characters.push_back(DFA_BLACK_KNIGHT);
+	    }
+	  else if(check(SIDE_BLACK, PIECE_ROOK))
+	    {
+	      if(board_in.castling_availability & square_mask)
+		{
+		  board_characters.push_back(DFA_BLACK_ROOK_CASTLE);
+		}
+	      else
+		{
+		  board_characters.push_back(DFA_BLACK_ROOK);
+		}
+	    }
+	  else if(check(SIDE_BLACK, PIECE_PAWN))
+	    {
+	      if((board_in.side_to_move == SIDE_WHITE) && (square_rank == 3) && (square_file == board_in.en_passant_file))
+		{
+		  board_characters.push_back(DFA_BLACK_PAWN_EN_PASSANT);
+		}
+	      else
+		{
+		  board_characters.push_back(DFA_BLACK_PAWN);
+		}
+	    }
+	  else
+	    {
+	      // invalid board
+	      assert(false);
+	    }
+	}
+      else
+	{
+	  board_characters.push_back(DFA_BLANK);
+	}
+    }
+
+  assert(board_characters.size() == 64 + CHESS_SQUARE_OFFSET);
+
+  return DFAString<CHESS_DFA_PARAMS>(board_characters);
 }
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
