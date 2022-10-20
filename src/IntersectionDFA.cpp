@@ -15,11 +15,6 @@ IntersectionDFA<ndim, shape_pack...>::IntersectionDFA(const DFA<ndim, shape_pack
 {
 }
 
-template<int ndim, int... shape_pack>
-IntersectionDFA<ndim, shape_pack...>::IntersectionDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>& dfas_in)
-  : BinaryDFA<ndim, shape_pack...>(dfas_in, intersection_mask)
-{
-}
 // template instantiations
 
 #include "DFAParams.h"

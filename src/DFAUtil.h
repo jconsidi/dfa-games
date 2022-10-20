@@ -3,6 +3,7 @@
 #ifndef DFA_UTIL_H
 #define DFA_UTIL_H
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -19,6 +20,7 @@ class DFAUtil
 
 private:
 
+  static shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_dfa_ptr)>, const std::vector<shared_dfa_ptr>&);
   static shared_dfa_ptr _singleton_if_constant(shared_dfa_ptr);
 
 public:

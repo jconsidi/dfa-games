@@ -3,6 +3,7 @@
 #include "DFAUtil.h"
 
 #include <map>
+#include <queue>
 
 #include "AcceptDFA.h"
 #include "DifferenceDFA.h"
@@ -12,6 +13,54 @@
 #include "RejectDFA.h"
 #include "StringDFA.h"
 #include "UnionDFA.h"
+
+template<int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::_reduce_associative_commutative(std::function<typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr(typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr, typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr)> reduce_func,
+														    const std::vector<shared_dfa_ptr>& dfas_in)
+{
+  if(dfas_in.size() <= 0)
+    {
+      throw std::logic_error("dfas_in is empty");
+    }
+
+  typedef struct reverse_less
+  {
+    bool operator()(std::shared_ptr<const DFA<ndim, shape_pack...>> a,
+		    std::shared_ptr<const DFA<ndim, shape_pack...>> b) const
+    {
+      return a->states() > b->states();
+    }
+  } reverse_less;
+
+  std::priority_queue<shared_dfa_ptr, std::vector<shared_dfa_ptr>, reverse_less> dfa_queue;
+
+  for(int i = 0; i < dfas_in.size(); ++i)
+    {
+      dfa_queue.push(dfas_in[i]);
+    }
+
+  while(dfa_queue.size() > 1)
+    {
+      std::shared_ptr<const DFA<ndim, shape_pack...>> last = dfa_queue.top();
+      dfa_queue.pop();
+      std::shared_ptr<const DFA<ndim, shape_pack...>> second_last = dfa_queue.top();
+      dfa_queue.pop();
+
+      if(second_last->states() >= 1024)
+	{
+	  std::cerr << "  merging DFAs with " << last->states() << " states and " << second_last->states() << " states (" << dfa_queue.size() << " remaining)" << std::endl;
+	}
+      dfa_queue.push(reduce_func(second_last, last));
+    }
+  assert(dfa_queue.size() == 1);
+
+  shared_dfa_ptr output = dfa_queue.top();
+  if(output->states() >= 1024)
+    {
+      std::cerr << "  merged DFA has " << output->states() << " states and " << output->size() << " positions" << std::endl;
+    }
+  return output;
+}
 
 template<int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::_singleton_if_constant(typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
@@ -121,8 +170,12 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_intersection_vector(const std::vector<DFAUtil<ndim, shape_pack...>::shared_dfa_ptr>& dfas_in)
 {
-  // TODO : add short-circuit filtering
-  return shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(dfas_in));
+  if(dfas_in.size() <= 0)
+    {
+      return get_accept();
+    }
+
+  return _reduce_associative_commutative(get_intersection, dfas_in);
 }
 
 template <int ndim, int... shape_pack>
@@ -167,8 +220,12 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_union_vector(const std::vector<DFAUtil<ndim, shape_pack...>::shared_dfa_ptr>& dfas_in)
 {
-  // TODO : add short-circuit filtering
-  return shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(dfas_in));
+  if(dfas_in.size() <= 0)
+    {
+      return get_reject();
+    }
+
+  return _reduce_associative_commutative(get_union, dfas_in);
 }
 
 // template instantiations

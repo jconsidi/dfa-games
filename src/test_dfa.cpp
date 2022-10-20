@@ -59,16 +59,6 @@ void test_intersection_pair(std::string test_name, const DFA<ndim, shape_pack...
 }
 
 template<int ndim, int... shape_pack>
-void test_intersection_vector(std::string test_name, const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>> dfas_in, int expected_boards)
-{
-  std::cout << "checking intersection vector " << test_name << std::endl;
-  std::cout.flush();
-
-  IntersectionDFA<ndim, shape_pack...> test_dfa(dfas_in);
-  test_helper("intersection vector " + test_name, test_dfa, expected_boards);
-}
-
-template<int ndim, int... shape_pack>
 void test_inverse(std::string test_name, const DFA<ndim, shape_pack...>& dfa_in)
 {
   std::cout << "checking inverse " << test_name << std::endl;
@@ -99,16 +89,6 @@ void test_union_pair(std::string test_name, const DFA<ndim, shape_pack...>& left
 
   UnionDFA<ndim, shape_pack...> test_dfa(left, right);
   test_helper("union pair " + test_name, test_dfa, expected_boards);
-}
-
-template<int ndim, int... shape_pack>
-void test_union_vector(std::string test_name, const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>> dfas_in, int expected_boards)
-{
-  std::cout << "checking union vector " << test_name << std::endl;
-  std::cout.flush();
-
-  UnionDFA<ndim, shape_pack...> test_dfa(dfas_in);
-  test_helper("union vector " + test_name, test_dfa, expected_boards);
 }
 
 template<int ndim, int... shape_pack>
@@ -201,11 +181,6 @@ void test_suite()
   test_union_pair("count1+count0", *count1, *count0, count0->size() + count1->size());
   test_union_pair("count1+count1", *count1, *count1, count1->size());
   test_union_pair("count2+count3", *count2, *count3, count2->size() + count3->size());
-
-  test_union_vector("count0", std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>({count0}), count0->size());
-  test_union_vector("count0+count1", std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>({count0, count1}), count0->size() + count1->size());
-  test_union_vector("count0+count1+count2", std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>({count0, count1, count2}), count0->size() + count1->size() + count2->size());
-  test_union_vector("count0+count1+count2+count3", std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>({count0, count1, count2, count3}), count0->size() + count1->size() + count2->size() + count3->size());
 
   // inverse tests
 

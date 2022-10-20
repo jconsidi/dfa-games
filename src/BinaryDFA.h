@@ -19,7 +19,6 @@ class BinaryDFA : public DFA<ndim, shape_pack...>
 public:
 
   BinaryDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, leaf_func_t);
-  BinaryDFA(const std::vector<std::shared_ptr<const DFA<ndim, shape_pack...>>>&, leaf_func_t);
 };
 
 #endif
