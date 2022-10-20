@@ -367,7 +367,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 
 	std::cout << "get_basic_positions() => " << requirements.size() << " requirements" << std::endl;
 
-	return ChessDFAUtil::get_intersection(requirements);
+	return ChessDFAUtil::get_intersection_vector(requirements);
       });
     }
 
@@ -395,10 +395,10 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
 	    square_requirements.push_back(basic_positions); // makes union much cheaper below
 	    square_requirements.push_back(get_threat_positions(checked_side, square));
 
-	    checks.emplace_back(ChessDFAUtil::get_intersection(square_requirements));
+	    checks.emplace_back(ChessDFAUtil::get_intersection_vector(square_requirements));
 	  }
 
-	return ChessDFAUtil::get_union(checks);
+	return ChessDFAUtil::get_union_vector(checks);
       });
     }
 
@@ -431,11 +431,11 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 	    // exactly one king
 	    king_square_requirements.emplace_back(count_constraint);
 
-	    king_choices.emplace_back(ChessDFAUtil::get_intersection(king_square_requirements));
+	    king_choices.emplace_back(ChessDFAUtil::get_intersection_vector(king_square_requirements));
 	    assert(king_choices[king_square]->size() > 0);
 	  }
 
-	return ChessDFAUtil::get_union(king_choices);
+	return ChessDFAUtil::get_union_vector(king_choices);
 #else
 #error
 #endif
@@ -473,7 +473,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 		    threat_components.emplace_back(ChessDFAUtil::get_fixed(between_square + CHESS_SQUARE_OFFSET, DFA_BLANK));
 		  }
 
-		threats.push_back(ChessDFAUtil::get_intersection(threat_components));
+		threats.push_back(ChessDFAUtil::get_intersection_vector(threat_components));
 	      }
 	  };
 
@@ -500,7 +500,7 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 	      add_threat(DFA_WHITE_ROOK_CASTLE, rook_moves);
 	    }
 
-	  return ChessDFAUtil::get_union(threats);
+	  return ChessDFAUtil::get_union_vector(threats);
 	});
     }
 
@@ -1090,7 +1090,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
     castle_threats.push_back(get_threat_positions(side_to_move, rook_to_square));
     castle_threats.push_back(get_threat_positions(side_to_move, king_to_square));
 
-    shared_dfa_ptr castle_threat(ChessDFAUtil::get_union(castle_threats));
+    shared_dfa_ptr castle_threat(ChessDFAUtil::get_union_vector(castle_threats));
     shared_dfa_ptr no_castle_threat(ChessDFAUtil::get_inverse(castle_threat));
     castle_pre_conditions.push_back(no_castle_threat);
     castle_post_conditions.push_back(no_castle_threat);

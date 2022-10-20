@@ -119,7 +119,7 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 }
 
 template <int ndim, int... shape_pack>
-typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_intersection(const std::vector<DFAUtil<ndim, shape_pack...>::shared_dfa_ptr>& dfas_in)
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_intersection_vector(const std::vector<DFAUtil<ndim, shape_pack...>::shared_dfa_ptr>& dfas_in)
 {
   // TODO : add short-circuit filtering
   return shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(dfas_in));
@@ -165,7 +165,7 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 }
 
 template <int ndim, int... shape_pack>
-typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_union(const std::vector<DFAUtil<ndim, shape_pack...>::shared_dfa_ptr>& dfas_in)
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_union_vector(const std::vector<DFAUtil<ndim, shape_pack...>::shared_dfa_ptr>& dfas_in)
 {
   // TODO : add short-circuit filtering
   return shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(dfas_in));
