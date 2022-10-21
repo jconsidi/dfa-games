@@ -95,24 +95,6 @@ static bool check_from(typename ChessGame::rule_type& rule,
 	  (std::get<1>(change) == DFA_BLANK));
 };
 
-static bool check_to(typename ChessGame::rule_type& rule,
-		     int to_square,
-		     int to_character)
-{
-  const change_vector& changes = std::get<1>(rule);
-  int to_layer = to_square + CHESS_SQUARE_OFFSET;
-
-  if(!changes[to_layer].has_value())
-    {
-      return false;
-    }
-
-  const change_type& change = *(changes[to_layer]);
-
-  return ((std::get<0>(change) != to_character) &&
-	  (std::get<1>(change) == to_character));
-};
-
 static bool chess_is_friendly(int side_to_move, int character)
 {
   if(character == DFA_BLANK)
@@ -688,79 +670,12 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
       return rules_temp;
     };
 
-  std::function<rule_vector(const rule_vector&)> handle_promotion_pawns =
-    [](const rule_vector& rules_in)
-    {
-      rule_vector rules_temp;
-
-      auto add_promotion =
-	[&](rule_type& rule, int promotion_square, int promotion_character)
-	{
-	  change_vector& changes = std::get<1>(rule);
-	  int promotion_layer = promotion_square + CHESS_SQUARE_OFFSET;
-
-	  changes[promotion_layer]->second = promotion_character;
-
-	  rules_temp.push_back(rule);
-	};
-
-      for(rule_type rule : rules_in)
-	{
-	  bool found_promotion = false;
-
-	  // check for white pawn promotions
-	  for(int square = 0; square < 8; ++square)
-	    {
-	      if(check_to(rule, square, DFA_WHITE_PAWN))
-		{
-		  found_promotion = true;
-
-		  add_promotion(rule, square, DFA_WHITE_BISHOP);
-		  add_promotion(rule, square, DFA_WHITE_KNIGHT);
-		  add_promotion(rule, square, DFA_WHITE_QUEEN);
-		  add_promotion(rule, square, DFA_WHITE_ROOK);
-
-		  break;
-		}
-	    }
-	  if(found_promotion)
-	    {
-	      continue;
-	    }
-
-	  // check for black pawn promotions
-	  for(int square = 56; square < 64; ++square)
-	    {
-	      if(check_to(rule, square, DFA_BLACK_PAWN))
-		{
-		  found_promotion = true;
-
-		  add_promotion(rule, square, DFA_BLACK_BISHOP);
-		  add_promotion(rule, square, DFA_BLACK_KNIGHT);
-		  add_promotion(rule, square, DFA_BLACK_QUEEN);
-		  add_promotion(rule, square, DFA_BLACK_ROOK);
-
-		  break;
-		}
-	    }
-	  if(found_promotion)
-	    {
-	      continue;
-	    }
-
-	  // no promotions found
-	  rules_temp.push_back(rule);
-	}
-      return rules_temp;
-    };
-
   std::function<void(const rule_vector&)> add_output =
     [&](const rule_vector& rules_in)
     {
       rule_vector rules_temp = rules_in;
       rules_temp = handle_castle_rights(rules_temp);
       rules_temp = handle_en_passant_pawns(rules_temp);
-      rules_temp = handle_promotion_pawns(rules_temp);
 
       for(rule_type rule : rules_temp)
 	{
@@ -889,6 +804,26 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 	      int advance_square = advance_rank * 8 + from_file;
 	      int advance_layer = advance_square + CHESS_SQUARE_OFFSET;
 
+	      std::vector<int> advance_characters;
+	      if(previous_advancement < 5)
+		{
+		  advance_characters.push_back(pawn_character);
+		}
+	      else if(pawn_character == DFA_WHITE_PAWN)
+		{
+		  advance_characters.push_back(DFA_WHITE_BISHOP);
+		  advance_characters.push_back(DFA_WHITE_KNIGHT);
+		  advance_characters.push_back(DFA_WHITE_QUEEN);
+		  advance_characters.push_back(DFA_WHITE_ROOK);
+		}
+	      else
+		{
+		  advance_characters.push_back(DFA_BLACK_BISHOP);
+		  advance_characters.push_back(DFA_BLACK_KNIGHT);
+		  advance_characters.push_back(DFA_BLACK_QUEEN);
+		  advance_characters.push_back(DFA_BLACK_ROOK);
+		}
+
 	      std::vector<shared_dfa_ptr> advance_pre_conditions = {pre_shared};
 	      change_vector advance_changes(64 + CHESS_SQUARE_OFFSET);
 	      std::vector<shared_dfa_ptr> advance_post_conditions = {post_shared};
@@ -900,18 +835,25 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 			 advance_changes,
 			 advance_post_conditions);
 
-	      // handle_promotion_pawns will take care of promotions
-	      add_change(advance_square,
-			 DFA_BLANK,
-			 pawn_character,
-			 advance_pre_conditions,
-			 advance_changes,
-			 advance_post_conditions);
+	      for(int advance_character : advance_characters)
+		{
+		  add_change(advance_square,
+			     DFA_BLANK,
+			     advance_character,
+			     advance_pre_conditions,
+			     advance_changes,
+			     advance_post_conditions);
 
-	      pawn_rules.emplace_back(advance_pre_conditions,
-				      advance_changes,
-				      advance_post_conditions,
-				      "pawn advance from_char=" + std::to_string(pawn_character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(advance_square));
+		  pawn_rules.emplace_back(advance_pre_conditions,
+					  advance_changes,
+					  advance_post_conditions,
+					  "pawn advance from_char=" + std::to_string(pawn_character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(advance_square));
+
+		  // pop back conditions for next advance character
+		  advance_post_conditions.pop_back();
+		  advance_changes[advance_layer] = change_optional();
+		  advance_pre_conditions.pop_back();
+		}
 
 	      if(previous_advancement == 0)
 		{
@@ -976,22 +918,25 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 		    {
 		      if(chess_is_hostile(side_to_move, prev_character))
 			{
-			  add_change(capture_square,
-				     prev_character,
-				     pawn_character,
-				     capture_pre_conditions,
-				     capture_changes,
-				     capture_post_conditions);
+			  for(int advance_character : advance_characters)
+			    {
+			      add_change(capture_square,
+					 prev_character,
+					 advance_character,
+					 capture_pre_conditions,
+					 capture_changes,
+					 capture_post_conditions);
 
-			  pawn_rules.emplace_back(capture_pre_conditions,
-						  capture_changes,
-						  capture_post_conditions,
-						  "pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square) + ", prev_character=" + std::to_string(prev_character));
+			      pawn_rules.emplace_back(capture_pre_conditions,
+						      capture_changes,
+						      capture_post_conditions,
+						      "pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square) + ", prev_character=" + std::to_string(prev_character) + ", advance_character=" + std::to_string(advance_character));
 
-			  // reverse changes for next prev_character
-			  capture_post_conditions.pop_back();
-			  capture_changes[capture_layer] = change_optional();
-			  capture_pre_conditions.pop_back();
+			      // reverse changes for next prev_character/advance_character
+			      capture_post_conditions.pop_back();
+			      capture_changes[capture_layer] = change_optional();
+			      capture_pre_conditions.pop_back();
+			    }
 			}
 		    }
 
