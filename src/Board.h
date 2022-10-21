@@ -43,6 +43,7 @@ class Board
   Board(std::string);
 
   bool operator<(const Board&) const;
+  bool operator==(const Board&) const;
 
   int count_moves() const;
   int generate_moves(Board moves_out[CHESS_MAX_MOVES]) const;
