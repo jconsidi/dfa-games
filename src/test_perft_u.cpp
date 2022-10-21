@@ -15,7 +15,7 @@
 typedef ChessGame::dfa_string_type dfa_string_type;
 typedef ChessGame::shared_dfa_ptr shared_dfa_ptr;
 
-std::string get_example(shared_dfa_ptr positions_in);
+Board get_example(int, shared_dfa_ptr);
 
 std::string log_prefix = "test_perft_u: ";
 
@@ -53,17 +53,39 @@ void check_transition(int depth,
   shared_dfa_ptr after_expected = boards_to_dfa(after_boards);
   assert(after_expected->size() == after_boards.size());
 
+  int side_to_move_after = depth % 2;
+
   // check for missing boards first since that is more common
 
   shared_dfa_ptr missing_boards = DFAUtil<CHESS_DFA_PARAMS>::get_difference(after_expected, after_actual);
   if(missing_boards->size())
     {
       std::cout << log_prefix << " found " << missing_boards->size() << " missing boards" << std::endl;
-      if(before_actual->size() == 1)
+
+      Board missing_example = get_example(side_to_move_after, missing_boards);
+
+      for(Board before_board : before_boards)
 	{
-	  std::cout << "BEFORE:\n" << get_example(before_actual) << std::endl;
+	  bool found_match = false;
+
+	  Board moves[CHESS_MAX_MOVES];
+	  int num_moves = before_board.generate_moves(moves);
+	  for(int i = 0; i < num_moves; ++i)
+	    {
+	      if(moves[i] == missing_example)
+		{
+		  found_match = true;
+		  break;
+		}
+	    }
+
+	  if(found_match)
+	    {
+	      std::cout << "BEFORE:\n" << before_board << std::endl;
+	      break;
+	    }
 	}
-      std::cout << "MISSING:\n" << get_example(missing_boards) << std::endl;
+      std::cout << "MISSING:\n" << missing_example << std::endl;
     }
   assert(missing_boards->size() == 0);
 
@@ -75,9 +97,9 @@ void check_transition(int depth,
       std::cout << log_prefix << " found " << extra_boards->size() << " extra boards" << std::endl;
       if(before_actual->size() == 1)
 	{
-	  std::cout << "BEFORE:\n" << get_example(before_actual) << std::endl;
+	  std::cout << "BEFORE:\n" << get_example(side_to_move_after, before_actual) << std::endl;
 	}
-      std::cout << "EXTRA:\n" << get_example(extra_boards) << std::endl;
+      std::cout << "EXTRA:\n" << get_example(side_to_move_after, extra_boards) << std::endl;
     }
   assert(extra_boards->size() == 0);
 
@@ -85,7 +107,7 @@ void check_transition(int depth,
   assert(after_actual->size() == after_boards.size());
 }
 
-std::string get_example(shared_dfa_ptr positions_in)
+Board get_example(int side_to_move, shared_dfa_ptr positions_in)
 {
   // convenience object
 
@@ -95,7 +117,7 @@ std::string get_example(shared_dfa_ptr positions_in)
       iter < positions_in->cend();
       ++iter)
     {
-      return game.position_to_string(*iter);
+      return game.position_to_board(side_to_move, *iter);
     }
 
   assert(0);
