@@ -1135,7 +1135,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
   return rules_out;
 }
 
-std::string ChessGame::position_to_string(const dfa_string_type& position_in) const
+Board ChessGame::position_to_board(const dfa_string_type& position_in) const
 {
   // will assemble sloppy fen string and pass to Board constructor
   std::string fen_temp("");
@@ -1280,6 +1280,10 @@ std::string ChessGame::position_to_string(const dfa_string_type& position_in) co
   // don't care about move counts
   fen_temp += " 0 1";
 
-  Board board(fen_temp);
-  return board.to_string();
+  return Board(fen_temp);
+}
+
+std::string ChessGame::position_to_string(const dfa_string_type& position_in) const
+{
+  return position_to_board(position_in).to_string();
 }
