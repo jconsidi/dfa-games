@@ -28,7 +28,7 @@ public:
   shared_dfa_ptr get_check_positions(int) const;
   shared_dfa_ptr get_threat_positions(int, int) const;
 
-  Board position_to_board(const dfa_string_type&) const;
+  Board position_to_board(int, const dfa_string_type&) const;
   virtual std::string position_to_string(const dfa_string_type&) const;
 };
 

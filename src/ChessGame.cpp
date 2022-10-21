@@ -1135,7 +1135,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
   return rules_out;
 }
 
-Board ChessGame::position_to_board(const dfa_string_type& position_in) const
+Board ChessGame::position_to_board(int side_to_move, const dfa_string_type& position_in) const
 {
   // will assemble sloppy fen string and pass to Board constructor
   std::string fen_temp("");
@@ -1255,8 +1255,14 @@ Board ChessGame::position_to_board(const dfa_string_type& position_in) const
     }
   assert(fen_temp.length() == 64 + 7);
 
-  // assume white's move
-  fen_temp += " w";
+  if(side_to_move == SIDE_WHITE)
+    {
+      fen_temp += " w";
+    }
+  else
+    {
+      fen_temp += " b";
+    }
 
   if(fen_castle.length() > 0)
     {
@@ -1285,5 +1291,6 @@ Board ChessGame::position_to_board(const dfa_string_type& position_in) const
 
 std::string ChessGame::position_to_string(const dfa_string_type& position_in) const
 {
-  return position_to_board(position_in).to_string();
+  // side to move does not matter with current string output
+  return position_to_board(SIDE_WHITE, position_in).to_string();
 }
