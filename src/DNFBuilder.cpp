@@ -127,20 +127,50 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
 
   while((clauses.size() > 1) && (clauses.back().size() > target_length))
     {
-      clause_type& second_last = clauses[clauses.size() - 2];
-      clause_type& last_clause = clauses.back();
+      int second_last_size = clauses[clauses.size() - 2].size();
+      int last_size = clauses.back().size();
 
-      assert(last_clause.size() >= second_last.size());
+      assert(last_size >= second_last_size);
 
-      if(last_clause.size() > second_last.size())
+      if(last_size > second_last_size)
 	{
-	  compact_last(second_last.size());
+	  compact_last(second_last_size);
 	  continue;
 	}
-      assert(last_clause.size() == second_last.size());
+      assert(last_size == second_last_size);
 
-      // merge last two clauses
-      compact_last_two();
+      // at least two clauses at the end with the same length and over
+      // target... union all of them together.
+
+      std::vector<shared_dfa_ptr> compact_todo;
+      while(true)
+	{
+	  assert(clauses.back().size() == last_size);
+	  compact_todo.push_back(clauses.back().back());
+
+	  if(clauses.size() == 1)
+	    {
+	      // last clause
+	      clauses.back().pop_back();
+	      break;
+	    }
+	  else if(clauses[clauses.size() - 2].size() != last_size)
+	    {
+	      // last clause of this size
+	      clauses.back().pop_back();
+	      break;
+	    }
+	  else
+	    {
+	      // at least one more clause of this size
+	      clauses.pop_back();
+	    }
+	}
+
+      assert(clauses.size() >= 1);
+      assert(clauses.back().size() == last_size - 1);
+      clauses.back().push_back(DFAUtil<ndim, shape_pack...>::get_union_vector(compact_todo));
+      assert(clauses.back().size() == last_size);
     }
   assert(clauses.size() >= 1);
 
