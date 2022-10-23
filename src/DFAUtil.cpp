@@ -49,7 +49,7 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 
       if(second_last->states() >= 1024)
 	{
-	  std::cerr << "  merging DFAs with " << last->states() << " states and " << second_last->states() << " states (" << dfa_queue.size() << " remaining)" << std::endl;
+	  std::cout << "  merging DFAs with " << last->states() << " states and " << second_last->states() << " states (" << dfa_queue.size() << " remaining)" << std::endl;
 	}
       dfa_queue.push(reduce_func(second_last, last));
     }
@@ -58,7 +58,7 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
   shared_dfa_ptr output = dfa_queue.top();
   if(output->states() >= 1024)
     {
-      std::cerr << "  merged DFA has " << output->states() << " states and " << output->size() << " positions" << std::endl;
+      std::cout << "  merged DFA has " << output->states() << " states and " << output->size() << " positions" << std::endl;
     }
   return output;
 }
