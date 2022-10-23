@@ -10,6 +10,7 @@
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
+#include "Profile.h"
 #include "RejectDFA.h"
 #include "StringDFA.h"
 #include "UnionDFA.h"
@@ -104,6 +105,8 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_difference(DFAUtil<ndim, shape_pack...>::shared_dfa_ptr left_in, DFAUtil<ndim, shape_pack...>::shared_dfa_ptr right_in)
 {
+  Profile profile("get_difference");
+
   if(left_in->is_constant(true))
     {
       return get_inverse(right_in);
@@ -146,6 +149,8 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_intersection(DFAUtil<ndim, shape_pack...>::shared_dfa_ptr left_in, DFAUtil<ndim, shape_pack...>::shared_dfa_ptr right_in)
 {
+  Profile profile("get_intersection");
+
   if(left_in->is_constant(true))
     {
       return right_in;
@@ -187,6 +192,8 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_inverse(DFAUtil<ndim, shape_pack...>::shared_dfa_ptr dfa_in)
 {
+  Profile profile("get_inverse");
+
   // TODO : short-circuit logic for constants?
   return shared_dfa_ptr(new InverseDFA<ndim, shape_pack...>(*dfa_in));
 }
@@ -202,6 +209,8 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_union(DFAUtil<ndim, shape_pack...>::shared_dfa_ptr left_in, DFAUtil<ndim, shape_pack...>::shared_dfa_ptr right_in)
 {
+  Profile profile("get_union");
+
   if(left_in->is_constant(true))
     {
       return get_accept();
