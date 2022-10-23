@@ -113,6 +113,8 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
 template <int ndim, int... shape_pack>
 void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
 {
+  Profile profile("compact");
+
   if(target_length < 1)
     {
       throw std::range_error("target length must be at least 1");
@@ -153,6 +155,8 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
 template <int ndim, int... shape_pack>
 void DNFBuilder<ndim, shape_pack...>::compact_last()
 {
+  Profile profile("compact_last");
+
   int num_clauses = clauses.size();
   if(num_clauses > 1)
     {
@@ -179,6 +183,8 @@ void DNFBuilder<ndim, shape_pack...>::compact_last()
 template <int ndim, int... shape_pack>
 void DNFBuilder<ndim, shape_pack...>::compact_last_two()
 {
+  Profile profile("compact_last_two");
+
   assert(clauses.size() >= 2);
 
   clause_type& second_last = clauses[clauses.size() - 2];
@@ -202,16 +208,12 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
 
   // check for trivial case without clauses
 
-  profile.tic("check trivial");
-
   if(clauses.size() == 0)
     {
       return DFAUtil<ndim, shape_pack...>::get_reject();
     }
 
   // force compacting all clauses down to length 1
-
-  profile.tic("compact");
 
   compact(1);
 
@@ -226,13 +228,10 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
 
   while(clauses.size() > 1)
     {
-      profile.tic("compact_last_two");
       compact_last_two();
       std::cout << "  " << clauses.size() << " clauses remaining" << std::endl;
     }
   assert(clauses.size() == 1);
-
-  profile.tic("done");
 
   assert(clauses[0].size() <= 1);
   if(clauses[0].size() == 1)
