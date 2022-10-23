@@ -14,6 +14,8 @@ class Profile
   std::chrono::time_point<std::chrono::steady_clock> last_time;
   std::string prefix;
 
+  void push_label_suffix(std::string);
+
  public:
 
   Profile(std::string);
