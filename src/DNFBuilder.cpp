@@ -130,7 +130,16 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
       assert(clauses.back().size() == compact_size);
     }
 
+  profile.tic("stats");
+
   std::cout << "  " << clauses.size() << " clauses after compact with new" << std::endl;
+
+  std::cout << "  " << clauses[0].size() << "|" << clauses[0].back()->states();
+  for(int i = 1; i < clauses.size(); ++i)
+    {
+      std::cout << ", " << clauses[i].size() << "|" << clauses[i].back()->states();
+    }
+  std::cout << std::endl;
 
   profile.tic("done");
 }
