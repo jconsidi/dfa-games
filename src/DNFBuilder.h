@@ -26,7 +26,7 @@ class DNFBuilder
   std::vector<clause_type> clauses;
 
   void compact(int);
-  void compact_last();
+  void compact_last(int);
   void compact_last_two();
 
  public:

@@ -134,7 +134,7 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
 
       if(last_clause.size() > second_last.size())
 	{
-	  compact_last();
+	  compact_last(second_last.size());
 	  continue;
 	}
       assert(last_clause.size() == second_last.size());
@@ -145,34 +145,39 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
   assert(clauses.size() >= 1);
 
   clause_type& last_clause = clauses.back();
-  while(last_clause.size() > target_length)
+  if(last_clause.size() > target_length)
     {
       assert(clauses.size() == 1);
-      compact_last();
+      compact_last(target_length);
     }
+  assert(clauses.back().size() <= target_length);
 }
 
 template <int ndim, int... shape_pack>
-void DNFBuilder<ndim, shape_pack...>::compact_last()
+void DNFBuilder<ndim, shape_pack...>::compact_last(int target_length)
 {
   Profile profile("compact_last");
 
+  assert(target_length >= 1);
+
   int num_clauses = clauses.size();
+  assert(num_clauses > 0);
+  assert(clauses[num_clauses - 1].size() > target_length);
   if(num_clauses > 1)
     {
-      assert(clauses[num_clauses - 2].size() < clauses[num_clauses - 1].size());
+      assert(clauses[num_clauses - 2].size() <= target_length);
     }
 
   clause_type& last_clause = clauses.back();
 
-  shared_dfa_ptr dfa_a = last_clause.back();
-  last_clause.pop_back();
-
-  shared_dfa_ptr dfa_b = last_clause.back();
-  last_clause.pop_back();
-
-  last_clause.emplace_back(DFAUtil<ndim, shape_pack...>::get_intersection(dfa_a, dfa_b));
-  count_manager.inc("get_intersection");
+  std::vector<shared_dfa_ptr> target_dfas;
+  while(last_clause.size() >= target_length)
+    {
+      target_dfas.push_back(last_clause.back());
+      last_clause.pop_back();
+    }
+  last_clause.push_back(DFAUtil<ndim, shape_pack...>::get_intersection_vector(target_dfas));
+  assert(last_clause.size() == target_length);
 
   if(num_clauses > 1)
     {
