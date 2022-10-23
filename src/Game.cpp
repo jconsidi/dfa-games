@@ -88,10 +88,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   Profile profile("get_moves_forward");
 
-  profile.tic("get_rules");
   const rule_vector& rules = get_rules_forward(side_to_move);
 
-  profile.tic("get_moves_internal");
   return get_moves_internal(rules, positions_in);
 }
 
@@ -263,10 +261,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   Profile profile("get_moves_reverse");
 
-  profile.tic("get_rules");
   const rule_vector& rules_reverse = get_rules_reverse(side_to_move);
 
-  profile.tic("get_moves_internal");
   return get_moves_internal(rules_reverse, positions_in);
 }
 

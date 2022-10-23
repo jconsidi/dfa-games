@@ -48,6 +48,14 @@ Profile::~Profile()
 
 void Profile::push_label_suffix(std::string suffix_in)
 {
+  if(suffix_in == "")
+    {
+      // reuse previous label when suffix is empty
+      assert(profile_label_stack.size() > 0);
+      profile_label_stack.push_back(profile_label_stack.back());
+      return;
+    }
+
   std::string total_label = ((profile_label_stack.size() == 0) ?
 			     suffix_in :
 			     profile_label_stack.back() + " / " + suffix_in);
