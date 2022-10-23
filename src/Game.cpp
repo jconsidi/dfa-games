@@ -37,6 +37,8 @@ Game<ndim, shape_pack...>::Game(std::string name_in)
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_has_moves(int side_to_move) const
 {
+  Profile profile("get_has_moves");
+
   if(!(this->singleton_has_moves[side_to_move]))
     {
       this->singleton_has_moves[side_to_move] = \
@@ -54,6 +56,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_initial_positions() const
 {
+  Profile profile("get_initial_positions");
+
   if(!(this->singleton_initial_positions))
     {
       this->singleton_initial_positions = \
@@ -70,6 +74,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_lost_positions(int side_to_move) const
 {
+  Profile profile("get_lost_positions");
+
   if(!(this->singleton_lost_positions[side_to_move]))
     {
       this->singleton_lost_positions[side_to_move] = \
@@ -103,6 +109,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   assert(rules_in.size() > 0);
 
   // sort rules to improve intersection sharing...
+
+  profile.tic("sort rules");
 
   rule_vector rules = rules_in;
   std::stable_sort(rules.begin(), rules.end(), [](const rule_type& a, const rule_type& b)
@@ -185,6 +193,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
     // do not compare change rule
     return false;
   });
+
+  profile.tic("data structure setup");
 
   IntersectionManager<ndim, shape_pack...> manager;
   DNFBuilder<ndim, shape_pack...> output_builder;
@@ -269,6 +279,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 template <int ndim, int... shape_pack>
 const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>::get_rules_forward(int side_to_move) const
 {
+  Profile profile("get_rules_forward");
+
   assert((0 <= side_to_move) && (side_to_move < 2));
 
   if(singleton_rules_forward[side_to_move].size() == 0)
@@ -282,6 +294,8 @@ const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>
 template <int ndim, int... shape_pack>
 const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>::get_rules_reverse(int side_to_move) const
 {
+  Profile profile("get_rules_reverse");
+
   assert((0 <= side_to_move) && (side_to_move < 2));
 
   if(singleton_rules_reverse[side_to_move].size() == 0)

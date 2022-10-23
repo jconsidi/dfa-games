@@ -258,6 +258,8 @@ typename ChessGame::dfa_string_type ChessGame::from_board_to_dfa_string(const Bo
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 {
+  Profile profile("get_basic_positions");
+
   // basic position requirements:
   // * make sure initial king indexes are correct
   // * pawns in appropriate rows
@@ -358,6 +360,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_basic_positions() const
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_side) const
 {
+  Profile profile("get_check_positions");
+
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[checked_side])
     {
@@ -389,6 +393,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_check_positions(int checked_si
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) const
 {
+  Profile profile("get_king_positions");
+
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[king_side])
     {
@@ -428,6 +434,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_king_positions(int king_side) 
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatened_side, int threatened_square) const
 {
+  Profile profile("get_threat_positions");
+
   static shared_dfa_ptr singletons[2][64];
 
   if(!singletons[threatened_side][threatened_square])
@@ -491,12 +499,16 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_threat_positions(int threatene
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_initial_positions_internal() const
 {
+  Profile profile("get_initial_positions_internal");
+
   Board initial_board(INITIAL_FEN);
   return from_board(initial_board);
 }
 
 typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions_internal(int side_to_move) const
 {
+  Profile profile("get_lost_positions_internal");
+
   // lost if and only if check and no legal moves
 
   return DFAUtil<CHESS_DFA_PARAMS>::get_difference(get_check_positions(side_to_move),
@@ -505,6 +517,8 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_lost_positions_internal(int si
 
 typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) const
 {
+  Profile profile("get_rules_internal");
+
   shared_dfa_ptr basic_positions = get_basic_positions();
   shared_dfa_ptr check_positions = get_check_positions(side_to_move);
   shared_dfa_ptr not_check_positions = load_or_build("not_check_positions-side=" + std::to_string(side_to_move), [=]()
