@@ -224,14 +224,18 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
 
   std::cout << "  " << clauses.size() << " clauses after compact" << std::endl;
 
-  // merge all the remaining clauses
+  // merge all the remaining length 1 clauses
 
-  while(clauses.size() > 1)
+  std::vector<shared_dfa_ptr> remaining_clauses;
+  while((clauses.size() > 0) && (clauses.back().size() == 1))
     {
-      compact_last_two();
-      std::cout << "  " << clauses.size() << " clauses remaining" << std::endl;
+      remaining_clauses.push_back(clauses.back().at(0));
+      clauses.pop_back();
     }
+  clauses.emplace_back(1, DFAUtil<ndim, shape_pack...>::get_union_vector(remaining_clauses));
   assert(clauses.size() == 1);
+
+  // return output
 
   assert(clauses[0].size() <= 1);
   if(clauses[0].size() == 1)
