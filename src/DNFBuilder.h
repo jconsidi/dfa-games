@@ -27,7 +27,6 @@ class DNFBuilder
 
   void compact(int);
   void compact_last(int);
-  void compact_last_two();
 
  public:
 

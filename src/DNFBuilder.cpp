@@ -11,8 +11,6 @@
 
 #define COMPACT_THRESHOLD 10
 
-static CountManager count_manager("DNFBuilder");
-
 template <int ndim, int... shape_pack>
 DNFBuilder<ndim, shape_pack...>::DNFBuilder()
 {
@@ -247,27 +245,6 @@ void DNFBuilder<ndim, shape_pack...>::compact_last(int target_length)
     {
       assert(clauses[num_clauses - 2].size() <= clauses[num_clauses - 1].size());
     }
-}
-
-template <int ndim, int... shape_pack>
-void DNFBuilder<ndim, shape_pack...>::compact_last_two()
-{
-  Profile profile("compact_last_two");
-
-  assert(clauses.size() >= 2);
-
-  clause_type& second_last = clauses[clauses.size() - 2];
-  clause_type& last_clause = clauses.back();
-  assert(second_last.size() == last_clause.size());
-
-  // union last DFA of the last two clauses
-  shared_dfa_ptr dfa_a = second_last.back();
-  shared_dfa_ptr dfa_b = last_clause.back();
-  second_last.back() = DFAUtil<ndim, shape_pack...>::get_union(dfa_a, dfa_b);
-  count_manager.inc("get_union");
-
-  // drop last clause
-  clauses.pop_back();
 }
 
 template <int ndim, int... shape_pack>
