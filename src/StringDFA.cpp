@@ -25,7 +25,7 @@ dfa_state_t StringDFA<ndim, shape_pack...>::build_internal(int layer,
     }
 
   // split input strings by current layer's character
-  
+
   int layer_shape = this->get_layer_shape(layer);
   std::vector<std::vector<DFAString<ndim, shape_pack...>>> child_strings(layer_shape);
 

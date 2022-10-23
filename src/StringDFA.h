@@ -12,7 +12,7 @@ class StringDFA
 private:
 
   dfa_state_t build_internal(int, const std::vector<DFAString<ndim, shape_pack...>>&);
-  
+
 public:
 
   StringDFA(const std::vector<DFAString<ndim, shape_pack...>>&);
