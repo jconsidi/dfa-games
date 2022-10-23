@@ -9,6 +9,8 @@
 #include "DFAUtil.h"
 #include "Profile.h"
 
+#define COMPACT_THRESHOLD 10
+
 static CountManager count_manager("DNFBuilder");
 
 template <int ndim, int... shape_pack>
@@ -94,15 +96,38 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
 
   profile.tic("compact with new");
 
-  // ensure that the last clause is longer than the previous one, or
-  // has fewer states. this gives a handwavy logarithmic bound on the
-  // number of clauses per clause length.
-  while((clauses.size() >= 2) &&
-	(clauses[clauses.size() - 2].size() == clauses[clauses.size() - 1].size()) &&
-	(clauses[clauses.size() - 2].back()->states() <= clauses[clauses.size() - 1].back()->states()))
+  // trigger compaction if there are too many clauses of the same
+  // length.
+
+  if((clauses.size() >= COMPACT_THRESHOLD) &&
+     (clauses[clauses.size() - COMPACT_THRESHOLD].size() == clause_in.size()))
     {
-      profile.tic("compact_last_two");
-      compact_last_two();
+      int compact_size = clause_in.size();
+      assert(compact_size > 0);
+
+      std::vector<shared_dfa_ptr> compact_todo;
+      while(true)
+	{
+	  compact_todo.push_back(clauses.back().back());
+
+	  if((clauses.size() >= 2) &&
+	     (clauses[clauses.size() - 2].size() == compact_size))
+	    {
+	      // not the last clause of this size
+	      clauses.pop_back();
+	    }
+	  else
+	    {
+	      // last clause of this size, so stop
+	      break;
+	    }
+	}
+      assert(clauses.size() > 0);
+      assert(clauses.back().size() == compact_size);
+
+      clauses.back().pop_back();
+      clauses.back().push_back(DFAUtil<ndim, shape_pack...>::get_union_vector(compact_todo));
+      assert(clauses.back().size() == compact_size);
     }
 
   std::cout << "  " << clauses.size() << " clauses after compact with new" << std::endl;
