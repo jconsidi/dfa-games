@@ -252,7 +252,7 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_i
 					  leaf_func_t leaf_func)
   : DFA<ndim, shape_pack...>()
 {
-  binary_build(left_in, right_in, leaf_func);
+  build_quadratic_mmap(left_in, right_in, leaf_func);
 }
 
 static std::string binary_build_file_prefix(int layer)
@@ -263,11 +263,11 @@ static std::string binary_build_file_prefix(int layer)
 }
 
 template <int ndim, int... shape_pack>
-void BinaryDFA<ndim, shape_pack...>::binary_build(const DFA<ndim, shape_pack...>& left_in,
-						  const DFA<ndim, shape_pack...>& right_in,
-						  leaf_func_t leaf_func)
+void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_pack...>& left_in,
+							  const DFA<ndim, shape_pack...>& right_in,
+							  leaf_func_t leaf_func)
 {
-  Profile profile("binary_build");
+  Profile profile("build_quadratic_mmap");
 
   // identify cases where leaf_func allows full evaluation without
   // going to leaves...
