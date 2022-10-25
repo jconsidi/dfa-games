@@ -336,12 +336,6 @@ const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>
 template <int ndim, int... shape_pack>
 typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_winning_positions(int side_to_move, int moves_max) const
 {
-  return this->get_winning_positions(side_to_move, moves_max, 0);
-}
-
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_winning_positions(int side_to_move, int moves_max, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
-{
   Profile profile("get_winning_positions");
 
   int side_not_to_move = 1 - side_to_move;
@@ -385,19 +379,6 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       tic("winning");
       winning = this->get_moves_reverse(side_to_move, losing);
       std::cout << "  move " << move << ": " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
-
-      tic("stats");
-      if(positions_in && (DFAUtil<ndim, shape_pack...>::get_difference(winning, positions_in)->is_constant(false)))
-	{
-	  std::cout << "  target positions covered" << std::endl;
-	  break;
-	}
-    }
-
-  if(positions_in)
-    {
-      profile.tic("filter winning");
-      winning = DFAUtil<ndim, shape_pack...>::get_intersection(winning, positions_in);
     }
 
   return winning;

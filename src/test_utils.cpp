@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-
+#include "DFAUtil.h"
 
 template<int ndim, int... shape_pack>
 void test_backward(const Game<ndim, shape_pack...>& game_in, int moves_max, bool initial_win_expected)
@@ -23,7 +23,8 @@ void test_backward(const Game<ndim, shape_pack...>& game_in, int moves_max, bool
   // first player should never lose via strategy stealing argument.
 
   std::cout << log_prefix << "get_winning_positions()" << std::endl;
-  auto initial_winning = game_in.get_winning_positions(0, moves_max, initial_positions);
+  auto winning_positions = game_in.get_winning_positions(0, moves_max);
+  auto initial_winning = DFAUtil<ndim, shape_pack...>::get_intersection(initial_positions, winning_positions);
   if(initial_win_expected)
     {
       assert(initial_winning->size() > 0);

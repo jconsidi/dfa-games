@@ -63,7 +63,6 @@ public:
   shared_dfa_ptr get_moves_forward(int, shared_dfa_ptr) const;
   shared_dfa_ptr get_moves_reverse(int, shared_dfa_ptr) const;
   shared_dfa_ptr get_winning_positions(int, int) const;
-  shared_dfa_ptr get_winning_positions(int, int, shared_dfa_ptr) const;
 
   virtual std::string position_to_string(const dfa_string_type&) const = 0;
 };
