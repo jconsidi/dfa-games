@@ -75,8 +75,8 @@ int main()
 
   // chess-specific tests
 
-  profile.tic("get_initial_positions");
-  shared_dfa_ptr initial_positions = chess.get_initial_positions();
+  profile.tic("get_positions_initial");
+  shared_dfa_ptr initial_positions = chess.get_positions_initial();
   assert(initial_positions);
   assert(initial_positions->size() == 1);
 
@@ -115,14 +115,14 @@ int main()
   shared_dfa_ptr black_check_dfa = ChessGame::from_board(black_check_board);
 
   profile.tic("black_threat_12");
-  shared_dfa_ptr black_threat_12 = chess.get_threat_positions(SIDE_BLACK, 12);
+  shared_dfa_ptr black_threat_12 = chess.get_positions_threat(SIDE_BLACK, 12);
 
   profile.tic("black_threat_confirmed");
   shared_dfa_ptr black_threat_confirmed = DFAUtil<CHESS_DFA_PARAMS>::get_intersection(black_check_dfa, black_threat_12);
   assert(black_threat_confirmed->size() > 0);
 
   profile.tic("black_check_positions");
-  shared_dfa_ptr black_check_positions = chess.get_check_positions(SIDE_BLACK);
+  shared_dfa_ptr black_check_positions = chess.get_positions_check(SIDE_BLACK);
 
   profile.tic("black_check_confirmed");
   shared_dfa_ptr black_check_confirmed = DFAUtil<CHESS_DFA_PARAMS>::get_intersection(black_check_dfa, black_check_positions);

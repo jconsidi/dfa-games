@@ -14,7 +14,7 @@ TicTacToeGame<n, shape_pack...>::TicTacToeGame()
 }
 
 template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_initial_positions_internal() const
+typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_positions_initial() const
 {
   shared_dfa_ptr output = DFAUtil<n*n, shape_pack...>::get_accept();
 
@@ -46,7 +46,7 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
 }
 
 template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_lost_positions_internal(int side_to_move) const
+typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_positions_lost(int side_to_move) const
 {
   shared_dfa_ptr lost_positions = DFAUtil<n*n, shape_pack...>::get_reject();
 
@@ -78,9 +78,15 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
 }
 
 template<int n, int... shape_pack>
+typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_positions_won(int side_to_move) const
+{
+  return DFAUtil<n*n, shape_pack...>::get_reject();
+}
+
+template<int n, int... shape_pack>
 typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pack...>::get_rules_internal(int side_to_move) const
 {
-  shared_dfa_ptr lost_positions = this->get_lost_positions(side_to_move);
+  shared_dfa_ptr lost_positions = this->get_positions_lost(side_to_move);
   shared_dfa_ptr not_lost_positions = DFAUtil<n*n, shape_pack...>::get_inverse(lost_positions);
 
   int side_to_move_piece = 1 + side_to_move;

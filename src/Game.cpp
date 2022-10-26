@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 
 #include "DFAUtil.h"
@@ -51,42 +52,6 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
     }
 
   return this->singleton_has_moves[side_to_move];
-}
-
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_initial_positions() const
-{
-  Profile profile("get_initial_positions");
-
-  if(!(this->singleton_initial_positions))
-    {
-      this->singleton_initial_positions = \
-	load_or_build("initial_positions",
-		      [=]()
-		      {
-			return this->get_initial_positions_internal();
-		      });
-    }
-
-  return this->singleton_initial_positions;
-}
-
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_lost_positions(int side_to_move) const
-{
-  Profile profile("get_lost_positions");
-
-  if(!(this->singleton_lost_positions[side_to_move]))
-    {
-      this->singleton_lost_positions[side_to_move] = \
-	load_or_build("lost_positions-side=" + std::to_string(side_to_move),
-		      [=]()
-		      {
-			return this->get_lost_positions_internal(side_to_move);
-		      });
-    }
-
-  return this->singleton_lost_positions[side_to_move];
 }
 
 template <int ndim, int... shape_pack>
@@ -277,6 +242,79 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 }
 
 template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_positions_losing(int side_to_move, int ply_max) const
+{
+  Profile profile("get_positions_losing");
+
+  assert(ply_max >= 0);
+
+  std::ostringstream dfa_name_builder;
+  dfa_name_builder << "losing-side=" << side_to_move << ",ply_max=" << ply_max;
+
+  return load_or_build(dfa_name_builder.str(),
+		       [=]()
+		       {
+			 if(ply_max == 0)
+			   {
+			     return get_positions_lost(side_to_move);
+			   }
+
+			 assert(!"implemented");
+		       });
+}
+
+template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_positions_winning(int side_to_move, int ply_max) const
+{
+  Profile profile("get_positions_winning");
+
+  int side_not_to_move = 1 - side_to_move;
+
+  profile.tic("opponent_has_move");
+  shared_dfa_ptr opponent_has_move = this->get_has_moves(side_not_to_move);
+
+  profile.tic("lost");
+  shared_dfa_ptr lost = this->get_positions_lost(side_not_to_move);
+  shared_dfa_ptr losing = lost;
+
+  profile.tic("winning 0");
+  shared_dfa_ptr winning = this->get_moves_reverse(side_to_move, losing);
+  std::cout << "  move 0: " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
+
+  for(int move = 1; move < ply_max; ++move)
+    {
+      auto tic = [&](std::string label_in){profile.tic(label_in + " " + std::to_string(move));};
+
+      tic("not_yet_winning");
+      shared_dfa_ptr not_yet_winning = DFAUtil<ndim, shape_pack...>::get_inverse(winning);
+
+      tic("not_yet_losing");
+      shared_dfa_ptr not_yet_losing(this->get_moves_reverse(side_not_to_move, not_yet_winning));
+
+      tic("losing_more_if_has_move");
+      shared_dfa_ptr losing_more_if_has_move = DFAUtil<ndim, shape_pack...>::get_inverse(not_yet_losing);
+
+      tic("losing_more");
+      shared_dfa_ptr losing_more = DFAUtil<ndim, shape_pack...>::get_intersection(losing_more_if_has_move, opponent_has_move);
+
+      tic("finished check");
+      if(DFAUtil<ndim, shape_pack...>::get_difference(losing_more, losing)->is_constant(false))
+	{
+	  break;
+	}
+
+      tic("losing");
+      losing = DFAUtil<ndim, shape_pack...>::get_union(losing, losing_more);
+
+      tic("winning");
+      winning = this->get_moves_reverse(side_to_move, losing);
+      std::cout << "  move " << move << ": " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
+    }
+
+  return winning;
+}
+
+template <int ndim, int... shape_pack>
 const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>::get_rules_forward(int side_to_move) const
 {
   Profile profile("get_rules_forward");
@@ -331,57 +369,6 @@ const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>
     }
 
   return singleton_rules_reverse[side_to_move];
-}
-
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_winning_positions(int side_to_move, int moves_max) const
-{
-  Profile profile("get_winning_positions");
-
-  int side_not_to_move = 1 - side_to_move;
-
-  profile.tic("opponent_has_move");
-  shared_dfa_ptr opponent_has_move = this->get_has_moves(side_not_to_move);
-
-  profile.tic("lost");
-  shared_dfa_ptr lost = this->get_lost_positions(side_not_to_move);
-  shared_dfa_ptr losing = lost;
-
-  profile.tic("winning 0");
-  shared_dfa_ptr winning = this->get_moves_reverse(side_to_move, losing);
-  std::cout << "  move 0: " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
-
-  for(int move = 1; move < moves_max; ++move)
-    {
-      auto tic = [&](std::string label_in){profile.tic(label_in + " " + std::to_string(move));};
-
-      tic("not_yet_winning");
-      shared_dfa_ptr not_yet_winning = DFAUtil<ndim, shape_pack...>::get_inverse(winning);
-
-      tic("not_yet_losing");
-      shared_dfa_ptr not_yet_losing(this->get_moves_reverse(side_not_to_move, not_yet_winning));
-
-      tic("losing_more_if_has_move");
-      shared_dfa_ptr losing_more_if_has_move = DFAUtil<ndim, shape_pack...>::get_inverse(not_yet_losing);
-
-      tic("losing_more");
-      shared_dfa_ptr losing_more = DFAUtil<ndim, shape_pack...>::get_intersection(losing_more_if_has_move, opponent_has_move);
-
-      tic("finished check");
-      if(DFAUtil<ndim, shape_pack...>::get_difference(losing_more, losing)->is_constant(false))
-	{
-	  break;
-	}
-
-      tic("losing");
-      losing = DFAUtil<ndim, shape_pack...>::get_union(losing, losing_more);
-
-      tic("winning");
-      winning = this->get_moves_reverse(side_to_move, losing);
-      std::cout << "  move " << move << ": " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
-    }
-
-  return winning;
 }
 
 template <int ndim, int... shape_pack>

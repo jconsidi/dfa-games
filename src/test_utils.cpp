@@ -11,19 +11,21 @@ void test_backward(const Game<ndim, shape_pack...>& game_in, int moves_max, bool
 {
   std::string log_prefix = "test_backward: ";
 
+#if 0
   std::cout << log_prefix << "get_lost_positions()" << std::endl;
 
   for(int side_to_move = 0; side_to_move < 2; ++side_to_move)
     {
       game_in.get_lost_positions(side_to_move);
     }
+#endif
 
-  auto initial_positions = game_in.get_initial_positions();
+  auto initial_positions = game_in.get_positions_initial();
 
   // first player should never lose via strategy stealing argument.
 
-  std::cout << log_prefix << "get_winning_positions()" << std::endl;
-  auto winning_positions = game_in.get_winning_positions(0, moves_max);
+  std::cout << log_prefix << "get_positions_winning()" << std::endl;
+  auto winning_positions = game_in.get_positions_winning(0, moves_max);
   auto initial_winning = DFAUtil<ndim, shape_pack...>::get_intersection(initial_positions, winning_positions);
   if(initial_win_expected)
     {
@@ -44,9 +46,9 @@ void test_forward(const Game<ndim, shape_pack...>& game_in, const std::vector<si
 
   std::string log_prefix = "test_forward: ";
 
-  std::cout << log_prefix << "get_initial_positions()" << std::endl;
+  std::cout << log_prefix << "get_positions_initial()" << std::endl;
 
-  auto initial_positions = game_in.get_initial_positions();
+  auto initial_positions = game_in.get_positions_initial();
   assert(initial_positions);
 
   for(auto iter = initial_positions->cbegin();

@@ -22,8 +22,10 @@ template<int n, int... shape_pack>
 
  private:
 
-  virtual shared_dfa_ptr get_initial_positions_internal() const;
-  virtual shared_dfa_ptr get_lost_positions_internal(int) const;
+  virtual shared_dfa_ptr get_positions_initial() const;
+  virtual shared_dfa_ptr get_positions_lost(int) const;
+  virtual shared_dfa_ptr get_positions_won(int) const;
+
   virtual rule_vector get_rules_internal(int) const;
 
   static shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta);

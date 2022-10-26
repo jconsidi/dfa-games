@@ -34,13 +34,9 @@ public:
 private:
 
   mutable shared_dfa_ptr singleton_has_moves[2] = {0, 0};
-  mutable shared_dfa_ptr singleton_initial_positions = 0;
-  mutable shared_dfa_ptr singleton_lost_positions[2] = {0, 0};
   mutable rule_vector singleton_rules_forward[2] = {};
   mutable rule_vector singleton_rules_reverse[2] = {};
 
-  virtual shared_dfa_ptr get_initial_positions_internal() const = 0;
-  virtual shared_dfa_ptr get_lost_positions_internal(int) const = 0;
   virtual rule_vector get_rules_internal(int) const = 0;
 
   shared_dfa_ptr get_moves_internal(const rule_vector&, shared_dfa_ptr) const;
@@ -54,15 +50,22 @@ protected:
 
 public:
 
+  // move generation
   shared_dfa_ptr get_has_moves(int) const;
-  shared_dfa_ptr get_initial_positions() const;
+
+  shared_dfa_ptr get_moves_forward(int, shared_dfa_ptr) const;
+  shared_dfa_ptr get_moves_reverse(int, shared_dfa_ptr) const;
+
+  virtual shared_dfa_ptr get_positions_initial() const = 0;
+  virtual shared_dfa_ptr get_positions_losing(int, int) const; // side to move loses in at most given ply
+  virtual shared_dfa_ptr get_positions_lost(int) const = 0; // side to move has lost, no moves available
+  virtual shared_dfa_ptr get_positions_winning(int, int) const; // side to move wins in at most given ply
+  virtual shared_dfa_ptr get_positions_won(int) const = 0; // side to move has won, no moves available
+
   const rule_vector& get_rules_forward(int) const;
   const rule_vector& get_rules_reverse(int) const;
 
-  shared_dfa_ptr get_lost_positions(int) const;
-  shared_dfa_ptr get_moves_forward(int, shared_dfa_ptr) const;
-  shared_dfa_ptr get_moves_reverse(int, shared_dfa_ptr) const;
-  shared_dfa_ptr get_winning_positions(int, int) const;
+  // position evaluation
 
   virtual std::string position_to_string(const dfa_string_type&) const = 0;
 };
