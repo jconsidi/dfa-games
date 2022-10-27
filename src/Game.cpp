@@ -30,55 +30,12 @@ std::string quick_stats(const DFA<ndim, shape_pack...>& dfa_in)
 }
 
 template <int ndim, int... shape_pack>
-Game<ndim, shape_pack...>::Game(std::string name_in)
-  : name(name_in)
+void sort_rules(typename Game<ndim, shape_pack...>::rule_vector& rules)
 {
-}
+  Profile profile("sort_rules");
 
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_has_moves(int side_to_move) const
-{
-  Profile profile("get_has_moves");
-
-  if(!(this->singleton_has_moves[side_to_move]))
-    {
-      this->singleton_has_moves[side_to_move] = \
-	load_or_build("has_moves-side=" + std::to_string(side_to_move),
-		      [=]()
-		      {
-			shared_dfa_ptr all_positions = DFAUtil<ndim, shape_pack...>::get_accept();
-			return this->get_moves_backward(side_to_move, all_positions);
-		      });
-    }
-
-  return this->singleton_has_moves[side_to_move];
-}
-
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_forward(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
-{
-  Profile profile("get_moves_forward");
-
-  const rule_vector& rules = get_rules_forward(side_to_move);
-
-  return get_moves_internal(rules, positions_in);
-}
-
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_internal(const typename Game<ndim, shape_pack...>::rule_vector& rules_in, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
-{
-  Profile profile("get_moves_internal");
-
-  std::cout << "get_moves_internal(...)" << std::endl;
-
-  assert(rules_in.size() > 0);
-
-  // sort rules to improve intersection sharing...
-
-  profile.tic("sort rules");
-
-  rule_vector rules = rules_in;
-  std::stable_sort(rules.begin(), rules.end(), [](const rule_type& a, const rule_type& b)
+  std::stable_sort(rules.begin(), rules.end(), [](const typename Game<ndim, shape_pack...>::rule_type& a,
+						  const typename Game<ndim, shape_pack...>::rule_type& b)
   {
     // compare post conditions
     //
@@ -158,6 +115,57 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
     // do not compare change rule
     return false;
   });
+}
+
+template <int ndim, int... shape_pack>
+Game<ndim, shape_pack...>::Game(std::string name_in)
+  : name(name_in)
+{
+}
+
+template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_has_moves(int side_to_move) const
+{
+  Profile profile("get_has_moves");
+
+  if(!(this->singleton_has_moves[side_to_move]))
+    {
+      this->singleton_has_moves[side_to_move] = \
+	load_or_build("has_moves-side=" + std::to_string(side_to_move),
+		      [=]()
+		      {
+			shared_dfa_ptr all_positions = DFAUtil<ndim, shape_pack...>::get_accept();
+			return this->get_moves_backward(side_to_move, all_positions);
+		      });
+    }
+
+  return this->singleton_has_moves[side_to_move];
+}
+
+template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_forward(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
+{
+  Profile profile("get_moves_forward");
+
+  const rule_vector& rules = get_rules_forward(side_to_move);
+
+  return get_moves_internal(rules, positions_in);
+}
+
+template <int ndim, int... shape_pack>
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_internal(const typename Game<ndim, shape_pack...>::rule_vector& rules_in, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
+{
+  Profile profile("get_moves_internal");
+
+  std::cout << "get_moves_internal(...)" << std::endl;
+
+  assert(rules_in.size() > 0);
+
+  // sort rules to improve intersection sharing...
+
+  profile.tic("sort rules");
+  rule_vector rules = rules_in;
+  sort_rules<ndim, shape_pack...>(rules);
 
   profile.tic("data structure setup");
 
