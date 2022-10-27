@@ -161,23 +161,17 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
   assert(rules_in.size() > 0);
 
-  // sort rules to improve intersection sharing...
-
-  profile.tic("sort rules");
-  rule_vector rules = rules_in;
-  sort_rules<ndim, shape_pack...>(rules);
-
   profile.tic("data structure setup");
 
   IntersectionManager<ndim, shape_pack...> manager;
   DNFBuilder<ndim, shape_pack...> output_builder;
 
-  int num_rules = rules.size();
+  int num_rules = rules_in.size();
   for(int i = 0; i < num_rules; ++i)
     {
       profile.tic("rule init");
 
-      const rule_type& rule = rules[i];
+      const rule_type& rule = rules_in[i];
 
       std::cout << " rule " << i << "/" << num_rules << ": " << std::get<3>(rule) << std::endl;
 
@@ -332,6 +326,7 @@ const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>
   if(singleton_rules_forward[side_to_move].size() == 0)
     {
       singleton_rules_forward[side_to_move] = this->get_rules_internal(side_to_move);
+      sort_rules<ndim, shape_pack...>(singleton_rules_forward[side_to_move]);
     }
 
   return singleton_rules_forward[side_to_move];
@@ -374,6 +369,8 @@ const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>
 				     std::get<0>(rule_forward),
 				     std::get<3>(rule_forward));
 	}
+
+      sort_rules<ndim, shape_pack...>(rules_backward);
     }
 
   return singleton_rules_backward[side_to_move];
