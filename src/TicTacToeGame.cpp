@@ -84,14 +84,14 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
 }
 
 template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pack...>::get_rules_internal(int side_to_move) const
+typename TicTacToeGame<n, shape_pack...>::step_vector TicTacToeGame<n, shape_pack...>::get_steps_internal(int side_to_move) const
 {
   shared_dfa_ptr lost_positions = this->get_positions_lost(side_to_move);
   shared_dfa_ptr not_lost_positions = DFAUtil<n*n, shape_pack...>::get_inverse(lost_positions);
 
   int side_to_move_piece = 1 + side_to_move;
 
-  rule_vector output;
+  step_vector output(1);
   for(int move_index = 0; move_index < n * n; ++move_index)
     {
       std::vector<shared_dfa_ptr> pre_conditions;
@@ -115,13 +115,13 @@ typename TicTacToeGame<n, shape_pack...>::rule_vector TicTacToeGame<n, shape_pac
       post_conditions.emplace_back(not_lost_positions);
       post_conditions.emplace_back(DFAUtil<n*n, shape_pack...>::get_fixed(move_index, 1 + side_to_move));
 
-      output.emplace_back(pre_conditions,
-			  changes,
-			  post_conditions,
-			  "move_index=" + std::to_string(move_index));
+      output[0].emplace_back(pre_conditions,
+			     changes,
+			     post_conditions,
+			     "move_index=" + std::to_string(move_index));
     }
 
-  assert(output.size() == n * n);
+  assert(output[0].size() == n * n);
 
   return output;
 }

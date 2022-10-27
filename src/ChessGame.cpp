@@ -522,9 +522,9 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_positions_won(int side_to_move
   return DFAUtil<CHESS_DFA_PARAMS>::get_reject();
 }
 
-typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) const
+typename ChessGame::step_vector ChessGame::get_steps_internal(int side_to_move) const
 {
-  Profile profile("get_rules_internal");
+  Profile profile("get_steps_internal");
 
   shared_dfa_ptr basic_positions = get_positions_basic();
   shared_dfa_ptr check_positions = get_positions_check(side_to_move);
@@ -542,7 +542,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
   // collect rules
 
-  rule_vector rules_out;
+  step_vector steps_out(1);
 
   std::function<rule_vector(const rule_vector&)> handle_castle_rights =
     [](const rule_vector& rules_in)
@@ -700,7 +700,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
 
       for(rule_type rule : rules_temp)
 	{
-	  rules_out.push_back(rule);
+	  steps_out[0].push_back(rule);
 	}
     };
 
@@ -1098,7 +1098,7 @@ typename ChessGame::rule_vector ChessGame::get_rules_internal(int side_to_move) 
       add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 7);
     }
 
-  return rules_out;
+  return steps_out;
 }
 
 Board ChessGame::position_to_board(int side_to_move, const dfa_string_type& position_in) const

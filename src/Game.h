@@ -30,16 +30,19 @@ public:
 
   typedef std::tuple<std::vector<shared_dfa_ptr>, change_vector, std::vector<shared_dfa_ptr>, std::string> rule_type;
   typedef std::vector<rule_type> rule_vector;
+  typedef std::vector<rule_vector> step_vector;
 
 private:
 
   mutable shared_dfa_ptr singleton_has_moves[2] = {0, 0};
-  mutable rule_vector singleton_rules_backward[2] = {};
-  mutable rule_vector singleton_rules_forward[2] = {};
+  mutable step_vector singleton_steps_backward[2] = {};
+  mutable step_vector singleton_steps_forward[2] = {};
 
-  virtual rule_vector get_rules_internal(int) const = 0;
+  const step_vector& get_steps_backward(int) const;
+  const step_vector& get_steps_forward(int) const;
+  virtual step_vector get_steps_internal(int) const = 0;
 
-  shared_dfa_ptr get_moves_internal(const rule_vector&, shared_dfa_ptr) const;
+  shared_dfa_ptr get_moves_internal(const step_vector&, shared_dfa_ptr) const;
 
 protected:
 
@@ -61,9 +64,6 @@ public:
   virtual shared_dfa_ptr get_positions_lost(int) const = 0; // side to move has lost, no moves available
   virtual shared_dfa_ptr get_positions_winning(int, int) const; // side to move wins in at most given ply
   virtual shared_dfa_ptr get_positions_won(int) const = 0; // side to move has won, no moves available
-
-  const rule_vector& get_rules_backward(int) const;
-  const rule_vector& get_rules_forward(int) const;
 
   // position evaluation
 

@@ -11,10 +11,10 @@ class ChessGame : public Game<CHESS_DFA_PARAMS>
 {
 private:
 
-  virtual rule_vector get_rules_internal(int) const;
-
   shared_dfa_ptr get_positions_basic() const;
   shared_dfa_ptr get_positions_king(int) const;
+
+  virtual step_vector get_steps_internal(int) const;
 
 public:
 
