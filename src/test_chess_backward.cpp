@@ -1,4 +1,4 @@
-// test_chess_reverse.cpp
+// test_chess_backward.cpp
 
 #include "ChessGame.h"
 #include "Profile.h"

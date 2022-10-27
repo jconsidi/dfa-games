@@ -47,7 +47,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 		      [=]()
 		      {
 			shared_dfa_ptr all_positions = DFAUtil<ndim, shape_pack...>::get_accept();
-			return this->get_moves_reverse(side_to_move, all_positions);
+			return this->get_moves_backward(side_to_move, all_positions);
 		      });
     }
 
@@ -232,13 +232,13 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 }
 
 template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_reverse(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_backward(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
 {
-  Profile profile("get_moves_reverse");
+  Profile profile("get_moves_backward");
 
-  const rule_vector& rules_reverse = get_rules_reverse(side_to_move);
+  const rule_vector& rules_backward = get_rules_backward(side_to_move);
 
-  return get_moves_internal(rules_reverse, positions_in);
+  return get_moves_internal(rules_backward, positions_in);
 }
 
 template <int ndim, int... shape_pack>
@@ -278,7 +278,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   shared_dfa_ptr losing = lost;
 
   profile.tic("winning 0");
-  shared_dfa_ptr winning = this->get_moves_reverse(side_to_move, losing);
+  shared_dfa_ptr winning = this->get_moves_backward(side_to_move, losing);
   std::cout << "  move 0: " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
 
   for(int move = 1; move < ply_max; ++move)
@@ -289,7 +289,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       shared_dfa_ptr not_yet_winning = DFAUtil<ndim, shape_pack...>::get_inverse(winning);
 
       tic("not_yet_losing");
-      shared_dfa_ptr not_yet_losing(this->get_moves_reverse(side_not_to_move, not_yet_winning));
+      shared_dfa_ptr not_yet_losing(this->get_moves_backward(side_not_to_move, not_yet_winning));
 
       tic("losing_more_if_has_move");
       shared_dfa_ptr losing_more_if_has_move = DFAUtil<ndim, shape_pack...>::get_inverse(not_yet_losing);
@@ -307,7 +307,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       losing = DFAUtil<ndim, shape_pack...>::get_union(losing, losing_more);
 
       tic("winning");
-      winning = this->get_moves_reverse(side_to_move, losing);
+      winning = this->get_moves_backward(side_to_move, losing);
       std::cout << "  move " << move << ": " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
     }
 
@@ -330,45 +330,45 @@ const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>
 }
 
 template <int ndim, int... shape_pack>
-const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>::get_rules_reverse(int side_to_move) const
+const typename Game<ndim, shape_pack...>::rule_vector& Game<ndim, shape_pack...>::get_rules_backward(int side_to_move) const
 {
-  Profile profile("get_rules_reverse");
+  Profile profile("get_rules_backward");
 
   assert((0 <= side_to_move) && (side_to_move < 2));
 
-  if(singleton_rules_reverse[side_to_move].size() == 0)
+  if(singleton_rules_backward[side_to_move].size() == 0)
     {
       const rule_vector& rules_forward = get_rules_forward(side_to_move);
 
-      rule_vector& rules_reverse = singleton_rules_reverse[side_to_move];
+      rule_vector& rules_backward = singleton_rules_backward[side_to_move];
 
       for(const rule_type& rule_forward : rules_forward)
 	{
 	  const change_vector& changes_forward = std::get<1>(rule_forward);
 
-	  change_vector changes_reverse;
+	  change_vector changes_backward;
 	  for(int i = 0; i < changes_forward.size(); ++i)
 	    {
 	      const change_optional& change_forward = changes_forward[i];
 
 	      if(change_forward.has_value())
 		{
-		  changes_reverse.emplace_back(change_type(std::get<1>(*change_forward), std::get<0>(*change_forward)));
+		  changes_backward.emplace_back(change_type(std::get<1>(*change_forward), std::get<0>(*change_forward)));
 		}
 	      else
 		{
-		  changes_reverse.emplace_back();
+		  changes_backward.emplace_back();
 		}
 	    }
 
-	  rules_reverse.emplace_back(std::get<2>(rule_forward),
-				     changes_reverse,
+	  rules_backward.emplace_back(std::get<2>(rule_forward),
+				     changes_backward,
 				     std::get<0>(rule_forward),
 				     std::get<3>(rule_forward));
 	}
     }
 
-  return singleton_rules_reverse[side_to_move];
+  return singleton_rules_backward[side_to_move];
 }
 
 template <int ndim, int... shape_pack>

@@ -4,9 +4,9 @@ random
 random_uci
 test_bitset
 test_change_dfa
+test_chess_backward
 test_chess_game
 test_chess_limited
-test_chess_reverse
 test_dfa
 test_memorymap
 test_perft
