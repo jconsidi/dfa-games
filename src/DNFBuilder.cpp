@@ -43,7 +43,7 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
   int current_clause_length = clause_in.size();
 
   // partially evaluate previous clauses to manage space growth
-  while(clauses.size() > 0)
+  if(clauses.size() > 0)
     {
       const clause_type& previous_clause = clauses.back();
       int previous_clause_length = previous_clause.size();
@@ -56,13 +56,12 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
 	  ++shared_length;
 	}
 
-      if(shared_length >= previous_clause_length - 1)
+      if(shared_length < previous_clause_length - 1)
 	{
-	  // the previous clause matches except maybe the last DFA
-	  break;
+	  // compact the previous clauses until they match for all but
+	  // the last DFA.
+	  compact(shared_length + 1);
 	}
-
-      compact(shared_length + 1);
     }
 
   std::cout << "  " << clauses.size() << " clauses after compact previous" << std::endl;
