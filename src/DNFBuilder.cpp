@@ -10,6 +10,12 @@
 #include "Profile.h"
 
 #define COMPACT_THRESHOLD 10
+#define CHECK_COMPACT_THRESHOLD(clauses) \
+  ( \
+  (clauses.size() >= COMPACT_THRESHOLD) && \
+  (clauses[clauses.size() - COMPACT_THRESHOLD].size() == clauses.back().size()) \
+    )
+
 
 template <int ndim, int... shape_pack>
 DNFBuilder<ndim, shape_pack...>::DNFBuilder()
@@ -96,8 +102,7 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
   // trigger compaction if there are too many clauses of the same
   // length.
 
-  if((clauses.size() >= COMPACT_THRESHOLD) &&
-     (clauses[clauses.size() - COMPACT_THRESHOLD].size() == clause_in.size()))
+  if(CHECK_COMPACT_THRESHOLD(clauses))
     {
       int compact_size = clause_in.size();
       assert(compact_size > 0);
@@ -164,6 +169,13 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
       compact_last(target_length);
     }
   assert(clauses.back().size() <= target_length);
+
+  // may have just increased number of clauses at the target length,
+  // so maybe compact
+  if(CHECK_COMPACT_THRESHOLD(clauses))
+    {
+      compact_longest();
+    }
 }
 
 template <int ndim, int... shape_pack>
