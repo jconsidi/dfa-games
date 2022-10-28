@@ -101,29 +101,7 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
     {
       int compact_size = clause_in.size();
       assert(compact_size > 0);
-
-      std::vector<shared_dfa_ptr> compact_todo;
-      while(true)
-	{
-	  compact_todo.push_back(clauses.back().back());
-
-	  if((clauses.size() >= 2) &&
-	     (clauses[clauses.size() - 2].size() == compact_size))
-	    {
-	      // not the last clause of this size
-	      clauses.pop_back();
-	    }
-	  else
-	    {
-	      // last clause of this size, so stop
-	      break;
-	    }
-	}
-      assert(clauses.size() > 0);
-      assert(clauses.back().size() == compact_size);
-
-      clauses.back().pop_back();
-      clauses.back().push_back(DFAUtil<ndim, shape_pack...>::get_union_vector(compact_todo));
+      compact_longest();
       assert(clauses.back().size() == compact_size);
     }
 
@@ -176,36 +154,7 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
 
       // at least two clauses at the end with the same length and over
       // target... union all of them together.
-
-      std::vector<shared_dfa_ptr> compact_todo;
-      while(true)
-	{
-	  assert(clauses.back().size() == last_size);
-	  compact_todo.push_back(clauses.back().back());
-
-	  if(clauses.size() == 1)
-	    {
-	      // last clause
-	      clauses.back().pop_back();
-	      break;
-	    }
-	  else if(clauses[clauses.size() - 2].size() != last_size)
-	    {
-	      // last clause of this size
-	      clauses.back().pop_back();
-	      break;
-	    }
-	  else
-	    {
-	      // at least one more clause of this size
-	      clauses.pop_back();
-	    }
-	}
-
-      assert(clauses.size() >= 1);
-      assert(clauses.back().size() == last_size - 1);
-      clauses.back().push_back(DFAUtil<ndim, shape_pack...>::get_union_vector(compact_todo));
-      assert(clauses.back().size() == last_size);
+      compact_longest();
     }
   assert(clauses.size() >= 1);
 
@@ -250,6 +199,53 @@ void DNFBuilder<ndim, shape_pack...>::compact_last(int target_length)
 }
 
 template <int ndim, int... shape_pack>
+void DNFBuilder<ndim, shape_pack...>::compact_longest()
+{
+  Profile profile("compact_longest");
+
+  if(clauses.size() <= 1)
+    {
+      // no work to be done
+      return;
+    }
+
+  // compact clauses tied for longest together
+
+  int longest_size = clauses.back().size();
+  assert(longest_size > 0);
+
+  std::vector<shared_dfa_ptr> compact_todo;
+  while(true)
+    {
+      assert(clauses.back().size() == longest_size);
+      compact_todo.push_back(clauses.back().back());
+
+      if(clauses.size() == 1)
+	{
+	  // last clause
+	  clauses.back().pop_back();
+	  break;
+	}
+      else if(clauses[clauses.size() - 2].size() != longest_size)
+	{
+	  // last clause of this size
+	  clauses.back().pop_back();
+	  break;
+	}
+      else
+	{
+	  // at least one more clause of this size
+	  clauses.pop_back();
+	}
+    }
+
+  assert(clauses.size() >= 1);
+  assert(clauses.back().size() == longest_size - 1);
+  clauses.back().push_back(DFAUtil<ndim, shape_pack...>::get_union_vector(compact_todo));
+  assert(clauses.back().size() == longest_size);
+}
+
+template <int ndim, int... shape_pack>
 typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_pack...>::to_dfa()
 {
   Profile profile("to_dfa");
@@ -274,13 +270,7 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
 
   // merge all the remaining length 1 clauses
 
-  std::vector<shared_dfa_ptr> remaining_clauses;
-  while((clauses.size() > 0) && (clauses.back().size() == 1))
-    {
-      remaining_clauses.push_back(clauses.back().at(0));
-      clauses.pop_back();
-    }
-  clauses.emplace_back(1, DFAUtil<ndim, shape_pack...>::get_union_vector(remaining_clauses));
+  compact_longest();
   assert(clauses.size() == 1);
 
   // return output

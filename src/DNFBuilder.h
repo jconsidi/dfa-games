@@ -27,6 +27,7 @@ class DNFBuilder
 
   void compact(int);
   void compact_last(int);
+  void compact_longest();
 
  public:
 
