@@ -209,8 +209,7 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
     }
   assert(clauses.size() >= 1);
 
-  clause_type& last_clause = clauses.back();
-  if(last_clause.size() > target_length)
+  if(clauses.back().size() > target_length)
     {
       assert((clauses.size() == 1) || (clauses[clauses.size() - 2].size() <= target_length));
       compact_last(target_length);
