@@ -27,7 +27,7 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
 {
   Profile profile("add_clause");
 
-  profile.tic("check trivial");
+  // trivial cases
 
   if(clauses.size() == 0)
     {
@@ -44,11 +44,10 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
       assert(false);
     }
 
-  profile.tic("compact previous");
+  // compact previous clauses to maintain invariants when new clause added
 
   int current_clause_length = clause_in.size();
 
-  // partially evaluate previous clauses to manage space growth
   if(clauses.size() > 0)
     {
       const clause_type& previous_clause = clauses.back();
@@ -72,9 +71,7 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
 
   std::cout << "  " << clauses.size() << " clauses after compact previous" << std::endl;
 
-  // invariants
-
-  profile.tic("check invariants");
+  // check invariants
 
   if(clauses.size() > 0)
     {
@@ -91,13 +88,7 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
 
   // add new clause
 
-  profile.tic("add new");
-
   clauses.push_back(clause_in);
-
-  // partial compaction to reduce clause accumulation
-
-  profile.tic("compact with new");
 
   // trigger compaction if there are too many clauses of the same
   // length.
@@ -110,8 +101,6 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
       assert(clauses.back().size() == compact_size);
     }
 
-  profile.tic("stats");
-
   std::cout << "  " << clauses.size() << " clauses after compact with new" << std::endl;
 
   std::cout << "  " << clauses[0].size() << "|" << clauses[0].back()->states();
@@ -120,8 +109,6 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
       std::cout << ", " << clauses[i].size() << "|" << clauses[i].back()->states();
     }
   std::cout << std::endl;
-
-  profile.tic("done");
 }
 
 template <int ndim, int... shape_pack>
