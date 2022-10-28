@@ -634,69 +634,11 @@ typename ChessGame::step_vector ChessGame::get_steps_internal(int side_to_move) 
       return rules_out;
     };
 
-  // setup clearing en passant pawns
-
-  int clear_en_passant_square_min = (side_to_move == SIDE_WHITE) ? 24 : 32;
-  int clear_en_passant_square_max = clear_en_passant_square_min + 8;
-
-  int clear_en_passant_pawn_character = (side_to_move == SIDE_WHITE) ? DFA_BLACK_PAWN_EN_PASSANT : DFA_WHITE_PAWN_EN_PASSANT;
-  int clear_pawn_character = (side_to_move == SIDE_WHITE) ? DFA_BLACK_PAWN : DFA_WHITE_PAWN;
-
-  shared_dfa_ptr no_en_passant_pawns = DFAUtil<CHESS_DFA_PARAMS>::get_accept();
-  for(int square = clear_en_passant_square_min;
-      square < clear_en_passant_square_max;
-      ++square)
-    {
-      int layer = square + CHESS_SQUARE_OFFSET;
-      no_en_passant_pawns =
-	DFAUtil<CHESS_DFA_PARAMS>::get_difference
-	(
-	 no_en_passant_pawns,
-	 DFAUtil<CHESS_DFA_PARAMS>::get_fixed(layer, clear_en_passant_pawn_character)
-	 );
-    }
-
-  std::function<rule_vector(const rule_vector&)> handle_en_passant_pawns =
-    [=](const rule_vector& rules_in)
-    {
-      rule_vector rules_temp;
-      for(rule_type rule : rules_in)
-	{
-	  // add post condition that there are no en passant pawns for
-	  // the other side.
-	  std::get<2>(rule).push_back(no_en_passant_pawns);
-
-	  // easy case where the no en passant pawns already
-	  rules_temp.push_back(rule);
-
-	  // check all the cases where en passant pawns need that
-	  // status stripped.
-	  change_vector& changes = std::get<1>(rule);
-
-	  for(int square = clear_en_passant_square_min;
-	      square < clear_en_passant_square_max;
-	      ++square)
-	    {
-	      int layer = square + CHESS_SQUARE_OFFSET;
-	      if(!changes[layer].has_value())
-		{
-		  // temporarily add a change clearing en passant
-		  // status and add the changed rule to the output.
-		  changes[layer] = change_type(clear_en_passant_pawn_character, clear_pawn_character);
-		  rules_temp.push_back(rule);
-		  changes[layer] = change_optional();
-		}
-	    }
-	}
-      return rules_temp;
-    };
-
   std::function<void(const rule_vector&)> add_output =
     [&](const rule_vector& rules_in)
     {
       rule_vector rules_temp = rules_in;
       rules_temp = handle_castle_rights(rules_temp);
-      rules_temp = handle_en_passant_pawns(rules_temp);
 
       for(rule_type rule : rules_temp)
 	{
@@ -1096,6 +1038,56 @@ typename ChessGame::step_vector ChessGame::get_steps_internal(int side_to_move) 
 
       add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 0);
       add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 7);
+    }
+
+  // second step - clear en passant status
+
+  steps_out.emplace_back();
+  rule_vector& clear_en_passant_rules = steps_out.at(1);
+
+  int clear_en_passant_square_min = (side_to_move == SIDE_WHITE) ? 24 : 32;
+  int clear_en_passant_square_max = clear_en_passant_square_min + 8;
+
+  int clear_en_passant_pawn_character = (side_to_move == SIDE_WHITE) ? DFA_BLACK_PAWN_EN_PASSANT : DFA_WHITE_PAWN_EN_PASSANT;
+  int clear_pawn_character = (side_to_move == SIDE_WHITE) ? DFA_BLACK_PAWN : DFA_WHITE_PAWN;
+
+  shared_dfa_ptr no_en_passant_pawns = DFAUtil<CHESS_DFA_PARAMS>::get_accept();
+  for(int square = clear_en_passant_square_min;
+      square < clear_en_passant_square_max;
+      ++square)
+    {
+      int layer = square + CHESS_SQUARE_OFFSET;
+      no_en_passant_pawns =
+	DFAUtil<CHESS_DFA_PARAMS>::get_difference
+	(
+	 no_en_passant_pawns,
+	 DFAUtil<CHESS_DFA_PARAMS>::get_fixed(layer, clear_en_passant_pawn_character)
+	 );
+    }
+
+  std::vector<shared_dfa_ptr> clear_en_passant_pre_conditions;
+  std::vector<shared_dfa_ptr> clear_en_passant_post_conditions = {no_en_passant_pawns};
+
+  // case: no en passant status to clear
+  clear_en_passant_rules.emplace_back(clear_en_passant_pre_conditions,
+				      change_vector(64 + CHESS_SQUARE_OFFSET),
+				      clear_en_passant_post_conditions,
+				      "no en passant pawns");
+
+  // case: one en passant status to clear
+  for(int square = clear_en_passant_square_min;
+      square < clear_en_passant_square_max;
+      ++square)
+    {
+      int layer = square + CHESS_SQUARE_OFFSET;
+
+      change_vector clear_en_passant_changes(64 + CHESS_SQUARE_OFFSET);
+      clear_en_passant_changes[layer] = change_type(clear_en_passant_pawn_character, clear_pawn_character);
+
+      clear_en_passant_rules.emplace_back(clear_en_passant_pre_conditions,
+					  clear_en_passant_changes,
+					  clear_en_passant_post_conditions,
+					  "clear en passant square=" + std::to_string(square));
     }
 
   return steps_out;
