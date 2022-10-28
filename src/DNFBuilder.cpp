@@ -156,18 +156,22 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
       return;
     }
 
+  // compact clauses at end until at most one is too long
   while((clauses.size() > 1) && (clauses.back().size() > target_length))
     {
       int second_last_size = clauses[clauses.size() - 2].size();
-      int last_size = clauses.back().size();
+      if(second_last_size <= target_length)
+	{
+	  // only last clause needs to be compacted
+	  break;
+	}
 
-      assert(last_size >= second_last_size);
-
-      if(last_size > second_last_size)
+      // make the last two clauses match lengths
+      if(clauses.back().size() > second_last_size)
 	{
 	  compact_last(second_last_size);
-	  continue;
 	}
+      int last_size = clauses.back().size();
       assert(last_size == second_last_size);
 
       // at least two clauses at the end with the same length and over
@@ -208,7 +212,7 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
   clause_type& last_clause = clauses.back();
   if(last_clause.size() > target_length)
     {
-      assert(clauses.size() == 1);
+      assert((clauses.size() == 1) || (clauses[clauses.size() - 2].size() <= target_length));
       compact_last(target_length);
     }
   assert(clauses.back().size() <= target_length);
