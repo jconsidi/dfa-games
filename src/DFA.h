@@ -88,6 +88,7 @@ class DFA
   DFATransitionsReference get_transitions(int, dfa_state_t) const;
 
   bool is_constant(bool) const;
+  bool is_linear() const;
 
   bool ready() const;
   void save(std::string) const;

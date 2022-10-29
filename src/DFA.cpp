@@ -387,6 +387,55 @@ bool DFA<ndim, shape_pack...>::is_constant(bool constant_in) const
 }
 
 template<int ndim, int... shape_pack>
+bool DFA<ndim, shape_pack...>::is_linear() const
+{
+  assert(ready());
+
+  if(initial_state < 2)
+    {
+      // degenerate, but treat this as linear
+      return true;
+    }
+
+  dfa_state_t curr_accept_state = initial_state;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      int layer_shape = this->get_layer_shape(layer);
+      DFATransitionsReference transitions = get_transitions(layer, curr_accept_state);
+
+      int next_accept_state = 0;
+      int i = 0;
+      for(; i < layer_shape; ++i)
+	{
+	  if(transitions[i] != 0)
+	    {
+	      next_accept_state = transitions[i];
+	      break;
+	    }
+	}
+      // DFA construction should guarantee at least one non-rejecting
+      // transition.
+      assert(next_accept_state != 0);
+
+      for(; i < layer_shape; ++i)
+	{
+	  if(transitions[i] == 0)
+	    {
+	      continue;
+	    }
+	  else if(transitions[i] != next_accept_state)
+	    {
+	      return false;
+	    }
+	}
+
+      curr_accept_state = next_accept_state;
+    }
+
+  return true;
+}
+
+template<int ndim, int... shape_pack>
 bool DFA<ndim, shape_pack...>::ready() const
 {
   return initial_state != ~dfa_state_t(0);
