@@ -2,6 +2,7 @@
 
 #include "DFAUtil.h"
 
+#include <iostream>
 #include <map>
 #include <queue>
 
