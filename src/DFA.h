@@ -4,7 +4,6 @@
 #define DFA_H
 
 #include <ctype.h>
-#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -81,8 +80,6 @@ class DFA
 
   DFAIterator<ndim, shape_pack...> cbegin() const;
   DFAIterator<ndim, shape_pack...> cend() const;
-
-  void debug_example(std::ostream&) const;
 
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;

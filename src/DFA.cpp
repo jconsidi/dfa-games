@@ -7,7 +7,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -313,65 +312,6 @@ DFAIterator<ndim, shape_pack...> DFA<ndim, shape_pack...>::cend() const
     }
 
   return DFAIterator<ndim, shape_pack...>(*this, characters);
-}
-
-template<int ndim, int... shape_pack>
-void DFA<ndim, shape_pack...>::debug_example(std::ostream& os) const
-{
-  // identify reject state (if any) at each layer
-
-  std::vector<int> reject_states(ndim+1);
-  reject_states[ndim] = 0;
-  for(int layer = ndim - 1; layer >= 0; --layer)
-    {
-      reject_states[layer] = -1;
-
-      int layer_shape = this->get_layer_shape(layer);
-      int layer_size = this->get_layer_size(layer);
-      for(int state_index = 0; state_index < layer_size; ++state_index)
-	{
-	  bool maybe_reject = true;
-	  DFATransitionsReference transitions = this->get_transitions(layer, state_index);
-	  for(int i = 0; i < layer_shape; ++i)
-	    {
-	      if(transitions[i] != reject_states[layer+1])
-		{
-		  maybe_reject = false;
-		  break;
-		}
-	    }
-	  if(maybe_reject)
-	    {
-	      reject_states[layer] = state_index;
-	      break;
-	    }
-	}
-    }
-
-  if(reject_states[0] == 0)
-    {
-      os << "DFA rejects all inputs" << std::endl;
-      return;
-    }
-
-  // output first accepted state
-
-  dfa_state_t state_index = 0;
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      int layer_shape = this->get_layer_shape(layer);
-      DFATransitionsReference transitions = this->get_transitions(layer, state_index);
-
-      for(int i = 0; i < layer_shape; ++i)
-	{
-	  if(transitions[i] != reject_states[layer+1])
-	    {
-	      os << "layer[" << layer << "] = " << i << std::endl;
-	      state_index = transitions[i];
-	      break;
-	    }
-	}
-    }
 }
 
 template<int ndim, int... shape_pack>
