@@ -170,12 +170,6 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
       return get_reject();
     }
 
-  if(left_in->states() > right_in->states())
-    {
-      // BinaryDFA prefers smaller left sometimes
-      std::swap(left_in, right_in);
-    }
-
   return _singleton_if_constant(shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(*left_in, *right_in)));
 }
 
@@ -228,12 +222,6 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
   else if(right_in->is_constant(false))
     {
       return left_in;
-    }
-
-  if(left_in->states() > right_in->states())
-    {
-      // BinaryDFA prefers smaller left sometimes
-      std::swap(left_in, right_in);
     }
 
   return _singleton_if_constant(shared_dfa_ptr(new UnionDFA<ndim, shape_pack...>(*left_in, *right_in)));
