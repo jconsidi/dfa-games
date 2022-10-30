@@ -13,6 +13,7 @@
 template <int ndim, int... shape_pack>
 class BinaryDFA : public DFA<ndim, shape_pack...>
 {
+  void build_linear(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, const BinaryFunction&);
   void build_quadratic_mmap(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, const BinaryFunction&);
 
 public:

@@ -15,6 +15,7 @@
 #include "Flashsort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
+#include "VectorBitSet.h"
 
 template <int ndim, int... shape_pack>
 class LayerTransitionsIterator;
@@ -252,6 +253,48 @@ BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_i
 					  const BinaryFunction& leaf_func)
   : DFA<ndim, shape_pack...>()
 {
+  // both inputs constant
+  if((left_in.get_initial_state() < 2) && (right_in.get_initial_state() < 2))
+    {
+      this->set_initial_state(leaf_func(left_in.get_initial_state(),
+					right_in.get_initial_state()));
+      return;
+    }
+
+  // constant sink cases
+  for(int i = 0; i < 2; ++i)
+    {
+      if(left_in.is_constant(i) && leaf_func.has_left_sink(i))
+	{
+	  this->set_initial_state(i);
+	  return;
+	}
+
+      if(right_in.is_constant(i) && leaf_func.has_right_sink(i))
+	{
+	  this->set_initial_state(i);
+	  return;
+	}
+    }
+
+  // linear cases
+  if(left_in.is_linear() &&
+     leaf_func.has_left_sink(0))
+    {
+      // left side is linear DFA
+      build_linear(left_in, right_in, leaf_func);
+      return;
+    }
+  else if(right_in.is_linear() &&
+	  leaf_func.is_commutative() &&
+	  leaf_func.has_right_sink(0))
+    {
+      // right side is linear DFA and confirmed commutative property
+      build_linear(right_in, left_in, leaf_func);
+      return;
+    }
+
+  // quadratic default
   build_quadratic_mmap(left_in, right_in, leaf_func);
 }
 
@@ -260,6 +303,153 @@ static std::string binary_build_file_prefix(int layer)
   std::ostringstream filename_builder;
   filename_builder << "scratch/binarydfa/layer=" << (layer < 9 ? "0" : "") << (layer + 1);
   return filename_builder.str();
+}
+
+template <int ndim, int... shape_pack>
+void BinaryDFA<ndim, shape_pack...>::build_linear(const DFA<ndim, shape_pack...>& left_in,
+						  const DFA<ndim, shape_pack...>& right_in,
+						  const BinaryFunction& leaf_func)
+{
+  Profile profile("build_linear");
+
+  assert(left_in.is_linear());
+  assert(leaf_func.has_left_sink(0));
+
+  // 0. identify left states used, and which transitions are kept.
+  //
+  // 1. forward pass to identify all right states reachable from
+  // initial state.
+  //
+  // 2. backward pass rewriting states reachable in forward pass.
+
+  // identify left states used
+
+  std::vector<dfa_state_t> left_states = {left_in.get_initial_state()};
+  std::vector<std::vector<bool>> left_filters;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      int layer_shape = left_in.get_layer_shape(layer);
+      left_filters.emplace_back(layer_shape);
+
+      DFATransitionsReference left_transitions = left_in.get_transitions(layer, left_states.at(layer));
+
+      dfa_state_t next_left_state = 0;
+      for(int i = 0; i < layer_shape; ++i)
+	{
+	  dfa_state_t left_temp = left_transitions[i];
+	  if(left_temp != 0)
+	    {
+	      next_left_state = left_temp;
+	      left_filters[layer][i] = true;
+	    }
+	}
+      assert(next_left_state);
+      left_states.push_back(next_left_state);
+    }
+  assert(left_states.size() == ndim + 1);
+  assert(left_states[ndim] == 1);
+  assert(left_filters.size() == ndim);
+
+  ////////////////////////////////////////////////////////////
+  // forward pass finding right reachable states /////////////
+  ////////////////////////////////////////////////////////////
+
+  std::vector<VectorBitSet> right_reachable;
+
+  // first layer has just the initial state reachable
+  right_reachable.emplace_back(right_in.get_layer_size(0));
+  right_reachable[0].add(right_in.get_initial_state());
+
+  // expand each layer's reachable states to find next layer's
+  // reachable states.
+  for(int layer = 0; layer < ndim - 1; ++layer)
+    {
+      int layer_shape = right_in.get_layer_shape(layer);
+
+      right_reachable.emplace_back(right_in.get_layer_size(layer+1));
+      VectorBitSet& next_reachable = right_reachable.back();
+
+      for(dfa_state_t curr_state: std::as_const(right_reachable[layer]))
+	{
+	  DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_state);
+	  for(int i = 0; i < layer_shape; ++i)
+	    {
+	      if(left_filters[layer][i])
+		{
+		  next_reachable.add(right_transitions[i]);
+		}
+	    }
+	}
+    }
+  assert(right_reachable.size() == ndim);
+
+  // prune if nothing reachable at the end
+
+  if(right_reachable[ndim - 1].count() == 0)
+    {
+      this->set_initial_state(0);
+      return;
+    }
+
+  // expand dummy layer for terminal reject / accept
+  right_reachable.emplace_back(2);
+  right_reachable[ndim].add(0);
+  right_reachable[ndim].add(1);
+
+  ////////////////////////////////////////////////////////////
+  // backward pass rewriting states //////////////////////////
+  ////////////////////////////////////////////////////////////
+
+  std::vector<MemoryMap<dfa_state_t>> changed_states;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      changed_states.emplace_back(right_reachable.at(layer).count());
+    }
+
+  // terminal pseudo-layer
+  changed_states.emplace_back(2);
+  changed_states[ndim][0] = leaf_func(1, 0);
+  changed_states[ndim][1] = leaf_func(1, 1);
+
+  // backward pass
+  for(int layer = ndim - 1; layer >= 0; --layer)
+    {
+      VectorBitSetIndex next_index(right_reachable[layer+1]);
+
+      int layer_shape = this->get_layer_shape(layer);
+
+      std::function<dfa_state_t(dfa_state_t)> get_next_changed = [&](dfa_state_t next_state_in)
+      {
+	assert(right_reachable[layer+1].check(next_state_in));
+	return changed_states[layer+1][next_index.rank(next_state_in)];
+      };
+
+      DFATransitionsStaging transitions_temp(layer_shape, 0);
+
+      dfa_state_t state_out = 0;
+      // rewrite all transitions for each state
+      for(dfa_state_t state_in : right_reachable[layer])
+	{
+	  DFATransitionsReference transitions_in = right_in.get_transitions(layer, state_in);
+	  for(int i = 0; i < layer_shape; ++i)
+	    {
+	      if(left_filters[layer][i])
+		{
+		  transitions_temp[i] = get_next_changed(transitions_in[i]);
+		}
+	    }
+	  changed_states[layer][state_out++] = this->add_state(layer, transitions_temp);
+	}
+      assert(state_out == changed_states[layer].size());
+
+      changed_states.pop_back();
+      assert(changed_states.size() == layer + 1);
+    }
+  assert(changed_states.size() == 1);
+
+  // done
+
+  this->set_initial_state(changed_states[0][0]);
 }
 
 template <int ndim, int... shape_pack>
