@@ -249,7 +249,7 @@ public:
 template <int ndim, int... shape_pack>
 BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
 					  const DFA<ndim, shape_pack...>& right_in,
-					  leaf_func_t leaf_func)
+					  const BinaryFunction& leaf_func)
   : DFA<ndim, shape_pack...>()
 {
   build_quadratic_mmap(left_in, right_in, leaf_func);
@@ -265,7 +265,7 @@ static std::string binary_build_file_prefix(int layer)
 template <int ndim, int... shape_pack>
 void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_pack...>& left_in,
 							  const DFA<ndim, shape_pack...>& right_in,
-							  leaf_func_t leaf_func)
+							  const BinaryFunction& leaf_func)
 {
   Profile profile("build_quadratic_mmap");
 
@@ -273,20 +273,20 @@ void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_
   // going to leaves...
 
   dfa_state_t left_sink = ~dfa_state_t(0);
-  if((leaf_func(0, 0) == 0) && (leaf_func(0, 1) == 0))
+  if(leaf_func.has_left_sink(0))
     {
       left_sink = 0;
     }
-  else if((leaf_func(1, 0) == 1) && (leaf_func(1, 1) == 1))
+  else if(leaf_func.has_left_sink(1))
     {
       left_sink = 1;
     }
   dfa_state_t right_sink = ~dfa_state_t(0);
-  if((leaf_func(0, 0) == 0) && (leaf_func(1, 0) == 0))
+  if(leaf_func.has_right_sink(0))
     {
       right_sink = 0;
     }
-  else if((leaf_func(0, 1) == 1) && (leaf_func(1, 1) == 1))
+  else if(leaf_func.has_right_sink(1))
     {
       right_sink = 1;
     }

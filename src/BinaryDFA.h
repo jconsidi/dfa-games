@@ -7,18 +7,17 @@
 #include <utility>
 #include <vector>
 
+#include "BinaryFunction.h"
 #include "DFA.h"
-
-typedef dfa_state_t (*leaf_func_t)(dfa_state_t, dfa_state_t);
 
 template <int ndim, int... shape_pack>
 class BinaryDFA : public DFA<ndim, shape_pack...>
 {
-  void build_quadratic_mmap(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, leaf_func_t);
+  void build_quadratic_mmap(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, const BinaryFunction&);
 
 public:
 
-  BinaryDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, leaf_func_t);
+  BinaryDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, const BinaryFunction&);
 };
 
 #endif
