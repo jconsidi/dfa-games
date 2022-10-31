@@ -81,6 +81,13 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 }
 
 template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::from_string(const dfa_string_type& string_in)
+{
+  std::vector<dfa_string_type> strings = {string_in};
+  return shared_dfa_ptr(new StringDFA<ndim, shape_pack...>(strings));
+}
+
+template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::from_strings(const std::vector<dfa_string_type>& strings_in)
 {
   // degenerate case
