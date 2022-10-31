@@ -81,10 +81,16 @@ void test_game(const Game<ndim, shape_pack...>& game_in, const std::vector<size_
 
 // template instantiations
 
-#include "ChessGame.h"
-#include "TicTacToeGame.h"
+#include "DFAParams.h"
 
-template void test_game<CHESS_DFA_PARAMS>(const Game<CHESS_DFA_PARAMS>&, const std::vector<size_t>&, int, bool);
-template void test_game<TICTACTOE2_DFA_PARAMS>(const Game<TICTACTOE2_DFA_PARAMS>&, const std::vector<size_t>&, int, bool);
-template void test_game<TICTACTOE3_DFA_PARAMS>(const Game<TICTACTOE3_DFA_PARAMS>&, const std::vector<size_t>&, int, bool);
-template void test_game<TICTACTOE4_DFA_PARAMS>(const Game<TICTACTOE4_DFA_PARAMS>&, const std::vector<size_t>&, int, bool);
+#define INSTANTIATE_TEMPLATE(params)			       \
+  template void test_game<params>(const Game<params>&, const std::vector<size_t>&, int, bool)
+
+INSTANTIATE_TEMPLATE(CHESS_DFA_PARAMS);
+INSTANTIATE_TEMPLATE(NORMALNIM1_DFA_PARAMS);
+INSTANTIATE_TEMPLATE(NORMALNIM2_DFA_PARAMS);
+INSTANTIATE_TEMPLATE(NORMALNIM3_DFA_PARAMS);
+INSTANTIATE_TEMPLATE(NORMALNIM4_DFA_PARAMS);
+INSTANTIATE_TEMPLATE(TICTACTOE2_DFA_PARAMS);
+INSTANTIATE_TEMPLATE(TICTACTOE3_DFA_PARAMS);
+INSTANTIATE_TEMPLATE(TICTACTOE4_DFA_PARAMS);

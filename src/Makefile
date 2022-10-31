@@ -4,7 +4,7 @@ CXX=c++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g -ferror-limit=1
 
-TARGETS=divide generate_moves random random_uci test_bitset test_change_dfa test_chess_game test_chess_backward test_dfa test_perft test_perft_u test_tictactoe_game
+TARGETS=divide generate_moves random random_uci test_bitset test_change_dfa test_chess_game test_chess_backward test_dfa test_normal_nim_game test_perft test_perft_u test_tictactoe_game
 
 all : $(TARGETS)
 
@@ -72,6 +72,9 @@ test_dfa : test_dfa.o chess.a
 test_memorymap : test_memorymap.o chess.a
 	$(CXX) -o $@ $^
 
+test_normal_nim_game : test_normal_nim_game.o chess.a test_utils.o
+	$(CXX) -o $@ $^
+
 test_perft : test_perft.o chess.a PerftTestCases.o
 	$(CXX) -o $@ $^
 
@@ -81,7 +84,7 @@ test_perft_u : test_perft_u.o chess.a PerftTestCases.o
 test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a test_utils.o
 	$(CXX) -o $@ $^
 
-chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o Game.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MemoryMap.o MoveSet.o Profile.o RejectDFA.o StringDFA.o UnionDFA.o VectorBitSet.o utils.o
+chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o Game.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MemoryMap.o MoveSet.o NormalNimGame.o NormalPlayGame.o Profile.o RejectDFA.o StringDFA.o UnionDFA.o VectorBitSet.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################

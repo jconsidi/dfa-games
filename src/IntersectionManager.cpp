@@ -31,10 +31,6 @@ typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr IntersectionMa
 
 // template instantiations
 
-#include "ChessDFAParams.h"
-#include "TicTacToeDFAParams.h"
+#include "DFAParams.h"
 
-template class IntersectionManager<CHESS_DFA_PARAMS>;
-template class IntersectionManager<TICTACTOE2_DFA_PARAMS>;
-template class IntersectionManager<TICTACTOE3_DFA_PARAMS>;
-template class IntersectionManager<TICTACTOE4_DFA_PARAMS>;
+INSTANTIATE_DFA_TEMPLATE(IntersectionManager);
