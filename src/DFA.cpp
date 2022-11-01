@@ -315,6 +315,18 @@ DFAIterator<ndim, shape_pack...> DFA<ndim, shape_pack...>::cend() const
 }
 
 template<int ndim, int... shape_pack>
+bool DFA<ndim, shape_pack...>::contains(const DFAString<ndim, shape_pack...>& string_in) const
+{
+  int current_state = initial_state;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      current_state = this->get_transitions(layer, current_state)[string_in[layer]];
+    }
+
+  return current_state != 0;
+}
+
+template<int ndim, int... shape_pack>
 void DFA<ndim, shape_pack...>::finalize()
 {
   assert(ready());

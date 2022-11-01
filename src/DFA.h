@@ -81,6 +81,8 @@ class DFA
   DFAIterator<ndim, shape_pack...> cbegin() const;
   DFAIterator<ndim, shape_pack...> cend() const;
 
+  bool contains(const DFAString<ndim, shape_pack...>&) const;
+
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   dfa_state_t get_layer_size(int) const;
