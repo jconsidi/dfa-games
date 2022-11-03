@@ -72,7 +72,7 @@ std::string NormalNimGame<n, shape_pack...>::position_to_string(const typename N
 
 // template instantiations
 
-template class NormalNimGame<1, NORMALNIM1_SHAPE_PACK>;
-template class NormalNimGame<2, NORMALNIM2_SHAPE_PACK>;
-template class NormalNimGame<3, NORMALNIM3_SHAPE_PACK>;
-template class NormalNimGame<4, NORMALNIM4_SHAPE_PACK>;
+template class NormalNimGame<NORMALNIM1_DFA_PARAMS>;
+template class NormalNimGame<NORMALNIM2_DFA_PARAMS>;
+template class NormalNimGame<NORMALNIM3_DFA_PARAMS>;
+template class NormalNimGame<NORMALNIM4_DFA_PARAMS>;
