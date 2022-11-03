@@ -522,9 +522,9 @@ typename ChessGame::shared_dfa_ptr ChessGame::get_positions_won(int side_to_move
   return DFAUtil<CHESS_DFA_PARAMS>::get_reject();
 }
 
-typename ChessGame::step_vector ChessGame::get_steps_internal(int side_to_move) const
+typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move) const
 {
-  Profile profile("get_steps_internal");
+  Profile profile("get_phases_internal");
 
   shared_dfa_ptr basic_positions = get_positions_basic();
   shared_dfa_ptr check_positions = get_positions_check(side_to_move);
@@ -542,7 +542,7 @@ typename ChessGame::step_vector ChessGame::get_steps_internal(int side_to_move) 
 
   // collect rules
 
-  step_vector steps_out(1);
+  phase_vector phases_out(1);
 
   std::function<rule_vector(const rule_vector&)> handle_castle_rights =
     [](const rule_vector& rules_in)
@@ -642,7 +642,7 @@ typename ChessGame::step_vector ChessGame::get_steps_internal(int side_to_move) 
 
       for(rule_type rule : rules_temp)
 	{
-	  steps_out[0].push_back(rule);
+	  phases_out[0].push_back(rule);
 	}
     };
 
@@ -1040,10 +1040,10 @@ typename ChessGame::step_vector ChessGame::get_steps_internal(int side_to_move) 
       add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 7);
     }
 
-  // second step - clear en passant status
+  // second phase - clear en passant status
 
-  steps_out.emplace_back();
-  rule_vector& clear_en_passant_rules = steps_out.at(1);
+  phases_out.emplace_back();
+  rule_vector& clear_en_passant_rules = phases_out.at(1);
 
   int clear_en_passant_square_min = (side_to_move == SIDE_WHITE) ? 24 : 32;
   int clear_en_passant_square_max = clear_en_passant_square_min + 8;
@@ -1090,7 +1090,7 @@ typename ChessGame::step_vector ChessGame::get_steps_internal(int side_to_move) 
 					  "clear en passant square=" + std::to_string(square));
     }
 
-  return steps_out;
+  return phases_out;
 }
 
 Board ChessGame::position_to_board(int side_to_move, const dfa_string_type& position_in) const

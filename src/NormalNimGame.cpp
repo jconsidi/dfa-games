@@ -13,12 +13,12 @@ NormalNimGame<n, shape_pack...>::NormalNimGame()
 }
 
 template<int n, int... shape_pack>
-typename NormalNimGame<n, shape_pack...>::step_vector NormalNimGame<n, shape_pack...>::get_steps_internal(int) const
+typename NormalNimGame<n, shape_pack...>::phase_vector NormalNimGame<n, shape_pack...>::get_phases_internal(int) const
 {
-  step_vector steps;
-  steps.emplace_back();
+  phase_vector phases;
+  phases.emplace_back();
 
-  rule_vector& rules = steps[0];
+  rule_vector& rules = phases[0];
 
   // no conditions needed
   const std::vector<shared_dfa_ptr> conditions;
@@ -41,7 +41,7 @@ typename NormalNimGame<n, shape_pack...>::step_vector NormalNimGame<n, shape_pac
 	}
     }
 
-  return steps;
+  return phases;
 }
 
 template<int n, int... shape_pack>

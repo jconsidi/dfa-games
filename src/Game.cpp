@@ -147,9 +147,9 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   Profile profile("get_moves_backward");
 
-  const step_vector& steps_backward = get_steps_backward(side_to_move);
+  const phase_vector& phases_backward = get_phases_backward(side_to_move);
 
-  return get_moves_internal(steps_backward, positions_in);
+  return get_moves_internal(phases_backward, positions_in);
 }
 
 template <int ndim, int... shape_pack>
@@ -157,28 +157,28 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 {
   Profile profile("get_moves_forward");
 
-  const step_vector& steps_forward = get_steps_forward(side_to_move);
+  const phase_vector& phases_forward = get_phases_forward(side_to_move);
 
-  return get_moves_internal(steps_forward, positions_in);
+  return get_moves_internal(phases_forward, positions_in);
 }
 
 template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_internal(const typename Game<ndim, shape_pack...>::step_vector& steps_in, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
+typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_internal(const typename Game<ndim, shape_pack...>::phase_vector& phases_in, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
 {
   Profile profile("get_moves_internal");
 
   std::cout << "get_moves_internal(...)" << std::endl;
 
-  assert(steps_in.size() > 0);
-  for(const rule_vector& rules_in : steps_in)
+  assert(phases_in.size() > 0);
+  for(const rule_vector& rules_in : phases_in)
     {
       assert(rules_in.size() > 0);
     }
 
-  // apply rules for each step
+  // apply rules for each phase
 
-  shared_dfa_ptr step_positions = positions_in;
-  for(const rule_vector& rules : steps_in)
+  shared_dfa_ptr phase_positions = positions_in;
+  for(const rule_vector& rules : phases_in)
     {
       IntersectionManager<ndim, shape_pack...> manager;
       DNFBuilder<ndim, shape_pack...> output_builder;
@@ -196,7 +196,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 	  const change_vector& changes = std::get<1>(rule);
 	  const std::vector<shared_dfa_ptr> post_conditions = std::get<2>(rule);
 
-	  shared_dfa_ptr positions = step_positions;
+	  shared_dfa_ptr positions = phase_positions;
 
 	  // apply rule pre-conditions
 	  profile.tic("rule pre conditions");
@@ -243,14 +243,14 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 	  output_builder.add_clause(output_clause);
 	}
 
-      // finish step
+      // finish phase
 
-      profile.tic("finish step");
+      profile.tic("finish phase");
 
-      step_positions = output_builder.to_dfa();
+      phase_positions = output_builder.to_dfa();
     }
 
-  return step_positions;
+  return phase_positions;
 }
 
 template <int ndim, int... shape_pack>
@@ -327,21 +327,21 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 }
 
 template <int ndim, int... shape_pack>
-const typename Game<ndim, shape_pack...>::step_vector& Game<ndim, shape_pack...>::get_steps_backward(int side_to_move) const
+const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...>::get_phases_backward(int side_to_move) const
 {
-  Profile profile("get_steps_backward");
+  Profile profile("get_phases_backward");
 
   assert((0 <= side_to_move) && (side_to_move < 2));
 
-  if(singleton_steps_backward[side_to_move].size() == 0)
+  if(singleton_phases_backward[side_to_move].size() == 0)
     {
-      const step_vector& steps_forward = get_steps_forward(side_to_move);
-      for(int step_index = steps_forward.size() - 1; step_index >= 0; --step_index)
+      const phase_vector& phases_forward = get_phases_forward(side_to_move);
+      for(int phase_index = phases_forward.size() - 1; phase_index >= 0; --phase_index)
 	{
-	  const rule_vector& rules_forward = steps_forward[step_index];
+	  const rule_vector& rules_forward = phases_forward[phase_index];
 
-	  singleton_steps_backward[side_to_move].emplace_back();
-	  rule_vector& rules_backward = singleton_steps_backward[side_to_move].back();
+	  singleton_phases_backward[side_to_move].emplace_back();
+	  rule_vector& rules_backward = singleton_phases_backward[side_to_move].back();
 
 	  for(const rule_type& rule_forward : rules_forward)
 	    {
@@ -371,26 +371,26 @@ const typename Game<ndim, shape_pack...>::step_vector& Game<ndim, shape_pack...>
 	}
     }
 
-  return singleton_steps_backward[side_to_move];
+  return singleton_phases_backward[side_to_move];
 }
 
 template <int ndim, int... shape_pack>
-const typename Game<ndim, shape_pack...>::step_vector& Game<ndim, shape_pack...>::get_steps_forward(int side_to_move) const
+const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...>::get_phases_forward(int side_to_move) const
 {
-  Profile profile("get_steps_forward");
+  Profile profile("get_phases_forward");
 
   assert((0 <= side_to_move) && (side_to_move < 2));
 
-  if(singleton_steps_forward[side_to_move].size() == 0)
+  if(singleton_phases_forward[side_to_move].size() == 0)
     {
-      singleton_steps_forward[side_to_move] = this->get_steps_internal(side_to_move);
-      for(rule_vector& rules : singleton_steps_forward[side_to_move])
+      singleton_phases_forward[side_to_move] = this->get_phases_internal(side_to_move);
+      for(rule_vector& rules : singleton_phases_forward[side_to_move])
 	{
 	  sort_rules<ndim, shape_pack...>(rules);
 	}
     }
 
-  return singleton_steps_forward[side_to_move];
+  return singleton_phases_forward[side_to_move];
 }
 
 template <int ndim, int... shape_pack>

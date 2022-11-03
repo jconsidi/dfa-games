@@ -84,14 +84,14 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
 }
 
 template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::step_vector TicTacToeGame<n, shape_pack...>::get_steps_internal(int side_to_move) const
+typename TicTacToeGame<n, shape_pack...>::phase_vector TicTacToeGame<n, shape_pack...>::get_phases_internal(int side_to_move) const
 {
   shared_dfa_ptr lost_positions = this->get_positions_lost(side_to_move);
   shared_dfa_ptr not_lost_positions = DFAUtil<n*n, shape_pack...>::get_inverse(lost_positions);
 
   int side_to_move_piece = 1 + side_to_move;
 
-  step_vector output(1);
+  phase_vector output(1);
   for(int move_index = 0; move_index < n * n; ++move_index)
     {
       std::vector<shared_dfa_ptr> pre_conditions;

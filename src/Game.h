@@ -30,19 +30,19 @@ public:
 
   typedef std::tuple<std::vector<shared_dfa_ptr>, change_vector, std::vector<shared_dfa_ptr>, std::string> rule_type;
   typedef std::vector<rule_type> rule_vector;
-  typedef std::vector<rule_vector> step_vector;
+  typedef std::vector<rule_vector> phase_vector;
 
 private:
 
   mutable shared_dfa_ptr singleton_has_moves[2] = {0, 0};
-  mutable step_vector singleton_steps_backward[2] = {};
-  mutable step_vector singleton_steps_forward[2] = {};
+  mutable phase_vector singleton_phases_backward[2] = {};
+  mutable phase_vector singleton_phases_forward[2] = {};
 
-  const step_vector& get_steps_backward(int) const;
-  const step_vector& get_steps_forward(int) const;
-  virtual step_vector get_steps_internal(int) const = 0;
+  const phase_vector& get_phases_backward(int) const;
+  const phase_vector& get_phases_forward(int) const;
+  virtual phase_vector get_phases_internal(int) const = 0;
 
-  shared_dfa_ptr get_moves_internal(const step_vector&, shared_dfa_ptr) const;
+  shared_dfa_ptr get_moves_internal(const phase_vector&, shared_dfa_ptr) const;
 
 protected:
 

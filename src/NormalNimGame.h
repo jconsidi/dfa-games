@@ -16,11 +16,11 @@ public:
   typedef typename Game<ndim, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
 
   typedef typename Game<ndim, shape_pack...>::rule_vector rule_vector;
-  typedef typename Game<ndim, shape_pack...>::step_vector step_vector;
+  typedef typename Game<ndim, shape_pack...>::phase_vector phase_vector;
 
 private:
 
-  virtual step_vector get_steps_internal(int) const;
+  virtual phase_vector get_phases_internal(int) const;
 
 public:
 

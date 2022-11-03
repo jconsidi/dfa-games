@@ -18,7 +18,7 @@ template<int n, int... shape_pack>
   typedef typename Game<n*n, shape_pack...>::dfa_type dfa_type;
   typedef typename Game<n*n, shape_pack...>::dfa_string_type dfa_string_type;
   typedef typename Game<n*n, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
-  typedef typename Game<n*n, shape_pack...>::step_vector step_vector;
+  typedef typename Game<n*n, shape_pack...>::phase_vector phase_vector;
 
  private:
 
@@ -26,7 +26,7 @@ template<int n, int... shape_pack>
   virtual shared_dfa_ptr get_positions_lost(int) const;
   virtual shared_dfa_ptr get_positions_won(int) const;
 
-  virtual step_vector get_steps_internal(int) const;
+  virtual phase_vector get_phases_internal(int) const;
 
   static shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta);
 
