@@ -15,7 +15,7 @@ public:
   typedef typename Game<ndim, shape_pack...>::dfa_string_type dfa_string_type;
   typedef typename Game<ndim, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
 
-  typedef typename Game<ndim, shape_pack...>::rule_vector rule_vector;
+  typedef typename Game<ndim, shape_pack...>::choice_vector choice_vector;
   typedef typename Game<ndim, shape_pack...>::phase_vector phase_vector;
 
 private:

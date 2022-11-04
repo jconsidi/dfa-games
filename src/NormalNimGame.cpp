@@ -18,7 +18,7 @@ typename NormalNimGame<n, shape_pack...>::phase_vector NormalNimGame<n, shape_pa
   phase_vector phases;
   phases.emplace_back();
 
-  rule_vector& rules = phases[0];
+  choice_vector& choices = phases[0];
 
   // no conditions needed
   const std::vector<shared_dfa_ptr> conditions;
@@ -33,10 +33,10 @@ typename NormalNimGame<n, shape_pack...>::phase_vector NormalNimGame<n, shape_pa
 	    {
 	      change_vector changes(n);
 	      changes[layer] = change_type(before, after);
-	      rules.emplace_back(conditions,
-				 changes,
-				 conditions,
-				 std::to_string(layer) + ": " + std::to_string(before) + "->" + std::to_string(after));
+	      choices.emplace_back(conditions,
+				   changes,
+				   conditions,
+				   std::to_string(layer) + ": " + std::to_string(before) + "->" + std::to_string(after));
 	    }
 	}
     }

@@ -78,10 +78,10 @@ static void add_change(int square,
   post_conditions.push_back(DFAUtil<CHESS_DFA_PARAMS>::get_fixed(layer, post_character));
 }
 
-static bool check_from(typename ChessGame::rule_type& rule,
+static bool check_from(typename ChessGame::choice_type& choice,
 		       int from_square, int from_character)
 {
-  const change_vector& changes = std::get<1>(rule);
+  const change_vector& changes = std::get<1>(choice);
   int from_layer = from_square + CHESS_SQUARE_OFFSET;
 
   if(!changes[from_layer].has_value())
@@ -540,27 +540,27 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
     return ChessDFAUtil::get_intersection(basic_positions, not_check_positions);
   });
 
-  // collect rules
+  // collect choices
 
   phase_vector phases_out(1);
 
-  std::function<rule_vector(const rule_vector&)> handle_castle_rights =
-    [](const rule_vector& rules_in)
+  std::function<choice_vector(const choice_vector&)> handle_castle_rights =
+    [](const choice_vector& choices_in)
     {
       // temporary copy as we make a lot of changes
-      rule_vector rules_temp;
-      for(const rule_type& rule : rules_in)
+      choice_vector choices_temp;
+      for(const choice_type& choice : choices_in)
 	{
-	  rules_temp.push_back(rule);
+	  choices_temp.push_back(choice);
 	}
 
-      rule_vector rules_out;
+      choice_vector choices_out;
 
       // clear castling rights for rooks that move
-      for(rule_type& rule : rules_temp)
+      for(choice_type& choice : choices_temp)
 	{
-	  change_vector& changes = std::get<1>(rule);
-	  std::string& name = std::get<3>(rule);
+	  change_vector& changes = std::get<1>(choice);
+	  std::string& name = std::get<3>(choice);
 	  std::string name_original = name;
 
 	  auto handle_side_castle_rights =
@@ -568,11 +568,11 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 	    {
 	      // require castle rights to be gone
 	      shared_dfa_ptr no_castle_rights(new CountCharacterDFA<CHESS_DFA_PARAMS>(rook_castle_character, 0, 0, CHESS_SQUARE_OFFSET));
-	      std::get<2>(rule).push_back(no_castle_rights);
+	      std::get<2>(choice).push_back(no_castle_rights);
 
 	      // case: no rights to clear
 	      name = name_original + ", no castle rights to clear";
-	      rules_out.push_back(rule);
+	      choices_out.push_back(choice);
 
 	      // check which sides changed. unchanged positions might
 	      // have castle rights to clear.
@@ -590,7 +590,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 		  // case: just clear left (queen's side) rook rights
 		  changes[left_layer] = clear_castle_right;
 		  name = name_original + ", clear left castle rights";
-		  rules_out.push_back(rule);
+		  choices_out.push_back(choice);
 		  changes[left_layer] = change_optional();
 		}
 	      if(!right_changed)
@@ -598,7 +598,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 		  // case: just clear right (king's side) rook rights
 		  changes[right_layer] = clear_castle_right;
 		  name = name_original + ", clear right castle rights";
-		  rules_out.push_back(rule);
+		  choices_out.push_back(choice);
 		  changes[right_layer] = change_optional();
 		}
 	      if(!left_changed && !right_changed)
@@ -607,18 +607,18 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 		  changes[left_layer] = clear_castle_right;
 		  changes[right_layer] = clear_castle_right;
 		  name = name_original + ", clear both castle rights";
-		  rules_out.push_back(rule);
+		  choices_out.push_back(choice);
 		  changes[right_layer] = change_optional();
 		  changes[left_layer] = change_optional();
 		}
 	    };
 
-	  if(check_from(rule, 4, DFA_BLACK_KING))
+	  if(check_from(choice, 4, DFA_BLACK_KING))
 	    {
 	      // black king moved from start
 	      handle_side_castle_rights(0, 7, DFA_BLACK_ROOK, DFA_BLACK_ROOK_CASTLE);
 	    }
-	  else if(check_from(rule, 60, DFA_WHITE_KING))
+	  else if(check_from(choice, 60, DFA_WHITE_KING))
 	    {
 	      // white king moved from start
 	      handle_side_castle_rights(56, 63, DFA_WHITE_ROOK, DFA_WHITE_ROOK_CASTLE);
@@ -627,29 +627,29 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 	    {
 	      // not a move that would affect castle rights
 	      name = name_original + ", no castle right changes";
-	      rules_out.push_back(rule);
+	      choices_out.push_back(choice);
 	    }
 	}
 
-      return rules_out;
+      return choices_out;
     };
 
-  std::function<void(const rule_vector&)> add_output =
-    [&](const rule_vector& rules_in)
+  std::function<void(const choice_vector&)> add_output =
+    [&](const choice_vector& choices_in)
     {
-      rule_vector rules_temp = rules_in;
-      rules_temp = handle_castle_rights(rules_temp);
+      choice_vector choices_temp = choices_in;
+      choices_temp = handle_castle_rights(choices_temp);
 
-      for(rule_type rule : rules_temp)
+      for(choice_type choice : choices_temp)
 	{
-	  phases_out[0].push_back(rule);
+	  phases_out[0].push_back(choice);
 	}
     };
 
-  std::function<void(int, const MoveSet&)> add_basic_rules =
+  std::function<void(int, const MoveSet&)> add_basic_choices =
     [&](int character, const MoveSet& moves)
     {
-      rule_vector basic_rules;
+      choice_vector basic_choices;
 
       for(int from_square = 0; from_square < 64; ++from_square)
 	{
@@ -734,7 +734,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 				 basic_changes,
 				 basic_post_conditions);
 
-		      basic_rules.emplace_back(basic_pre_conditions,
+		      basic_choices.emplace_back(basic_pre_conditions,
 					       basic_changes,
 					       basic_post_conditions,
 					       "basic from_char=" + std::to_string(character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(to_square) + ", prev_character=" + std::to_string(prev_character));
@@ -748,13 +748,13 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 	    }
 	}
 
-      add_output(basic_rules);
+      add_output(basic_choices);
     };
 
-  std::function<void(int, int, int, int, int)> add_pawn_rules =
+  std::function<void(int, int, int, int, int)> add_pawn_choices =
     [&](int pawn_character, int en_passant_character, int capture_en_passant_character, int rank_start, int rank_direction)
     {
-      rule_vector pawn_rules;
+      choice_vector pawn_choices;
 
       for(int from_file = 0; from_file < 8; ++from_file)
 	{
@@ -807,7 +807,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 			     advance_changes,
 			     advance_post_conditions);
 
-		  pawn_rules.emplace_back(advance_pre_conditions,
+		  pawn_choices.emplace_back(advance_pre_conditions,
 					  advance_changes,
 					  advance_post_conditions,
 					  "pawn advance from_char=" + std::to_string(pawn_character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(advance_square));
@@ -848,7 +848,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 			     double_changes,
 			     double_post_conditions);
 
-		  pawn_rules.emplace_back(double_pre_conditions,
+		  pawn_choices.emplace_back(double_pre_conditions,
 					  double_changes,
 					  double_post_conditions,
 					  "pawn double from_square=" + std::to_string(from_square));
@@ -890,7 +890,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 					 capture_changes,
 					 capture_post_conditions);
 
-			      pawn_rules.emplace_back(capture_pre_conditions,
+			      pawn_choices.emplace_back(capture_pre_conditions,
 						      capture_changes,
 						      capture_post_conditions,
 						      "pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square) + ", prev_character=" + std::to_string(prev_character) + ", advance_character=" + std::to_string(advance_character));
@@ -932,7 +932,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 				 en_passant_changes,
 				 en_passant_post_conditions);
 
-		      pawn_rules.emplace_back(en_passant_pre_conditions,
+		      pawn_choices.emplace_back(en_passant_pre_conditions,
 					      en_passant_changes,
 					      en_passant_post_conditions,
 					      "pawn en-passant from_square=" + std::to_string(from_square) + ", en_passant_square=" + std::to_string(en_passant_square));
@@ -941,12 +941,12 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 	    }
 	}
 
-      add_output(pawn_rules);
+      add_output(pawn_choices);
     };
 
-  std::function<void(int, int, int, int, int)> add_castle_rule = [&](int king_character, int rook_castle_character, int rook_character, int king_from_square, int rook_from_square)
+  std::function<void(int, int, int, int, int)> add_castle_choice = [&](int king_character, int rook_castle_character, int rook_character, int king_from_square, int rook_from_square)
   {
-    rule_vector castle_rules;
+    choice_vector castle_choices;
 
     int castle_direction = (rook_from_square > king_from_square) ? +1 : -1;
     int king_to_square = king_from_square + castle_direction * 2;
@@ -1003,47 +1003,47 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
     castle_pre_conditions.push_back(no_castle_threat);
     castle_post_conditions.push_back(no_castle_threat);
 
-    castle_rules.emplace_back(castle_pre_conditions,
+    castle_choices.emplace_back(castle_pre_conditions,
 			      castle_changes,
 			      castle_post_conditions,
 			      "castle king_from_square=" + std::to_string(king_from_square) + ", king_to_square=" + std::to_string(king_to_square));
 
-    add_output(castle_rules);
+    add_output(castle_choices);
   };
 
   if(side_to_move == SIDE_WHITE)
     {
-      add_basic_rules(DFA_WHITE_BISHOP, bishop_moves);
-      add_basic_rules(DFA_WHITE_KING, king_moves);
-      add_basic_rules(DFA_WHITE_KNIGHT, knight_moves);
-      add_basic_rules(DFA_WHITE_QUEEN, queen_moves);
-      add_basic_rules(DFA_WHITE_ROOK, rook_moves);
-      add_basic_rules(DFA_WHITE_ROOK_CASTLE, rook_moves);
+      add_basic_choices(DFA_WHITE_BISHOP, bishop_moves);
+      add_basic_choices(DFA_WHITE_KING, king_moves);
+      add_basic_choices(DFA_WHITE_KNIGHT, knight_moves);
+      add_basic_choices(DFA_WHITE_QUEEN, queen_moves);
+      add_basic_choices(DFA_WHITE_ROOK, rook_moves);
+      add_basic_choices(DFA_WHITE_ROOK_CASTLE, rook_moves);
 
-      add_pawn_rules(DFA_WHITE_PAWN, DFA_WHITE_PAWN_EN_PASSANT, DFA_BLACK_PAWN_EN_PASSANT, 6, -1);
+      add_pawn_choices(DFA_WHITE_PAWN, DFA_WHITE_PAWN_EN_PASSANT, DFA_BLACK_PAWN_EN_PASSANT, 6, -1);
 
-      add_castle_rule(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 56);
-      add_castle_rule(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 63);
+      add_castle_choice(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 56);
+      add_castle_choice(DFA_WHITE_KING, DFA_WHITE_ROOK_CASTLE, DFA_WHITE_ROOK, 60, 63);
     }
   else
     {
-      add_basic_rules(DFA_BLACK_BISHOP, bishop_moves);
-      add_basic_rules(DFA_BLACK_KING, king_moves);
-      add_basic_rules(DFA_BLACK_KNIGHT, knight_moves);
-      add_basic_rules(DFA_BLACK_QUEEN, queen_moves);
-      add_basic_rules(DFA_BLACK_ROOK, rook_moves);
-      add_basic_rules(DFA_BLACK_ROOK_CASTLE, rook_moves);
+      add_basic_choices(DFA_BLACK_BISHOP, bishop_moves);
+      add_basic_choices(DFA_BLACK_KING, king_moves);
+      add_basic_choices(DFA_BLACK_KNIGHT, knight_moves);
+      add_basic_choices(DFA_BLACK_QUEEN, queen_moves);
+      add_basic_choices(DFA_BLACK_ROOK, rook_moves);
+      add_basic_choices(DFA_BLACK_ROOK_CASTLE, rook_moves);
 
-      add_pawn_rules(DFA_BLACK_PAWN, DFA_BLACK_PAWN_EN_PASSANT, DFA_WHITE_PAWN_EN_PASSANT, 1, 1);
+      add_pawn_choices(DFA_BLACK_PAWN, DFA_BLACK_PAWN_EN_PASSANT, DFA_WHITE_PAWN_EN_PASSANT, 1, 1);
 
-      add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 0);
-      add_castle_rule(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 7);
+      add_castle_choice(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 0);
+      add_castle_choice(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 7);
     }
 
   // second phase - clear en passant status
 
   phases_out.emplace_back();
-  rule_vector& clear_en_passant_rules = phases_out.at(1);
+  choice_vector& clear_en_passant_choices = phases_out.at(1);
 
   int clear_en_passant_square_min = (side_to_move == SIDE_WHITE) ? 24 : 32;
   int clear_en_passant_square_max = clear_en_passant_square_min + 8;
@@ -1069,7 +1069,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
   std::vector<shared_dfa_ptr> clear_en_passant_post_conditions = {no_en_passant_pawns};
 
   // case: no en passant status to clear
-  clear_en_passant_rules.emplace_back(clear_en_passant_pre_conditions,
+  clear_en_passant_choices.emplace_back(clear_en_passant_pre_conditions,
 				      change_vector(64 + CHESS_SQUARE_OFFSET),
 				      clear_en_passant_post_conditions,
 				      "no en passant pawns");
@@ -1084,7 +1084,7 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
       change_vector clear_en_passant_changes(64 + CHESS_SQUARE_OFFSET);
       clear_en_passant_changes[layer] = change_type(clear_en_passant_pawn_character, clear_pawn_character);
 
-      clear_en_passant_rules.emplace_back(clear_en_passant_pre_conditions,
+      clear_en_passant_choices.emplace_back(clear_en_passant_pre_conditions,
 					  clear_en_passant_changes,
 					  clear_en_passant_post_conditions,
 					  "clear en passant square=" + std::to_string(square));

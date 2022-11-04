@@ -30,12 +30,12 @@ std::string quick_stats(const DFA<ndim, shape_pack...>& dfa_in)
 }
 
 template <int ndim, int... shape_pack>
-void sort_rules(typename Game<ndim, shape_pack...>::rule_vector& rules)
+void sort_choices(typename Game<ndim, shape_pack...>::choice_vector& choices)
 {
-  Profile profile("sort_rules");
+  Profile profile("sort_choices");
 
-  std::stable_sort(rules.begin(), rules.end(), [](const typename Game<ndim, shape_pack...>::rule_type& a,
-						  const typename Game<ndim, shape_pack...>::rule_type& b)
+  std::stable_sort(choices.begin(), choices.end(), [](const typename Game<ndim, shape_pack...>::choice_type& a,
+						  const typename Game<ndim, shape_pack...>::choice_type& b)
   {
     // compare post conditions
     //
@@ -112,7 +112,7 @@ void sort_rules(typename Game<ndim, shape_pack...>::rule_vector& rules)
 	return false;
       }
 
-    // do not compare change rule
+    // do not compare change choice
     return false;
   });
 }
@@ -170,36 +170,36 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   std::cout << "get_moves_internal(...)" << std::endl;
 
   assert(phases_in.size() > 0);
-  for(const rule_vector& rules_in : phases_in)
+  for(const choice_vector& choices_in : phases_in)
     {
-      assert(rules_in.size() > 0);
+      assert(choices_in.size() > 0);
     }
 
-  // apply rules for each phase
+  // apply choices for each phase
 
   shared_dfa_ptr phase_positions = positions_in;
-  for(const rule_vector& rules : phases_in)
+  for(const choice_vector& choices : phases_in)
     {
       IntersectionManager<ndim, shape_pack...> manager;
       DNFBuilder<ndim, shape_pack...> output_builder;
 
-      int num_rules = rules.size();
-      for(int i = 0; i < num_rules; ++i)
+      int num_choices = choices.size();
+      for(int i = 0; i < num_choices; ++i)
 	{
-	  profile.tic("rule init");
+	  profile.tic("choice init");
 
-	  const rule_type& rule = rules[i];
+	  const choice_type& choice = choices[i];
 
-	  std::cout << " rule " << i << "/" << num_rules << ": " << std::get<3>(rule) << std::endl;
+	  std::cout << " choice " << i << "/" << num_choices << ": " << std::get<3>(choice) << std::endl;
 
-	  const std::vector<shared_dfa_ptr> pre_conditions = std::get<0>(rule);
-	  const change_vector& changes = std::get<1>(rule);
-	  const std::vector<shared_dfa_ptr> post_conditions = std::get<2>(rule);
+	  const std::vector<shared_dfa_ptr> pre_conditions = std::get<0>(choice);
+	  const change_vector& changes = std::get<1>(choice);
+	  const std::vector<shared_dfa_ptr> post_conditions = std::get<2>(choice);
 
 	  shared_dfa_ptr positions = phase_positions;
 
-	  // apply rule pre-conditions
-	  profile.tic("rule pre conditions");
+	  // apply choice pre-conditions
+	  profile.tic("choice pre conditions");
 	  for(shared_dfa_ptr pre_condition : pre_conditions)
 	    {
 	      positions = manager.intersect(positions, pre_condition);
@@ -221,8 +221,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 	    }
 #endif
 
-	  // apply rule changes
-	  profile.tic("rule change");
+	  // apply choice changes
+	  profile.tic("choice change");
 	  positions = shared_dfa_ptr(new change_dfa_type(*positions, changes));
 	  std::cout << "  changes => " << quick_stats(*positions) << std::endl;
 
@@ -338,14 +338,14 @@ const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...
       const phase_vector& phases_forward = get_phases_forward(side_to_move);
       for(int phase_index = phases_forward.size() - 1; phase_index >= 0; --phase_index)
 	{
-	  const rule_vector& rules_forward = phases_forward[phase_index];
+	  const choice_vector& choices_forward = phases_forward[phase_index];
 
 	  singleton_phases_backward[side_to_move].emplace_back();
-	  rule_vector& rules_backward = singleton_phases_backward[side_to_move].back();
+	  choice_vector& choices_backward = singleton_phases_backward[side_to_move].back();
 
-	  for(const rule_type& rule_forward : rules_forward)
+	  for(const choice_type& choice_forward : choices_forward)
 	    {
-	      const change_vector& changes_forward = std::get<1>(rule_forward);
+	      const change_vector& changes_forward = std::get<1>(choice_forward);
 
 	      change_vector changes_backward;
 	      for(int i = 0; i < changes_forward.size(); ++i)
@@ -362,12 +362,12 @@ const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...
 		    }
 		}
 
-	      rules_backward.emplace_back(std::get<2>(rule_forward),
+	      choices_backward.emplace_back(std::get<2>(choice_forward),
 					  changes_backward,
-					  std::get<0>(rule_forward),
-					  std::get<3>(rule_forward));
+					  std::get<0>(choice_forward),
+					  std::get<3>(choice_forward));
 	    }
-	  sort_rules<ndim, shape_pack...>(rules_backward);
+	  sort_choices<ndim, shape_pack...>(choices_backward);
 	}
     }
 
@@ -384,9 +384,9 @@ const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...
   if(singleton_phases_forward[side_to_move].size() == 0)
     {
       singleton_phases_forward[side_to_move] = this->get_phases_internal(side_to_move);
-      for(rule_vector& rules : singleton_phases_forward[side_to_move])
+      for(choice_vector& choices : singleton_phases_forward[side_to_move])
 	{
-	  sort_rules<ndim, shape_pack...>(rules);
+	  sort_choices<ndim, shape_pack...>(choices);
 	}
     }
 
