@@ -84,7 +84,7 @@ test_perft_u : test_perft_u.o chess.a PerftTestCases.o
 test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a test_utils.o
 	$(CXX) -o $@ $^
 
-chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MapBitSet.o MemoryMap.o MoveSet.o NormalNimGame.o NormalPlayGame.o Profile.o RejectDFA.o StringDFA.o UnionDFA.o VectorBitSet.o utils.o
+chess.a : AcceptDFA.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MapBitSet.o MemoryMap.o MoveSet.o NormalNimGame.o NormalPlayGame.o Profile.o RejectDFA.o StringDFA.o UnionDFA.o VectorBitSet.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################
