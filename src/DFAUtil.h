@@ -28,6 +28,10 @@ public:
   static shared_dfa_ptr from_string(const dfa_string_type&);
   static shared_dfa_ptr from_strings(const std::vector<dfa_string_type>&);
   static shared_dfa_ptr get_accept();
+  static shared_dfa_ptr get_count_character(int, int);
+  static shared_dfa_ptr get_count_character(int, int, int);
+  static shared_dfa_ptr get_count_character(int, int, int, int);
+  static shared_dfa_ptr get_count_character(int, int, int, int, int);
   static shared_dfa_ptr get_difference(shared_dfa_ptr, shared_dfa_ptr);
   static shared_dfa_ptr get_fixed(int, int);
   static shared_dfa_ptr get_intersection(shared_dfa_ptr, shared_dfa_ptr);

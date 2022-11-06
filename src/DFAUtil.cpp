@@ -7,6 +7,7 @@
 #include <queue>
 
 #include "AcceptDFA.h"
+#include "CountCharacterDFA.h"
 #include "DifferenceDFA.h"
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
@@ -108,6 +109,30 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
   static shared_dfa_ptr accept(new AcceptDFA<ndim, shape_pack...>());
   assert(accept);
   return accept;
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_count_character(int c_in, int count_in)
+{
+  return shared_dfa_ptr(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_in));
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_count_character(int c_in, int count_min, int count_max)
+{
+  return shared_dfa_ptr(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max));
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_count_character(int c_in, int count_min, int count_max, int layer_min)
+{
+  return shared_dfa_ptr(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max, layer_min));
+}
+
+template <int ndim, int... shape_pack>
+typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_count_character(int c_in, int count_min, int count_max, int layer_min, int layer_max)
+{
+  return shared_dfa_ptr(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max, layer_min, layer_max));
 }
 
 template <int ndim, int... shape_pack>
