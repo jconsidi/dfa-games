@@ -6,6 +6,7 @@ template <int ndim, int... shape_pack>
 RejectDFA<ndim, shape_pack...>::RejectDFA()
 {
   this->set_initial_state(0);
+  this->set_name("reject");
 }
 
 // template instantiations

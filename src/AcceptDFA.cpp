@@ -6,6 +6,7 @@ template <int ndim, int... shape_pack>
 AcceptDFA<ndim, shape_pack...>::AcceptDFA()
 {
   this->set_initial_state(1);
+  this->set_name("accept");
 }
 
 // template instantiations

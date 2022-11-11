@@ -404,6 +404,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::lo
   try
     {
       shared_dfa_ptr output = shared_dfa_ptr(new dfa_type(dfa_name));
+      output->set_name("saved(\"" + dfa_name_in + "\")");
       std::cout << "loaded " << dfa_name << " => " << quick_stats(*output) << std::endl;
 
       return output;
@@ -415,6 +416,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::lo
   profile.tic("build");
   std::cout << "building " << dfa_name << std::endl;
   shared_dfa_ptr output = build_func();
+  output->set_name("saved(\"" + dfa_name_in + "\")");
 
   profile.tic("stats");
   std::cout << "built " << dfa_name << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;

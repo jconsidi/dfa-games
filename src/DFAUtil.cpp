@@ -114,25 +114,33 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_count_character(int c_in, int count_in)
 {
-  return shared_dfa_ptr(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_in));
+  shared_dfa_ptr output(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_in));
+  output->set_name("get_count_character(" + std::to_string(c_in) + ", " + std::to_string(count_in) + ")");
+  return output;
 }
 
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_count_character(int c_in, int count_min, int count_max)
 {
-  return shared_dfa_ptr(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max));
+  shared_dfa_ptr output(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max));
+  output->set_name("get_count_character(" + std::to_string(c_in) + ", " + std::to_string(count_min) + ", " + std::to_string(count_max) + ")");
+  return output;
 }
 
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_count_character(int c_in, int count_min, int count_max, int layer_min)
 {
-  return shared_dfa_ptr(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max, layer_min));
+  shared_dfa_ptr output(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max, layer_min));
+  output->set_name("get_count_character(" + std::to_string(c_in) + ", " + std::to_string(count_min) + ", " + std::to_string(count_max) + ", " + std::to_string(layer_min) + ")");
+  return output;
 }
 
 template <int ndim, int... shape_pack>
 typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack...>::get_count_character(int c_in, int count_min, int count_max, int layer_min, int layer_max)
 {
-  return shared_dfa_ptr(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max, layer_min, layer_max));
+  shared_dfa_ptr output(new CountCharacterDFA<ndim, shape_pack...>(c_in, count_min, count_max, layer_min, layer_max));
+  output->set_name("get_count_character(" + std::to_string(c_in) + ", " + std::to_string(count_min) + ", " + std::to_string(count_max) + ", " + std::to_string(layer_min) + ", " + std::to_string(layer_max) + ")");
+  return output;
 }
 
 template <int ndim, int... shape_pack>
@@ -202,6 +210,7 @@ typename DFAUtil<ndim, shape_pack...>::shared_dfa_ptr DFAUtil<ndim, shape_pack..
       return get_reject();
     }
 
+  std::cout << "get_intersection(" << left_in->get_name() << ", " << right_in->get_name() << ")" << std::endl;
   return _singleton_if_constant(shared_dfa_ptr(new IntersectionDFA<ndim, shape_pack...>(*left_in, *right_in)));
 }
 
