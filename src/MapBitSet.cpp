@@ -29,6 +29,7 @@ MapBitSetIterator MapBitSet::cend() const
 
 bool MapBitSet::check(size_t element_in) const
 {
+  assert(element_in < _size);
   return _set.contains(element_in);
 }
 
