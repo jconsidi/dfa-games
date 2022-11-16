@@ -3,6 +3,7 @@
 #ifndef DFA_H
 #define DFA_H
 
+#include <array>
 #include <ctype.h>
 #include <map>
 #include <string>
@@ -16,7 +17,7 @@ typedef std::vector<dfa_state_t> DFATransitionsStaging;
 template <int ndim, int... shape_pack>
 class DFAString
 {
-  std::vector<int> characters;
+  std::array<int, ndim> characters;
 
 public:
 

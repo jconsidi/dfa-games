@@ -681,13 +681,14 @@ bool DFAIterator<ndim, shape_pack...>::operator<(const DFAIterator<ndim, shape_p
 
 template<int ndim, int... shape_pack>
 DFAString<ndim, shape_pack...>::DFAString(const std::vector<int>& characters_in)
-  : characters(characters_in)
+  : characters()
 {
   assert(characters.size() == ndim);
 
   auto shape_temp = shape_pack_to_vector<shape_pack...>();
   for(int i = 0; i < ndim; ++i)
     {
+      characters.at(i) = characters_in.at(i);
       assert(characters.at(i) < shape_temp.at(i));
     }
 }
