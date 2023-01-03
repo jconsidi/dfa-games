@@ -4,33 +4,37 @@
 
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "DFAUtil.h"
 
-template<int n, int... shape_pack>
-TicTacToeGame<n, shape_pack...>::TicTacToeGame()
-  : Game<n*n, shape_pack...>("tictactoe" + std::to_string(n))
+static dfa_shape_t get_shape(int n)
+{
+  return std::vector<int>(n * n, 3);
+}
+
+TicTacToeGame::TicTacToeGame(int n_in)
+  : Game("tictactoe" + std::to_string(n_in), ::get_shape(n_in)),
+    n(n_in)
 {
 }
 
-template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_positions_initial() const
+shared_dfa_ptr TicTacToeGame::get_positions_initial() const
 {
-  shared_dfa_ptr output = DFAUtil<n*n, shape_pack...>::get_accept();
+  shared_dfa_ptr output = DFAUtil::get_accept(get_shape());
 
   for(int i = 0; i < n * n; ++i)
     {
-      shared_dfa_ptr blank_i = DFAUtil<n*n, shape_pack...>::get_fixed(i, 0);
-      output = DFAUtil<n*n, shape_pack...>::get_intersection(output, blank_i);
+      shared_dfa_ptr blank_i = DFAUtil::get_fixed(get_shape(), i, 0);
+      output = DFAUtil::get_intersection(output, blank_i);
     }
 
   return output;
 }
 
-template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta)
+shared_dfa_ptr TicTacToeGame::get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta) const
 {
-  shared_dfa_ptr condition = DFAUtil<n*n, shape_pack...>::get_accept();
+  shared_dfa_ptr condition = DFAUtil::get_accept(get_shape());
 
   for(int i = 0; i < n; ++i)
     {
@@ -38,65 +42,62 @@ typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_
       int y = y_start + y_delta * i;
       int index = y * n + x;
 
-      shared_dfa_ptr opponent_piece = DFAUtil<n*n, shape_pack...>::get_fixed(index, 2 - side_to_move);
-      condition = DFAUtil<n*n, shape_pack...>::get_intersection(condition, opponent_piece);
+      shared_dfa_ptr opponent_piece = DFAUtil::get_fixed(get_shape(), index, 2 - side_to_move);
+      condition = DFAUtil::get_intersection(condition, opponent_piece);
     }
 
   return condition;
 }
 
-template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_positions_lost(int side_to_move) const
+shared_dfa_ptr TicTacToeGame::get_positions_lost(int side_to_move) const
 {
-  shared_dfa_ptr lost_positions = DFAUtil<n*n, shape_pack...>::get_reject();
+  shared_dfa_ptr lost_positions = DFAUtil::get_reject(get_shape());
 
   // vertical lost conditions
   for(int x = 0; x < n; ++x)
     {
       shared_dfa_ptr lost_vertical = get_lost_condition(side_to_move, x, 0, 0, 1);
-      lost_positions = DFAUtil<n*n, shape_pack...>::get_union(lost_positions, lost_vertical);
+      lost_positions = DFAUtil::get_union(lost_positions, lost_vertical);
     }
 
   // horizontal lost conditions
   for(int y = 0; y < n; ++y)
     {
       shared_dfa_ptr lost_horizontal = get_lost_condition(side_to_move, 0, y, 1, 0);
-      lost_positions = DFAUtil<n*n, shape_pack...>::get_union(lost_positions, lost_horizontal);
+      lost_positions = DFAUtil::get_union(lost_positions, lost_horizontal);
     }
 
   // diagonal lost conditions
 
   shared_dfa_ptr diagonal_plus = get_lost_condition(side_to_move, 0, 0, 1, 1);
-  lost_positions = DFAUtil<n*n, shape_pack...>::get_union(lost_positions, diagonal_plus);
+  lost_positions = DFAUtil::get_union(lost_positions, diagonal_plus);
 
   shared_dfa_ptr diagonal_negative = get_lost_condition(side_to_move, 0, n - 1, 1, -1);
-  lost_positions = DFAUtil<n*n, shape_pack...>::get_union(lost_positions, diagonal_negative);
+  lost_positions = DFAUtil::get_union(lost_positions, diagonal_negative);
 
   // done
 
   return lost_positions;
 }
 
-template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::shared_dfa_ptr TicTacToeGame<n, shape_pack...>::get_positions_won(int side_to_move) const
+shared_dfa_ptr TicTacToeGame::get_positions_won(int side_to_move) const
 {
-  return DFAUtil<n*n, shape_pack...>::get_reject();
+  return DFAUtil::get_reject(get_shape());
 }
 
-template<int n, int... shape_pack>
-typename TicTacToeGame<n, shape_pack...>::phase_vector TicTacToeGame<n, shape_pack...>::get_phases_internal(int side_to_move) const
+Game::phase_vector TicTacToeGame::get_phases_internal(int side_to_move) const
 {
   shared_dfa_ptr lost_positions = this->get_positions_lost(side_to_move);
-  shared_dfa_ptr not_lost_positions = DFAUtil<n*n, shape_pack...>::get_inverse(lost_positions);
+  shared_dfa_ptr not_lost_positions = DFAUtil::get_inverse(lost_positions);
 
   int side_to_move_piece = 1 + side_to_move;
 
-  phase_vector output(1);
+  Game::phase_vector output(1);
   for(int move_index = 0; move_index < n * n; ++move_index)
     {
       std::vector<shared_dfa_ptr> pre_conditions;
       pre_conditions.push_back(not_lost_positions);
-      pre_conditions.push_back(DFAUtil<n*n, shape_pack...>::get_fixed(move_index, 0));
+      pre_conditions.push_back(DFAUtil::get_fixed(get_shape(), move_index, 0));
 
       change_vector changes;
       for(int layer = 0; layer < n * n; ++layer)
@@ -113,7 +114,7 @@ typename TicTacToeGame<n, shape_pack...>::phase_vector TicTacToeGame<n, shape_pa
 
       std::vector<shared_dfa_ptr> post_conditions;
       post_conditions.emplace_back(not_lost_positions);
-      post_conditions.emplace_back(DFAUtil<n*n, shape_pack...>::get_fixed(move_index, 1 + side_to_move));
+      post_conditions.emplace_back(DFAUtil::get_fixed(get_shape(), move_index, 1 + side_to_move));
 
       output[0].emplace_back(pre_conditions,
 			     changes,
@@ -126,8 +127,7 @@ typename TicTacToeGame<n, shape_pack...>::phase_vector TicTacToeGame<n, shape_pa
   return output;
 }
 
-template<int n, int... shape_pack>
-std::string TicTacToeGame<n, shape_pack...>::position_to_string(const dfa_string_type& position_in) const
+std::string TicTacToeGame::position_to_string(const DFAString& position_in) const
 {
   std::ostringstream builder;
 
@@ -166,9 +166,3 @@ std::string TicTacToeGame<n, shape_pack...>::position_to_string(const dfa_string
 
   return builder.str();
 }
-
-// template instantiations
-
-template class TicTacToeGame<2, TICTACTOE2_SHAPE_PACK>;
-template class TicTacToeGame<3, TICTACTOE3_SHAPE_PACK>;
-template class TicTacToeGame<4, TICTACTOE4_SHAPE_PACK>;

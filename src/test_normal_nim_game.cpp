@@ -7,14 +7,12 @@
 #include "NormalNimGame.h"
 #include "test_utils.h"
 
-template<int n, int... shape_pack>
-int test()
+int test(const dfa_shape_t& shape)
 {
+  int n = shape.size();
   std::cout << "TESTING " << n << std::endl;
 
-  NormalNimGame<n, shape_pack...> nim;
-
-  int shape[] = {shape_pack...};
+  NormalNimGame nim(shape);
 
   // calculate maximum number of moves
 
@@ -33,10 +31,10 @@ int test()
   auto positions_losing = nim.get_positions_losing(0, max_moves);
   auto positions_winning = nim.get_positions_winning(0, max_moves);
 
-  auto positions_shared = DFAUtil<n, shape_pack...>::get_intersection(positions_losing, positions_winning);
+  auto positions_shared = DFAUtil::get_intersection(positions_losing, positions_winning);
   assert(positions_shared->is_constant(false));
 
-  auto positions_combined = DFAUtil<n, shape_pack...>::get_union(positions_losing, positions_winning);
+  auto positions_combined = DFAUtil::get_union(positions_losing, positions_winning);
   assert(positions_combined->is_constant(true));
 
   size_t shape_product = 1;
@@ -54,7 +52,7 @@ int test()
 	  position_characters.push_back(temp % shape[layer]);
 	  temp /= shape[layer];
 	}
-      DFAString<n, shape_pack...> position = DFAString<n, shape_pack...>(position_characters);
+      DFAString position = DFAString(shape, position_characters);
 
       int characters_xored = 0;
       for(int layer = 0; layer < n; ++layer)
@@ -80,10 +78,10 @@ int test()
 
 int main()
 {
-  test<NORMALNIM1_DFA_PARAMS>();
-  test<NORMALNIM2_DFA_PARAMS>();
-  test<NORMALNIM3_DFA_PARAMS>();
-  test<NORMALNIM4_DFA_PARAMS>();
+  test(dfa_shape_t({NORMALNIM1_DFA_SHAPE}));
+  test(dfa_shape_t({NORMALNIM2_DFA_SHAPE}));
+  test(dfa_shape_t({NORMALNIM3_DFA_SHAPE}));
+  test(dfa_shape_t({NORMALNIM4_DFA_SHAPE}));
 
   return 0;
 }

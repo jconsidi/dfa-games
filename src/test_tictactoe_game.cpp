@@ -24,12 +24,11 @@ size_t choose(int n, int k)
   return output;
 }
 
-template<int n, class T>
-int test()
+int test(int n)
 {
   std::cout << "TESTING " << n << "x" << n << std::endl;
 
-  T tictactoe;
+  TicTacToeGame tictactoe(n);
 
   // start tictactoe specific tests
 
@@ -66,10 +65,10 @@ int test()
 
 int main()
 {
-  test<2, TicTacToe2Game>();
-  test<3, TicTacToe3Game>();
+  test(2);
+  test(3);
 #if 0
-  test<4, TicTacToe4Game>();
+  test(4);
 #endif
 
   return 0;

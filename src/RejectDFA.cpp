@@ -2,15 +2,9 @@
 
 #include "RejectDFA.h"
 
-template <int ndim, int... shape_pack>
-RejectDFA<ndim, shape_pack...>::RejectDFA()
+RejectDFA::RejectDFA(const dfa_shape_t& shape_in)
+  : DFA(shape_in)
 {
   this->set_initial_state(0);
   this->set_name("reject");
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(RejectDFA);

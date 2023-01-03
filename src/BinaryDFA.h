@@ -10,15 +10,14 @@
 #include "BinaryFunction.h"
 #include "DFA.h"
 
-template <int ndim, int... shape_pack>
-class BinaryDFA : public DFA<ndim, shape_pack...>
+class BinaryDFA : public DFA
 {
-  void build_linear(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, const BinaryFunction&);
-  void build_quadratic_mmap(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, const BinaryFunction&);
+  void build_linear(const DFA&, const DFA&, const BinaryFunction&);
+  void build_quadratic_mmap(const DFA&, const DFA&, const BinaryFunction&);
 
 public:
 
-  BinaryDFA(const DFA<ndim, shape_pack...>&, const DFA<ndim, shape_pack...>&, const BinaryFunction&);
+  BinaryDFA(const DFA&, const DFA&, const BinaryFunction&);
 };
 
 #endif

@@ -5,17 +5,16 @@
 
 #include "DedupedDFA.h"
 
-template <int ndim, int... shape_pack>
 class StringDFA
-  : public DedupedDFA<ndim, shape_pack...>
+  : public DedupedDFA
 {
 private:
 
-  dfa_state_t build_internal(int, const std::vector<DFAString<ndim, shape_pack...>>&);
+  dfa_state_t build_internal(int, const std::vector<DFAString>&);
 
 public:
 
-  StringDFA(const std::vector<DFAString<ndim, shape_pack...>>&);
+  StringDFA(const std::vector<DFAString>&);
 };
 
 #endif

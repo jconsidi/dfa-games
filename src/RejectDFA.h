@@ -5,12 +5,11 @@
 
 #include "DFA.h"
 
-template <int ndim, int... shape_pack>
-class RejectDFA : public DFA<ndim, shape_pack...>
+class RejectDFA : public DFA
 {
  public:
 
-  RejectDFA();
+  RejectDFA(const dfa_shape_t&);
 };
 
 #endif

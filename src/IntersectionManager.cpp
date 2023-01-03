@@ -9,13 +9,12 @@
 
 static CountManager count_manager("IntersectionManager");
 
-template<int ndim, int... shape_pack>
-IntersectionManager<ndim, shape_pack...>::IntersectionManager()
+IntersectionManager::IntersectionManager(const dfa_shape_t& shape_in)
+  : shape(shape_in)
 {
 }
 
-template<int ndim, int... shape_pack>
-typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr IntersectionManager<ndim, shape_pack...>::intersect(typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr left_in, typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr right_in)
+shared_dfa_ptr IntersectionManager::intersect(shared_dfa_ptr left_in, shared_dfa_ptr right_in)
 {
   for(int i = 0; i < input_trace.size(); ++i)
     {
@@ -62,15 +61,9 @@ typename IntersectionManager<ndim, shape_pack...>::shared_dfa_ptr IntersectionMa
 
   // compute new intersection and add to end of trace
   input_trace.push_back(right_in);
-  output_trace.push_back(DFAUtil<ndim, shape_pack...>::get_intersection(left_in, right_in));
+  output_trace.push_back(DFAUtil::get_intersection(left_in, right_in));
 
   count_manager.inc("get_intersection");
 
   return output_trace.back();
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(IntersectionManager);

@@ -12,21 +12,14 @@
 #include "CountCharacterDFA.h"
 #include "DFA.h"
 
-template <int ndim, int... shape_pack>
 class Game
 {
 private:
 
   std::string name;
+  dfa_shape_t shape;
 
 public:
-
-  typedef DFA<ndim, shape_pack...> dfa_type;
-  typedef DFAString<ndim, shape_pack...> dfa_string_type;
-  typedef std::shared_ptr<const dfa_type> shared_dfa_ptr;
-
-  typedef ChangeDFA<ndim, shape_pack...> change_dfa_type;
-  typedef CountCharacterDFA<ndim, shape_pack...> count_character_dfa_type;
 
   typedef std::tuple<std::vector<shared_dfa_ptr>, change_vector, std::vector<shared_dfa_ptr>, std::string> choice_type;
   typedef std::vector<choice_type> choice_vector;
@@ -46,8 +39,9 @@ private:
 
 protected:
 
-  Game(std::string);
+  Game(std::string, const dfa_shape_t&);
 
+  const dfa_shape_t& get_shape() const;
   void save(std::string, shared_dfa_ptr) const;
   shared_dfa_ptr load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr()> build_func) const;
 
@@ -67,7 +61,7 @@ public:
 
   // position evaluation
 
-  virtual std::string position_to_string(const dfa_string_type&) const = 0;
+  virtual std::string position_to_string(const DFAString&) const = 0;
 };
 
 #endif

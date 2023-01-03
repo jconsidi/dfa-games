@@ -12,24 +12,22 @@
 #include "PerftTestCases.h"
 #include "chess.h"
 
-typedef ChessGame::dfa_string_type dfa_string_type;
-typedef ChessGame::shared_dfa_ptr shared_dfa_ptr;
-
 Board get_example(int, shared_dfa_ptr);
 
+static const dfa_shape_t chess_shape = {CHESS_DFA_SHAPE};
 std::string log_prefix = "test_perft_u: ";
 
 shared_dfa_ptr boards_to_dfa(const std::set<Board>& boards)
 {
   std::cout << "converting " << boards.size() << " boards to dfas" << std::endl;
 
-  std::vector<dfa_string_type> board_strings;
+  std::vector<DFAString> board_strings;
   std::for_each(boards.cbegin(), boards.cend(), [&](const Board& board)
   {
     board_strings.push_back(ChessGame::from_board_to_dfa_string(board));
   });
 
-  return DFAUtil<CHESS_DFA_PARAMS>::from_strings(board_strings);
+  return DFAUtil::from_strings(chess_shape, board_strings);
 }
 
 void check_transition(int depth,
@@ -57,7 +55,7 @@ void check_transition(int depth,
 
   // check for missing boards first since that is more common
 
-  shared_dfa_ptr missing_boards = DFAUtil<CHESS_DFA_PARAMS>::get_difference(after_expected, after_actual);
+  shared_dfa_ptr missing_boards = DFAUtil::get_difference(after_expected, after_actual);
   if(missing_boards->size())
     {
       std::cout << log_prefix << " found " << missing_boards->size() << " missing boards" << std::endl;
@@ -91,7 +89,7 @@ void check_transition(int depth,
 
   // check for extra boards
 
-  shared_dfa_ptr extra_boards = DFAUtil<CHESS_DFA_PARAMS>::get_difference(after_actual, after_expected);
+  shared_dfa_ptr extra_boards = DFAUtil::get_difference(after_actual, after_expected);
   if(extra_boards->size())
     {
       std::cout << log_prefix << " found " << extra_boards->size() << " extra boards" << std::endl;

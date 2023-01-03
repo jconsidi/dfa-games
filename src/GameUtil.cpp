@@ -19,8 +19,7 @@ int sign(int x)
   return 0;
 }
 
-template<int offset, int width, int height, int... shape_pack>
-const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil<offset, width, height, shape_pack...>::get_queen_moves()
+const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil::get_queen_moves(int offset, int width, int height)
 {
   static std::vector<std::tuple<int, int, std::vector<int>>> output;
 
@@ -69,10 +68,9 @@ const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil<offset, widt
   return output;
 }
 
-template<int offset, int width, int height, int... shape_pack>
-typename GameUtil<offset, width, height, shape_pack...>::choice_type GameUtil<offset, width, height, shape_pack...>::get_choice(std::string name_in)
+Game::choice_type GameUtil::get_choice(std::string name_in, int offset, int width, int height)
 {
-  choice_type output;
+  Game::choice_type output;
 
   change_vector& changes = std::get<1>(output);
   changes.resize(offset + width * height);
@@ -83,12 +81,12 @@ typename GameUtil<offset, width, height, shape_pack...>::choice_type GameUtil<of
   return output;
 }
 
-template<int offset, int width, int height, int... shape_pack>
-void GameUtil<offset, width, height, shape_pack...>::update_choice(typename GameUtil<offset, width, height, shape_pack...>::choice_type& choice,
-								   int layer,
-								   int before_character,
-								   int after_character,
-								   bool add_constraints)
+void GameUtil::update_choice(const dfa_shape_t& shape_in,
+			     Game::choice_type& choice,
+			     int layer,
+			     int before_character,
+			     int after_character,
+			     bool add_constraints)
 {
   change_vector& changes = std::get<1>(choice);
   changes[layer] = change_type(before_character, after_character);
@@ -96,13 +94,9 @@ void GameUtil<offset, width, height, shape_pack...>::update_choice(typename Game
   if(add_constraints)
     {
       std::vector<shared_dfa_ptr>& pre_conditions = std::get<0>(choice);
-      pre_conditions.emplace_back(dfa_util::get_fixed(layer, before_character));
+      pre_conditions.emplace_back(DFAUtil::get_fixed(shape_in, layer, before_character));
 
       std::vector<shared_dfa_ptr>& post_conditions = std::get<2>(choice);
-      post_conditions.emplace_back(dfa_util::get_fixed(layer, after_character));
+      post_conditions.emplace_back(DFAUtil::get_fixed(shape_in, layer, after_character));
     }
 }
-
-// template instantiations
-
-#include "DFAParams.h"

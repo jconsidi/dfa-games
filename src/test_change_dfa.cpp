@@ -8,14 +8,15 @@
 #include "ChangeDFA.h"
 #include "DifferenceDFA.h"
 #include "DFA.h"
-#include "DFAParams.h"
 #include "FixedDFA.h"
 #include "RejectDFA.h"
+#include "TestDFAParams.h"
 
-template<int ndim, int... shape_pack>
-void test_change(std::string test_name, const DFA<ndim, shape_pack...>& dfa_in, change_vector changes_in, const DFA<ndim, shape_pack...>& dfa_expected)
+void test_change(std::string test_name, const DFA& dfa_in, change_vector changes_in, const DFA& dfa_expected)
 {
-  int shape[] = {shape_pack...};
+  const dfa_shape_t& shape = dfa_in.get_shape();
+  int ndim = shape.size();
+
   std::ostringstream builder;
   builder << "[" << shape[0];
   for(int i = 1; i < ndim; ++i)
@@ -27,10 +28,10 @@ void test_change(std::string test_name, const DFA<ndim, shape_pack...>& dfa_in, 
 
   std::cout << test_name_full << std::endl;
 
-  ChangeDFA<ndim, shape_pack...> change_test(dfa_in, changes_in);
+  ChangeDFA change_test(dfa_in, changes_in);
   std::cout << test_name_full << ": expected " << dfa_expected.size() << " matches, actually " << change_test.size() << " matches" << std::endl;
 
-  DifferenceDFA<ndim, shape_pack...> extra_dfa(change_test, dfa_expected);
+  DifferenceDFA extra_dfa(change_test, dfa_expected);
   double extra_size = extra_dfa.size();
   if(extra_size > 0)
     {
@@ -38,7 +39,7 @@ void test_change(std::string test_name, const DFA<ndim, shape_pack...>& dfa_in, 
       throw std::logic_error("change failed with extra matches");
     }
 
-  DifferenceDFA<ndim, shape_pack...> missing_dfa(dfa_expected, change_test);
+  DifferenceDFA missing_dfa(dfa_expected, change_test);
   double missing_size = missing_dfa.size();
   if(missing_size > 0)
     {
@@ -47,11 +48,12 @@ void test_change(std::string test_name, const DFA<ndim, shape_pack...>& dfa_in, 
     }
 }
 
-template<int ndim, int... shape_pack>
-void test_suite()
+void test_suite(const dfa_shape_t& shape_in)
 {
-  AcceptDFA<ndim, shape_pack...> accept;
-  RejectDFA<ndim, shape_pack...> reject;
+  int ndim = shape_in.size();
+
+  AcceptDFA accept(shape_in);
+  RejectDFA reject(shape_in);
 
   // identity rule
   change_vector identity(ndim);
@@ -70,7 +72,7 @@ void test_suite()
   change_vector l0(ndim);
   l0[0] = change_type(0, 1);
 
-  FixedDFA<ndim, shape_pack...> l0_expected(0, 1);
+  FixedDFA l0_expected(shape_in, 0, 1);
 
   test_change("accept l0", accept, l0, l0_expected);
   test_change("reject l0", reject, l0, reject);
@@ -80,14 +82,11 @@ int main()
 {
   try
     {
-      test_suite<TEST1_DFA_PARAMS>();
-      test_suite<TEST2_DFA_PARAMS>();
-      test_suite<TEST3_DFA_PARAMS>();
-      test_suite<TEST4_DFA_PARAMS>();
-      test_suite<TEST5_DFA_PARAMS>();
-      test_suite<TICTACTOE2_DFA_PARAMS>();
-      test_suite<TICTACTOE3_DFA_PARAMS>();
-      test_suite<TICTACTOE4_DFA_PARAMS>();
+      test_suite(dfa_shape_t({TEST1_DFA_SHAPE}));
+      test_suite(dfa_shape_t({TEST2_DFA_SHAPE}));
+      test_suite(dfa_shape_t({TEST3_DFA_SHAPE}));
+      test_suite(dfa_shape_t({TEST4_DFA_SHAPE}));
+      test_suite(dfa_shape_t({TEST5_DFA_SHAPE}));
     }
   catch(std::logic_error e)
     {

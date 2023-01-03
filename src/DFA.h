@@ -3,9 +3,8 @@
 #ifndef DFA_H
 #define DFA_H
 
-#include <array>
 #include <ctype.h>
-#include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -14,15 +13,19 @@
 typedef uint32_t dfa_state_t;
 typedef std::vector<dfa_state_t> DFATransitionsStaging;
 
-template <int ndim, int... shape_pack>
+typedef std::vector<int> dfa_shape_t;
+
 class DFAString
 {
-  std::array<int, ndim> characters;
+  dfa_shape_t shape;
+  std::vector<int> characters;
 
 public:
 
-  DFAString(const std::vector<int>& characters_in);
+  DFAString(const dfa_shape_t&, const std::vector<int>& characters_in);
   int operator[](int) const;
+
+  const dfa_shape_t& get_shape() const;
 
   std::string to_string() const;
 };
@@ -43,13 +46,12 @@ public:
   int get_layer_shape() const {return layer_shape;}
 };
 
-template <int ndim, int... shape_pack>
 class DFAIterator;
 
-template <int ndim, int... shape_pack>
 class DFA
 {
-  std::vector<int> shape = {};
+  dfa_shape_t shape;
+  int ndim;
 
   mutable std::string directory;
   dfa_state_t initial_state = ~dfa_state_t(0);
@@ -66,7 +68,7 @@ class DFA
 
  protected:
 
-  DFA();
+  DFA(const dfa_shape_t&);
 
   virtual dfa_state_t add_state(int, const DFATransitionsStaging&);
   dfa_state_t add_state_by_function(int, std::function<dfa_state_t(int)>);
@@ -76,18 +78,20 @@ class DFA
 
  public:
 
-  DFA(std::string);
+  DFA(const dfa_shape_t&, std::string);
   virtual ~DFA() noexcept(false);
 
-  DFAIterator<ndim, shape_pack...> cbegin() const;
-  DFAIterator<ndim, shape_pack...> cend() const;
+  DFAIterator cbegin() const;
+  DFAIterator cend() const;
 
-  bool contains(const DFAString<ndim, shape_pack...>&) const;
+  bool contains(const DFAString&) const;
 
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   dfa_state_t get_layer_size(int) const;
   std::string get_name() const;
+  const dfa_shape_t& get_shape() const;
+  int get_shape_size() const;
   DFATransitionsReference get_transitions(int, dfa_state_t) const;
 
   bool is_constant(bool) const;
@@ -100,22 +104,25 @@ class DFA
   size_t states() const;
 };
 
-template <int ndim, int... shape_pack>
 class DFAIterator
 {
-  friend class DFA<ndim, shape_pack...>;
+  friend class DFA;
 
   std::vector<int> shape;
-  const DFA<ndim, shape_pack...>& dfa;
+  int ndim;
+
+  const DFA& dfa;
   std::vector<int> characters;
 
-  DFAIterator(const DFA<ndim, shape_pack...>& dfa_in, const std::vector<int>& characters_in);
+  DFAIterator(const DFA& dfa_in, const std::vector<int>& characters_in);
 
 public:
 
-  DFAString<ndim, shape_pack...> operator*() const;
+  DFAString operator*() const;
   DFAIterator& operator++(); // prefix ++
   bool operator<(const DFAIterator&) const;
 };
+
+typedef std::shared_ptr<const DFA> shared_dfa_ptr;
 
 #endif

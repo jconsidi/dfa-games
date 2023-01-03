@@ -8,9 +8,11 @@
 
 #include "CountDFA.h"
 
-template<int ndim, int... shape_pack>
-CountDFA<ndim, shape_pack...>::CountDFA(int num_pieces)
+CountDFA::CountDFA(const dfa_shape_t& shape_in, int num_pieces)
+  : DedupedDFA(shape_in)
 {
+  int ndim = shape_in.size();
+
   // current layer states
 
   std::vector<dfa_state_t> current_layer_states;
@@ -43,9 +45,3 @@ CountDFA<ndim, shape_pack...>::CountDFA(int num_pieces)
   assert(current_layer_states.size() == 1);
   this->set_initial_state(current_layer_states[0]);
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(CountDFA);

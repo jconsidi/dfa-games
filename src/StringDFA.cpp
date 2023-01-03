@@ -2,15 +2,14 @@
 
 #include "StringDFA.h"
 
-template <int ndim, int... shape_pack>
-StringDFA<ndim, shape_pack...>::StringDFA(const std::vector<DFAString<ndim, shape_pack...>>& strings_in)
+StringDFA::StringDFA(const std::vector<DFAString>& strings_in)
+  : DedupedDFA(strings_in[0].get_shape())
 {
   this->set_initial_state(build_internal(0, strings_in));
 }
 
-template <int ndim, int... shape_pack>
-dfa_state_t StringDFA<ndim, shape_pack...>::build_internal(int layer,
-							   const std::vector<DFAString<ndim, shape_pack...>>& strings_in)
+dfa_state_t StringDFA::build_internal(int layer,
+				      const std::vector<DFAString>& strings_in)
 {
   if(strings_in.size() <= 0)
     {
@@ -18,7 +17,7 @@ dfa_state_t StringDFA<ndim, shape_pack...>::build_internal(int layer,
       return 0;
     }
 
-  if(layer == ndim)
+  if(layer == get_shape_size())
     {
       // reached the end of a string
       return 1;
@@ -27,9 +26,9 @@ dfa_state_t StringDFA<ndim, shape_pack...>::build_internal(int layer,
   // split input strings by current layer's character
 
   int layer_shape = this->get_layer_shape(layer);
-  std::vector<std::vector<DFAString<ndim, shape_pack...>>> child_strings(layer_shape);
+  std::vector<std::vector<DFAString>> child_strings(layer_shape);
 
-  for(const DFAString<ndim, shape_pack...>& string : strings_in)
+  for(const DFAString& string : strings_in)
     {
       child_strings.at(string[layer]).push_back(string);
     }
@@ -42,10 +41,3 @@ dfa_state_t StringDFA<ndim, shape_pack...>::build_internal(int layer,
 
   return this->add_state(layer, transitions);
 }
-
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(StringDFA);

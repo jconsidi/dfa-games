@@ -7,11 +7,11 @@
 #include "MemoryMap.h"
 #include "VectorBitSet.h"
 
-template<int ndim, int... shape_pack>
-ChangeDFA<ndim, shape_pack...>::ChangeDFA(const DFA<ndim, shape_pack...>& dfa_in,
-					  const change_vector& changes_in)
+ChangeDFA::ChangeDFA(const DFA& dfa_in,
+		     const change_vector& changes_in)
+  : DFA(dfa_in.get_shape())
 {
-  assert(changes_in.size() == ndim);
+  assert(changes_in.size() == dfa_in.get_shape_size());
 
   // 1. forward pass to identify all states reachable from initial
   // state.
@@ -30,7 +30,7 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const DFA<ndim, shape_pack...>& dfa_in
 
   // expand each layer's reachable states to find next layer's
   // reachable states.
-  for(int layer = 0; layer < ndim - 1; ++layer)
+  for(int layer = 0; layer < get_shape_size() - 1; ++layer)
     {
       forward_reachable.emplace_back(dfa_in.get_layer_size(layer+1));
       VectorBitSet& next_reachable = forward_reachable.back();
@@ -63,11 +63,11 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const DFA<ndim, shape_pack...>& dfa_in
 	}
     }
 
-  assert(forward_reachable.size() == ndim);
+  assert(forward_reachable.size() == get_shape_size());
 
   // prune if nothing reachable at the end
 
-  if(forward_reachable[ndim - 1].count() == 0)
+  if(forward_reachable[get_shape_size() - 1].count() == 0)
     {
       this->set_initial_state(0);
       return;
@@ -75,26 +75,26 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const DFA<ndim, shape_pack...>& dfa_in
 
   // expand dummy layer for terminal reject / accept
   forward_reachable.emplace_back(2);
-  forward_reachable[ndim].add(0);
-  forward_reachable[ndim].add(1);
+  forward_reachable[get_shape_size()].add(0);
+  forward_reachable[get_shape_size()].add(1);
 
   ////////////////////////////////////////////////////////////
   // backward pass rewriting states //////////////////////////
   ////////////////////////////////////////////////////////////
 
   std::vector<MemoryMap<dfa_state_t>> changed_states;
-  for(int layer = 0; layer < ndim; ++layer)
+  for(int layer = 0; layer < get_shape_size(); ++layer)
     {
       changed_states.emplace_back(forward_reachable.at(layer).count());
     }
 
   // terminal pseudo-layer
   changed_states.emplace_back(2);
-  changed_states[ndim][0] = 0;
-  changed_states[ndim][1] = 1;
+  changed_states[get_shape_size()][0] = 0;
+  changed_states[get_shape_size()][1] = 1;
 
   // backward pass
-  for(int layer = ndim - 1; layer >= 0; --layer)
+  for(int layer = get_shape_size() - 1; layer >= 0; --layer)
     {
       VectorBitSetIndex next_index(forward_reachable[layer+1]);
 
@@ -154,9 +154,3 @@ ChangeDFA<ndim, shape_pack...>::ChangeDFA(const DFA<ndim, shape_pack...>& dfa_in
 
   this->set_initial_state(changed_states[0][0]);
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(ChangeDFA);

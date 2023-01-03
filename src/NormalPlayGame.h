@@ -5,17 +5,12 @@
 
 #include "Game.h"
 
-template<int ndim, int... shape_pack>
 class NormalPlayGame
-  : public Game<ndim, shape_pack...>
+  : public Game
 {
-public:
-
-  typedef typename Game<ndim, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
-
 protected:
 
-  NormalPlayGame(std::string);
+  NormalPlayGame(std::string, const dfa_shape_t&);
 
 public:
 

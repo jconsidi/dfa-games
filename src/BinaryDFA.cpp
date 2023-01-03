@@ -17,63 +17,16 @@
 #include "Profile.h"
 #include "VectorBitSet.h"
 
-template <int ndim, int... shape_pack>
-class LayerTransitionsIterator;
+class LayerTransitions;
 
-template <int ndim, int... shape_pack>
 class FilteredLayerTransitionsIterator;
 
-template <int ndim, int... shape_pack>
-class LayerTransitions
-{
-  const DFA<ndim, shape_pack...>& left;
-  const DFA<ndim, shape_pack...>& right;
-  int layer;
-  const BitSet& layer_pairs;
-
-public:
-
-  LayerTransitions(const DFA<ndim, shape_pack...>& left_in,
-		   const DFA<ndim, shape_pack...>& right_in,
-		   int layer_in,
-		   const BitSet& layer_pairs_in)
-    : left(left_in),
-      right(right_in),
-      layer(layer_in),
-      layer_pairs(layer_pairs_in)
-  {
-  }
-
-  LayerTransitionsIterator<ndim, shape_pack...> cbegin() const
-  {
-    return LayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cbegin());
-  }
-
-  FilteredLayerTransitionsIterator<ndim, shape_pack...> cbegin_filtered(std::function<bool(dfa_state_t, dfa_state_t)> filter_func) const
-  {
-    return FilteredLayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cbegin(), layer_pairs.cend(), filter_func);
-  }
-
-  LayerTransitionsIterator<ndim, shape_pack...> cend() const
-  {
-    return LayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cend());
-  }
-
-  FilteredLayerTransitionsIterator<ndim, shape_pack...> cend_filtered() const
-  {
-    return FilteredLayerTransitionsIterator<ndim, shape_pack...>(left, right, layer, layer_pairs.cend(), layer_pairs.cend(), [](dfa_state_t, dfa_state_t){return false;});
-  }
-
-  friend LayerTransitionsIterator<ndim, shape_pack...>;
-};
-
-template <int ndim, int... shape_pack>
 class LayerTransitionsHelper
 {
 protected:
 
-  const DFA<ndim, shape_pack...>& left;
-  const DFA<ndim, shape_pack...>& right;
+  const DFA& left;
+  const DFA& right;
   const int layer;
 
   const int curr_layer_shape;
@@ -84,8 +37,8 @@ protected:
 
 public:
 
-  LayerTransitionsHelper(const DFA<ndim, shape_pack...>& left_in,
-			 const DFA<ndim, shape_pack...>& right_in,
+  LayerTransitionsHelper(const DFA& left_in,
+			 const DFA& right_in,
 			 int layer_in)
     : left(left_in),
       right(right_in),
@@ -126,9 +79,8 @@ public:
   }
 };
 
-template <int ndim, int... shape_pack>
 class LayerTransitionsIterator
-  : public LayerTransitionsHelper<ndim, shape_pack...>
+  : public LayerTransitionsHelper
 {
 protected:
 
@@ -141,11 +93,11 @@ private:
 
 protected:
 
-  LayerTransitionsIterator(const DFA<ndim, shape_pack...>& left_in,
-			   const DFA<ndim, shape_pack...>& right_in,
+  LayerTransitionsIterator(const DFA& left_in,
+			   const DFA& right_in,
 			   int layer_in,
 			   BitSetIterator iter_in)
-    : LayerTransitionsHelper<ndim, shape_pack...>(left_in, right_in, layer_in),
+    : LayerTransitionsHelper(left_in, right_in, layer_in),
       iter(iter_in),
       curr_i(0),
       curr_j(0)
@@ -189,23 +141,22 @@ public:
     return curr_j < right_in.curr_j;
   }
 
-  friend LayerTransitions<ndim, shape_pack...>;
+  friend LayerTransitions;
 };
 
-template <int ndim, int... shape_pack>
 class FilteredLayerTransitionsIterator
-  : public LayerTransitionsIterator<ndim, shape_pack...>
+  : public LayerTransitionsIterator
 {
   const BitSetIterator end;
   std::function<bool(dfa_state_t, dfa_state_t)> filter_func;
 
-  FilteredLayerTransitionsIterator(const DFA<ndim, shape_pack...>& left_in,
-				   const DFA<ndim, shape_pack...>& right_in,
+  FilteredLayerTransitionsIterator(const DFA& left_in,
+				   const DFA& right_in,
 				   int layer_in,
 				   BitSetIterator begin_in,
 				   BitSetIterator end_in,
 				   std::function<bool(dfa_state_t, dfa_state_t)> filter_in)
-    : LayerTransitionsIterator<ndim, shape_pack...>(left_in, right_in, layer_in, begin_in),
+    : LayerTransitionsIterator(left_in, right_in, layer_in, begin_in),
       end(end_in),
       filter_func(filter_in)
   {
@@ -234,7 +185,7 @@ public:
 
   FilteredLayerTransitionsIterator& operator++()
   {
-    LayerTransitionsIterator<ndim, shape_pack...> *this2 = this;
+    LayerTransitionsIterator *this2 = this;
     ++(*this2);
     while(check_filter())
       {
@@ -244,15 +195,57 @@ public:
     return *this;
   }
 
-  friend LayerTransitions<ndim, shape_pack...>;
+  friend LayerTransitions;
 };
 
-template <int ndim, int... shape_pack>
-BinaryDFA<ndim, shape_pack...>::BinaryDFA(const DFA<ndim, shape_pack...>& left_in,
-					  const DFA<ndim, shape_pack...>& right_in,
-					  const BinaryFunction& leaf_func)
-  : DFA<ndim, shape_pack...>()
+class LayerTransitions
 {
+  const DFA& left;
+  const DFA& right;
+  int layer;
+  const BitSet& layer_pairs;
+
+public:
+
+  LayerTransitions(const DFA& left_in,
+		   const DFA& right_in,
+		   int layer_in,
+		   const BitSet& layer_pairs_in)
+    : left(left_in),
+      right(right_in),
+      layer(layer_in),
+      layer_pairs(layer_pairs_in)
+  {
+  }
+
+  LayerTransitionsIterator cbegin() const
+  {
+    return LayerTransitionsIterator(left, right, layer, layer_pairs.cbegin());
+  }
+
+  FilteredLayerTransitionsIterator cbegin_filtered(std::function<bool(dfa_state_t, dfa_state_t)> filter_func) const
+  {
+    return FilteredLayerTransitionsIterator(left, right, layer, layer_pairs.cbegin(), layer_pairs.cend(), filter_func);
+  }
+
+  LayerTransitionsIterator cend() const
+  {
+    return LayerTransitionsIterator(left, right, layer, layer_pairs.cend());
+  }
+
+  FilteredLayerTransitionsIterator cend_filtered() const
+  {
+    return FilteredLayerTransitionsIterator(left, right, layer, layer_pairs.cend(), layer_pairs.cend(), [](dfa_state_t, dfa_state_t){return false;});
+  }
+};
+
+BinaryDFA::BinaryDFA(const DFA& left_in,
+		     const DFA& right_in,
+		     const BinaryFunction& leaf_func)
+  : DFA(left_in.get_shape())
+{
+  assert(left_in.get_shape() == right_in.get_shape());
+
   // both inputs constant
   if((left_in.get_initial_state() < 2) && (right_in.get_initial_state() < 2))
     {
@@ -305,10 +298,9 @@ static std::string binary_build_file_prefix(int layer)
   return filename_builder.str();
 }
 
-template <int ndim, int... shape_pack>
-void BinaryDFA<ndim, shape_pack...>::build_linear(const DFA<ndim, shape_pack...>& left_in,
-						  const DFA<ndim, shape_pack...>& right_in,
-						  const BinaryFunction& leaf_func)
+void BinaryDFA::build_linear(const DFA& left_in,
+			     const DFA& right_in,
+			     const BinaryFunction& leaf_func)
 {
   Profile profile("build_linear");
 
@@ -326,7 +318,7 @@ void BinaryDFA<ndim, shape_pack...>::build_linear(const DFA<ndim, shape_pack...>
 
   std::vector<dfa_state_t> left_states = {left_in.get_initial_state()};
   std::vector<std::vector<bool>> left_filters;
-  for(int layer = 0; layer < ndim; ++layer)
+  for(int layer = 0; layer < get_shape_size(); ++layer)
     {
       int layer_shape = left_in.get_layer_shape(layer);
       left_filters.emplace_back(layer_shape);
@@ -346,9 +338,9 @@ void BinaryDFA<ndim, shape_pack...>::build_linear(const DFA<ndim, shape_pack...>
       assert(next_left_state);
       left_states.push_back(next_left_state);
     }
-  assert(left_states.size() == ndim + 1);
-  assert(left_states[ndim] == 1);
-  assert(left_filters.size() == ndim);
+  assert(left_states.size() == get_shape_size() + 1);
+  assert(left_states[get_shape_size()] == 1);
+  assert(left_filters.size() == get_shape_size());
 
   ////////////////////////////////////////////////////////////
   // forward pass finding right reachable states /////////////
@@ -362,7 +354,7 @@ void BinaryDFA<ndim, shape_pack...>::build_linear(const DFA<ndim, shape_pack...>
 
   // expand each layer's reachable states to find next layer's
   // reachable states.
-  for(int layer = 0; layer < ndim - 1; ++layer)
+  for(int layer = 0; layer < get_shape_size() - 1; ++layer)
     {
       int layer_shape = right_in.get_layer_shape(layer);
 
@@ -381,11 +373,11 @@ void BinaryDFA<ndim, shape_pack...>::build_linear(const DFA<ndim, shape_pack...>
 	    }
 	}
     }
-  assert(right_reachable.size() == ndim);
+  assert(right_reachable.size() == get_shape_size());
 
   // prune if nothing reachable at the end
 
-  if(right_reachable[ndim - 1].count() == 0)
+  if(right_reachable[get_shape_size() - 1].count() == 0)
     {
       this->set_initial_state(0);
       return;
@@ -393,26 +385,26 @@ void BinaryDFA<ndim, shape_pack...>::build_linear(const DFA<ndim, shape_pack...>
 
   // expand dummy layer for terminal reject / accept
   right_reachable.emplace_back(2);
-  right_reachable[ndim].add(0);
-  right_reachable[ndim].add(1);
+  right_reachable[get_shape_size()].add(0);
+  right_reachable[get_shape_size()].add(1);
 
   ////////////////////////////////////////////////////////////
   // backward pass rewriting states //////////////////////////
   ////////////////////////////////////////////////////////////
 
   std::vector<MemoryMap<dfa_state_t>> changed_states;
-  for(int layer = 0; layer < ndim; ++layer)
+  for(int layer = 0; layer < get_shape_size(); ++layer)
     {
       changed_states.emplace_back(right_reachable.at(layer).count());
     }
 
   // terminal pseudo-layer
   changed_states.emplace_back(2);
-  changed_states[ndim][0] = leaf_func(1, 0);
-  changed_states[ndim][1] = leaf_func(1, 1);
+  changed_states[get_shape_size()][0] = leaf_func(1, 0);
+  changed_states[get_shape_size()][1] = leaf_func(1, 1);
 
   // backward pass
-  for(int layer = ndim - 1; layer >= 0; --layer)
+  for(int layer = get_shape_size() - 1; layer >= 0; --layer)
     {
       VectorBitSetIndex next_index(right_reachable[layer+1]);
 
@@ -452,10 +444,9 @@ void BinaryDFA<ndim, shape_pack...>::build_linear(const DFA<ndim, shape_pack...>
   this->set_initial_state(changed_states[0][0]);
 }
 
-template <int ndim, int... shape_pack>
-void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_pack...>& left_in,
-							  const DFA<ndim, shape_pack...>& right_in,
-							  const BinaryFunction& leaf_func)
+void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
+				     const DFA& right_in,
+				     const BinaryFunction& leaf_func)
 {
   Profile profile("build_quadratic_mmap");
 
@@ -511,7 +502,7 @@ void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_
   };
 
   std::vector<BitSet> pairs_by_layer;
-  pairs_by_layer.reserve(ndim + 1);
+  pairs_by_layer.reserve(get_shape_size() + 1);
 
   pairs_by_layer.emplace_back(left_in.get_layer_size(0) * right_in.get_layer_size(0));
 
@@ -530,7 +521,7 @@ void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_
 
   // forward pass
 
-  for(int layer = 0; layer < ndim; ++layer)
+  for(int layer = 0; layer < get_shape_size(); ++layer)
     {
       profile.set_prefix("layer=" + std::to_string(layer));
       profile.tic("forward init");
@@ -564,7 +555,7 @@ void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_
 
       LayerTransitions layer_transitions(left_in, right_in, layer, curr_layer);
 
-      populate_bitset<FilteredLayerTransitionsIterator<ndim, shape_pack...>>(next_layer,
+      populate_bitset<FilteredLayerTransitionsIterator>(next_layer,
 									     layer_transitions.cbegin_filtered(filter_func),
 									     layer_transitions.cend_filtered());
 
@@ -589,9 +580,9 @@ void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_
   profile.tic("leaves");
 
   std::vector<dfa_state_t> next_pair_mapping;
-  if(pairs_by_layer.size() == ndim + 1)
+  if(pairs_by_layer.size() == get_shape_size() + 1)
     {
-      BitSet& leaf_pairs = pairs_by_layer.at(ndim);
+      BitSet& leaf_pairs = pairs_by_layer.at(get_shape_size());
       assert(leaf_pairs.size() <= 4);
 
       for(int leaf_i = 0; leaf_i < 4; ++leaf_i)
@@ -630,7 +621,7 @@ void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_
 
       profile.tic("backward enumerate");
 
-      LayerTransitionsHelper<ndim, shape_pack...> helper(left_in, right_in, layer);
+      LayerTransitionsHelper helper(left_in, right_in, layer);
 
       size_t curr_layer_count = curr_layer.count();
       MemoryMap<size_t> curr_pairs = (curr_layer_count * sizeof(size_t) < 1ULL << 32)
@@ -772,9 +763,3 @@ void BinaryDFA<ndim, shape_pack...>::build_quadratic_mmap(const DFA<ndim, shape_
   assert(this->ready());
   profile.tic("final cleanup");
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(BinaryDFA);

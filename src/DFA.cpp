@@ -61,24 +61,6 @@ void remove_directory(std::string directory)
     }
 }
 
-template<int... shape_pack>
-std::vector<int> shape_pack_to_vector()
-{
-  // initialize an array from the shape parameter pack
-
-  int ox[] = {shape_pack...};
-
-  // convert to a vector and return
-  std::vector<int> output;
-  for(int i = 0; i < sizeof(ox) / sizeof(int); ++i)
-    {
-      output.push_back(ox[i]);
-    }
-  output.shrink_to_fit();
-
-  return output;
-}
-
 DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& layer_transitions_in,
 						 dfa_state_t state_in,
 						 int layer_shape_in)
@@ -104,17 +86,15 @@ DFATransitionsReference::DFATransitionsReference(const DFATransitionsReference& 
   assert(offset + layer_shape <= size_temp);
 }
 
-template<int ndim, int... shape_pack>
-DFA<ndim, shape_pack...>::DFA()
-  : shape(shape_pack_to_vector<shape_pack...>()),
+DFA::DFA(const dfa_shape_t& shape_in)
+  : shape(shape_in),
+    ndim(shape.size()),
     directory("scratch/temp/" + std::to_string(next_dfa_id++)),
-    layer_file_names(get_layer_file_names(ndim, directory)),
+    layer_file_names(get_layer_file_names(shape_in.size(), directory)),
     layer_sizes(),
     layer_transitions(),
     temporary(true)
 {
-  assert(shape.size() == ndim);
-
   mkdir(directory.c_str(), 0700);
 
   for(int layer = 0; layer < ndim; ++layer)
@@ -141,9 +121,9 @@ DFA<ndim, shape_pack...>::DFA()
   assert(layer_transitions.size() == ndim);
 }
 
-template<int ndim, int... shape_pack>
-DFA<ndim, shape_pack...>::DFA(std::string name_in)
-  : shape(shape_pack_to_vector<shape_pack...>()),
+DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
+  : shape(shape_in),
+    ndim(shape.size()),
     directory("scratch/" + name_in),
     layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
@@ -168,8 +148,7 @@ DFA<ndim, shape_pack...>::DFA(std::string name_in)
   set_initial_state(initial_state_mmap[0]);
 }
 
-template<int ndim, int... shape_pack>
-DFA<ndim, shape_pack...>::~DFA() noexcept(false)
+DFA::~DFA() noexcept(false)
 {
   if(temporary)
     {
@@ -177,8 +156,7 @@ DFA<ndim, shape_pack...>::~DFA() noexcept(false)
     }
 }
 
-template<int ndim, int... shape_pack>
-dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitionsStaging& transitions)
+dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
 {
   assert((0 <= layer) && (layer < ndim));
 
@@ -228,8 +206,7 @@ dfa_state_t DFA<ndim, shape_pack...>::add_state(int layer, const DFATransitionsS
   return layer_sizes[layer]++;
 }
 
-template<int ndim, int... shape_pack>
-dfa_state_t DFA<ndim, shape_pack...>::add_state_by_function(int layer, std::function<dfa_state_t(int)> transition_func)
+dfa_state_t DFA::add_state_by_function(int layer, std::function<dfa_state_t(int)> transition_func)
 {
   int layer_shape = this->get_layer_shape(layer);
 
@@ -242,8 +219,7 @@ dfa_state_t DFA<ndim, shape_pack...>::add_state_by_function(int layer, std::func
   return add_state(layer, transitions);
 }
 
-template<int ndim, int... shape_pack>
-dfa_state_t DFA<ndim, shape_pack...>::add_state_by_reference(int layer, const DFATransitionsReference& next_states)
+dfa_state_t DFA::add_state_by_reference(int layer, const DFATransitionsReference& next_states)
 {
   int layer_shape = this->get_layer_shape(layer);
   assert(next_states.get_layer_shape() == layer_shape);
@@ -257,8 +233,7 @@ dfa_state_t DFA<ndim, shape_pack...>::add_state_by_reference(int layer, const DF
   return this->add_state(layer, temp_states);
 }
 
-template<int ndim, int... shape_pack>
-void DFA<ndim, shape_pack...>::set_initial_state(dfa_state_t initial_state_in)
+void DFA::set_initial_state(dfa_state_t initial_state_in)
 {
   assert(initial_state == ~dfa_state_t(0));
 
@@ -268,8 +243,7 @@ void DFA<ndim, shape_pack...>::set_initial_state(dfa_state_t initial_state_in)
   finalize();
 }
 
-template<int ndim, int... shape_pack>
-DFAIterator<ndim, shape_pack...> DFA<ndim, shape_pack...>::cbegin() const
+DFAIterator DFA::cbegin() const
 {
   if(initial_state == 0)
     {
@@ -298,11 +272,10 @@ DFAIterator<ndim, shape_pack...> DFA<ndim, shape_pack...>::cbegin() const
 
   assert(current_state == 1);
 
-  return DFAIterator<ndim, shape_pack...>(*this, characters);
+  return DFAIterator(*this, characters);
 }
 
-template<int ndim, int... shape_pack>
-DFAIterator<ndim, shape_pack...> DFA<ndim, shape_pack...>::cend() const
+DFAIterator DFA::cend() const
 {
   std::vector<int> characters;
   characters.push_back(shape[0]);
@@ -311,11 +284,10 @@ DFAIterator<ndim, shape_pack...> DFA<ndim, shape_pack...>::cend() const
       characters.push_back(0);
     }
 
-  return DFAIterator<ndim, shape_pack...>(*this, characters);
+  return DFAIterator(*this, characters);
 }
 
-template<int ndim, int... shape_pack>
-bool DFA<ndim, shape_pack...>::contains(const DFAString<ndim, shape_pack...>& string_in) const
+bool DFA::contains(const DFAString& string_in) const
 {
   int current_state = initial_state;
   for(int layer = 0; layer < ndim; ++layer)
@@ -326,8 +298,7 @@ bool DFA<ndim, shape_pack...>::contains(const DFAString<ndim, shape_pack...>& st
   return current_state != 0;
 }
 
-template<int ndim, int... shape_pack>
-void DFA<ndim, shape_pack...>::finalize()
+void DFA::finalize()
 {
   assert(ready());
 
@@ -342,23 +313,20 @@ void DFA<ndim, shape_pack...>::finalize()
     }
 }
 
-template<int ndim, int... shape_pack>
-dfa_state_t DFA<ndim, shape_pack...>::get_initial_state() const
+dfa_state_t DFA::get_initial_state() const
 {
   assert(initial_state != ~dfa_state_t(0));
   return initial_state;
 }
 
-  template<int ndim, int... shape_pack>
-  int DFA<ndim, shape_pack...>::get_layer_shape(int layer) const
-  {
-    assert((0 <= layer) && (layer < ndim));
+int DFA::get_layer_shape(int layer) const
+{
+  assert((0 <= layer) && (layer < ndim));
 
-    return shape.at(layer);
-  }
+  return shape.at(layer);
+}
 
-template<int ndim, int... shape_pack>
-dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
+dfa_state_t DFA::get_layer_size(int layer) const
 {
   assert(layer <= ndim);
 
@@ -370,8 +338,7 @@ dfa_state_t DFA<ndim, shape_pack...>::get_layer_size(int layer) const
   return layer_sizes[layer];
 }
 
-template<int ndim, int... shape_pack>
-std::string DFA<ndim, shape_pack...>::get_name() const
+std::string DFA::get_name() const
 {
   if(name != "")
     {
@@ -383,23 +350,30 @@ std::string DFA<ndim, shape_pack...>::get_name() const
   return output.str();
 }
 
-template<int ndim, int... shape_pack>
-DFATransitionsReference DFA<ndim, shape_pack...>::get_transitions(int layer, dfa_state_t state_index) const
+const dfa_shape_t& DFA::get_shape() const
+{
+  return shape;
+}
+
+int DFA::get_shape_size() const
+{
+  return shape.size();
+}
+
+DFATransitionsReference DFA::get_transitions(int layer, dfa_state_t state_index) const
 {
   assert(layer < ndim);
   assert(state_index < layer_sizes[layer]);
   return DFATransitionsReference(layer_transitions[layer], state_index, get_layer_shape(layer));
 }
 
-template<int ndim, int... shape_pack>
-bool DFA<ndim, shape_pack...>::is_constant(bool constant_in) const
+bool DFA::is_constant(bool constant_in) const
 {
   assert(ready());
   return initial_state == int(constant_in);
 }
 
-template<int ndim, int... shape_pack>
-bool DFA<ndim, shape_pack...>::is_linear() const
+bool DFA::is_linear() const
 {
   assert(ready());
 
@@ -447,14 +421,12 @@ bool DFA<ndim, shape_pack...>::is_linear() const
   return true;
 }
 
-template<int ndim, int... shape_pack>
-bool DFA<ndim, shape_pack...>::ready() const
+bool DFA::ready() const
 {
   return initial_state != ~dfa_state_t(0);
 }
 
-template<int ndim, int... shape_pack>
-void DFA<ndim, shape_pack...>::save(std::string name_in) const
+void DFA::save(std::string name_in) const
 {
   assert(ready());
   assert(temporary);
@@ -478,14 +450,12 @@ void DFA<ndim, shape_pack...>::save(std::string name_in) const
   temporary = false;
 }
 
-template<int ndim, int... shape_pack>
-void DFA<ndim, shape_pack...>::set_name(std::string name_in) const
+void DFA::set_name(std::string name_in) const
 {
   name = name_in;
 }
 
-template<int ndim, int... shape_pack>
-double DFA<ndim, shape_pack...>::size() const
+double DFA::size() const
 {
   assert(ready());
 
@@ -514,8 +484,7 @@ double DFA<ndim, shape_pack...>::size() const
   return previous_counts.at(initial_state);
 }
 
-template<int ndim, int... shape_pack>
-size_t DFA<ndim, shape_pack...>::states() const
+size_t DFA::states() const
 {
   size_t states_out = 0;
 
@@ -529,9 +498,9 @@ size_t DFA<ndim, shape_pack...>::states() const
   return states_out;
 }
 
-template<int ndim, int... shape_pack>
-DFAIterator<ndim, shape_pack...>::DFAIterator(const DFA<ndim, shape_pack...>& dfa_in, const std::vector<int>& characters_in)
-  : shape(shape_pack_to_vector<shape_pack...>()),
+DFAIterator::DFAIterator(const DFA& dfa_in, const std::vector<int>& characters_in)
+  : shape(dfa_in.get_shape()),
+    ndim(shape.size()),
     dfa(dfa_in),
     characters(characters_in)
 {
@@ -556,16 +525,14 @@ DFAIterator<ndim, shape_pack...>::DFAIterator(const DFA<ndim, shape_pack...>& df
     }
 }
 
-template<int ndim, int... shape_pack>
-DFAString<ndim, shape_pack...> DFAIterator<ndim, shape_pack...>::operator*() const
+DFAString DFAIterator::operator*() const
 {
   assert(characters[0] < shape[0]);
 
-  return DFAString<ndim, shape_pack...>(characters);
+  return DFAString(shape, characters);
 }
 
-template<int ndim, int... shape_pack>
-DFAIterator<ndim, shape_pack...>& DFAIterator<ndim, shape_pack...>::operator++()
+DFAIterator& DFAIterator::operator++()
 {
   assert(characters[0] < shape[0]);
 
@@ -659,8 +626,7 @@ DFAIterator<ndim, shape_pack...>& DFAIterator<ndim, shape_pack...>::operator++()
   return *this;
 }
 
-template<int ndim, int... shape_pack>
-bool DFAIterator<ndim, shape_pack...>::operator<(const DFAIterator<ndim, shape_pack...>& right_in) const
+bool DFAIterator::operator<(const DFAIterator& right_in) const
 {
   for(int i = 0; i < ndim; ++i)
     {
@@ -679,28 +645,30 @@ bool DFAIterator<ndim, shape_pack...>::operator<(const DFAIterator<ndim, shape_p
   return false;
 }
 
-template<int ndim, int... shape_pack>
-DFAString<ndim, shape_pack...>::DFAString(const std::vector<int>& characters_in)
-  : characters()
+DFAString::DFAString(const dfa_shape_t& shape_in, const std::vector<int>& characters_in)
+  : shape(shape_in),
+    characters(characters_in)
 {
+  int ndim = shape.size();
   assert(characters.size() == ndim);
 
-  auto shape_temp = shape_pack_to_vector<shape_pack...>();
   for(int i = 0; i < ndim; ++i)
     {
-      characters.at(i) = characters_in.at(i);
-      assert(characters.at(i) < shape_temp.at(i));
+      assert(characters.at(i) < shape.at(i));
     }
 }
 
-template<int ndim, int... shape_pack>
-int DFAString<ndim, shape_pack...>::operator[](int layer_in) const
+int DFAString::operator[](int layer_in) const
 {
   return characters.at(layer_in);
 }
 
-template<int ndim, int... shape_pack>
-std::string DFAString<ndim, shape_pack...>::to_string() const
+const dfa_shape_t& DFAString::get_shape() const
+{
+  return shape;
+}
+
+std::string DFAString::to_string() const
 {
   std::string output("");
 
@@ -717,11 +685,3 @@ std::string DFAString<ndim, shape_pack...>::to_string() const
 
   return output;
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(DFA);
-INSTANTIATE_DFA_TEMPLATE(DFAIterator);
-INSTANTIATE_DFA_TEMPLATE(DFAString);

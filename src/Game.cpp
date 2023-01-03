@@ -13,8 +13,7 @@
 #include "IntersectionManager.h"
 #include "Profile.h"
 
-template <int ndim, int... shape_pack>
-std::string quick_stats(const DFA<ndim, shape_pack...>& dfa_in)
+std::string quick_stats(const DFA& dfa_in)
 {
   std::ostringstream stats_builder;
 
@@ -29,13 +28,12 @@ std::string quick_stats(const DFA<ndim, shape_pack...>& dfa_in)
   return stats_builder.str();
 }
 
-template <int ndim, int... shape_pack>
-void sort_choices(typename Game<ndim, shape_pack...>::choice_vector& choices)
+void sort_choices(typename Game::choice_vector& choices)
 {
   Profile profile("sort_choices");
 
-  std::stable_sort(choices.begin(), choices.end(), [](const typename Game<ndim, shape_pack...>::choice_type& a,
-						  const typename Game<ndim, shape_pack...>::choice_type& b)
+  std::stable_sort(choices.begin(), choices.end(), [](const typename Game::choice_type& a,
+						  const typename Game::choice_type& b)
   {
     // compare post conditions
     //
@@ -117,14 +115,13 @@ void sort_choices(typename Game<ndim, shape_pack...>::choice_vector& choices)
   });
 }
 
-template <int ndim, int... shape_pack>
-Game<ndim, shape_pack...>::Game(std::string name_in)
-  : name(name_in)
+Game::Game(std::string name_in, const dfa_shape_t& shape_in)
+  : name(name_in),
+    shape(shape_in)
 {
 }
 
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_has_moves(int side_to_move) const
+shared_dfa_ptr Game::get_has_moves(int side_to_move) const
 {
   Profile profile("get_has_moves");
 
@@ -134,7 +131,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 	load_or_build("has_moves-side=" + std::to_string(side_to_move),
 		      [=]()
 		      {
-			shared_dfa_ptr all_positions = DFAUtil<ndim, shape_pack...>::get_accept();
+			shared_dfa_ptr all_positions = DFAUtil::get_accept(shape);
 			return this->get_moves_backward(side_to_move, all_positions);
 		      });
     }
@@ -142,8 +139,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   return this->singleton_has_moves[side_to_move];
 }
 
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_backward(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
+shared_dfa_ptr Game::get_moves_backward(int side_to_move, shared_dfa_ptr positions_in) const
 {
   Profile profile("get_moves_backward");
 
@@ -152,8 +148,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   return get_moves_internal(phases_backward, positions_in);
 }
 
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_forward(int side_to_move, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
+shared_dfa_ptr Game::get_moves_forward(int side_to_move, shared_dfa_ptr positions_in) const
 {
   Profile profile("get_moves_forward");
 
@@ -162,8 +157,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   return get_moves_internal(phases_forward, positions_in);
 }
 
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_moves_internal(const typename Game<ndim, shape_pack...>::phase_vector& phases_in, typename Game<ndim, shape_pack...>::shared_dfa_ptr positions_in) const
+shared_dfa_ptr Game::get_moves_internal(const typename Game::phase_vector& phases_in, shared_dfa_ptr positions_in) const
 {
   Profile profile("get_moves_internal");
 
@@ -180,8 +174,8 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   shared_dfa_ptr phase_positions = positions_in;
   for(const choice_vector& choices : phases_in)
     {
-      IntersectionManager<ndim, shape_pack...> manager;
-      DNFBuilder<ndim, shape_pack...> output_builder;
+      IntersectionManager manager(shape);
+      DNFBuilder output_builder(shape);
 
       int num_choices = choices.size();
       for(int i = 0; i < num_choices; ++i)
@@ -223,7 +217,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 
 	  // apply choice changes
 	  profile.tic("choice change");
-	  positions = shared_dfa_ptr(new change_dfa_type(*positions, changes));
+	  positions = shared_dfa_ptr(new ChangeDFA(*positions, changes));
 	  std::cout << "  changes => " << quick_stats(*positions) << std::endl;
 
 #ifndef PARANOIA
@@ -253,8 +247,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   return phase_positions;
 }
 
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_positions_losing(int side_to_move, int ply_max) const
+shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const
 {
   Profile profile("get_positions_losing");
 
@@ -275,8 +268,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
 		       });
 }
 
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::get_positions_winning(int side_to_move, int ply_max) const
+shared_dfa_ptr Game::get_positions_winning(int side_to_move, int ply_max) const
 {
   Profile profile("get_positions_winning");
 
@@ -298,25 +290,25 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
       auto tic = [&](std::string label_in){profile.tic(label_in + " " + std::to_string(move));};
 
       tic("not_yet_winning");
-      shared_dfa_ptr not_yet_winning = DFAUtil<ndim, shape_pack...>::get_inverse(winning);
+      shared_dfa_ptr not_yet_winning = DFAUtil::get_inverse(winning);
 
       tic("not_yet_losing");
       shared_dfa_ptr not_yet_losing(this->get_moves_backward(side_not_to_move, not_yet_winning));
 
       tic("losing_more_if_has_move");
-      shared_dfa_ptr losing_more_if_has_move = DFAUtil<ndim, shape_pack...>::get_inverse(not_yet_losing);
+      shared_dfa_ptr losing_more_if_has_move = DFAUtil::get_inverse(not_yet_losing);
 
       tic("losing_more");
-      shared_dfa_ptr losing_more = DFAUtil<ndim, shape_pack...>::get_intersection(losing_more_if_has_move, opponent_has_move);
+      shared_dfa_ptr losing_more = DFAUtil::get_intersection(losing_more_if_has_move, opponent_has_move);
 
       tic("finished check");
-      if(DFAUtil<ndim, shape_pack...>::get_difference(losing_more, losing)->is_constant(false))
+      if(DFAUtil::get_difference(losing_more, losing)->is_constant(false))
 	{
 	  break;
 	}
 
       tic("losing");
-      losing = DFAUtil<ndim, shape_pack...>::get_union(losing, losing_more);
+      losing = DFAUtil::get_union(losing, losing_more);
 
       tic("winning");
       winning = this->get_moves_backward(side_to_move, losing);
@@ -326,8 +318,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::ge
   return winning;
 }
 
-template <int ndim, int... shape_pack>
-const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...>::get_phases_backward(int side_to_move) const
+const typename Game::phase_vector& Game::get_phases_backward(int side_to_move) const
 {
   Profile profile("get_phases_backward");
 
@@ -367,15 +358,14 @@ const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...
 					  std::get<0>(choice_forward),
 					  std::get<3>(choice_forward));
 	    }
-	  sort_choices<ndim, shape_pack...>(choices_backward);
+	  sort_choices(choices_backward);
 	}
     }
 
   return singleton_phases_backward[side_to_move];
 }
 
-template <int ndim, int... shape_pack>
-const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...>::get_phases_forward(int side_to_move) const
+const typename Game::phase_vector& Game::get_phases_forward(int side_to_move) const
 {
   Profile profile("get_phases_forward");
 
@@ -386,15 +376,19 @@ const typename Game<ndim, shape_pack...>::phase_vector& Game<ndim, shape_pack...
       singleton_phases_forward[side_to_move] = this->get_phases_internal(side_to_move);
       for(choice_vector& choices : singleton_phases_forward[side_to_move])
 	{
-	  sort_choices<ndim, shape_pack...>(choices);
+	  sort_choices(choices);
 	}
     }
 
   return singleton_phases_forward[side_to_move];
 }
 
-template <int ndim, int... shape_pack>
-typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::load_or_build(std::string dfa_name_in, std::function<typename Game<ndim, shape_pack...>::shared_dfa_ptr ()> build_func) const
+const dfa_shape_t& Game::get_shape() const
+{
+  return shape;
+}
+
+shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr ()> build_func) const
 {
   Profile profile("load_or_build " + dfa_name_in);
 
@@ -403,7 +397,7 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::lo
   profile.tic("load");
   try
     {
-      shared_dfa_ptr output = shared_dfa_ptr(new dfa_type(dfa_name));
+      shared_dfa_ptr output = shared_dfa_ptr(new DFA(shape, dfa_name));
       output->set_name("saved(\"" + dfa_name_in + "\")");
       std::cout << "loaded " << dfa_name << " => " << quick_stats(*output) << std::endl;
 
@@ -425,9 +419,3 @@ typename Game<ndim, shape_pack...>::shared_dfa_ptr Game<ndim, shape_pack...>::lo
   output->save(dfa_name);
   return output;
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(Game);

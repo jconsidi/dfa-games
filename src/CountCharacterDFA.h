@@ -5,15 +5,14 @@
 
 #include "DedupedDFA.h"
 
-template<int ndim, int... shape_pack>
-class CountCharacterDFA : public DedupedDFA<ndim, shape_pack...>
+class CountCharacterDFA : public DedupedDFA
 {
  public:
 
-  CountCharacterDFA(int, int);
-  CountCharacterDFA(int, int, int);
-  CountCharacterDFA(int, int, int, int);
-  CountCharacterDFA(int, int, int, int, int);
+  CountCharacterDFA(const dfa_shape_t&, int, int);
+  CountCharacterDFA(const dfa_shape_t&, int, int, int);
+  CountCharacterDFA(const dfa_shape_t&, int, int, int, int);
+  CountCharacterDFA(const dfa_shape_t&, int, int, int, int, int);
 };
 
 #endif

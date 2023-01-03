@@ -6,8 +6,7 @@
 
 #include "DFAUtil.h"
 
-template<int ndim, int... shape_pack>
-void test_backward(const Game<ndim, shape_pack...>& game_in, int moves_max, bool initial_win_expected)
+void test_backward(const Game& game_in, int moves_max, bool initial_win_expected)
 {
   std::string log_prefix = "test_backward: ";
 
@@ -26,7 +25,7 @@ void test_backward(const Game<ndim, shape_pack...>& game_in, int moves_max, bool
 
   std::cout << log_prefix << "get_positions_winning()" << std::endl;
   auto winning_positions = game_in.get_positions_winning(0, moves_max);
-  auto initial_winning = DFAUtil<ndim, shape_pack...>::get_intersection(initial_positions, winning_positions);
+  auto initial_winning = DFAUtil::get_intersection(initial_positions, winning_positions);
   if(initial_win_expected)
     {
       assert(initial_winning->size() > 0);
@@ -39,8 +38,7 @@ void test_backward(const Game<ndim, shape_pack...>& game_in, int moves_max, bool
     }
 }
 
-template<int ndim, int... shape_pack>
-void test_forward(const Game<ndim, shape_pack...>& game_in, const std::vector<size_t>& positions_expected)
+void test_forward(const Game& game_in, const std::vector<size_t>& positions_expected)
 {
   assert(positions_expected.size() > 0);
 
@@ -72,25 +70,8 @@ void test_forward(const Game<ndim, shape_pack...>& game_in, const std::vector<si
     }
 }
 
-template<int ndim, int... shape_pack>
-void test_game(const Game<ndim, shape_pack...>& game_in, const std::vector<size_t>& positions_expected, int moves_max, bool initial_win_expected)
+void test_game(const Game& game_in, const std::vector<size_t>& positions_expected, int moves_max, bool initial_win_expected)
 {
-  test_forward<ndim, shape_pack...>(game_in, positions_expected);
-  test_backward<ndim, shape_pack...>(game_in, moves_max, initial_win_expected);
+  test_forward(game_in, positions_expected);
+  test_backward(game_in, moves_max, initial_win_expected);
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-#define INSTANTIATE_TEMPLATE(params)			       \
-  template void test_game<params>(const Game<params>&, const std::vector<size_t>&, int, bool)
-
-INSTANTIATE_TEMPLATE(CHESS_DFA_PARAMS);
-INSTANTIATE_TEMPLATE(NORMALNIM1_DFA_PARAMS);
-INSTANTIATE_TEMPLATE(NORMALNIM2_DFA_PARAMS);
-INSTANTIATE_TEMPLATE(NORMALNIM3_DFA_PARAMS);
-INSTANTIATE_TEMPLATE(NORMALNIM4_DFA_PARAMS);
-INSTANTIATE_TEMPLATE(TICTACTOE2_DFA_PARAMS);
-INSTANTIATE_TEMPLATE(TICTACTOE3_DFA_PARAMS);
-INSTANTIATE_TEMPLATE(TICTACTOE4_DFA_PARAMS);

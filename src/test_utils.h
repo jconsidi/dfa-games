@@ -7,11 +7,8 @@
 
 #include "Game.h"
 
-template<int ndim, int... shape_pack>
-void test_backward(const Game<ndim, shape_pack...>& game_in, int moves_max, bool initial_win_expected);
-template<int ndim, int... shape_pack>
-void test_forward(const Game<ndim, shape_pack...>& game_in, const std::vector<size_t>& positions_expected);
-template<int ndim, int... shape_pack>
-void test_game(const Game<ndim, shape_pack...>& game_in, const std::vector<size_t>& positions_expected, int moves_max, bool initial_win_expected);
+void test_backward(const Game& game_in, int moves_max, bool initial_win_expected);
+void test_forward(const Game& game_in, const std::vector<size_t>& positions_expected);
+void test_game(const Game& game_in, const std::vector<size_t>& positions_expected, int moves_max, bool initial_win_expected);
 
 #endif

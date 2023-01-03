@@ -7,11 +7,10 @@
 
 #include "DedupedDFA.h"
 
-template <int ndim, int... shape_pack>
-class FixedDFA : public DedupedDFA<ndim, shape_pack...>
+class FixedDFA : public DedupedDFA
 {
  public:
-  FixedDFA(int, int);
+  FixedDFA(const dfa_shape_t&, int, int);
 };
 
 #endif

@@ -15,12 +15,12 @@ typedef std::pair<int, int> change_type;
 typedef std::optional<change_type> change_optional;
 typedef std::vector<change_optional> change_vector;
 
-template<int ndim, int... shape_pack>
-  class ChangeDFA : public DFA<ndim, shape_pack...>
+class ChangeDFA
+  : public DFA
 {
 public:
 
-  ChangeDFA(const DFA<ndim, shape_pack...>&, const change_vector&);
+  ChangeDFA(const DFA&, const change_vector&);
 };
 
 #endif

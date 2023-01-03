@@ -6,15 +6,15 @@
 
 #include "DFAUtil.h"
 
-template<int n, int... shape_pack>
-NormalNimGame<n, shape_pack...>::NormalNimGame()
-  : NormalPlayGame<n, shape_pack...>("normalnim" + std::to_string(n))
+NormalNimGame::NormalNimGame(const dfa_shape_t& shape_in)
+  : NormalPlayGame("normalnim" + std::to_string(shape_in.size()), shape_in)
 {
 }
 
-template<int n, int... shape_pack>
-typename NormalNimGame<n, shape_pack...>::phase_vector NormalNimGame<n, shape_pack...>::get_phases_internal(int) const
+Game::phase_vector NormalNimGame::get_phases_internal(int) const
 {
+  int n = get_shape().size();
+
   phase_vector phases;
   phases.emplace_back();
 
@@ -23,7 +23,7 @@ typename NormalNimGame<n, shape_pack...>::phase_vector NormalNimGame<n, shape_pa
   // no conditions needed
   const std::vector<shared_dfa_ptr> conditions;
 
-  shared_dfa_ptr dummy = DFAUtil<n, shape_pack...>::get_reject();
+  shared_dfa_ptr dummy = DFAUtil::get_reject(get_shape());
   for(int layer = 0; layer < n; ++layer)
     {
       int layer_shape = dummy->get_layer_shape(layer);
@@ -44,35 +44,26 @@ typename NormalNimGame<n, shape_pack...>::phase_vector NormalNimGame<n, shape_pa
   return phases;
 }
 
-template<int n, int... shape_pack>
-typename NormalNimGame<n, shape_pack...>::shared_dfa_ptr NormalNimGame<n, shape_pack...>::get_positions_initial() const
+shared_dfa_ptr NormalNimGame::get_positions_initial() const
 {
-  shared_dfa_ptr dummy = DFAUtil<n, shape_pack...>::get_reject();
+  shared_dfa_ptr dummy = DFAUtil::get_reject(get_shape());
 
   std::vector<int> initial_string;
-  for(int layer = 0; layer < n; ++layer)
+  for(int layer = 0; layer < get_shape().size(); ++layer)
     {
       initial_string.push_back(dummy->get_layer_size(layer));
     }
 
-  return DFAUtil<n, shape_pack...>::from_string(dfa_string_type(initial_string));
+  return DFAUtil::from_string(DFAString(get_shape(), initial_string));
 }
 
-template<int n, int... shape_pack>
-std::string NormalNimGame<n, shape_pack...>::position_to_string(const typename NormalNimGame<n, shape_pack...>::dfa_string_type& string_in) const
+std::string NormalNimGame::position_to_string(const DFAString& string_in) const
 {
   std::string output;
   output += std::to_string(string_in[0]);
-  for(int layer = 1; layer < n; ++layer)
+  for(int layer = 1; layer < get_shape().size(); ++layer)
     {
       output += "," + std::to_string(string_in[layer]);
     }
   return output;
 }
-
-// template instantiations
-
-template class NormalNimGame<NORMALNIM1_DFA_PARAMS>;
-template class NormalNimGame<NORMALNIM2_DFA_PARAMS>;
-template class NormalNimGame<NORMALNIM3_DFA_PARAMS>;
-template class NormalNimGame<NORMALNIM4_DFA_PARAMS>;

@@ -17,15 +17,21 @@
     )
 
 
-template <int ndim, int... shape_pack>
-DNFBuilder<ndim, shape_pack...>::DNFBuilder()
+DNFBuilder::DNFBuilder(const dfa_shape_t& shape_in)
+  : shape(shape_in)
 {
 }
 
-template <int ndim, int... shape_pack>
-void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim, shape_pack...>::clause_type& clause_in)
+void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
 {
   Profile profile("add_clause");
+
+  // sanity check dimensions
+
+  for(shared_dfa_ptr dfa : clause_in)
+    {
+      assert(dfa->get_shape() == shape);
+    }
 
   // trivial cases
 
@@ -111,8 +117,7 @@ void DNFBuilder<ndim, shape_pack...>::add_clause(const typename DNFBuilder<ndim,
   std::cout << std::endl;
 }
 
-template <int ndim, int... shape_pack>
-void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
+void DNFBuilder::compact(int target_length)
 {
   Profile profile("compact");
 
@@ -165,8 +170,7 @@ void DNFBuilder<ndim, shape_pack...>::compact(int target_length)
     }
 }
 
-template <int ndim, int... shape_pack>
-void DNFBuilder<ndim, shape_pack...>::compact_last(int target_length)
+void DNFBuilder::compact_last(int target_length)
 {
   Profile profile("compact_last");
 
@@ -188,7 +192,7 @@ void DNFBuilder<ndim, shape_pack...>::compact_last(int target_length)
       target_dfas.push_back(last_clause.back());
       last_clause.pop_back();
     }
-  last_clause.push_back(DFAUtil<ndim, shape_pack...>::get_intersection_vector(target_dfas));
+  last_clause.push_back(DFAUtil::get_intersection_vector(shape, target_dfas));
   assert(last_clause.size() == target_length);
 
   if(num_clauses > 1)
@@ -197,8 +201,7 @@ void DNFBuilder<ndim, shape_pack...>::compact_last(int target_length)
     }
 }
 
-template <int ndim, int... shape_pack>
-void DNFBuilder<ndim, shape_pack...>::compact_longest()
+void DNFBuilder::compact_longest()
 {
   Profile profile("compact_longest");
 
@@ -240,12 +243,11 @@ void DNFBuilder<ndim, shape_pack...>::compact_longest()
 
   assert(clauses.size() >= 1);
   assert(clauses.back().size() == longest_size - 1);
-  clauses.back().push_back(DFAUtil<ndim, shape_pack...>::get_union_vector(compact_todo));
+  clauses.back().push_back(DFAUtil::get_union_vector(shape, compact_todo));
   assert(clauses.back().size() == longest_size);
 }
 
-template <int ndim, int... shape_pack>
-typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_pack...>::to_dfa()
+shared_dfa_ptr DNFBuilder::to_dfa()
 {
   Profile profile("to_dfa");
 
@@ -253,7 +255,7 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
 
   if(clauses.size() == 0)
     {
-      return DFAUtil<ndim, shape_pack...>::get_reject();
+      return DFAUtil::get_reject(shape);
     }
 
   // force compacting all clauses down to length 1
@@ -281,11 +283,5 @@ typename DNFBuilder<ndim, shape_pack...>::shared_dfa_ptr DNFBuilder<ndim, shape_
     }
 
   assert(clauses[0].size() == 0);
-  return DFAUtil<ndim, shape_pack...>::get_accept();
+  return DFAUtil::get_accept(shape);
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(DNFBuilder);

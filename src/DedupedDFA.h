@@ -3,6 +3,8 @@
 #ifndef DEDUPED_DFA_H
 #define DEDUPED_DFA_H
 
+#include <map>
+
 #include "DFA.h"
 
 struct DFATransitionsCompare
@@ -40,9 +42,8 @@ struct DFATransitionsCompare
 
 typedef std::map<DFATransitionsStaging, dfa_state_t, DFATransitionsCompare> DFATransitionsMap;
 
-template <int ndim, int... shape_pack>
 class DedupedDFA
-  : public DFA<ndim, shape_pack...>
+  : public DFA
 {
  private:
 
@@ -50,7 +51,7 @@ class DedupedDFA
 
  protected:
 
-  DedupedDFA();
+  DedupedDFA(const dfa_shape_t&);
 
   virtual dfa_state_t add_state(int, const DFATransitionsStaging&);
   virtual void set_initial_state(dfa_state_t);

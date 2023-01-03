@@ -12,17 +12,15 @@
 
 #include "DFA.h"
 
-template <int ndim, int... shape_pack>
 class DNFBuilder
 {
  public:
 
-  typedef DFA<ndim, shape_pack...> dfa_type;
-  typedef std::shared_ptr<const dfa_type> shared_dfa_ptr;
   typedef std::vector<shared_dfa_ptr> clause_type;
 
  private:
 
+  dfa_shape_t shape;
   std::vector<clause_type> clauses;
 
   void compact(int);
@@ -31,7 +29,7 @@ class DNFBuilder
 
  public:
 
-  DNFBuilder();
+  DNFBuilder(const dfa_shape_t& shape_in);
 
   void add_clause(const clause_type&);
   shared_dfa_ptr to_dfa();

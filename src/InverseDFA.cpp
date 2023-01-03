@@ -2,9 +2,11 @@
 
 #include "InverseDFA.h"
 
-template<int ndim, int... shape_pack>
-InverseDFA<ndim, shape_pack...>::InverseDFA(const DFA<ndim, shape_pack...>& dfa_in)
+InverseDFA::InverseDFA(const DFA& dfa_in)
+  : DFA(dfa_in.get_shape())
 {
+  int ndim = get_shape_size();
+
   if(dfa_in.get_initial_state() < 2)
     {
       // accept all or reject all input
@@ -48,9 +50,3 @@ InverseDFA<ndim, shape_pack...>::InverseDFA(const DFA<ndim, shape_pack...>& dfa_
 
   this->set_initial_state(dfa_in.get_initial_state());
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(InverseDFA);

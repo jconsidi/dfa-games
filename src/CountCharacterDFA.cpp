@@ -7,27 +7,26 @@
 
 #include "CountCharacterDFA.h"
 
-template<int ndim, int... shape_pack>
-CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_in)
-  : CountCharacterDFA(c_in, count_in, count_in)
+CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int count_in)
+  : CountCharacterDFA(shape_in, c_in, count_in, count_in)
 {
 }
 
-template<int ndim, int... shape_pack>
-CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_min, int count_max)
-  : CountCharacterDFA(c_in, count_min, count_max, 0)
+CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max)
+  : CountCharacterDFA(shape_in, c_in, count_min, count_max, 0)
 {
 }
 
-template<int ndim, int... shape_pack>
-CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_min, int count_max, int layer_min)
-  : CountCharacterDFA(c_in, count_min, count_max, layer_min, ndim - 1)
+CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min)
+  : CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min, shape_in.size() - 1)
 {
 }
 
-template<int ndim, int... shape_pack>
-CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_min, int count_max, int layer_min, int layer_max)
+CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min, int layer_max)
+  : DedupedDFA(shape_in)
 {
+  int ndim = get_shape_size();
+
   if(!((0 <= count_min) && (count_min <= count_max) && (count_max <= ndim)))
     {
       throw std::invalid_argument("must have 0 <= count_min <= count_max <= ndim");
@@ -37,7 +36,7 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_mi
       throw std::invalid_argument("must have 0 <= layer_min <= layer_max < ndim");
     }
 
-  std::vector<dfa_state_t> logical_states[ndim+1];
+  std::vector<std::vector<dfa_state_t>> logical_states(ndim+1);
 
   // dummy layer at end
   {
@@ -81,9 +80,3 @@ CountCharacterDFA<ndim, shape_pack...>::CountCharacterDFA(int c_in, int count_mi
 
   this->set_initial_state(logical_states[0].at(0));
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(CountCharacterDFA);

@@ -6,15 +6,13 @@
 
 #include "DFAUtil.h"
 
-template <int ndim, int... shape_pack>
-NormalPlayGame<ndim, shape_pack...>::NormalPlayGame(std::string name_in)
-  : Game<ndim, shape_pack...>(name_in)
+NormalPlayGame::NormalPlayGame(std::string name_in, const dfa_shape_t& shape_in)
+  : Game(name_in, shape_in)
 {
 }
 
-template <int ndim, int... shape_pack>
-typename NormalPlayGame<ndim, shape_pack...>::shared_dfa_ptr NormalPlayGame<ndim, shape_pack...>::get_positions_losing(int side_to_move,
-														       int ply_max) const
+shared_dfa_ptr NormalPlayGame::get_positions_losing(int side_to_move,
+						    int ply_max) const
 {
   assert(ply_max >= 0);
 
@@ -32,32 +30,29 @@ typename NormalPlayGame<ndim, shape_pack...>::shared_dfa_ptr NormalPlayGame<ndim
 			     {
 			       shared_dfa_ptr winning_soon =
 				 ((ply_max <= 0) ?
-				  DFAUtil<ndim, shape_pack...>::get_reject() :
+				  DFAUtil::get_reject(get_shape()) :
 				  get_positions_winning(1 - side_to_move, ply_max - 1));
 
-			       shared_dfa_ptr not_winning_soon = DFAUtil<ndim, shape_pack...>::get_inverse(winning_soon);
+			       shared_dfa_ptr not_winning_soon = DFAUtil::get_inverse(winning_soon);
 			       shared_dfa_ptr not_losing_soon = this->get_moves_backward(side_to_move, not_winning_soon);
-			       shared_dfa_ptr losing_soon = DFAUtil<ndim, shape_pack...>::get_inverse(not_losing_soon);
+			       shared_dfa_ptr losing_soon = DFAUtil::get_inverse(not_losing_soon);
 			       return losing_soon;
 			     });
 }
 
-
-template <int ndim, int... shape_pack>
-typename NormalPlayGame<ndim, shape_pack...>::shared_dfa_ptr NormalPlayGame<ndim, shape_pack...>::get_positions_lost(int side_to_move) const
+shared_dfa_ptr NormalPlayGame::get_positions_lost(int side_to_move) const
 {
   return get_positions_losing(side_to_move, 0);
 }
 
-template <int ndim, int... shape_pack>
-typename NormalPlayGame<ndim, shape_pack...>::shared_dfa_ptr NormalPlayGame<ndim, shape_pack...>::get_positions_winning(int side_to_move,
-															int ply_max) const
+shared_dfa_ptr NormalPlayGame::get_positions_winning(int side_to_move,
+						     int ply_max) const
 {
   assert(ply_max >= 0);
 
   if(ply_max <= 0)
     {
-      return DFAUtil<ndim, shape_pack...>::get_reject();
+      return DFAUtil::get_reject(get_shape());
     }
 
   if(ply_max % 2 == 0)
@@ -78,14 +73,7 @@ typename NormalPlayGame<ndim, shape_pack...>::shared_dfa_ptr NormalPlayGame<ndim
 			     });
 }
 
-template <int ndim, int... shape_pack>
-typename NormalPlayGame<ndim, shape_pack...>::shared_dfa_ptr NormalPlayGame<ndim, shape_pack...>::get_positions_won(int side_to_move) const
+shared_dfa_ptr NormalPlayGame::get_positions_won(int side_to_move) const
 {
   return get_positions_winning(side_to_move, 0);
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(NormalPlayGame);

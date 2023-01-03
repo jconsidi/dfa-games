@@ -5,11 +5,10 @@
 
 #include "DFA.h"
 
-template<int ndim, int...shape_pack>
-class InverseDFA : public DFA<ndim, shape_pack...>
+class InverseDFA : public DFA
 {
  public:
-  InverseDFA(const DFA<ndim, shape_pack...>&);
+  InverseDFA(const DFA&);
 };
 
 #endif

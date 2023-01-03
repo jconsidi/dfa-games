@@ -6,19 +6,16 @@
 #include <string>
 
 #include "Game.h"
-#include "TicTacToeDFAParams.h"
 
-template<int n, int... shape_pack>
-  class TicTacToeGame : public Game<n*n, shape_pack...>
+class TicTacToeGame
+  : public Game
 {
+private:
+  int n;
+
  public:
 
-  TicTacToeGame();
-
-  typedef typename Game<n*n, shape_pack...>::dfa_type dfa_type;
-  typedef typename Game<n*n, shape_pack...>::dfa_string_type dfa_string_type;
-  typedef typename Game<n*n, shape_pack...>::shared_dfa_ptr shared_dfa_ptr;
-  typedef typename Game<n*n, shape_pack...>::phase_vector phase_vector;
+  TicTacToeGame(int);
 
  private:
 
@@ -28,15 +25,11 @@ template<int n, int... shape_pack>
 
   virtual phase_vector get_phases_internal(int) const;
 
-  static shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta);
+  shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta) const;
 
  public:
 
-  virtual std::string position_to_string(const dfa_string_type&) const;
+  virtual std::string position_to_string(const DFAString&) const;
 };
-
-typedef class TicTacToeGame<2, TICTACTOE2_SHAPE_PACK> TicTacToe2Game;
-typedef class TicTacToeGame<3, TICTACTOE3_SHAPE_PACK> TicTacToe3Game;
-typedef class TicTacToeGame<4, TICTACTOE4_SHAPE_PACK> TicTacToe4Game;
 
 #endif

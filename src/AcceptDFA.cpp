@@ -2,15 +2,9 @@
 
 #include "AcceptDFA.h"
 
-template <int ndim, int... shape_pack>
-AcceptDFA<ndim, shape_pack...>::AcceptDFA()
+AcceptDFA::AcceptDFA(const dfa_shape_t& shape_in)
+  : DFA(shape_in)
 {
   this->set_initial_state(1);
   this->set_name("accept");
 }
-
-// template instantiations
-
-#include "DFAParams.h"
-
-INSTANTIATE_DFA_TEMPLATE(AcceptDFA);
