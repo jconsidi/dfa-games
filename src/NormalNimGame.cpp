@@ -11,14 +11,13 @@ NormalNimGame::NormalNimGame(const dfa_shape_t& shape_in)
 {
 }
 
-Game::phase_vector NormalNimGame::get_phases_internal(int) const
+MoveGraph NormalNimGame::build_move_graph(int) const
 {
   int n = get_shape().size();
 
-  phase_vector phases;
-  phases.emplace_back();
-
-  choice_vector& choices = phases[0];
+  MoveGraph move_graph;
+  move_graph.add_node("begin");
+  move_graph.add_node("end");
 
   // no conditions needed
   const std::vector<shared_dfa_ptr> conditions;
@@ -33,15 +32,17 @@ Game::phase_vector NormalNimGame::get_phases_internal(int) const
 	    {
 	      change_vector changes(n);
 	      changes[layer] = change_type(before, after);
-	      choices.emplace_back(conditions,
-				   changes,
-				   conditions,
-				   std::to_string(layer) + ": " + std::to_string(before) + "->" + std::to_string(after));
+	      move_graph.add_edge(std::to_string(layer) + ": " + std::to_string(before) + "->" + std::to_string(after),
+				  "begin",
+				  "end",
+				  conditions,
+				  changes,
+				  conditions);
 	    }
 	}
     }
 
-  return phases;
+  return move_graph;
 }
 
 shared_dfa_ptr NormalNimGame::get_positions_initial() const

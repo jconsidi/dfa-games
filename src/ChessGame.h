@@ -12,10 +12,10 @@ class ChessGame
 {
 private:
 
+  virtual MoveGraph build_move_graph(int) const;
+
   shared_dfa_ptr get_positions_basic() const;
   shared_dfa_ptr get_positions_king(int) const;
-
-  virtual phase_vector get_phases_internal(int) const;
 
 public:
 

@@ -19,11 +19,11 @@ private:
 
  private:
 
+  virtual MoveGraph build_move_graph(int) const;
+
   virtual shared_dfa_ptr get_positions_initial() const;
   virtual shared_dfa_ptr get_positions_lost(int) const;
   virtual shared_dfa_ptr get_positions_won(int) const;
-
-  virtual phase_vector get_phases_internal(int) const;
 
   shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta) const;
 

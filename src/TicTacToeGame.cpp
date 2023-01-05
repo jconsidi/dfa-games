@@ -85,14 +85,17 @@ shared_dfa_ptr TicTacToeGame::get_positions_won(int side_to_move) const
   return DFAUtil::get_reject(get_shape());
 }
 
-Game::phase_vector TicTacToeGame::get_phases_internal(int side_to_move) const
+MoveGraph TicTacToeGame::build_move_graph(int side_to_move) const
 {
   shared_dfa_ptr lost_positions = this->get_positions_lost(side_to_move);
   shared_dfa_ptr not_lost_positions = DFAUtil::get_inverse(lost_positions);
 
   int side_to_move_piece = 1 + side_to_move;
 
-  Game::phase_vector output(1);
+  MoveGraph move_graph;
+  move_graph.add_node("begin");
+  move_graph.add_node("end");
+
   for(int move_index = 0; move_index < n * n; ++move_index)
     {
       std::vector<shared_dfa_ptr> pre_conditions;
@@ -116,15 +119,15 @@ Game::phase_vector TicTacToeGame::get_phases_internal(int side_to_move) const
       post_conditions.emplace_back(not_lost_positions);
       post_conditions.emplace_back(DFAUtil::get_fixed(get_shape(), move_index, 1 + side_to_move));
 
-      output[0].emplace_back(pre_conditions,
-			     changes,
-			     post_conditions,
-			     "move_index=" + std::to_string(move_index));
+      move_graph.add_edge("move_index=" + std::to_string(move_index),
+			  "begin",
+			  "end",
+			  pre_conditions,
+			  changes,
+			  post_conditions);
     }
 
-  assert(output[0].size() == n * n);
-
-  return output;
+  return move_graph;
 }
 
 std::string TicTacToeGame::position_to_string(const DFAString& position_in) const

@@ -11,6 +11,7 @@
 #include "ChangeDFA.h"
 #include "CountCharacterDFA.h"
 #include "DFA.h"
+#include "MoveGraph.h"
 
 class Game
 {
@@ -23,19 +24,17 @@ public:
 
   typedef std::tuple<std::vector<shared_dfa_ptr>, change_vector, std::vector<shared_dfa_ptr>, std::string> choice_type;
   typedef std::vector<choice_type> choice_vector;
-  typedef std::vector<choice_vector> phase_vector;
 
 private:
 
+  mutable MoveGraph move_graphs_forward[2];
+  mutable MoveGraph move_graphs_backward[2];
+  mutable bool move_graphs_ready[2] = {false, false};
+
+  virtual MoveGraph build_move_graph(int) const = 0;
+  void build_move_graphs(int) const;
+
   mutable shared_dfa_ptr singleton_has_moves[2] = {0, 0};
-  mutable phase_vector singleton_phases_backward[2] = {};
-  mutable phase_vector singleton_phases_forward[2] = {};
-
-  const phase_vector& get_phases_backward(int) const;
-  const phase_vector& get_phases_forward(int) const;
-  virtual phase_vector get_phases_internal(int) const = 0;
-
-  shared_dfa_ptr get_moves_internal(const phase_vector&, shared_dfa_ptr) const;
 
 protected:
 

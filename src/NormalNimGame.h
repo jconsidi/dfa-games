@@ -11,7 +11,7 @@ class NormalNimGame
 {
 private:
 
-  virtual phase_vector get_phases_internal(int) const;
+  virtual MoveGraph build_move_graph(int) const;
 
 public:
 

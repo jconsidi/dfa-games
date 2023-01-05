@@ -522,7 +522,7 @@ shared_dfa_ptr ChessGame::get_positions_won(int side_to_move) const
   return DFAUtil::get_reject(chess_shape);
 }
 
-typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move) const
+MoveGraph ChessGame::build_move_graph(int side_to_move) const
 {
   Profile profile("get_phases_internal");
 
@@ -542,7 +542,10 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 
   // collect choices
 
-  phase_vector phases_out(1);
+  MoveGraph move_graph;
+  move_graph.add_node("begin");
+  move_graph.add_node("clear en passant");
+  move_graph.add_node("end");
 
   std::function<choice_vector(const choice_vector&)> handle_castle_rights =
     [](const choice_vector& choices_in)
@@ -642,7 +645,12 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 
       for(choice_type choice : choices_temp)
 	{
-	  phases_out[0].push_back(choice);
+	  move_graph.add_edge(std::get<3>(choice),
+			      "begin",
+			      "clear en passant",
+			      std::get<0>(choice),
+			      std::get<1>(choice),
+			      std::get<2>(choice));
 	}
     };
 
@@ -808,9 +816,9 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 			     advance_post_conditions);
 
 		  pawn_choices.emplace_back(advance_pre_conditions,
-					  advance_changes,
-					  advance_post_conditions,
-					  "pawn advance from_char=" + std::to_string(pawn_character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(advance_square));
+					    advance_changes,
+					    advance_post_conditions,
+					    "pawn advance from_char=" + std::to_string(pawn_character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(advance_square) + ", to_char=" + std::to_string(advance_character));
 
 		  // pop back conditions for next advance character
 		  advance_post_conditions.pop_back();
@@ -1042,9 +1050,6 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
 
   // second phase - clear en passant status
 
-  phases_out.emplace_back();
-  choice_vector& clear_en_passant_choices = phases_out.at(1);
-
   int clear_en_passant_square_min = (side_to_move == SIDE_WHITE) ? 24 : 32;
   int clear_en_passant_square_max = clear_en_passant_square_min + 8;
 
@@ -1069,10 +1074,12 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
   std::vector<shared_dfa_ptr> clear_en_passant_post_conditions = {no_en_passant_pawns};
 
   // case: no en passant status to clear
-  clear_en_passant_choices.emplace_back(clear_en_passant_pre_conditions,
-				      change_vector(64 + CHESS_SQUARE_OFFSET),
-				      clear_en_passant_post_conditions,
-				      "no en passant pawns");
+  move_graph.add_edge("no en passant pawns",
+		      "clear en passant",
+		      "end",
+		      clear_en_passant_pre_conditions,
+		      change_vector(64 + CHESS_SQUARE_OFFSET),
+		      clear_en_passant_post_conditions);
 
   // case: one en passant status to clear
   for(int square = clear_en_passant_square_min;
@@ -1084,13 +1091,15 @@ typename ChessGame::phase_vector ChessGame::get_phases_internal(int side_to_move
       change_vector clear_en_passant_changes(64 + CHESS_SQUARE_OFFSET);
       clear_en_passant_changes[layer] = change_type(clear_en_passant_pawn_character, clear_pawn_character);
 
-      clear_en_passant_choices.emplace_back(clear_en_passant_pre_conditions,
-					  clear_en_passant_changes,
-					  clear_en_passant_post_conditions,
-					  "clear en passant square=" + std::to_string(square));
+      move_graph.add_edge("clear en passant square=" + std::to_string(square),
+			  "clear en passant",
+			  "end",
+			  clear_en_passant_pre_conditions,
+			  clear_en_passant_changes,
+			  clear_en_passant_post_conditions);
     }
 
-  return phases_out;
+  return move_graph;
 }
 
 Board ChessGame::position_to_board(int side_to_move, const DFAString& position_in) const
