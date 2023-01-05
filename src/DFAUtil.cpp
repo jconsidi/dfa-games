@@ -298,3 +298,18 @@ shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std:
 
   return _reduce_associative_commutative(get_union, dfas_in);
 }
+
+std::string DFAUtil::quick_stats(shared_dfa_ptr dfa_in)
+{
+  std::ostringstream stats_builder;
+
+  size_t states = dfa_in->states();
+  stats_builder << states << " states";
+
+  if(states <= 1000000)
+    {
+      stats_builder << ", " << dfa_in->size() << " positions";
+    }
+
+  return stats_builder.str();
+}
