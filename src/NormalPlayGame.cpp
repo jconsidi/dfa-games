@@ -2,6 +2,7 @@
 
 #include "NormalPlayGame.h"
 
+#include <iomanip>
 #include <sstream>
 
 #include "DFAUtil.h"
@@ -23,7 +24,7 @@ shared_dfa_ptr NormalPlayGame::get_positions_losing(int side_to_move,
     }
 
   std::ostringstream dfa_name_builder;
-  dfa_name_builder << "losing,side=" << side_to_move << ",ply_max=" << ply_max;
+  dfa_name_builder << "ply_max=" << std::setfill('0') << std::setw(3) << ply_max << ",side=" << side_to_move << ",losing";
 
   return this->load_or_build(dfa_name_builder.str(),
 			     [=]()
@@ -62,7 +63,7 @@ shared_dfa_ptr NormalPlayGame::get_positions_winning(int side_to_move,
     }
 
   std::ostringstream dfa_name_builder;
-  dfa_name_builder << "winning,side=" << side_to_move << ",ply_max=" << ply_max;
+  dfa_name_builder << "ply_max=" << std::setfill('0') << std::setw(3) << ply_max << ",side=" << side_to_move << ",winning";
 
   return this->load_or_build(dfa_name_builder.str(),
 			     [=]()
