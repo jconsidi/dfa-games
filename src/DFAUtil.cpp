@@ -224,7 +224,6 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
       return get_reject(left_in->get_shape());
     }
 
-  std::cout << "get_intersection(" << left_in->get_name() << ", " << right_in->get_name() << ")" << std::endl;
   return _singleton_if_constant(shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in)));
 }
 
