@@ -2,6 +2,8 @@ divide
 generate_moves
 random
 random_uci
+test_amazons_backward
+test_amazons_forward
 test_bitset
 test_change_dfa
 test_chess_backward
