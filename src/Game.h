@@ -39,6 +39,7 @@ private:
 protected:
 
   Game(std::string, const dfa_shape_t&);
+  virtual ~Game();
 
   const dfa_shape_t& get_shape() const;
   void save(std::string, shared_dfa_ptr) const;

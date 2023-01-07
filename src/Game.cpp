@@ -19,12 +19,16 @@ Game::Game(std::string name_in, const dfa_shape_t& shape_in)
 {
 }
 
+Game::~Game()
+{
+}
+
 void Game::build_move_graphs(int side_to_move) const
 {
   Profile profile("build_move_graphs");
 
   assert((0 <= side_to_move) && (side_to_move < 2));
-  
+
   if(move_graphs_ready[side_to_move])
     {
       return;
