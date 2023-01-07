@@ -117,7 +117,7 @@ shared_dfa_ptr DFAUtil::from_strings(const dfa_shape_t& shape_in, const std::vec
 shared_dfa_ptr DFAUtil::get_accept(const dfa_shape_t& shape_in)
 {
   // returns a singleton per shape
-  
+
   static std::map<std::string, shared_dfa_ptr> singletons;
 
   std::string singleton_key = _shape_string(shape_in);
@@ -248,7 +248,7 @@ shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
 shared_dfa_ptr DFAUtil::get_reject(const dfa_shape_t& shape_in)
 {
   // returns a singleton per shape
-  
+
   static std::map<std::string, shared_dfa_ptr> singletons;
 
   std::string singleton_key = _shape_string(shape_in);
