@@ -30,7 +30,7 @@ void MoveGraph::add_edge(std::string edge_name_in,
       throw std::logic_error("add_edge() duplicate edge name");
     }
   edge_names.insert(edge_name_in);
-  
+
   int from_node_index = get_node_index(from_node_name);
   int to_node_index = get_node_index(to_node_name);
   assert(from_node_index < to_node_index);
@@ -57,7 +57,7 @@ void MoveGraph::add_node(std::string node_name_in)
 shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 {
   Profile profile("get_moves");
-  
+
   assert(node_names.size() >= 2);
 
   std::vector<DNFBuilder> node_builders(node_names.size(), positions_in->get_shape());
@@ -89,7 +89,7 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 	  const change_vector& changes = std::get<2>(edge);
 	  const move_edge_condition_vector& post_conditions = std::get<3>(edge);
 	  int to_node_index = std::get<4>(edge);
-	  
+
 	  std::cout << " node " << from_node_index << "/" << node_names.size() << " (" << node_names[from_node_index] << "), edge " << node_edge_index << "/" << node_edges[from_node_index].size() << " (" << edge_name << ")" << std::endl;
 
 	  shared_dfa_ptr edge_positions = from_node_positions;
@@ -149,7 +149,7 @@ int MoveGraph::get_node_index(std::string node_name_in) const
 }
 
 MoveGraph MoveGraph::reverse() const
-{  
+{
   MoveGraph output;
 
   for(int original_node_index = node_names.size() - 1; original_node_index >= 0; --original_node_index)
