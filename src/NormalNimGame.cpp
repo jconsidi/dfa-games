@@ -7,7 +7,7 @@
 #include "DFAUtil.h"
 
 NormalNimGame::NormalNimGame(const dfa_shape_t& shape_in)
-  : NormalPlayGame("normalnim" + std::to_string(shape_in.size()), shape_in)
+  : NormalPlayGame("normalnim_" + std::to_string(shape_in.size()), shape_in)
 {
 }
 
