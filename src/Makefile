@@ -4,7 +4,7 @@ CXX=c++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g -ferror-limit=1
 
-TARGETS=divide generate_moves random random_uci test_amazons_backward test_amazons_forward test_bitset test_change_dfa test_chess_game test_chess_backward test_dfa test_normal_nim_game test_perft test_perft_u test_tictactoe_game
+TARGETS=divide generate_moves random random_uci test_amazons_forward test_backward test_bitset test_change_dfa test_chess_game test_dfa test_normal_nim_game test_perft test_perft_u test_tictactoe_game
 
 all : $(TARGETS)
 
@@ -54,10 +54,10 @@ random : random.o chess.a
 random_uci : random_uci.o chess.a
 	$(CXX) -o $@ $^
 
-test_amazons_backward : test_amazons_backward.o chess.a test_utils.o
+test_amazons_forward : test_amazons_forward.o chess.a test_utils.o
 	$(CXX) -o $@ $^
 
-test_amazons_forward : test_amazons_forward.o chess.a test_utils.o
+test_backward : test_backward.o chess.a test_utils.o
 	$(CXX) -o $@ $^
 
 test_bitset : test_bitset.o chess.a
@@ -90,7 +90,7 @@ test_perft_u : test_perft_u.o chess.a PerftTestCases.o
 test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a test_utils.o
 	$(CXX) -o $@ $^
 
-chess.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MapBitSet.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o Profile.o RejectDFA.o StringDFA.o UnionDFA.o VectorBitSet.o utils.o
+chess.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MapBitSet.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o VectorBitSet.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################
