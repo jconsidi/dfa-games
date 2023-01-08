@@ -8,21 +8,6 @@
 
 static std::map<std::string, std::pair<int, int>> solved_games;
 
-DFAString get_initial_position(const Game& game)
-{
-  shared_dfa_ptr initial_positions = game.get_positions_initial();
-  assert(initial_positions->size() == 1);
-
-  for(auto iter = initial_positions->cbegin();
-      iter < initial_positions->cend();
-      ++iter)
-    {
-      return *iter;
-    }
-
-  assert(0);
-}
-
 void populate_solved_games()
 {
   solved_games.try_emplace("amazons_4x4", 8, -1);
@@ -52,7 +37,7 @@ int main(int argc, char **argv)
   std::string game_name(argv[1]);
   Game *game = get_game(game_name);
 
-  DFAString initial_position = get_initial_position(*game);
+  DFAString initial_position = game->get_position_initial();
   std::cout << "INITIAL POSITION:" << std::endl;
   std::cout << game->position_to_string(initial_position) << std::endl;
 

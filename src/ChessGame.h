@@ -24,8 +24,9 @@ public:
   static shared_dfa_ptr from_board(const Board& board);
   static DFAString from_board_to_dfa_string(const Board& board);
 
+  virtual DFAString get_position_initial() const;
+
   shared_dfa_ptr get_positions_check(int) const;
-  virtual shared_dfa_ptr get_positions_initial() const;
   virtual shared_dfa_ptr get_positions_lost(int) const;
   shared_dfa_ptr get_positions_threat(int, int) const;
   virtual shared_dfa_ptr get_positions_won(int) const;

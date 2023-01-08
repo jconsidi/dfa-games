@@ -495,12 +495,12 @@ shared_dfa_ptr ChessGame::get_positions_threat(int threatened_side, int threaten
   return singletons[threatened_side][threatened_square];
 }
 
-shared_dfa_ptr ChessGame::get_positions_initial() const
+DFAString ChessGame::get_position_initial() const
 {
   Profile profile("get_positions_initial");
 
   Board initial_board(INITIAL_FEN);
-  return from_board(initial_board);
+  return from_board_to_dfa_string(initial_board);
 }
 
 shared_dfa_ptr ChessGame::get_positions_lost(int side_to_move) const

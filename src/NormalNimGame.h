@@ -17,7 +17,7 @@ public:
 
   NormalNimGame(const dfa_shape_t&);
 
-  virtual shared_dfa_ptr get_positions_initial() const;
+  virtual DFAString get_position_initial() const;
 
   virtual std::string position_to_string(const DFAString&) const;
 };

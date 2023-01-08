@@ -45,7 +45,7 @@ MoveGraph NormalNimGame::build_move_graph(int) const
   return move_graph;
 }
 
-shared_dfa_ptr NormalNimGame::get_positions_initial() const
+DFAString NormalNimGame::get_position_initial() const
 {
   shared_dfa_ptr dummy = DFAUtil::get_reject(get_shape());
 
@@ -55,7 +55,7 @@ shared_dfa_ptr NormalNimGame::get_positions_initial() const
       initial_string.push_back(dummy->get_layer_size(layer));
     }
 
-  return DFAUtil::from_string(DFAString(get_shape(), initial_string));
+  return DFAString(get_shape(), initial_string);
 }
 
 std::string NormalNimGame::position_to_string(const DFAString& string_in) const

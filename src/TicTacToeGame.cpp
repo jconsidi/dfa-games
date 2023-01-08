@@ -19,17 +19,9 @@ TicTacToeGame::TicTacToeGame(int n_in)
 {
 }
 
-shared_dfa_ptr TicTacToeGame::get_positions_initial() const
+DFAString TicTacToeGame::get_position_initial() const
 {
-  shared_dfa_ptr output = DFAUtil::get_accept(get_shape());
-
-  for(int i = 0; i < n * n; ++i)
-    {
-      shared_dfa_ptr blank_i = DFAUtil::get_fixed(get_shape(), i, 0);
-      output = DFAUtil::get_intersection(output, blank_i);
-    }
-
-  return output;
+  return DFAString(get_shape(), std::vector<int>(get_shape().size(), 0));
 }
 
 shared_dfa_ptr TicTacToeGame::get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta) const

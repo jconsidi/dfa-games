@@ -96,7 +96,7 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
   return move_graph;
 }
 
-shared_dfa_ptr AmazonsGame::get_positions_initial() const
+DFAString AmazonsGame::get_position_initial() const
 {
   std::vector<int> initial_characters(width * height, 0);
 
@@ -144,10 +144,9 @@ shared_dfa_ptr AmazonsGame::get_positions_initial() const
   set_square(corner_offset, height - 1, 2);
   set_square(width - 1 - corner_offset, height - 1, 2);
 
-  // convert to DFA
+  // convert to DFAString
 
-  DFAString string(get_shape(), initial_characters);
-  return DFAUtil::from_string(string);
+  return DFAString(get_shape(), initial_characters);
 }
 
 std::string AmazonsGame::position_to_string(const DFAString& string_in) const
