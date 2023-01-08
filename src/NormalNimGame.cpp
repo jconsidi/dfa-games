@@ -47,12 +47,10 @@ MoveGraph NormalNimGame::build_move_graph(int) const
 
 DFAString NormalNimGame::get_position_initial() const
 {
-  shared_dfa_ptr dummy = DFAUtil::get_reject(get_shape());
-
   std::vector<int> initial_string;
   for(int layer = 0; layer < get_shape().size(); ++layer)
     {
-      initial_string.push_back(dummy->get_layer_size(layer));
+      initial_string.push_back(get_shape()[layer] - 1);
     }
 
   return DFAString(get_shape(), initial_string);
