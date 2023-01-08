@@ -2,9 +2,68 @@
 
 #include "test_utils.h"
 
+#include <cstdio>
 #include <iostream>
 
+#include "AmazonsGame.h"
+#include "ChessGame.h"
 #include "DFAUtil.h"
+#include "NormalNimGame.h"
+#include "TicTacToeGame.h"
+
+Game *get_game(std::string game_name)
+{
+  Game *output = 0;
+
+  if(game_name.starts_with("amazons_"))
+    {
+      int width = 0;
+      int height = 0;
+      if(std::sscanf(game_name.c_str(), "amazons_%dx%d", &width, &height) != 2)
+	{
+	  throw std::logic_error("get_name() failed parsing amazons game name");
+	}
+      output = new AmazonsGame(width, height);
+    }
+#if CHESS_SQUARE_OFFSET == 0
+  else if(game_name == "chess+0")
+    {
+      output = new ChessGame();
+    }
+#elif CHESS_SQUARE_OFFSET == 2
+  else if(game_name == "chess+2")
+    {
+      output = new ChessGame();
+    }
+#endif
+  else if(game_name.starts_with("normalnim_"))
+    {
+      int heaps = 0;
+      if(std::sscanf(game_name.c_str(), "normalnim_%d", &heaps) != 1)
+	{
+	  throw std::logic_error("get_name() failed parsing normalnim game name");
+	}
+
+      output = new NormalNimGame(dfa_shape_t(heaps, 16));
+    }
+  else if(game_name.starts_with("tictactoe_"))
+    {
+      int n = 0;
+      if(std::sscanf(game_name.c_str(), "tictactoe_%d", &n) != 1)
+	{
+	  throw std::logic_error("get_name() failed parsing tictactoe game name");
+	}
+
+      output = new TicTacToeGame(n);
+    }
+  else
+    {
+      throw std::logic_error("get_name() did not recognize game name");
+    }
+
+  assert(output->get_name() == game_name);
+  return output;
+}
 
 void test_backward(const Game& game_in, int moves_max, bool initial_win_expected)
 {
