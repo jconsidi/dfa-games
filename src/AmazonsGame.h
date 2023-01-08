@@ -1,7 +1,7 @@
 // AmazonsGame.h
 
-#ifndef NORMAL_NIM_GAME_H
-#define NORMAL_NIM_GAME_H
+#ifndef AMAZONS_GAME_H
+#define AMAZONS_GAME_H
 
 #include <string>
 
