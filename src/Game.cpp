@@ -73,6 +73,11 @@ shared_dfa_ptr Game::get_moves_forward(int side_to_move, shared_dfa_ptr position
   return move_graphs_forward[side_to_move].get_moves(positions_in);
 }
 
+std::string Game::get_name() const
+{
+  return name;
+}
+
 shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const
 {
   Profile profile("get_positions_losing");
