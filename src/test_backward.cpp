@@ -55,26 +55,18 @@ int main(int argc, char **argv)
       if(result_expected > 0)
 	{
 	  /* win expected */
-
-	  shared_dfa_ptr winning = game->get_positions_winning(0, ply_max);
-	  assert(winning->contains(initial_position));
+	  assert(check_win(*game, ply_max));
 	}
       else if(result_expected < 0)
 	{
 	  /* loss expected */
-
-	  shared_dfa_ptr losing = game->get_positions_losing(0, ply_max);
-	  assert(losing->contains(initial_position));
+	  assert(check_loss(*game, ply_max));
 	}
       else
 	{
 	  /* draw expected */
-
-	  shared_dfa_ptr winning = game->get_positions_winning(0, ply_max);
-	  assert(!winning->contains(initial_position));
-
-	  shared_dfa_ptr losing = game->get_positions_losing(0, ply_max);
-	  assert(!losing->contains(initial_position));
+	  assert(!check_win(*game, ply_max));
+	  assert(!check_loss(*game, ply_max));
 	}
     }
   else

@@ -11,6 +11,20 @@
 #include "NormalNimGame.h"
 #include "TicTacToeGame.h"
 
+bool check_loss(const Game& game, int ply_max)
+{
+  DFAString initial_position = game.get_position_initial();
+  shared_dfa_ptr losing = game.get_positions_losing(0, ply_max);
+  return losing->contains(initial_position);
+}
+
+bool check_win(const Game& game, int ply_max)
+{
+  DFAString initial_position = game.get_position_initial();
+  shared_dfa_ptr winning = game.get_positions_winning(0, ply_max);
+  return winning->contains(initial_position);
+}
+
 Game *get_game(std::string game_name)
 {
   Game *output = 0;
