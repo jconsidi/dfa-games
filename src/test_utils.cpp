@@ -65,7 +65,7 @@ Game *get_game(std::string game_name)
   return output;
 }
 
-void test_backward(const Game& game_in, int moves_max, bool initial_win_expected)
+void test_backward(const Game& game_in, int ply_max, bool initial_win_expected)
 {
   std::string log_prefix = "test_backward: ";
 
@@ -83,7 +83,7 @@ void test_backward(const Game& game_in, int moves_max, bool initial_win_expected
   // first player should never lose via strategy stealing argument.
 
   std::cout << log_prefix << "get_positions_winning()" << std::endl;
-  auto winning_positions = game_in.get_positions_winning(0, moves_max);
+  auto winning_positions = game_in.get_positions_winning(0, ply_max);
   auto initial_winning = DFAUtil::get_intersection(initial_positions, winning_positions);
   if(initial_win_expected)
     {
@@ -129,8 +129,8 @@ void test_forward(const Game& game_in, const std::vector<size_t>& positions_expe
     }
 }
 
-void test_game(const Game& game_in, const std::vector<size_t>& positions_expected, int moves_max, bool initial_win_expected)
+void test_game(const Game& game_in, const std::vector<size_t>& positions_expected, int ply_max, bool initial_win_expected)
 {
   test_forward(game_in, positions_expected);
-  test_backward(game_in, moves_max, initial_win_expected);
+  test_backward(game_in, ply_max, initial_win_expected);
 }
