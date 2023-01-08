@@ -13,7 +13,7 @@ static dfa_shape_t build_shape(int width, int height)
 }
 
 AmazonsGame::AmazonsGame(int width_in, int height_in)
-  : NormalPlayGame("amazons" + std::to_string(width_in) + "x" + std::to_string(height_in),
+  : NormalPlayGame("amazons_" + std::to_string(width_in) + "x" + std::to_string(height_in),
 		   build_shape(width_in, height_in)),
     width(width_in),
     height(height_in)
