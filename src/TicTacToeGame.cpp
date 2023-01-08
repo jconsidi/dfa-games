@@ -14,7 +14,7 @@ static dfa_shape_t get_shape(int n)
 }
 
 TicTacToeGame::TicTacToeGame(int n_in)
-  : Game("tictactoe" + std::to_string(n_in), ::get_shape(n_in)),
+  : Game("tictactoe_" + std::to_string(n_in), ::get_shape(n_in)),
     n(n_in)
 {
 }
