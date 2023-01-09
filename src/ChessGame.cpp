@@ -78,23 +78,6 @@ static void add_change(int square,
   post_conditions.push_back(DFAUtil::get_fixed(chess_shape, layer, post_character));
 }
 
-static bool check_from(typename ChessGame::choice_type& choice,
-		       int from_square, int from_character)
-{
-  const change_vector& changes = std::get<1>(choice);
-  int from_layer = from_square + CHESS_SQUARE_OFFSET;
-
-  if(!changes[from_layer].has_value())
-    {
-      return false;
-    }
-
-  const change_type& change = *(changes[from_layer]);
-
-  return ((std::get<0>(change) == from_character) &&
-	  (std::get<1>(change) == DFA_BLANK));
-};
-
 static bool chess_is_friendly(int side_to_move, int character)
 {
   if(character == DFA_BLANK)
@@ -115,6 +98,11 @@ static bool chess_is_friendly(int side_to_move, int character)
 static bool chess_is_hostile(int side_to_move, int character)
 {
   return chess_is_friendly(1 - side_to_move, character);
+}
+
+static std::string get_to_node_name(int to_character, int to_square)
+{
+  return "to_char=" + std::to_string(to_character) + ", to_square=" + std::to_string(to_square);
 }
 
 ChessGame::ChessGame()
@@ -356,6 +344,42 @@ shared_dfa_ptr ChessGame::get_positions_basic() const
   return singleton;
 }
 
+shared_dfa_ptr ChessGame::get_positions_can_move_basic(int side_to_move, int square) const
+{
+  shared_dfa_ptr singletons[2][64] = {{0}};
+
+  if(!singletons[side_to_move][square])
+    {
+      shared_dfa_ptr empty = DFAUtil::get_fixed(get_shape(), square + CHESS_SQUARE_OFFSET, DFA_BLANK);
+      singletons[side_to_move][square] = DFAUtil::get_union(empty,
+							    get_positions_can_move_capture(side_to_move, square));
+    }
+
+  return singletons[side_to_move][square];
+}
+
+shared_dfa_ptr ChessGame::get_positions_can_move_capture(int side_to_move, int square) const
+{
+  shared_dfa_ptr singletons[2][64] = {{0}};
+
+  if(!singletons[side_to_move][square])
+    {
+      int layer = square + CHESS_SQUARE_OFFSET;
+
+      std::vector<shared_dfa_ptr> partials;
+      for(int c = 0; c < chess_shape[layer]; ++c)
+	{
+	  if(chess_is_hostile(side_to_move, c) && (c != DFA_BLACK_KING) && (c != DFA_WHITE_KING))
+	    {
+	      partials.push_back(DFAUtil::get_fixed(get_shape(), layer, c));
+	    }
+	}
+      singletons[side_to_move][square] = DFAUtil::get_union_vector(chess_shape, partials);
+    }
+
+  return singletons[side_to_move][square];
+}
+
 shared_dfa_ptr ChessGame::get_positions_check(int checked_side) const
 {
   Profile profile("get_positions_check");
@@ -544,121 +568,31 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   MoveGraph move_graph;
   move_graph.add_node("begin");
+
+  int to_character_min = (side_to_move == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+  int to_character_max = (side_to_move == SIDE_WHITE) ? DFA_WHITE_PAWN : DFA_BLACK_PAWN;
+  std::vector<std::pair<int, int>> to_choices;
+  for(int to_character = to_character_min; to_character <= to_character_max; to_character += 2)
+    {
+      int to_character_pawn = (to_character == DFA_WHITE_PAWN) || (to_character == DFA_BLACK_PAWN);
+      int to_square_min = (!to_character_pawn) ? 0 : 8;
+      int to_square_max = (!to_character_pawn) ? 63 : 57;
+
+      for(int to_square = to_square_min; to_square <= to_square_max; ++to_square)
+	{
+	  to_choices.emplace_back(to_character, to_square);
+	  move_graph.add_node(get_to_node_name(to_character, to_square));
+	}
+    }
+
+  move_graph.add_node("clear castle rights");
   move_graph.add_node("clear en passant");
+  move_graph.add_node("avoid check");
   move_graph.add_node("end");
-
-  std::function<choice_vector(const choice_vector&)> handle_castle_rights =
-    [](const choice_vector& choices_in)
-    {
-      // temporary copy as we make a lot of changes
-      choice_vector choices_temp;
-      for(const choice_type& choice : choices_in)
-	{
-	  choices_temp.push_back(choice);
-	}
-
-      choice_vector choices_out;
-
-      // clear castling rights for rooks that move
-      for(choice_type& choice : choices_temp)
-	{
-	  change_vector& changes = std::get<1>(choice);
-	  std::string& name = std::get<3>(choice);
-	  std::string name_original = name;
-
-	  auto handle_side_castle_rights =
-	    [&](int left_square, int right_square, int rook_character, int rook_castle_character)
-	    {
-	      // require castle rights to be gone
-	      shared_dfa_ptr no_castle_rights(new CountCharacterDFA(chess_shape, rook_castle_character, 0, 0, CHESS_SQUARE_OFFSET));
-	      std::get<2>(choice).push_back(no_castle_rights);
-
-	      // case: no rights to clear
-	      name = name_original + ", no castle rights to clear";
-	      choices_out.push_back(choice);
-
-	      // check which sides changed. unchanged positions might
-	      // have castle rights to clear.
-
-	      int left_layer = left_square + CHESS_SQUARE_OFFSET;
-	      int right_layer = right_square + CHESS_SQUARE_OFFSET;
-
-	      bool left_changed = changes[left_layer].has_value();
-	      bool right_changed = changes[right_layer].has_value();
-
-	      change_type clear_castle_right(rook_castle_character, rook_character);
-
-	      if(!left_changed)
-		{
-		  // case: just clear left (queen's side) rook rights
-		  changes[left_layer] = clear_castle_right;
-		  name = name_original + ", clear left castle rights";
-		  choices_out.push_back(choice);
-		  changes[left_layer] = change_optional();
-		}
-	      if(!right_changed)
-		{
-		  // case: just clear right (king's side) rook rights
-		  changes[right_layer] = clear_castle_right;
-		  name = name_original + ", clear right castle rights";
-		  choices_out.push_back(choice);
-		  changes[right_layer] = change_optional();
-		}
-	      if(!left_changed && !right_changed)
-		{
-		  // case: clear both rook's rights
-		  changes[left_layer] = clear_castle_right;
-		  changes[right_layer] = clear_castle_right;
-		  name = name_original + ", clear both castle rights";
-		  choices_out.push_back(choice);
-		  changes[right_layer] = change_optional();
-		  changes[left_layer] = change_optional();
-		}
-	    };
-
-	  if(check_from(choice, 4, DFA_BLACK_KING))
-	    {
-	      // black king moved from start
-	      handle_side_castle_rights(0, 7, DFA_BLACK_ROOK, DFA_BLACK_ROOK_CASTLE);
-	    }
-	  else if(check_from(choice, 60, DFA_WHITE_KING))
-	    {
-	      // white king moved from start
-	      handle_side_castle_rights(56, 63, DFA_WHITE_ROOK, DFA_WHITE_ROOK_CASTLE);
-	    }
-	  else
-	    {
-	      // not a move that would affect castle rights
-	      name = name_original + ", no castle right changes";
-	      choices_out.push_back(choice);
-	    }
-	}
-
-      return choices_out;
-    };
-
-  std::function<void(const choice_vector&)> add_output =
-    [&](const choice_vector& choices_in)
-    {
-      choice_vector choices_temp = choices_in;
-      choices_temp = handle_castle_rights(choices_temp);
-
-      for(choice_type choice : choices_temp)
-	{
-	  move_graph.add_edge(std::get<3>(choice),
-			      "begin",
-			      "clear en passant",
-			      std::get<0>(choice),
-			      std::get<1>(choice),
-			      std::get<2>(choice));
-	}
-    };
 
   std::function<void(int, const MoveSet&)> add_basic_choices =
     [&](int character, const MoveSet& moves)
     {
-      choice_vector basic_choices;
-
       for(int from_square = 0; from_square < 64; ++from_square)
 	{
 	  int from_layer = from_square + CHESS_SQUARE_OFFSET;
@@ -684,11 +618,18 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 	      continue;
 	    }
 
+	  int to_character = character;
+	  if(character == DFA_BLACK_ROOK_CASTLE)
+	    {
+	      to_character = DFA_BLACK_ROOK;
+	    }
+	  if(character == DFA_WHITE_ROOK_CASTLE)
+	    {
+	      to_character = DFA_WHITE_ROOK;
+	    }
+
 	  for(int to_square = 0; to_square < 64; ++to_square)
 	    {
-	      int to_layer = to_square + CHESS_SQUARE_OFFSET;
-	      int to_layer_shape = basic_positions->get_layer_shape(to_layer);
-
 	      if(!(moves.moves[from_square] & (1ULL << to_square)))
 		{
 		  continue;
@@ -697,7 +638,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
 	      std::vector<shared_dfa_ptr> basic_pre_conditions = {pre_shared};
 	      change_vector basic_changes(64 + CHESS_SQUARE_OFFSET);
-	      std::vector<shared_dfa_ptr> basic_post_conditions = {post_shared};
+	      std::vector<shared_dfa_ptr> basic_post_conditions = {};
 
 	      // from conditions - will be shared across simple move and captures
 	      add_change(from_square,
@@ -715,6 +656,10 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 				    to_square,
 				    basic_post_conditions);
 
+	      // to condition - used to shrink DFA before current change and following "to" node's union...
+	      basic_pre_conditions.push_back(get_positions_can_move_basic(side_to_move, to_square)); // forward speedup
+	      basic_post_conditions.push_back(get_positions_can_move_basic(side_to_move, to_square)); // NOP for clarity
+
 #if CHESS_SQUARE_OFFSET == 2
 	      if(character == DFA_WHITE_KING)
 		{
@@ -731,39 +676,19 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
 	      // moving this piece
 
-	      for(int prev_character = 0; prev_character < to_layer_shape; ++prev_character)
-		{
-		  if(!chess_is_friendly(side_to_move, prev_character))
-		    {
-		      add_change(to_square,
-				 prev_character,
-				 character,
-				 basic_pre_conditions,
-				 basic_changes,
-				 basic_post_conditions);
-
-		      basic_choices.emplace_back(basic_pre_conditions,
-					       basic_changes,
-					       basic_post_conditions,
-					       "basic from_char=" + std::to_string(character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(to_square) + ", prev_character=" + std::to_string(prev_character));
-
-		      // reverse change for next prev_character
-		      basic_post_conditions.pop_back();
-		      basic_changes[to_layer] = change_optional();
-		      basic_pre_conditions.pop_back();
-		    }
-		}
+	      move_graph.add_edge("basic from_char=" + std::to_string(character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(to_square),
+				  "begin",
+				  get_to_node_name(to_character, to_square),
+				  basic_pre_conditions,
+				  basic_changes,
+				  basic_post_conditions);
 	    }
 	}
-
-      add_output(basic_choices);
     };
 
   std::function<void(int, int, int, int, int)> add_pawn_choices =
     [&](int pawn_character, int en_passant_character, int capture_en_passant_character, int rank_start, int rank_direction)
     {
-      choice_vector pawn_choices;
-
       for(int from_file = 0; from_file < 8; ++from_file)
 	{
 	  for(int previous_advancement = 0; previous_advancement < 6; ++previous_advancement)
@@ -797,7 +722,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
 	      std::vector<shared_dfa_ptr> advance_pre_conditions = {pre_shared};
 	      change_vector advance_changes(64 + CHESS_SQUARE_OFFSET);
-	      std::vector<shared_dfa_ptr> advance_post_conditions = {post_shared};
+	      std::vector<shared_dfa_ptr> advance_post_conditions = {};
 
 	      add_change(from_square,
 			 pawn_character,
@@ -815,10 +740,12 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 			     advance_changes,
 			     advance_post_conditions);
 
-		  pawn_choices.emplace_back(advance_pre_conditions,
-					    advance_changes,
-					    advance_post_conditions,
-					    "pawn advance from_char=" + std::to_string(pawn_character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(advance_square) + ", to_char=" + std::to_string(advance_character));
+		  move_graph.add_edge("pawn advance from_char=" + std::to_string(pawn_character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(advance_square) + ", to_char=" + std::to_string(advance_character),
+				      "begin",
+				      "clear en passant", // do not need "to" fanout
+				      advance_pre_conditions,
+				      advance_changes,
+				      advance_post_conditions);
 
 		  // pop back conditions for next advance character
 		  advance_post_conditions.pop_back();
@@ -835,7 +762,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
 		  std::vector<shared_dfa_ptr> double_pre_conditions = {pre_shared};
 		  change_vector double_changes(64 + CHESS_SQUARE_OFFSET);
-		  std::vector<shared_dfa_ptr> double_post_conditions = {post_shared};
+		  std::vector<shared_dfa_ptr> double_post_conditions = {};
 
 		  add_change(from_square,
 			     pawn_character,
@@ -856,10 +783,12 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 			     double_changes,
 			     double_post_conditions);
 
-		  pawn_choices.emplace_back(double_pre_conditions,
-					  double_changes,
-					  double_post_conditions,
-					  "pawn double from_square=" + std::to_string(from_square));
+		  move_graph.add_edge("pawn double from_square=" + std::to_string(from_square),
+				      "begin",
+				      "clear en passant", // do not need "to" fanout
+				      double_pre_conditions,
+				      double_changes,
+				      double_post_conditions);
 		}
 
 	      for(int capture_file = from_file - 1; capture_file <= from_file + 1; capture_file += 2)
@@ -870,12 +799,10 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 		    }
 
 		  int capture_square = advance_rank * 8 + capture_file;
-		  int capture_layer = capture_square + CHESS_SQUARE_OFFSET;
-		  int capture_layer_shape = basic_positions->get_layer_shape(capture_layer);
 
 		  std::vector<shared_dfa_ptr> capture_pre_conditions = {pre_shared};
 		  change_vector capture_changes(64 + CHESS_SQUARE_OFFSET);
-		  std::vector<shared_dfa_ptr> capture_post_conditions = {post_shared};
+		  std::vector<shared_dfa_ptr> capture_post_conditions = {};
 
 		  add_change(from_square,
 			     pawn_character,
@@ -884,31 +811,19 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 			     capture_changes,
 			     capture_post_conditions);
 
-		  // loop over captured pieces
-		  for(int prev_character = 0; prev_character < capture_layer_shape; ++prev_character)
+		  // capture constraint
+		  capture_pre_conditions.push_back(get_positions_can_move_capture(side_to_move, capture_square));
+		  capture_post_conditions.push_back(get_positions_can_move_capture(side_to_move, capture_square));
+
+		  // loop over piece after advancing
+		  for(int advance_character : advance_characters)
 		    {
-		      if(chess_is_hostile(side_to_move, prev_character))
-			{
-			  for(int advance_character : advance_characters)
-			    {
-			      add_change(capture_square,
-					 prev_character,
-					 advance_character,
-					 capture_pre_conditions,
-					 capture_changes,
-					 capture_post_conditions);
-
-			      pawn_choices.emplace_back(capture_pre_conditions,
-						      capture_changes,
-						      capture_post_conditions,
-						      "pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square) + ", prev_character=" + std::to_string(prev_character) + ", advance_character=" + std::to_string(advance_character));
-
-			      // reverse changes for next prev_character/advance_character
-			      capture_post_conditions.pop_back();
-			      capture_changes[capture_layer] = change_optional();
-			      capture_pre_conditions.pop_back();
-			    }
-			}
+		      move_graph.add_edge("pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square) + ", advance_character=" + std::to_string(advance_character),
+					  "begin",
+					  get_to_node_name(advance_character, capture_square),
+					  capture_pre_conditions,
+					  capture_changes,
+					  capture_post_conditions);
 		    }
 
 		  if(previous_advancement == 3)
@@ -917,7 +832,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
 		      std::vector<shared_dfa_ptr> en_passant_pre_conditions = {pre_shared};
 		      change_vector en_passant_changes(64 + CHESS_SQUARE_OFFSET);
-		      std::vector<shared_dfa_ptr> en_passant_post_conditions = {post_shared};
+		      std::vector<shared_dfa_ptr> en_passant_post_conditions = {};
 
 		      add_change(from_square,
 				 pawn_character,
@@ -940,16 +855,16 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 				 en_passant_changes,
 				 en_passant_post_conditions);
 
-		      pawn_choices.emplace_back(en_passant_pre_conditions,
-					      en_passant_changes,
-					      en_passant_post_conditions,
-					      "pawn en-passant from_square=" + std::to_string(from_square) + ", en_passant_square=" + std::to_string(en_passant_square));
+		      move_graph.add_edge("pawn en-passant from_square=" + std::to_string(from_square) + ", en_passant_square=" + std::to_string(en_passant_square),
+					  "begin",
+					  "clear en passant", // do not need "to" fanout
+					  en_passant_pre_conditions,
+					  en_passant_changes,
+					  en_passant_post_conditions);
 		    }
 		}
 	    }
 	}
-
-      add_output(pawn_choices);
     };
 
   std::function<void(int, int, int, int, int)> add_castle_choice = [&](int king_character, int rook_castle_character, int rook_character, int king_from_square, int rook_from_square)
@@ -962,7 +877,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
     std::vector<shared_dfa_ptr> castle_pre_conditions = {pre_shared};
     change_vector castle_changes(64 + CHESS_SQUARE_OFFSET);
-    std::vector<shared_dfa_ptr> castle_post_conditions = {post_shared};
+    std::vector<shared_dfa_ptr> castle_post_conditions = {};
 
 #if CHESS_SQUARE_OFFSET == 2
     castle_changes[side_to_move] = change_type(king_from_square, king_to_square);
@@ -1011,12 +926,12 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
     castle_pre_conditions.push_back(no_castle_threat);
     castle_post_conditions.push_back(no_castle_threat);
 
-    castle_choices.emplace_back(castle_pre_conditions,
-			      castle_changes,
-			      castle_post_conditions,
-			      "castle king_from_square=" + std::to_string(king_from_square) + ", king_to_square=" + std::to_string(king_to_square));
-
-    add_output(castle_choices);
+    move_graph.add_edge("castle king_from_square=" + std::to_string(king_from_square) + ", king_to_square=" + std::to_string(king_to_square),
+			"begin",
+			"clear castle rights",
+			castle_pre_conditions,
+			castle_changes,
+			castle_post_conditions);
   };
 
   if(side_to_move == SIDE_WHITE)
@@ -1048,7 +963,107 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
       add_castle_choice(DFA_BLACK_KING, DFA_BLACK_ROOK_CASTLE, DFA_BLACK_ROOK, 4, 7);
     }
 
-  // second phase - clear en passant status
+  // second phase - place pieces handling capture fanout
+
+  for(auto to_choice : to_choices)
+    {
+      int to_character = std::get<0>(to_choice);
+      int to_square = std::get<1>(to_choice);
+      int to_layer = to_square + CHESS_SQUARE_OFFSET;
+
+      // TODO : clear castling rights more narrowly. only need moves from starting positions to clear them.
+      int to_king = (to_character == DFA_BLACK_KING) || (to_character == DFA_WHITE_KING);
+      std::string next_node_name = to_king ? "clear castle rights" : "clear en passant";
+
+      for(int prev_character = 0; prev_character < chess_shape[to_layer]; ++prev_character)
+	{
+	  if((prev_character == DFA_BLACK_KING) || (prev_character == DFA_WHITE_KING))
+	    {
+	      // do not generate king capturing moves since they can
+	      // not happen in a legal game.
+	      continue;
+	    }
+
+	  if(chess_is_friendly(side_to_move, prev_character))
+	    {
+	      // can not move over friendly pieces
+	      continue;
+	    }
+
+	  std::vector<shared_dfa_ptr> to_pre_conditions;
+	  change_vector to_changes(64 + CHESS_SQUARE_OFFSET);
+	  std::vector<shared_dfa_ptr> to_post_conditions;
+
+	  add_change(to_square,
+		     prev_character,
+		     to_character,
+		     to_pre_conditions,
+		     to_changes,
+		     to_post_conditions);
+
+	  move_graph.add_edge("place to_char=" + std::to_string(to_character) + ", to_square=" + std::to_string(to_square) + ", prev_char=" + std::to_string(prev_character),
+			      get_to_node_name(to_character, to_square),
+			      next_node_name,
+			      to_pre_conditions,
+			      to_changes,
+			      to_post_conditions);
+	}
+    }
+
+  // third phase - clear castle rights if king moved
+
+  int rook_character = (side_to_move == SIDE_WHITE) ? DFA_WHITE_ROOK : DFA_BLACK_ROOK;
+  int rook_castle_character = (side_to_move == SIDE_WHITE) ? DFA_WHITE_ROOK_CASTLE : DFA_BLACK_ROOK_CASTLE;
+
+  int left_castle_square = (side_to_move == SIDE_WHITE) ? 56 : 0;
+  int left_castle_layer = left_castle_square + CHESS_SQUARE_OFFSET;
+  shared_dfa_ptr left_castle_pre_condition = DFAUtil::get_fixed(chess_shape, left_castle_layer, rook_castle_character);
+  shared_dfa_ptr left_castle_post_condition = DFAUtil::get_fixed(chess_shape, left_castle_layer, rook_character);
+
+  int right_castle_square = (side_to_move == SIDE_WHITE) ? 63 : 7;
+  int right_castle_layer = right_castle_square + CHESS_SQUARE_OFFSET;
+  shared_dfa_ptr right_castle_pre_condition = DFAUtil::get_fixed(chess_shape, right_castle_layer, rook_castle_character);
+  shared_dfa_ptr right_castle_post_condition = DFAUtil::get_fixed(chess_shape, right_castle_layer, rook_character);
+
+  shared_dfa_ptr no_castle_rights(new CountCharacterDFA(chess_shape, rook_castle_character, 0, 0, CHESS_SQUARE_OFFSET));
+
+  change_vector clear_castle_none(64 + CHESS_SQUARE_OFFSET);
+  move_graph.add_edge("clear castle rights - none",
+		      "clear castle rights",
+		      "clear en passant",
+		      move_edge_condition_vector({no_castle_rights}),
+		      clear_castle_none,
+		      move_edge_condition_vector({no_castle_rights}));
+
+  change_vector clear_castle_left(64 + CHESS_SQUARE_OFFSET);
+  clear_castle_left[left_castle_layer] = change_type(rook_castle_character, rook_character);
+  move_graph.add_edge("clear castle rights - left",
+		      "clear castle rights",
+		      "clear en passant",
+		      move_edge_condition_vector({left_castle_pre_condition}),
+		      clear_castle_left,
+		      move_edge_condition_vector({no_castle_rights, left_castle_post_condition}));
+
+  change_vector clear_castle_both(64 + CHESS_SQUARE_OFFSET);
+  clear_castle_both[left_castle_layer] = change_type(rook_castle_character, rook_character);
+  clear_castle_both[right_castle_layer] = change_type(rook_castle_character, rook_character);
+  move_graph.add_edge("clear castle rights - both",
+		      "clear castle rights",
+		      "clear en passant",
+		      move_edge_condition_vector({left_castle_pre_condition, right_castle_pre_condition}),
+		      clear_castle_both,
+		      move_edge_condition_vector({no_castle_rights, left_castle_post_condition, right_castle_post_condition}));
+
+  change_vector clear_castle_right(64 + CHESS_SQUARE_OFFSET);
+  clear_castle_right[right_castle_layer] = change_type(rook_castle_character, rook_character);
+  move_graph.add_edge("clear castle rights - right",
+		      "clear castle rights",
+                      "clear en passant",
+		      move_edge_condition_vector({right_castle_pre_condition}),
+		      clear_castle_right,
+		      move_edge_condition_vector({no_castle_rights, right_castle_post_condition}));
+
+  // fourth phase - clear en passant status
 
   int clear_en_passant_square_min = (side_to_move == SIDE_WHITE) ? 24 : 32;
   int clear_en_passant_square_max = clear_en_passant_square_min + 8;
@@ -1076,7 +1091,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
   // case: no en passant status to clear
   move_graph.add_edge("no en passant pawns",
 		      "clear en passant",
-		      "end",
+		      "avoid check",
 		      clear_en_passant_pre_conditions,
 		      change_vector(64 + CHESS_SQUARE_OFFSET),
 		      clear_en_passant_post_conditions);
@@ -1093,11 +1108,22 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
       move_graph.add_edge("clear en passant square=" + std::to_string(square),
 			  "clear en passant",
-			  "end",
+			  "avoid check",
 			  clear_en_passant_pre_conditions,
 			  clear_en_passant_changes,
 			  clear_en_passant_post_conditions);
     }
+
+  // fifth phase
+
+  move_graph.add_edge("avoid check",
+		      "avoid check",
+		      "end",
+		      move_edge_condition_vector(),
+		      change_vector(64 + CHESS_SQUARE_OFFSET),
+		      move_edge_condition_vector({post_shared}));
+
+  // done
 
   return move_graph;
 }
