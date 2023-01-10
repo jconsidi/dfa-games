@@ -350,9 +350,14 @@ shared_dfa_ptr ChessGame::get_positions_can_move_basic(int side_to_move, int squ
 
   if(!singletons[side_to_move][square])
     {
-      shared_dfa_ptr empty = DFAUtil::get_fixed(get_shape(), square + CHESS_SQUARE_OFFSET, DFA_BLANK);
-      singletons[side_to_move][square] = DFAUtil::get_union(empty,
-							    get_positions_can_move_capture(side_to_move, square));
+      singletons[side_to_move][square] =
+        load_or_build("can_move_basic-side=" + std::to_string(side_to_move) + ",square=" + std::to_string(square),
+		      [&]()
+		      {
+			shared_dfa_ptr empty = DFAUtil::get_fixed(get_shape(), square + CHESS_SQUARE_OFFSET, DFA_BLANK);
+			return DFAUtil::get_union(empty,
+						  get_positions_can_move_capture(side_to_move, square));
+		      });
     }
 
   return singletons[side_to_move][square];
@@ -364,17 +369,23 @@ shared_dfa_ptr ChessGame::get_positions_can_move_capture(int side_to_move, int s
 
   if(!singletons[side_to_move][square])
     {
-      int layer = square + CHESS_SQUARE_OFFSET;
+      singletons[side_to_move][square] =
+	load_or_build("can_move_capture-side=" + std::to_string(side_to_move) + ",square=" + std::to_string(square),
+		      [&]()
+		      {
+			int layer = square + CHESS_SQUARE_OFFSET;
 
-      std::vector<shared_dfa_ptr> partials;
-      for(int c = 0; c < chess_shape[layer]; ++c)
-	{
-	  if(chess_is_hostile(side_to_move, c) && (c != DFA_BLACK_KING) && (c != DFA_WHITE_KING))
-	    {
-	      partials.push_back(DFAUtil::get_fixed(get_shape(), layer, c));
-	    }
-	}
-      singletons[side_to_move][square] = DFAUtil::get_union_vector(chess_shape, partials);
+			std::vector<shared_dfa_ptr> partials;
+			for(int c = 0; c < chess_shape[layer]; ++c)
+			  {
+			    if(chess_is_hostile(side_to_move, c) && (c != DFA_BLACK_KING) && (c != DFA_WHITE_KING))
+			      {
+				partials.push_back(DFAUtil::get_fixed(get_shape(), layer, c));
+			      }
+			  }
+
+			return DFAUtil::get_union_vector(chess_shape, partials);
+		      });
     }
 
   return singletons[side_to_move][square];
