@@ -127,8 +127,10 @@ DFAString ChessGame::from_board_to_dfa_string(const Board& board_in)
 
 #if CHESS_SQUARE_OFFSET == 2
   // white king index
+  assert(pieces_by_side_type[SIDE_WHITE][PIECE_KING]);
   board_characters.push_back(std::countr_zero(pieces_by_side_type[SIDE_WHITE][PIECE_KING]));
   // black king index
+  assert(pieces_by_side_type[SIDE_BLACK][PIECE_KING]);
   board_characters.push_back(std::countr_zero(pieces_by_side_type[SIDE_BLACK][PIECE_KING]));
 #endif
 
