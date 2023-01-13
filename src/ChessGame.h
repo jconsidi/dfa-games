@@ -14,10 +14,10 @@ private:
 
   virtual MoveGraph build_move_graph(int) const;
 
-  shared_dfa_ptr get_positions_basic() const;
   shared_dfa_ptr get_positions_can_move_basic(int, int) const;
   shared_dfa_ptr get_positions_can_move_capture(int, int) const;
   shared_dfa_ptr get_positions_king(int) const;
+  shared_dfa_ptr get_positions_legal() const;
 
 public:
 

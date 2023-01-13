@@ -246,9 +246,9 @@ DFAString ChessGame::from_board_to_dfa_string(const Board& board_in)
   return DFAString(chess_shape, board_characters);
 }
 
-shared_dfa_ptr ChessGame::get_positions_basic() const
+shared_dfa_ptr ChessGame::get_positions_legal() const
 {
-  Profile profile("get_positions_basic");
+  Profile profile("get_positions_legal");
 
   // basic position requirements:
   // * make sure initial king indexes are correct
@@ -257,9 +257,9 @@ shared_dfa_ptr ChessGame::get_positions_basic() const
   static shared_dfa_ptr singleton;
   if(!singleton)
     {
-      singleton = load_or_build("basic_positions", [=]()
+      singleton = load_or_build("legal_positions", [=]()
       {
-	Profile profile("ChessGame::get_positions_basic()");
+	Profile profile("ChessGame::get_positions_legal()");
 	profile.tic("singleton");
 
 	std::vector<shared_dfa_ptr> requirements;
@@ -337,7 +337,7 @@ shared_dfa_ptr ChessGame::get_positions_basic() const
 	requirements.push_back(get_positions_king(0));
 	requirements.push_back(get_positions_king(1));
 
-	std::cout << "get_positions_basic() => " << requirements.size() << " requirements" << std::endl;
+	std::cout << "get_positions_legal() => " << requirements.size() << " requirements" << std::endl;
 
 	return DFAUtil::get_intersection_vector(chess_shape, requirements);
       });
@@ -405,7 +405,7 @@ shared_dfa_ptr ChessGame::get_positions_check(int checked_side) const
 	Profile profile(std::ostringstream() << "ChessGame::get_positions_check(" << checked_side << ")");
 	profile.tic("singleton");
 
-	shared_dfa_ptr basic_positions = get_positions_basic();
+	shared_dfa_ptr basic_positions = get_positions_legal();
 	int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
 	std::vector<shared_dfa_ptr> checks;
@@ -563,7 +563,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 {
   Profile profile("get_phases_internal");
 
-  shared_dfa_ptr basic_positions = get_positions_basic();
+  shared_dfa_ptr basic_positions = get_positions_legal();
   shared_dfa_ptr check_positions = get_positions_check(side_to_move);
   shared_dfa_ptr not_check_positions = load_or_build("not_check_positions-side=" + std::to_string(side_to_move), [=]()
   {
