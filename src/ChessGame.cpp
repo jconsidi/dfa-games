@@ -581,6 +581,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   MoveGraph move_graph;
   move_graph.add_node("begin");
+  move_graph.add_node("pre shared");
 
   int to_character_min = (side_to_move == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
   int to_character_max = (side_to_move == SIDE_WHITE) ? DFA_WHITE_PAWN : DFA_BLACK_PAWN;
@@ -600,8 +601,15 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   move_graph.add_node("clear castle rights");
   move_graph.add_node("clear en passant");
-  move_graph.add_node("avoid check");
+  move_graph.add_node("post shared");
   move_graph.add_node("end");
+
+  move_graph.add_edge("pre shared",
+		      "begin",
+		      "pre shared",
+		      move_edge_condition_vector({pre_shared}),
+		      change_vector(64 + CHESS_SQUARE_OFFSET),
+		      move_edge_condition_vector({}));
 
   std::function<void(int, const MoveSet&)> add_basic_choices =
     [&](int character, const MoveSet& moves)
@@ -649,7 +657,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 		}
 	      assert(to_square != from_square);
 
-	      std::vector<shared_dfa_ptr> basic_pre_conditions = {pre_shared};
+	      std::vector<shared_dfa_ptr> basic_pre_conditions = {};
 	      change_vector basic_changes(64 + CHESS_SQUARE_OFFSET);
 	      std::vector<shared_dfa_ptr> basic_post_conditions = {};
 
@@ -690,7 +698,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 	      // moving this piece
 
 	      move_graph.add_edge("basic from_char=" + std::to_string(character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(to_square),
-				  "begin",
+				  "pre shared",
 				  get_to_node_name(to_character, to_square),
 				  basic_pre_conditions,
 				  basic_changes,
@@ -733,7 +741,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 		  advance_characters.push_back(DFA_BLACK_ROOK);
 		}
 
-	      std::vector<shared_dfa_ptr> advance_pre_conditions = {pre_shared};
+	      std::vector<shared_dfa_ptr> advance_pre_conditions = {};
 	      change_vector advance_changes(64 + CHESS_SQUARE_OFFSET);
 	      std::vector<shared_dfa_ptr> advance_post_conditions = {};
 
@@ -754,7 +762,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 			     advance_post_conditions);
 
 		  move_graph.add_edge("pawn advance from_char=" + std::to_string(pawn_character) + ", from_square=" + std::to_string(from_square) + ", to_square=" + std::to_string(advance_square) + ", to_char=" + std::to_string(advance_character),
-				      "begin",
+				      "pre shared",
 				      "clear en passant", // do not need "to" fanout
 				      advance_pre_conditions,
 				      advance_changes,
@@ -773,7 +781,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 		  int double_rank = from_rank + rank_direction * 2;
 		  int double_square = double_rank * 8 + from_file;
 
-		  std::vector<shared_dfa_ptr> double_pre_conditions = {pre_shared};
+		  std::vector<shared_dfa_ptr> double_pre_conditions = {};
 		  change_vector double_changes(64 + CHESS_SQUARE_OFFSET);
 		  std::vector<shared_dfa_ptr> double_post_conditions = {};
 
@@ -797,7 +805,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 			     double_post_conditions);
 
 		  move_graph.add_edge("pawn double from_square=" + std::to_string(from_square),
-				      "begin",
+				      "pre shared",
 				      "clear en passant", // do not need "to" fanout
 				      double_pre_conditions,
 				      double_changes,
@@ -813,7 +821,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
 		  int capture_square = advance_rank * 8 + capture_file;
 
-		  std::vector<shared_dfa_ptr> capture_pre_conditions = {pre_shared};
+		  std::vector<shared_dfa_ptr> capture_pre_conditions = {};
 		  change_vector capture_changes(64 + CHESS_SQUARE_OFFSET);
 		  std::vector<shared_dfa_ptr> capture_post_conditions = {};
 
@@ -832,7 +840,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 		  for(int advance_character : advance_characters)
 		    {
 		      move_graph.add_edge("pawn capture from_square=" + std::to_string(from_square) + ", capture_square=" + std::to_string(capture_square) + ", advance_character=" + std::to_string(advance_character),
-					  "begin",
+					  "pre shared",
 					  get_to_node_name(advance_character, capture_square),
 					  capture_pre_conditions,
 					  capture_changes,
@@ -843,7 +851,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 		    {
 		      int en_passant_square = from_rank * 8 + capture_file;
 
-		      std::vector<shared_dfa_ptr> en_passant_pre_conditions = {pre_shared};
+		      std::vector<shared_dfa_ptr> en_passant_pre_conditions = {};
 		      change_vector en_passant_changes(64 + CHESS_SQUARE_OFFSET);
 		      std::vector<shared_dfa_ptr> en_passant_post_conditions = {};
 
@@ -869,7 +877,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 				 en_passant_post_conditions);
 
 		      move_graph.add_edge("pawn en-passant from_square=" + std::to_string(from_square) + ", en_passant_square=" + std::to_string(en_passant_square),
-					  "begin",
+					  "pre shared",
 					  "clear en passant", // do not need "to" fanout
 					  en_passant_pre_conditions,
 					  en_passant_changes,
@@ -888,7 +896,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
     int king_to_square = king_from_square + castle_direction * 2;
     int rook_to_square = king_from_square + castle_direction;
 
-    std::vector<shared_dfa_ptr> castle_pre_conditions = {pre_shared};
+    std::vector<shared_dfa_ptr> castle_pre_conditions = {};
     change_vector castle_changes(64 + CHESS_SQUARE_OFFSET);
     std::vector<shared_dfa_ptr> castle_post_conditions = {};
 
@@ -940,7 +948,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
     castle_post_conditions.push_back(no_castle_threat);
 
     move_graph.add_edge("castle king_from_square=" + std::to_string(king_from_square) + ", king_to_square=" + std::to_string(king_to_square),
-			"begin",
+			"pre shared",
 			"clear castle rights",
 			castle_pre_conditions,
 			castle_changes,
@@ -1104,7 +1112,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
   // case: no en passant status to clear
   move_graph.add_edge("no en passant pawns",
 		      "clear en passant",
-		      "avoid check",
+		      "post shared",
 		      clear_en_passant_pre_conditions,
 		      change_vector(64 + CHESS_SQUARE_OFFSET),
 		      clear_en_passant_post_conditions);
@@ -1121,7 +1129,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
       move_graph.add_edge("clear en passant square=" + std::to_string(square),
 			  "clear en passant",
-			  "avoid check",
+			  "post shared",
 			  clear_en_passant_pre_conditions,
 			  clear_en_passant_changes,
 			  clear_en_passant_post_conditions);
@@ -1129,8 +1137,8 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   // fifth phase
 
-  move_graph.add_edge("avoid check",
-		      "avoid check",
+  move_graph.add_edge("post shared",
+		      "post shared",
 		      "end",
 		      move_edge_condition_vector(),
 		      change_vector(64 + CHESS_SQUARE_OFFSET),
