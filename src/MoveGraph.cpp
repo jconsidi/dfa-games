@@ -115,7 +115,7 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
 	  // apply choice changes
 	  profile.tic("edge change");
-	  edge_positions = shared_dfa_ptr(new ChangeDFA(*edge_positions, changes));
+	  edge_positions = DFAUtil::get_change(edge_positions, changes);
 	  std::cout << "  changes => " << DFAUtil::quick_stats(edge_positions) << std::endl;
 
 	  if(edge_positions->is_constant(false))

@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+#include "ChangeDFA.h"
 #include "DFA.h"
 
 class DFAUtil
@@ -17,6 +18,7 @@ public:
   static shared_dfa_ptr from_string(const DFAString&);
   static shared_dfa_ptr from_strings(const dfa_shape_t&, const std::vector<DFAString>&);
   static shared_dfa_ptr get_accept(const dfa_shape_t&);
+  static shared_dfa_ptr get_change(shared_dfa_ptr, const change_vector&);
   static shared_dfa_ptr get_count_character(const dfa_shape_t&, int, int);
   static shared_dfa_ptr get_count_character(const dfa_shape_t&, int, int, int);
   static shared_dfa_ptr get_count_character(const dfa_shape_t&, int, int, int, int);

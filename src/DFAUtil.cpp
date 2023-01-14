@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include "AcceptDFA.h"
+#include "ChangeDFA.h"
 #include "CountCharacterDFA.h"
 #include "DifferenceDFA.h"
 #include "FixedDFA.h"
@@ -130,6 +131,12 @@ shared_dfa_ptr DFAUtil::get_accept(const dfa_shape_t& shape_in)
   shared_dfa_ptr output(new AcceptDFA(shape_in));
   singletons[singleton_key] = output;
   return output;
+}
+
+shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& changes_in)
+{
+  Profile profile("get_change");
+  return shared_dfa_ptr(new ChangeDFA(*dfa_in, changes_in));
 }
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_in)
