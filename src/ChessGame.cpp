@@ -561,7 +561,7 @@ shared_dfa_ptr ChessGame::get_positions_won(int side_to_move) const
 
 MoveGraph ChessGame::build_move_graph(int side_to_move) const
 {
-  Profile profile("get_phases_internal");
+  Profile profile("build_move_graph");
 
   shared_dfa_ptr basic_positions = get_positions_legal();
   shared_dfa_ptr check_positions = get_positions_check(side_to_move);
