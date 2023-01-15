@@ -48,6 +48,20 @@ public:
 
 class DFAIterator;
 
+class DFALinearBound
+{
+private:
+
+  dfa_shape_t shape;
+  std::vector<std::vector<bool>> bounds;
+
+public:
+
+  DFALinearBound(const dfa_shape_t&, const std::vector<std::vector<bool>>&);
+
+  bool operator<=(const DFALinearBound&) const;
+};
+
 class DFA
 {
   dfa_shape_t shape;
@@ -63,6 +77,8 @@ class DFA
   std::vector<MemoryMap<dfa_state_t>> layer_transitions;
 
   mutable bool temporary;
+
+  mutable DFALinearBound *linear_bound = 0;
 
   void finalize();
 
@@ -89,6 +105,7 @@ class DFA
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   dfa_state_t get_layer_size(int) const;
+  const DFALinearBound& get_linear_bound() const;
   std::string get_name() const;
   const dfa_shape_t& get_shape() const;
   int get_shape_size() const;

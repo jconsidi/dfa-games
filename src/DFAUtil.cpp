@@ -231,6 +231,48 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
       return get_reject(left_in->get_shape());
     }
 
+  bool left_linear = left_in->is_linear();
+  bool right_linear = right_in->is_linear();
+
+  if(left_linear || right_linear)
+    {
+      // use linear bounds to check if either DFA is a subset of the
+      // other DFA. in that case, we can immediately return the
+      // subset.
+
+      const DFALinearBound& left_bound = left_in->get_linear_bound();
+      const DFALinearBound& right_bound = right_in->get_linear_bound();
+
+      if(left_linear && right_linear)
+	  {
+	    // both linear
+	    if(left_bound <= right_bound)
+	      {
+		return left_in;
+	      }
+	    else if(right_bound <= left_bound)
+	      {
+		return right_in;
+	      }
+	  }
+      else if(left_linear)
+	{
+	  // only left linear
+	  if(right_bound <= left_bound)
+	    {
+	      return right_in;
+	    }
+	}
+      else
+	{
+	  // only right linear
+	  if(left_bound <= right_bound)
+	    {
+	      return left_in;
+	    }
+	}
+    }
+
   return _singleton_if_constant(shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in)));
 }
 

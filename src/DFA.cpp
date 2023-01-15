@@ -154,6 +154,12 @@ DFA::~DFA() noexcept(false)
     {
       remove_directory(directory);
     }
+
+  if(linear_bound)
+    {
+      delete linear_bound;
+      linear_bound = 0;
+    }
 }
 
 dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
@@ -336,6 +342,50 @@ dfa_state_t DFA::get_layer_size(int layer) const
     }
 
   return layer_sizes[layer];
+}
+
+const DFALinearBound& DFA::get_linear_bound() const
+{
+  if(!linear_bound)
+    {
+      assert(ready());
+
+      std::vector<std::vector<bool>> bounds;
+      bool reached_accept_all = initial_state == 1;
+
+      for(int layer = 0; layer < ndim; ++layer)
+	{
+	  int layer_shape = get_layer_shape(layer);
+	  if(reached_accept_all)
+	    {
+	      bounds.emplace_back(layer_shape, true);
+	      continue;
+	    }
+
+	  bounds.emplace_back(layer_shape, false);
+
+	  std::vector<bool>& curr_bounds = bounds[layer];
+	  const MemoryMap<dfa_state_t>& curr_transitions = layer_transitions[layer];
+
+	  size_t num_transitions = get_layer_size(layer) * layer_shape;
+	  for(size_t i = 2 * layer_shape; i < num_transitions; ++i)
+	    {
+	      dfa_state_t t = curr_transitions[i];
+	      if(t == 1)
+		{
+		  reached_accept_all = true;
+		}
+	      if(t)
+		{
+		  curr_bounds[i % layer_shape] = true;
+		}
+	    }
+	}
+
+      linear_bound = new DFALinearBound(shape, bounds);
+    }
+
+  return *linear_bound;
 }
 
 std::string DFA::get_name() const
@@ -643,6 +693,32 @@ bool DFAIterator::operator<(const DFAIterator& right_in) const
     }
 
   return false;
+}
+
+DFALinearBound::DFALinearBound(const dfa_shape_t& shape_in, const std::vector<std::vector<bool>>& bounds_in)
+  : shape(shape_in),
+    bounds(bounds_in)
+{
+}
+
+bool DFALinearBound::operator<=(const DFALinearBound& bounds_right) const
+{
+  assert(shape == bounds_right.shape);
+
+  int ndim = shape.size();
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      int layer_shape = shape[layer];
+      for(int c = 0; c < layer_shape; ++c)
+	{
+	  if(bounds[layer][c] && !bounds_right.bounds[layer][c])
+	    {
+	      return false;
+	    }
+	}
+    }
+
+  return true;
 }
 
 DFAString::DFAString(const dfa_shape_t& shape_in, const std::vector<int>& characters_in)
