@@ -177,7 +177,7 @@ size_t CompactBitSetIndex::rank(size_t index_in) const
   size_t high_in = index_in / COMPACT_FACTOR;
   if(!_bitset._high_bits->check(high_in))
     {
-      return false;
+      assert(0);
     }
   size_t low_in = index_in % COMPACT_FACTOR;
 
