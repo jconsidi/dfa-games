@@ -473,8 +473,14 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     }
 
   // apply shortcircuit logic to previously detected cases
-  std::function<dfa_state_t(dfa_state_t, dfa_state_t)> shortcircuit_func = [=](dfa_state_t left_in, dfa_state_t right_in)
+  std::function<dfa_state_t(dfa_state_t, dfa_state_t)> shortcircuit_func = [=](dfa_state_t left_in, dfa_state_t right_in) -> dfa_state_t
   {
+    if((left_in < 2) && (right_in < 2))
+      {
+	// constant inputs
+	return leaf_func(left_in, right_in);
+      }
+
     if(left_in == left_sink)
       {
 	return left_in;
@@ -493,7 +499,17 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
   // out these pairs from further evaluation.
   std::function<bool(dfa_state_t, dfa_state_t)> filter_func = [=](dfa_state_t left_in, dfa_state_t right_in)
   {
+    if((left_in < 2) && (right_in < 2))
+      {
+	return true;
+      }
+
     if(left_in == left_sink)
+      {
+	return true;
+      }
+
+    if(right_in == right_sink)
       {
 	return true;
       }
@@ -569,32 +585,20 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       if(next_layer.count() == 0)
 	{
 	  // all pairs in next layer were filtered. no need to continue.
-	  pairs_by_layer.pop_back();
 	  break;
 	}
     }
+
+  assert(pairs_by_layer.size() > 0);
+  assert(pairs_by_layer.back().count() == 0);
 
   // apply leaf function
 
   profile.set_prefix("");
   profile.tic("leaves");
 
+  // initially empty since shortcircuiting will happen by last layer.
   std::vector<dfa_state_t> next_pair_mapping;
-  if(pairs_by_layer.size() == get_shape_size() + 1)
-    {
-      BitSet& leaf_pairs = pairs_by_layer.at(get_shape_size());
-      assert(leaf_pairs.size() <= 4);
-
-      for(int leaf_i = 0; leaf_i < 4; ++leaf_i)
-	{
-	  if(leaf_pairs.check(leaf_i))
-	    {
-	      size_t leaf_left_state = leaf_i / 2;
-	      size_t leaf_right_state = leaf_i % 2;
-	      next_pair_mapping.emplace_back(leaf_func(leaf_left_state, leaf_right_state));
-	    }
-	}
-    }
 
   // backward pass
 
