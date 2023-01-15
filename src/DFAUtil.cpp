@@ -236,12 +236,37 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 
 shared_dfa_ptr DFAUtil::get_intersection_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
 {
-  if(dfas_in.size() <= 0)
+  shared_dfa_ptr linear_staging = get_accept(shape_in);
+  std::vector<shared_dfa_ptr> nonlinear_staging;
+
+  // separate linear DFAs from non-linear DFAs.
+  for(const shared_dfa_ptr& dfa: dfas_in)
     {
-      return get_accept(shape_in);
+      if(dfa->is_linear())
+	{
+	  // combine all the linear DFAs since that is cheap.
+	  linear_staging = get_intersection(linear_staging, dfa);
+	}
+      else
+	{
+	  nonlinear_staging.push_back(dfa);
+	}
     }
 
-  return _reduce_associative_commutative(get_intersection, dfas_in);
+  if(nonlinear_staging.size() == 0)
+    {
+      // all input DFAs were linear
+      return linear_staging;
+    }
+
+  // quickly shrink all the non-linear DFAs by intersecting with the
+  // combined linear DFA.
+  for(int i = 0; i < nonlinear_staging.size(); ++i)
+    {
+      nonlinear_staging[i] = get_intersection(nonlinear_staging[i], linear_staging);
+    }
+
+  return _reduce_associative_commutative(get_intersection, nonlinear_staging);
 }
 
 shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
