@@ -74,6 +74,7 @@ size_t MapBitSetIndex::rank(size_t element_in) const
 	}
     }
 
+  assert(_index[index_min] == element_in);
   return index_min;
 }
 
