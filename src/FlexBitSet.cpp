@@ -78,7 +78,7 @@ void FlexBitSet::allocate()
       return;
     }
 
-  assert(0);
+  // no elements prepared
 }
 
 FlexBitSetIterator FlexBitSet::cbegin() const
@@ -138,7 +138,8 @@ size_t FlexBitSet::count() const
       return _map_bitset->count();
     }
 
-  assert(0);
+  // empty set
+  return 0;
 }
 
 void FlexBitSet::prepare(size_t index_in)
@@ -204,8 +205,6 @@ FlexBitSetIndex::FlexBitSetIndex(const FlexBitSet& bitset_in)
       _map_index = new MapBitSetIndex(*(bitset_in._map_bitset));
       return;
     }
-
-  assert(0);
 }
 
 size_t FlexBitSetIndex::rank(unsigned long index_in) const
