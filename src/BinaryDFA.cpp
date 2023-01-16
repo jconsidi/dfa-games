@@ -572,8 +572,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       LayerTransitions layer_transitions(left_in, right_in, layer, curr_layer);
 
       populate_bitset<FilteredLayerTransitionsIterator>(next_layer,
-									     layer_transitions.cbegin_filtered(filter_func),
-									     layer_transitions.cend_filtered());
+							layer_transitions.cbegin_filtered(filter_func),
+							layer_transitions.cend_filtered());
 
       if(disk_mmap)
 	{
