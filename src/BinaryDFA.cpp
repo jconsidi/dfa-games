@@ -689,16 +689,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       // make permutation of pairs sorted by transitions
       std::sort(curr_pairs_permutation.begin(), curr_pairs_permutation.end(), compare_pair);
 
-      profile.tic("backward apply permutation");
-
-      // make sorted copy of curr_pairs
-
-      MemoryMap<size_t> curr_pairs_sorted(curr_layer_count);
-      for(dfa_state_t i = 0; i < curr_layer_count; ++i)
-	{
-	  curr_pairs_sorted[i] = curr_pairs[curr_pairs_permutation[i]];
-	}
-
       profile.tic("backward states");
 
       curr_pair_mapping.resize(curr_layer_count);
@@ -745,7 +735,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       set_helper(0);
 
-      curr_pair_mapping[curr_index.rank(curr_pairs_sorted[0])] = curr_logical;
+      curr_pair_mapping[curr_index.rank(curr_pairs[curr_pairs_permutation[0]])] = curr_logical;
 
       for(size_t k = 1; k < curr_layer_count; ++k)
 	{
@@ -753,7 +743,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	    {
 	      set_helper(k);
 	    }
-	  curr_pair_mapping[curr_index.rank(curr_pairs_sorted[k])] = curr_logical;
+	  curr_pair_mapping[curr_index.rank(curr_pairs[curr_pairs_permutation[k]])] = curr_logical;
 	}
 
       assert(curr_pair_mapping.size() == curr_layer_count);
