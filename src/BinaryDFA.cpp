@@ -661,29 +661,43 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  }
       };
 
-      auto compare_pair = [&](size_t curr_pair_a, size_t curr_pair_b)
-      {
-	for(int j = 0; j < curr_layer_shape; ++j)
-	  {
-	    dfa_state_t next_a = get_next_state(curr_pair_a, j);
-	    dfa_state_t next_b = get_next_state(curr_pair_b, j);
-
-	    if(next_a < next_b)
-	      {
-		return true;
-	      }
-	    else if(next_a > next_b)
-	      {
-		return false;
-	      }
-	  }
-
-	return false;
-      };
+      // TODO : spill to disk if too big
+      MemoryMap<dfa_state_t> curr_transitions(curr_layer_count * curr_layer_shape);
+      for(dfa_state_t i = 0; i < curr_layer_count; ++i)
+	{
+	  for(int j = 0; j < curr_layer_shape; ++j)
+	    {
+	      curr_transitions[i * curr_layer_shape + j] = get_next_state(curr_pairs[i], j);
+	    }
+	}
 
       profile.tic("backward sort");
 
-      std::sort(curr_pairs.begin(), curr_pairs.end(), compare_pair);
+      MemoryMap<dfa_state_t> curr_pairs_permutation(curr_layer_count);
+      for(dfa_state_t i = 0; i < curr_layer_count; ++i)
+	{
+	  curr_pairs_permutation[i] = i;
+	}
+
+      auto compare_pair = [&](size_t curr_pair_index_a, size_t curr_pair_index_b)
+      {
+	return std::memcmp(&(curr_transitions[curr_pair_index_a * curr_layer_shape]),
+			   &(curr_transitions[curr_pair_index_b * curr_layer_shape]),
+			   sizeof(dfa_state_t) * curr_layer_shape) < 0;
+      };
+
+      // make permutation of pairs sorted by transitions
+      std::sort(curr_pairs_permutation.begin(), curr_pairs_permutation.end(), compare_pair);
+
+      profile.tic("backward apply permutation");
+
+      // make sorted copy of curr_pairs
+
+      MemoryMap<size_t> curr_pairs_sorted(curr_layer_count);
+      for(dfa_state_t i = 0; i < curr_layer_count; ++i)
+	{
+	  curr_pairs_sorted[i] = curr_pairs[curr_pairs_permutation[i]];
+	}
 
       profile.tic("backward states");
 
@@ -729,17 +743,17 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	assert(new_state == curr_logical);
       };
 
-      set_helper(curr_pairs[0]);
+      set_helper(curr_pairs_sorted[0]);
 
-      curr_pair_mapping[curr_index.rank(curr_pairs[0])] = curr_logical;
+      curr_pair_mapping[curr_index.rank(curr_pairs_sorted[0])] = curr_logical;
 
       for(size_t k = 1; k < curr_layer_count; ++k)
 	{
-	  if(compare_pair(curr_pairs[k-1], curr_pairs[k]))
+	  if(compare_pair(curr_pairs_permutation[k-1], curr_pairs_permutation[k]))
 	    {
-	      set_helper(curr_pairs[k]);
+	      set_helper(curr_pairs_sorted[k]);
 	    }
-	  curr_pair_mapping[curr_index.rank(curr_pairs[k])] = curr_logical;
+	  curr_pair_mapping[curr_index.rank(curr_pairs_sorted[k])] = curr_logical;
 	}
 
       assert(curr_pair_mapping.size() == curr_layer_count);
