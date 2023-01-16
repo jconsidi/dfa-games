@@ -709,12 +709,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       auto set_helper = [&](size_t curr_pairs_sorted_index)
       {
-	size_t curr_pair = curr_pairs_sorted[curr_pairs_sorted_index];
-
 	DFATransitionsStaging set_transitions;
 	for(int j = 0; j < curr_layer_shape; ++j)
 	  {
-	    set_transitions.push_back(get_next_state(curr_pair, j));
+	    set_transitions.push_back(curr_transitions[curr_pairs_permutation[curr_pairs_sorted_index] * curr_layer_shape + j]);
 	  }
 
 	if(set_transitions.at(0) < 2)
