@@ -11,6 +11,7 @@
 #include <string>
 
 #include "DFA.h"
+#include "Profile.h"
 
 static int next_dfa_id = 0;
 
@@ -346,6 +347,8 @@ dfa_state_t DFA::get_layer_size(int layer) const
 
 const DFALinearBound& DFA::get_linear_bound() const
 {
+  Profile profile("get_linear_bound");
+
   if(!linear_bound)
     {
       assert(ready());
