@@ -641,6 +641,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	}
       assert(curr_pairs_k == curr_pairs.size());
 
+      profile.tic("backward transitions");
+
       auto get_next_state = [&](size_t curr_pair, int curr_j)
       {
 	assert(curr_layer.check(curr_pair));
