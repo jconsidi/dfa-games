@@ -3,11 +3,11 @@
 #ifndef BIT_SET_HPP
 #define BIT_SET_HPP
 
-#include "FlexBitSet.h"
+#include "CompactBitSet.h"
 
-typedef FlexBitSet BitSet;
-typedef FlexBitSetIndex BitSetIndex;
-typedef FlexBitSetIterator BitSetIterator;
+typedef CompactBitSet BitSet;
+typedef CompactBitSetIndex BitSetIndex;
+typedef CompactBitSetIterator BitSetIterator;
 
 template <class T>
 void populate_bitset(BitSet& bitset, T cbegin, T cend)
