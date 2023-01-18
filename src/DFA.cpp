@@ -217,7 +217,8 @@ dfa_state_t DFA::add_state_by_function(int layer, std::function<dfa_state_t(int)
 {
   int layer_shape = this->get_layer_shape(layer);
 
-  DFATransitionsStaging transitions(layer_shape);
+  static DFATransitionsStaging transitions;
+  transitions.resize(layer_shape);
   for(int i = 0; i < layer_shape; ++i)
     {
       transitions[i] = transition_func(i);
@@ -231,10 +232,11 @@ dfa_state_t DFA::add_state_by_reference(int layer, const DFATransitionsReference
   int layer_shape = this->get_layer_shape(layer);
   assert(next_states.get_layer_shape() == layer_shape);
 
-  DFATransitionsStaging temp_states;
+  static DFATransitionsStaging temp_states;
+  temp_states.resize(layer_shape);
   for(int i = 0; i < layer_shape; ++i)
     {
-      temp_states.push_back(next_states[i]);
+      temp_states[i] = next_states[i];
     }
 
   return this->add_state(layer, temp_states);
