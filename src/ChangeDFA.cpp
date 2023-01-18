@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "MemoryMap.h"
+#include "Profile.h"
 #include "VectorBitSet.h"
 
 ChangeDFA::ChangeDFA(const DFA& dfa_in,
@@ -13,7 +14,94 @@ ChangeDFA::ChangeDFA(const DFA& dfa_in,
 {
   assert(changes_in.size() == dfa_in.get_shape_size());
 
-  build_two_pass(dfa_in, changes_in);
+  const DFALinearBound& linear_bound_in = dfa_in.get_linear_bound();
+  bool pre_condition_holds = true;
+  for(int layer = 0; layer < get_shape_size(); ++layer)
+    {
+      change_optional layer_change = changes_in[layer];
+      if(layer_change.has_value())
+	{
+	  int before_character = std::get<0>(*layer_change);
+	  if(!linear_bound_in.check_fixed(layer, before_character))
+	    {
+	      pre_condition_holds = false;
+	      break;
+	    }
+	}
+    }
+
+  if(pre_condition_holds)
+    {
+      build_one_pass(dfa_in, changes_in);
+    }
+  else
+    {
+      build_two_pass(dfa_in, changes_in);
+    }
+}
+
+void ChangeDFA::build_one_pass(const DFA& dfa_in, const change_vector& changes_in)
+{
+  Profile profile("build_one_pass");
+
+  // rewrites DFA in one pass assuming that all states have been
+  // restricted to match the change pre-conditions. this assumption
+  // will be confirmed via the input DFA's linear bounds.
+
+  const DFALinearBound& linear_bound_in = dfa_in.get_linear_bound();
+
+  // will be reachable after changes and rewrite
+  // them all in one pass without checking. the DFA will still match
+  // the right strings if this assumption is not correct, but will be
+  // bigger than necessary.
+
+  for(int layer = get_shape_size() - 1; layer >= 0; --layer)
+    {
+      int layer_shape = this->get_layer_shape(layer);
+      dfa_state_t layer_size = dfa_in.get_layer_size(layer);
+
+      change_optional layer_change = changes_in[layer];
+
+      DFATransitionsStaging transitions_temp(layer_shape, 0);
+
+      if(layer_change.has_value())
+	{
+	  int before_character = std::get<0>(*layer_change);
+	  assert(0 <= before_character);
+	  assert(before_character < layer_shape);
+	  assert(linear_bound_in.check_fixed(layer, before_character));
+
+	  int after_character = std::get<1>(*layer_change);
+	  assert(0 <= after_character);
+	  assert(after_character < layer_shape);
+
+	  // transitions_temp is all zeros, and will repeatedly
+	  // rewrite the same "after" transition.
+
+	  for(dfa_state_t state_in = 2; state_in < layer_size; ++state_in)
+	    {
+	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
+	      transitions_temp[after_character] = transitions_in[before_character];
+	      dfa_state_t state_out = this->add_state(layer, transitions_temp);
+	      assert(state_out == state_in);
+	    }
+	}
+      else
+	{
+	  // copy all transitions for each state
+	  for(dfa_state_t state_in = 2; state_in < layer_size; ++state_in)
+	    {
+	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
+	      dfa_state_t state_out = this->add_state_by_reference(layer, transitions_in);
+	      assert(state_out == state_in);
+	    }
+	}
+      assert(this->get_layer_size(layer) == layer_size);
+    }
+
+  // done
+
+  this->set_initial_state(dfa_in.get_initial_state());
 }
 
 void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_in)
@@ -22,6 +110,8 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
   // state.
   //
   // 2. backward pass rewriting states reachable in forward pass.
+
+  Profile profile("build_two_pass");
 
   ////////////////////////////////////////////////////////////
   // forward pass finding reachable states ///////////////////

@@ -20,6 +20,7 @@ class ChangeDFA
 {
 private:
 
+  void build_one_pass(const DFA&, const change_vector&);
   void build_two_pass(const DFA&, const change_vector&);
 
 public:
