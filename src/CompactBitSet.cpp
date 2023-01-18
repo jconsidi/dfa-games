@@ -164,7 +164,7 @@ size_t CompactBitSet::size() const
 
 CompactBitSetIndex::CompactBitSetIndex(const CompactBitSet& bitset_in)
   : _bitset(bitset_in),
-    _compact_index(*(_bitset._compact_bits))
+    _compact_index(_bitset._compact_bits ? new VectorBitSetIndex(*(_bitset._compact_bits)) : 0)
 {
 }
 
@@ -184,7 +184,7 @@ size_t CompactBitSetIndex::rank(size_t index_in) const
   size_t high_compact = _bitset._high_index->rank(high_in);
   size_t index_compact = high_compact * COMPACT_FACTOR + low_in;
 
-  return _compact_index.rank(index_compact);
+  return _compact_index->rank(index_compact);
 }
 
 CompactBitSetIterator::CompactBitSetIterator(VectorBitSetIterator high_iter_in, VectorBitSetIterator compact_iter_in)

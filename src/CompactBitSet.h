@@ -52,7 +52,7 @@ class CompactBitSetIndex
 private:
 
   const CompactBitSet& _bitset;
-  VectorBitSetIndex _compact_index;
+  VectorBitSetIndex *_compact_index;
 
 public:
 
