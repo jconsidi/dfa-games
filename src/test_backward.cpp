@@ -21,7 +21,7 @@ void populate_solved_games()
   solved_games.try_emplace("tictactoe_1", 1, 1);
   solved_games.try_emplace("tictactoe_2", 3, 1);
   solved_games.try_emplace("tictactoe_3", 9, 0);
-  solved_games.try_emplace("tictactoe_4", 16, 1);
+  solved_games.try_emplace("tictactoe_4", 16, 0);
 }
 
 int main(int argc, char **argv)
