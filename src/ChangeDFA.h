@@ -18,6 +18,10 @@ typedef std::vector<change_optional> change_vector;
 class ChangeDFA
   : public DFA
 {
+private:
+
+  void build_two_pass(const DFA&, const change_vector&);
+
 public:
 
   ChangeDFA(const DFA&, const change_vector&);

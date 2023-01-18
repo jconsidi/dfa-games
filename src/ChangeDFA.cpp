@@ -13,6 +13,11 @@ ChangeDFA::ChangeDFA(const DFA& dfa_in,
 {
   assert(changes_in.size() == dfa_in.get_shape_size());
 
+  build_two_pass(dfa_in, changes_in);
+}
+
+void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_in)
+{
   // 1. forward pass to identify all states reachable from initial
   // state.
   //
