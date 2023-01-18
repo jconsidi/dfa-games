@@ -724,6 +724,24 @@ bool DFALinearBound::operator<=(const DFALinearBound& bounds_right) const
   return true;
 }
 
+bool DFALinearBound::check_fixed(int layer_in, int character_in) const
+{
+  assert(0 <= layer_in);
+  assert(layer_in < shape.size());
+
+  int layer_shape = shape[layer_in];
+  assert(character_in < shape[layer_in]);
+  for(int c = 0; c < layer_shape; ++c)
+    {
+      if(bounds[layer_in][c] && (c != character_in))
+	{
+	  return false;
+	}
+    }
+
+  return true;
+}
+
 DFAString::DFAString(const dfa_shape_t& shape_in, const std::vector<int>& characters_in)
   : shape(shape_in),
     characters(characters_in)

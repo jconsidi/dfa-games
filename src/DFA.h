@@ -60,6 +60,8 @@ public:
   DFALinearBound(const dfa_shape_t&, const std::vector<std::vector<bool>>&);
 
   bool operator<=(const DFALinearBound&) const;
+
+  bool check_fixed(int, int) const;
 };
 
 class DFA
