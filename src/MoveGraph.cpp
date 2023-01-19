@@ -12,8 +12,9 @@
 
 static void sort_edges(std::vector<move_edge>& edges);
 
-MoveGraph::MoveGraph()
-  : node_names(),
+MoveGraph::MoveGraph(const dfa_shape_t& shape_in)
+  : shape(shape_in),
+    node_names(),
     node_names_to_indexes()
 {
 }
@@ -34,6 +35,30 @@ void MoveGraph::add_edge(std::string edge_name_in,
   int from_node_index = get_node_index(from_node_name);
   int to_node_index = get_node_index(to_node_name);
   assert(from_node_index < to_node_index);
+
+  for(shared_dfa_ptr pre_condition: pre_conditions_in)
+    {
+      assert(pre_condition->get_shape() == shape);
+    }
+
+  assert(changes_in.size() == shape.size());
+  for(int layer = 0; layer < changes_in.size(); ++layer)
+    {
+      const change_optional& change = changes_in[layer];
+      if(change.has_value())
+	{
+	  int before_character = std::get<0>(*change);
+	  assert((0 <= before_character) && (before_character < shape[layer]));
+
+	  int after_character = std::get<1>(*change);
+	  assert((0 <= after_character) && (after_character < shape[layer]));
+	}
+    }
+
+  for(shared_dfa_ptr post_condition : post_conditions_in)
+    {
+      assert(post_condition->get_shape() == shape);
+    }
 
   node_edges.at(from_node_index).emplace_back(edge_name_in, pre_conditions_in, changes_in, post_conditions_in, to_node_index);
 }
@@ -150,7 +175,7 @@ int MoveGraph::get_node_index(std::string node_name_in) const
 
 MoveGraph MoveGraph::reverse() const
 {
-  MoveGraph output;
+  MoveGraph output(shape);
 
   for(int original_node_index = node_names.size() - 1; original_node_index >= 0; --original_node_index)
     {

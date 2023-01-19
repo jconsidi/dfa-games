@@ -579,7 +579,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   // collect choices
 
-  MoveGraph move_graph;
+  MoveGraph move_graph(chess_shape);
   move_graph.add_node("begin");
   move_graph.add_node("pre shared");
 

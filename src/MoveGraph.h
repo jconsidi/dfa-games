@@ -20,6 +20,8 @@ class MoveGraph
 {
  private:
 
+  dfa_shape_t shape;
+
   std::vector<std::string> node_names;
   std::map<std::string, int> node_names_to_indexes;
   mutable std::vector<std::vector<move_edge>> node_edges; // mutable to sort
@@ -30,7 +32,7 @@ class MoveGraph
 
  public:
 
-  MoveGraph();
+  MoveGraph(const dfa_shape_t&);
 
   void add_edge(std::string, std::string, std::string, const move_edge_condition_vector&, const change_vector&, const move_edge_condition_vector&);
   void add_node(std::string);

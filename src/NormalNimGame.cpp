@@ -15,7 +15,7 @@ MoveGraph NormalNimGame::build_move_graph(int) const
 {
   int n = get_shape().size();
 
-  MoveGraph move_graph;
+  MoveGraph move_graph(get_shape());
   move_graph.add_node("begin");
   move_graph.add_node("end");
 

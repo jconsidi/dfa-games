@@ -22,7 +22,7 @@ AmazonsGame::AmazonsGame(int width_in, int height_in)
 
 MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 {
-  MoveGraph move_graph;
+  MoveGraph move_graph(get_shape());
   move_graph.add_node("begin");
   move_graph.add_node("pre legal");
   for(int layer = 0; layer < width * height; ++layer)

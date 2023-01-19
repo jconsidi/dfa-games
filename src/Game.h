@@ -27,8 +27,8 @@ public:
 
 private:
 
-  mutable MoveGraph move_graphs_forward[2];
-  mutable MoveGraph move_graphs_backward[2];
+  mutable MoveGraph move_graphs_forward[2] = {dfa_shape_t(), dfa_shape_t()};
+  mutable MoveGraph move_graphs_backward[2] = {dfa_shape_t(), dfa_shape_t()};
   mutable bool move_graphs_ready[2] = {false, false};
 
   virtual MoveGraph build_move_graph(int) const = 0;

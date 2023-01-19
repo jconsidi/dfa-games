@@ -84,7 +84,7 @@ MoveGraph TicTacToeGame::build_move_graph(int side_to_move) const
 
   int side_to_move_piece = 1 + side_to_move;
 
-  MoveGraph move_graph;
+  MoveGraph move_graph(get_shape());
   move_graph.add_node("begin");
   move_graph.add_node("end");
 
