@@ -63,6 +63,37 @@ void MoveGraph::add_edge(std::string edge_name_in,
   node_edges.at(from_node_index).emplace_back(edge_name_in, pre_conditions_in, changes_in, post_conditions_in, to_node_index);
 }
 
+void MoveGraph::add_edge(std::string edge_name_in,
+			 std::string from_node_name,
+			 std::string to_node_name,
+			 int layer,
+			 const change_type& change_in)
+{
+  move_edge_condition_vector pre_conditions;
+  move_edge_condition_vector post_conditions;
+
+  assert((0 <= layer) && (layer < shape.size()));
+  int before_character = std::get<0>(change_in);
+  int after_character = std::get<1>(change_in);
+
+  pre_conditions.push_back(DFAUtil::get_fixed(shape, layer, before_character));
+
+  change_vector changes(shape.size());
+  if(before_character != after_character)
+    {
+      changes[layer] = change_in;
+    }
+
+  post_conditions.push_back(DFAUtil::get_fixed(shape, layer, after_character));
+
+  add_edge(edge_name_in,
+	   from_node_name,
+	   to_node_name,
+	   pre_conditions,
+	   changes,
+	   post_conditions);
+}
+
 void MoveGraph::add_node(std::string node_name_in)
 {
   auto search = node_names_to_indexes.find(node_name_in);
