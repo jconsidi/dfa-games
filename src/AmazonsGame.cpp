@@ -24,11 +24,41 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 {
   MoveGraph move_graph;
   move_graph.add_node("begin");
+  move_graph.add_node("pre legal");
   for(int layer = 0; layer < width * height; ++layer)
     {
       move_graph.add_node("move to=" + std::to_string(layer));
     }
+  move_graph.add_node("post legal");
   move_graph.add_node("end");
+
+  // pre and post legal conditions
+
+  shared_dfa_ptr accept = DFAUtil::get_accept(get_shape());
+  const change_vector change_nop(width * height);
+
+  shared_dfa_ptr legal_condition = accept;
+  for(int queen_character = 1; queen_character < 3; ++queen_character)
+    {
+      // 4 queens on each side
+      shared_dfa_ptr count_condition = DFAUtil::get_count_character(get_shape(), queen_character, 4, 4, 1);
+      legal_condition = DFAUtil::get_intersection(legal_condition, count_condition);
+    }
+  legal_condition->set_name("legal_condition");
+
+  move_graph.add_edge("pre legal",
+		      "begin",
+		      "pre legal",
+		      move_edge_condition_vector({legal_condition}),
+		      change_nop,
+		      move_edge_condition_vector({accept}));
+
+  move_graph.add_edge("post legal",
+		      "post legal",
+		      "end",
+		      move_edge_condition_vector({accept}),
+		      change_nop,
+		      move_edge_condition_vector({legal_condition}));
 
   // first phase - move a queen
 
@@ -54,7 +84,7 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 
       // record edge
       move_graph.add_edge(std::get<3>(choice),
-			  "begin",
+			  "pre legal",
 			  "move to=" + std::to_string(to_layer),
 			  std::get<0>(choice),
 			  std::get<1>(choice),
@@ -87,7 +117,7 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
       // record edge
       move_graph.add_edge(std::get<3>(choice),
 			  "move to=" + std::to_string(from_layer),
-			  "end",
+			  "post legal",
 			  std::get<0>(choice),
 			  std::get<1>(choice),
 			  std::get<2>(choice));
