@@ -27,7 +27,15 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
   move_graph.add_node("pre legal");
   for(int layer = 0; layer < width * height; ++layer)
     {
+      move_graph.add_node("move from=" + std::to_string(layer));
+    }
+  for(int layer = 0; layer < width * height; ++layer)
+    {
       move_graph.add_node("move to=" + std::to_string(layer));
+    }
+  for(int layer = 0; layer < width * height; ++layer)
+    {
+      move_graph.add_node("shot at=" + std::to_string(layer));
     }
   move_graph.add_node("post legal");
   move_graph.add_node("end");
@@ -60,7 +68,18 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 		      change_nop,
 		      move_edge_condition_vector({legal_condition}));
 
-  // first phase - move a queen
+  // pick queen to move
+
+  for(int from_layer = 0; from_layer < width * height; ++from_layer)
+    {
+      move_graph.add_edge("move from=" + std::to_string(from_layer),
+			  "pre legal",
+			  "move from=" + std::to_string(from_layer),
+			  from_layer,
+			  change_type(1 + side_to_move, 0));
+    }
+
+  // picked queen moves
 
   for(auto& move : GameUtil::get_queen_moves(0, width, height))
     {
@@ -70,8 +89,8 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 
       choice_type choice = GameUtil::get_choice("move from=" + std::to_string(from_layer) + " to=" + std::to_string(to_layer), 0, width, height);
 
-      // queen leaves at from square
-      GameUtil::update_choice(get_shape(), choice, from_layer, 1 + side_to_move, 0, true);
+      // queen already left from square
+      GameUtil::update_choice(get_shape(), choice, from_layer, 0, 0, true);
 
       // squares between from and to squares must be blank
       for(int layer : between_layers)
@@ -84,26 +103,26 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 
       // record edge
       move_graph.add_edge(std::get<3>(choice),
-			  "pre legal",
+			  "move from=" + std::to_string(from_layer),
 			  "move to=" + std::to_string(to_layer),
 			  std::get<0>(choice),
 			  std::get<1>(choice),
 			  std::get<2>(choice));
     }
 
-  // second phase - shoot an arrow
+  // moved queen shoots
 
   for(auto& shot : GameUtil::get_queen_moves(0, width, height))
     {
-      int from_layer = std::get<0>(shot);
-      int to_layer = std::get<1>(shot);
+      int to_layer = std::get<0>(shot);
+      int at_layer = std::get<1>(shot);
       const std::vector<int>& between_layers = std::get<2>(shot);
 
-      choice_type choice = GameUtil::get_choice("shot from=" + std::to_string(from_layer) + " to=" + std::to_string(to_layer), 0, width, height);
+      choice_type choice = GameUtil::get_choice("", 0, width, height);
 
-      // confirm from square is occupied by a friendly queen
+      // confirm move to square is occupied by a friendly queen
 
-      GameUtil::update_choice(get_shape(), choice, from_layer, 1 + side_to_move, 1 + side_to_move, true);
+      GameUtil::update_choice(get_shape(), choice, to_layer, 1 + side_to_move, 1 + side_to_move, true);
 
       // squares between from and to squares must be blank
       for(int layer : between_layers)
@@ -111,16 +130,27 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 	  GameUtil::update_choice(get_shape(), choice, layer, 0, 0, true);
 	}
 
-      // arrow arrives at to square
-      GameUtil::update_choice(get_shape(), choice, to_layer, 0, 3, false);
+      // arrow aimed at empty square
+      GameUtil::update_choice(get_shape(), choice, at_layer, 0, 0, false);
 
       // record edge
-      move_graph.add_edge(std::get<3>(choice),
-			  "move to=" + std::to_string(from_layer),
-			  "post legal",
+      move_graph.add_edge("move to=" + std::to_string(to_layer) + " shot at=" + std::to_string(at_layer),
+			  "move to=" + std::to_string(to_layer),
+			  "shot at=" + std::to_string(at_layer),
 			  std::get<0>(choice),
 			  std::get<1>(choice),
 			  std::get<2>(choice));
+    }
+
+  // shot lands at empty square
+
+  for(int at_layer = 0; at_layer < width * height; ++at_layer)
+    {
+      move_graph.add_edge("shot at=" + std::to_string(at_layer),
+			  "shot at=" + std::to_string(at_layer),
+			  "post legal",
+			  at_layer,
+			  change_type(0, 3));
     }
 
   return move_graph;
