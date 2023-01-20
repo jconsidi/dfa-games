@@ -554,14 +554,17 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       assert(pairs_by_layer.size() == layer + 1);
       size_t next_size = next_left_size * next_right_size;
       bool disk_mmap = next_size >= 1ULL << 32;
+#if 0
       if(disk_mmap)
 	{
 	  pairs_by_layer.emplace_back(binary_build_file_prefix(layer), next_size);
 	}
       else
+#else
 	{
 	  pairs_by_layer.emplace_back(next_size);
 	}
+#endif
       assert(pairs_by_layer.size() == layer + 2);
 
       const BitSet& curr_layer = pairs_by_layer.at(layer);
