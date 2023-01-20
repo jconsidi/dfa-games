@@ -6,7 +6,7 @@
 #include <string>
 
 #include "CompactBitSet.h"
-#include "MapBitSet.h"
+#include "OrderedBitSet.h"
 
 class FlexBitSetIndex;
 class FlexBitSetIterator;
@@ -19,7 +19,7 @@ private:
   std::string _filename;
 
   CompactBitSet *_compact_bitset;
-  MapBitSet *_map_bitset;
+  OrderedBitSet *_ordered_bitset;
 
 public:
 
@@ -48,7 +48,7 @@ class FlexBitSetIndex
 private:
 
   CompactBitSetIndex *_compact_index;
-  MapBitSetIndex *_map_index;
+  OrderedBitSetIndex *_map_index;
 
 public:
 
@@ -62,10 +62,10 @@ class FlexBitSetIterator
 private:
 
   CompactBitSetIterator *_compact_iter;
-  MapBitSetIterator *_map_iter;
+  OrderedBitSetIterator *_map_iter;
 
   FlexBitSetIterator(const CompactBitSetIterator&);
-  FlexBitSetIterator(const MapBitSetIterator&);
+  FlexBitSetIterator(const OrderedBitSetIterator&);
 
 public:
 

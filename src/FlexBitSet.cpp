@@ -8,7 +8,7 @@ FlexBitSet::FlexBitSet(size_t size_in)
   : _size(size_in),
     _filename(""),
     _compact_bitset(0),
-    _map_bitset(0)
+    _ordered_bitset(0)
 {
 }
 
@@ -16,7 +16,7 @@ FlexBitSet::FlexBitSet(std::string filename_in, size_t size_in)
   : _size(size_in),
     _filename(filename_in),
     _compact_bitset(0),
-    _map_bitset(0)
+    _ordered_bitset(0)
 {
 }
 
@@ -24,10 +24,10 @@ FlexBitSet::FlexBitSet(FlexBitSet&& old)
   : _size(old._size),
     _filename(old._filename),
     _compact_bitset(old._compact_bitset),
-    _map_bitset(old._map_bitset)
+    _ordered_bitset(old._ordered_bitset)
 {
   old._compact_bitset = 0;
-  old._map_bitset = 0;
+  old._ordered_bitset = 0;
 }
 
 FlexBitSet::~FlexBitSet()
@@ -38,10 +38,10 @@ FlexBitSet::~FlexBitSet()
       _compact_bitset = 0;
     }
 
-  if(_map_bitset)
+  if(_ordered_bitset)
     {
-      delete _map_bitset;
-      _map_bitset = 0;
+      delete _ordered_bitset;
+      _ordered_bitset = 0;
     }
 }
 
@@ -55,9 +55,9 @@ void FlexBitSet::add(size_t index_in)
       return;
     }
 
-  if(_map_bitset)
+  if(_ordered_bitset)
     {
-      _map_bitset->add(index_in);
+      _ordered_bitset->add(index_in);
       return;
     }
 
@@ -72,7 +72,7 @@ void FlexBitSet::allocate()
       return;
     }
 
-  if(_map_bitset)
+  if(_ordered_bitset)
     {
       // no allocation needed
       return;
@@ -88,9 +88,9 @@ FlexBitSetIterator FlexBitSet::cbegin() const
       return FlexBitSetIterator(_compact_bitset->cbegin());
     }
 
-  if(_map_bitset)
+  if(_ordered_bitset)
     {
-      return FlexBitSetIterator(_map_bitset->cbegin());
+      return FlexBitSetIterator(_ordered_bitset->cbegin());
     }
 
   assert(0);
@@ -103,9 +103,9 @@ FlexBitSetIterator FlexBitSet::cend() const
       return FlexBitSetIterator(_compact_bitset->cend());
     }
 
-  if(_map_bitset)
+  if(_ordered_bitset)
     {
-      return FlexBitSetIterator(_map_bitset->cend());
+      return FlexBitSetIterator(_ordered_bitset->cend());
     }
 
   assert(0);
@@ -118,9 +118,9 @@ bool FlexBitSet::check(size_t index_in) const
       return _compact_bitset->check(index_in);
     }
 
-  if(_map_bitset)
+  if(_ordered_bitset)
     {
-      return _map_bitset->check(index_in);
+      return _ordered_bitset->check(index_in);
     }
 
   assert(0);
@@ -133,9 +133,9 @@ size_t FlexBitSet::count() const
       return _compact_bitset->count();
     }
 
-  if(_map_bitset)
+  if(_ordered_bitset)
     {
-      return _map_bitset->count();
+      return _ordered_bitset->count();
     }
 
   // empty set
@@ -152,37 +152,37 @@ void FlexBitSet::prepare(size_t index_in)
       return;
     }
 
-  if(_map_bitset)
+  if(_ordered_bitset)
     {
       // actually add to the bitset, then check size and decide
       // whether to switch to compact bitset.
-      _map_bitset->add(index_in);
+      _ordered_bitset->add(index_in);
 
-      if(_map_bitset->count() > 1048576)
+      if(_ordered_bitset->count() > 1048576)
 	{
 	  // re-prepare with compact bit set
 
-	  std::cout << "FlexBitSet : switching from MapBitSet to CompactBitSet" << std::endl;
+	  std::cout << "FlexBitSet : switching from OrderedBitSet to CompactBitSet" << std::endl;
 
 	  _compact_bitset = (_filename != "") ? new CompactBitSet(_filename, _size) : new CompactBitSet(_size);
-	  for(auto iter = _map_bitset->cbegin();
-	      iter < _map_bitset->cend();
+	  for(auto iter = _ordered_bitset->cbegin();
+	      iter < _ordered_bitset->cend();
 	      ++iter)
 	    {
 	      _compact_bitset->prepare(*iter);
 	    }
 
 	  // drop map bit set
-	  delete _map_bitset;
-	  _map_bitset = 0;
+	  delete _ordered_bitset;
+	  _ordered_bitset = 0;
 	}
 
       return;
     }
 
   // no previous preparation, so start with map bit set
-  _map_bitset = new MapBitSet(_size);
-  _map_bitset->add(index_in);
+  _ordered_bitset = new OrderedBitSet(_size);
+  _ordered_bitset->add(index_in);
 }
 
 size_t FlexBitSet::size() const
@@ -200,9 +200,9 @@ FlexBitSetIndex::FlexBitSetIndex(const FlexBitSet& bitset_in)
       return;
     }
 
-  if(bitset_in._map_bitset)
+  if(bitset_in._ordered_bitset)
     {
-      _map_index = new MapBitSetIndex(*(bitset_in._map_bitset));
+      _map_index = new OrderedBitSetIndex(*(bitset_in._ordered_bitset));
       return;
     }
 }
@@ -228,15 +228,15 @@ FlexBitSetIterator::FlexBitSetIterator(const CompactBitSetIterator& iter_in)
 {
 }
 
-FlexBitSetIterator::FlexBitSetIterator(const MapBitSetIterator& iter_in)
+FlexBitSetIterator::FlexBitSetIterator(const OrderedBitSetIterator& iter_in)
   : _compact_iter(0),
-    _map_iter(new MapBitSetIterator(iter_in))
+    _map_iter(new OrderedBitSetIterator(iter_in))
 {
 }
 
 FlexBitSetIterator::FlexBitSetIterator(const FlexBitSetIterator& old_in)
   : _compact_iter(old_in._compact_iter ? new CompactBitSetIterator(*(old_in._compact_iter)) : 0),
-    _map_iter(old_in._map_iter ? new MapBitSetIterator(*(old_in._map_iter)) : 0)
+    _map_iter(old_in._map_iter ? new OrderedBitSetIterator(*(old_in._map_iter)) : 0)
 {
 }
 
