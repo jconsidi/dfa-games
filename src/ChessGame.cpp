@@ -588,9 +588,18 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
   std::vector<std::pair<int, int>> to_choices;
   for(int to_character = to_character_min; to_character <= to_character_max; to_character += 2)
     {
-      int to_character_pawn = (to_character == DFA_WHITE_PAWN) || (to_character == DFA_BLACK_PAWN);
-      int to_square_min = (!to_character_pawn) ? 0 : 8;
-      int to_square_max = (!to_character_pawn) ? 63 : 57;
+      int to_square_min = 0;
+      int to_square_max = 63;
+      if(to_character == DFA_BLACK_PAWN)
+	{
+	  to_square_min = 16;
+	  to_square_max = 55;
+	}
+      if(to_character == DFA_WHITE_PAWN)
+	{
+	  to_square_min = 8;
+	  to_square_max = 47;
+	}
 
       for(int to_square = to_square_min; to_square <= to_square_max; ++to_square)
 	{
