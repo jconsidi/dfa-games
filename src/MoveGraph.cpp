@@ -10,6 +10,7 @@
 #include "IntersectionManager.h"
 #include "Profile.h"
 
+static change_vector reverse_changes(const change_vector& changes_in);
 static void sort_edges(std::vector<move_edge>& edges);
 
 MoveGraph::MoveGraph(const dfa_shape_t& shape_in)
@@ -21,10 +22,18 @@ MoveGraph::MoveGraph(const dfa_shape_t& shape_in)
 
 void MoveGraph::add_edge(std::string edge_name_in,
 			 std::string from_node_name,
+			 std::string to_node_name)
+{
+  add_edge(edge_name_in,
+	   from_node_name,
+	   to_node_name,
+	   move_edge_condition_vector(0));
+}
+
+void MoveGraph::add_edge(std::string edge_name_in,
+			 std::string from_node_name,
 			 std::string to_node_name,
-			 const std::vector<shared_dfa_ptr>& pre_conditions_in,
-			 const change_vector& changes_in,
-			 const std::vector<shared_dfa_ptr>& post_conditions_in)
+			 const move_edge_condition_vector& conditions_in)
 {
   if(edge_names.contains(edge_name_in))
     {
@@ -36,65 +45,51 @@ void MoveGraph::add_edge(std::string edge_name_in,
   int to_node_index = get_node_index(to_node_name);
   assert(from_node_index < to_node_index);
 
-  for(shared_dfa_ptr pre_condition: pre_conditions_in)
-    {
-      assert(pre_condition->get_shape() == shape);
-    }
+  move_edge_condition_vector conditions;
+  auto add_conditions = [&](const move_edge_condition_vector& conditions_source)
+  {
+    for(shared_dfa_ptr condition : conditions_source)
+      {
+	assert(condition->get_shape() == shape);
+	conditions.push_back(condition);
+      }
+  };
+  add_conditions(node_post_conditions[from_node_index]);
+  add_conditions(conditions_in);
+  add_conditions(node_pre_conditions[to_node_index]);
 
-  assert(changes_in.size() == shape.size());
-  for(int layer = 0; layer < changes_in.size(); ++layer)
-    {
-      const change_optional& change = changes_in[layer];
-      if(change.has_value())
-	{
-	  int before_character = std::get<0>(*change);
-	  assert((0 <= before_character) && (before_character < shape[layer]));
-
-	  int after_character = std::get<1>(*change);
-	  assert((0 <= after_character) && (after_character < shape[layer]));
-	}
-    }
-
-  for(shared_dfa_ptr post_condition : post_conditions_in)
-    {
-      assert(post_condition->get_shape() == shape);
-    }
-
-  node_edges.at(from_node_index).emplace_back(edge_name_in, pre_conditions_in, changes_in, post_conditions_in, to_node_index);
+  node_edges.at(from_node_index).emplace_back(edge_name_in, conditions, to_node_index);
 }
 
 void MoveGraph::add_edge(std::string edge_name_in,
 			 std::string from_node_name,
 			 std::string to_node_name,
-			 int layer,
-			 const change_type& change_in)
+			 shared_dfa_ptr condition_in)
 {
-  move_edge_condition_vector pre_conditions;
-  move_edge_condition_vector post_conditions;
-
-  assert((0 <= layer) && (layer < shape.size()));
-  int before_character = std::get<0>(change_in);
-  int after_character = std::get<1>(change_in);
-
-  pre_conditions.push_back(DFAUtil::get_fixed(shape, layer, before_character));
-
-  change_vector changes(shape.size());
-  if(before_character != after_character)
-    {
-      changes[layer] = change_in;
-    }
-
-  post_conditions.push_back(DFAUtil::get_fixed(shape, layer, after_character));
-
   add_edge(edge_name_in,
 	   from_node_name,
 	   to_node_name,
-	   pre_conditions,
-	   changes,
-	   post_conditions);
+	   move_edge_condition_vector({condition_in}));
 }
 
 void MoveGraph::add_node(std::string node_name_in)
+{
+  change_vector changes_nop(shape.size());
+  add_node(node_name_in, changes_nop);
+}
+
+void MoveGraph::add_node(std::string node_name_in, const change_vector& changes_in)
+{
+  add_node(node_name_in,
+	   changes_in,
+	   move_edge_condition_vector(),
+	   move_edge_condition_vector());
+}
+
+void MoveGraph::add_node(std::string node_name_in,
+			 const change_vector& changes_in,
+			 const move_edge_condition_vector& pre_conditions_in,
+			 const move_edge_condition_vector& post_conditions_in)
 {
   auto search = node_names_to_indexes.find(node_name_in);
   if(search != node_names_to_indexes.end())
@@ -102,12 +97,44 @@ void MoveGraph::add_node(std::string node_name_in)
       throw std::logic_error("add_node() duplicate node name");
     }
 
+  assert(changes_in.size() == shape.size());
+
   node_names_to_indexes[node_name_in] = node_names.size();
   node_names.push_back(node_name_in);
-  assert(node_names.size() == node_names_to_indexes.size());
+
+  node_changes.push_back(changes_in);
+
+  node_pre_conditions.push_back(pre_conditions_in);
+  node_post_conditions.push_back(post_conditions_in);
+
+  for(int layer = 0; layer < shape.size(); ++layer)
+    {
+      if(changes_in[layer].has_value())
+	{
+	  change_type layer_change = *(changes_in[layer]);
+	  int before_character = std::get<0>(layer_change);
+	  int after_character = std::get<1>(layer_change);
+
+	  node_pre_conditions.back().emplace_back(DFAUtil::get_fixed(shape, layer, before_character));
+	  node_post_conditions.back().emplace_back(DFAUtil::get_fixed(shape, layer, after_character));
+	}
+    }
 
   node_edges.emplace_back();
+
+  assert(node_names_to_indexes.size() == node_names.size());
+  assert(node_changes.size() == node_names.size());
+  assert(node_pre_conditions.size() == node_names.size());
+  assert(node_post_conditions.size() == node_names.size());
   assert(node_edges.size() == node_names_to_indexes.size());
+}
+
+void MoveGraph::add_node(std::string node_name_in, int layer_in, int before_character_in, int after_character_in)
+{
+  change_vector changes(shape.size());
+  changes.at(layer_in) = change_type(before_character_in, after_character_in);
+
+  add_node(node_name_in, changes);
 }
 
 shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
@@ -120,12 +147,36 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
   node_builders[0].add_clause(DNFBuilder::clause_type(1, positions_in));
 
-  for(int from_node_index = 0; from_node_index < node_names.size() - 1; ++from_node_index)
+  for(int from_node_index = 0; from_node_index < node_names.size(); ++from_node_index)
     {
+      profile.tic("node init");
+
+      std::cout << "node " << from_node_index << "/" << node_names.size() << " (" << node_names[from_node_index] << ")" << std::endl;
+
       profile.tic("node inputs");
 
       // combine all positions coming into this node
-      shared_dfa_ptr from_node_positions = node_builders[from_node_index].to_dfa();
+      shared_dfa_ptr from_node_positions_input = node_builders[from_node_index].to_dfa();
+      std::cout << " node " << from_node_index << "/" << node_names.size() << " input: " << DFAUtil::quick_stats(from_node_positions_input) << std::endl;
+      if(from_node_positions_input->is_constant(0))
+	{
+	  continue;
+	}
+
+      profile.tic("node change");
+
+      shared_dfa_ptr from_node_positions_output =
+	DFAUtil::get_change(from_node_positions_input,
+			    node_changes[from_node_index]);
+
+      std::cout << " node " << from_node_index << "/" << node_names.size() << " output: " << DFAUtil::quick_stats(from_node_positions_output) << std::endl;
+      if(from_node_positions_output->is_constant(0))
+	{
+	  // not expecting this case since change should have added
+	  // pre-conditions to incoming edges.
+	  assert(0);
+	  continue;
+	}
 
       // sort edges leaving this node for pre-condition efficiency
 
@@ -141,38 +192,25 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 	  const move_edge& edge = node_edges[from_node_index][node_edge_index];
 
 	  const std::string& edge_name = std::get<0>(edge);
-	  const move_edge_condition_vector& pre_conditions = std::get<1>(edge);
-	  const change_vector& changes = std::get<2>(edge);
-	  const move_edge_condition_vector& post_conditions = std::get<3>(edge);
-	  int to_node_index = std::get<4>(edge);
+	  const move_edge_condition_vector& conditions = std::get<1>(edge);
+	  int to_node_index = std::get<2>(edge);
 
 	  std::cout << " node " << from_node_index << "/" << node_names.size() << " (" << node_names[from_node_index] << "), edge " << node_edge_index << "/" << node_edges[from_node_index].size() << " (" << edge_name << ")" << std::endl;
 
-	  shared_dfa_ptr edge_positions = from_node_positions;
+	  shared_dfa_ptr edge_positions = from_node_positions_output;
 
-	  // apply choice pre-conditions
-	  profile.tic("edge pre conditions");
-	  for(shared_dfa_ptr pre_condition : pre_conditions)
+	  // apply choice conditions
+	  profile.tic("edge conditions");
+	  for(shared_dfa_ptr condition : conditions)
 	    {
-	      edge_positions = manager.intersect(edge_positions, pre_condition);
+	      edge_positions = manager.intersect(edge_positions, condition);
 	      if(edge_positions->is_constant(false))
 		{
 		  // no matching positions
 		  break;
 		}
 	    }
-	  std::cout << "  pre-conditions => " << DFAUtil::quick_stats(edge_positions) << std::endl;
-
-	  if(edge_positions->is_constant(false))
-	    {
-	      // no matching positions
-	      continue;
-	    }
-
-	  // apply choice changes
-	  profile.tic("edge change");
-	  edge_positions = DFAUtil::get_change(edge_positions, changes);
-	  std::cout << "  changes => " << DFAUtil::quick_stats(edge_positions) << std::endl;
+	  std::cout << "  conditions for node " << to_node_index << " (" << node_names[to_node_index] << ") => " << DFAUtil::quick_stats(edge_positions) << std::endl;
 
 	  if(edge_positions->is_constant(false))
 	    {
@@ -184,9 +222,7 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
 	  profile.tic("add output clause");
 
-	  std::vector<shared_dfa_ptr> output_clause(post_conditions);
-	  output_clause.push_back(edge_positions);
-	  node_builders[to_node_index].add_clause(output_clause);
+	  node_builders[to_node_index].add_clause(std::vector<shared_dfa_ptr>({edge_positions}));
 	}
     }
 
@@ -210,7 +246,9 @@ MoveGraph MoveGraph::reverse() const
 
   for(int original_node_index = node_names.size() - 1; original_node_index >= 0; --original_node_index)
     {
-      output.add_node(node_names[original_node_index]);
+      auto reversed_changes = reverse_changes(node_changes[original_node_index]);
+      output.add_node(node_names[original_node_index],
+		      reversed_changes);
     }
 
   for(int original_from_node_index = node_names.size() - 1; original_from_node_index >= 0; --original_from_node_index)
@@ -218,36 +256,47 @@ MoveGraph MoveGraph::reverse() const
       for(const move_edge& original_edge : node_edges[original_from_node_index])
 	{
 	  const std::string& edge_name = std::get<0>(original_edge);
-	  const move_edge_condition_vector& original_pre_conditions = std::get<1>(original_edge);
-	  const change_vector& original_changes = std::get<2>(original_edge);
-	  const move_edge_condition_vector& original_post_conditions = std::get<3>(original_edge);
-	  int original_to_node_index = std::get<4>(original_edge);
+	  const move_edge_condition_vector& original_conditions = std::get<1>(original_edge);
+	  int original_to_node_index = std::get<2>(original_edge);
 
-	  change_vector reversed_changes;
-	  for(int layer = 0; layer < original_changes.size(); ++layer)
+	  move_edge_condition_vector reverse_conditions;
+	  for(auto iter = original_conditions.crbegin();
+	      iter < original_conditions.crend();
+	      ++iter)
 	    {
-	      const change_optional& original_change = original_changes[layer];
-
-	      if(original_change.has_value())
-		{
-		  reversed_changes.emplace_back(change_type(std::get<1>(*original_change), std::get<0>(*original_change)));
-		}
-	      else
-		{
-		  reversed_changes.emplace_back();
-		}
+	      reverse_conditions.push_back(*iter);
 	    }
+	  assert(reverse_conditions.size() == original_conditions.size());
 
 	  output.add_edge(edge_name,
 			  node_names[original_to_node_index],
 			  node_names[original_from_node_index],
-			  original_post_conditions,
-			  reversed_changes,
-			  original_pre_conditions);
+			  reverse_conditions);
 	}
     }
 
   return output;
+}
+
+static change_vector reverse_changes(const change_vector& changes_in)
+{
+  change_vector changes_out;
+  for(int layer = 0; layer < changes_in.size(); ++layer)
+    {
+      const change_optional& change_in = changes_in[layer];
+
+      if(change_in.has_value())
+	{
+	  changes_out.emplace_back(change_type(std::get<1>(*change_in),
+					       std::get<0>(*change_in)));
+	}
+      else
+	{
+	  changes_out.emplace_back();
+	}
+    }
+
+  return changes_out;
 }
 
 static void sort_edges(std::vector<move_edge>& edges)

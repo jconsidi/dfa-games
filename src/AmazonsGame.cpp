@@ -12,6 +12,22 @@ static dfa_shape_t build_shape(int width, int height)
   return dfa_shape_t(width * height, 4);
 }
 
+static move_edge_condition_vector get_empty_conditions(dfa_shape_t shape, const std::vector<int> empty_layers)
+{
+  move_edge_condition_vector output;
+  for(int empty_layer : empty_layers)
+    {
+      output.push_back(DFAUtil::get_fixed(shape, empty_layer, 0));
+    }
+
+  return output;
+}
+
+static std::string get_node_name(std::string node_type, int layer)
+{
+  return node_type + "=" + std::to_string(layer);
+}
+
 AmazonsGame::AmazonsGame(int width_in, int height_in)
   : NormalPlayGame("amazons_" + std::to_string(width_in) + "x" + std::to_string(height_in),
 		   build_shape(width_in, height_in)),
@@ -22,28 +38,37 @@ AmazonsGame::AmazonsGame(int width_in, int height_in)
 
 MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 {
+  // useful iterables
+
+  std::vector<int> layers;
+  for(int layer = 0; layer < width * height; ++layer)
+    {
+      layers.push_back(layer);
+    }
+
+  // setup graph and nodes
+
   MoveGraph move_graph(get_shape());
   move_graph.add_node("begin");
-  move_graph.add_node("pre legal");
-  for(int layer = 0; layer < width * height; ++layer)
+  move_graph.add_node("begin+1");
+  for(int layer : layers)
     {
-      move_graph.add_node("move from=" + std::to_string(layer));
+      move_graph.add_node(get_node_name("move from", layer), layer, 1 + side_to_move, 0);
     }
-  for(int layer = 0; layer < width * height; ++layer)
+  for(int layer : layers)
     {
-      move_graph.add_node("move to=" + std::to_string(layer));
+      move_graph.add_node(get_node_name("move to", layer), layer, 0, 1 + side_to_move);
     }
-  for(int layer = 0; layer < width * height; ++layer)
+  for(int layer : layers)
     {
-      move_graph.add_node("shot at=" + std::to_string(layer));
+      move_graph.add_node(get_node_name("shot at", layer), layer, 0, 3);
     }
-  move_graph.add_node("post legal");
+  move_graph.add_node("end-1");
   move_graph.add_node("end");
 
   // pre and post legal conditions
 
   shared_dfa_ptr accept = DFAUtil::get_accept(get_shape());
-  const change_vector change_nop(width * height);
 
   shared_dfa_ptr legal_condition = accept;
   for(int queen_character = 1; queen_character < 3; ++queen_character)
@@ -54,29 +79,20 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
     }
   legal_condition->set_name("legal_condition");
 
-  move_graph.add_edge("pre legal",
-		      "begin",
-		      "pre legal",
-		      move_edge_condition_vector({legal_condition}),
-		      change_nop,
-		      move_edge_condition_vector({accept}));
+  // begin - legal positions
 
-  move_graph.add_edge("post legal",
-		      "post legal",
-		      "end",
-		      move_edge_condition_vector({accept}),
-		      change_nop,
-		      move_edge_condition_vector({legal_condition}));
+  move_graph.add_edge("begin legal",
+		      "begin",
+		      "begin+1",
+		      legal_condition);
 
   // pick queen to move
 
-  for(int from_layer = 0; from_layer < width * height; ++from_layer)
+  for(int from_layer : layers)
     {
-      move_graph.add_edge("move from=" + std::to_string(from_layer),
-			  "pre legal",
-			  "move from=" + std::to_string(from_layer),
-			  from_layer,
-			  change_type(1 + side_to_move, 0));
+      move_graph.add_edge(get_node_name("move from", from_layer),
+			  "begin+1",
+			  get_node_name("move from", from_layer));
     }
 
   // picked queen moves
@@ -87,27 +103,10 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
       int to_layer = std::get<1>(move);
       const std::vector<int>& between_layers = std::get<2>(move);
 
-      choice_type choice = GameUtil::get_choice("move from=" + std::to_string(from_layer) + " to=" + std::to_string(to_layer), 0, width, height);
-
-      // queen already left from square
-      GameUtil::update_choice(get_shape(), choice, from_layer, 0, 0, true);
-
-      // squares between from and to squares must be blank
-      for(int layer : between_layers)
-	{
-	  GameUtil::update_choice(get_shape(), choice, layer, 0, 0, true);
-	}
-
-      // queen arrives at to square
-      GameUtil::update_choice(get_shape(), choice, to_layer, 0, 1 + side_to_move, true);
-
-      // record edge
-      move_graph.add_edge(std::get<3>(choice),
-			  "move from=" + std::to_string(from_layer),
-			  "move to=" + std::to_string(to_layer),
-			  std::get<0>(choice),
-			  std::get<1>(choice),
-			  std::get<2>(choice));
+      move_graph.add_edge(get_node_name("move from", from_layer) + ", " + get_node_name("move to", to_layer),
+			  get_node_name("move from", from_layer),
+			  get_node_name("move to", to_layer),
+			  get_empty_conditions(get_shape(), between_layers));
     }
 
   // moved queen shoots
@@ -118,40 +117,29 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
       int at_layer = std::get<1>(shot);
       const std::vector<int>& between_layers = std::get<2>(shot);
 
-      choice_type choice = GameUtil::get_choice("", 0, width, height);
-
-      // confirm move to square is occupied by a friendly queen
-
-      GameUtil::update_choice(get_shape(), choice, to_layer, 1 + side_to_move, 1 + side_to_move, true);
-
-      // squares between from and to squares must be blank
-      for(int layer : between_layers)
-	{
-	  GameUtil::update_choice(get_shape(), choice, layer, 0, 0, true);
-	}
-
-      // arrow aimed at empty square
-      GameUtil::update_choice(get_shape(), choice, at_layer, 0, 0, false);
-
-      // record edge
-      move_graph.add_edge("move to=" + std::to_string(to_layer) + " shot at=" + std::to_string(at_layer),
-			  "move to=" + std::to_string(to_layer),
-			  "shot at=" + std::to_string(at_layer),
-			  std::get<0>(choice),
-			  std::get<1>(choice),
-			  std::get<2>(choice));
+      move_graph.add_edge(get_node_name("move to", to_layer) + ", " + get_node_name("shot at", at_layer),
+			  get_node_name("move to", to_layer),
+			  get_node_name("shot at", at_layer),
+			  get_empty_conditions(get_shape(), between_layers));
     }
 
-  // shot lands at empty square
+  // shot choice
 
   for(int at_layer = 0; at_layer < width * height; ++at_layer)
     {
-      move_graph.add_edge("shot at=" + std::to_string(at_layer),
-			  "shot at=" + std::to_string(at_layer),
-			  "post legal",
-			  at_layer,
-			  change_type(0, 3));
+      move_graph.add_edge(get_node_name("shot at", at_layer),
+			  get_node_name("shot at", at_layer),
+			  "end-1");
     }
+
+  // end - legal positions
+
+  move_graph.add_edge("end legal",
+		      "end-1",
+		      "end",
+		      legal_condition);
+
+  // done
 
   return move_graph;
 }

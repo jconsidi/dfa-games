@@ -84,40 +84,40 @@ MoveGraph TicTacToeGame::build_move_graph(int side_to_move) const
 
   int side_to_move_piece = 1 + side_to_move;
 
+  std::vector<int> move_layers;
+  for(int move_layer = 0; move_layer < n * n; ++move_layer)
+    {
+      move_layers.push_back(move_layer);
+    }
+  auto get_move_name = [](int move_layer)
+  {
+    return "move=" + std::to_string(move_layer);
+  };
+
   MoveGraph move_graph(get_shape());
+
+  // setup nodes
   move_graph.add_node("begin");
+  for(int move_layer : move_layers)
+    {
+      move_graph.add_node(get_move_name(move_layer), move_layer, 0, side_to_move_piece);
+    }
   move_graph.add_node("end");
 
-  for(int move_index = 0; move_index < n * n; ++move_index)
+  // setup edges to/from move nodes
+  for(int move_layer : move_layers)
     {
-      std::vector<shared_dfa_ptr> pre_conditions;
-      pre_conditions.push_back(not_lost_positions);
-      pre_conditions.push_back(DFAUtil::get_fixed(get_shape(), move_index, 0));
-
-      change_vector changes;
-      for(int layer = 0; layer < n * n; ++layer)
-	{
-	  if(layer == move_index)
-	    {
-	      changes.emplace_back(change_type(0, side_to_move_piece));
-	    }
-	  else
-	    {
-	      changes.emplace_back();
-	    }
-	}
-
-      std::vector<shared_dfa_ptr> post_conditions;
-      post_conditions.emplace_back(not_lost_positions);
-      post_conditions.emplace_back(DFAUtil::get_fixed(get_shape(), move_index, 1 + side_to_move));
-
-      move_graph.add_edge("move_index=" + std::to_string(move_index),
+      move_graph.add_edge("pre " + get_move_name(move_layer),
 			  "begin",
+			  get_move_name(move_layer),
+			  not_lost_positions);
+      move_graph.add_edge("post " + get_move_name(move_layer),
+			  get_move_name(move_layer),
 			  "end",
-			  pre_conditions,
-			  changes,
-			  post_conditions);
+			  not_lost_positions);
     }
+
+  // done
 
   return move_graph;
 }

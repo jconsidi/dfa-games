@@ -14,7 +14,7 @@
 #include "DFA.h"
 
 typedef std::vector<shared_dfa_ptr> move_edge_condition_vector;
-typedef std::tuple<std::string, move_edge_condition_vector, change_vector, move_edge_condition_vector, int> move_edge;
+typedef std::tuple<std::string, move_edge_condition_vector, int> move_edge;
 
 class MoveGraph
 {
@@ -24,6 +24,12 @@ class MoveGraph
 
   std::vector<std::string> node_names;
   std::map<std::string, int> node_names_to_indexes;
+  std::vector<change_vector> node_changes;
+
+  // used to simplify edge setup
+  std::vector<std::vector<shared_dfa_ptr>> node_pre_conditions;
+  std::vector<std::vector<shared_dfa_ptr>> node_post_conditions;
+
   mutable std::vector<std::vector<move_edge>> node_edges; // mutable to sort
 
   std::set<std::string> edge_names;
@@ -34,9 +40,14 @@ class MoveGraph
 
   MoveGraph(const dfa_shape_t&);
 
-  void add_edge(std::string, std::string, std::string, const move_edge_condition_vector&, const change_vector&, const move_edge_condition_vector&);
-  void add_edge(std::string, std::string, std::string, int, const change_type&);
+  void add_edge(std::string, std::string, std::string);
+  void add_edge(std::string, std::string, std::string, const move_edge_condition_vector&);
+  void add_edge(std::string, std::string, std::string, shared_dfa_ptr);
+
   void add_node(std::string);
+  void add_node(std::string, const change_vector&);
+  void add_node(std::string, const change_vector&, const move_edge_condition_vector&, const move_edge_condition_vector&);
+  void add_node(std::string, int, int, int);
 
   shared_dfa_ptr get_moves(shared_dfa_ptr) const;
 

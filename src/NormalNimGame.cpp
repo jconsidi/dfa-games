@@ -16,30 +16,42 @@ MoveGraph NormalNimGame::build_move_graph(int) const
   int n = get_shape().size();
 
   MoveGraph move_graph(get_shape());
+
+  // setup nodes
+
   move_graph.add_node("begin");
-  move_graph.add_node("end");
 
-  // no conditions needed
-  const std::vector<shared_dfa_ptr> conditions;
-
-  shared_dfa_ptr dummy = DFAUtil::get_reject(get_shape());
+  std::vector<std::string> change_names;
   for(int layer = 0; layer < n; ++layer)
     {
-      int layer_shape = dummy->get_layer_shape(layer);
+      int layer_shape = get_shape()[layer];
       for(int before = 1; before < layer_shape; ++before)
 	{
 	  for(int after = 0; after < before; ++after)
 	    {
 	      change_vector changes(n);
 	      changes[layer] = change_type(before, after);
-	      move_graph.add_edge(std::to_string(layer) + ": " + std::to_string(before) + "->" + std::to_string(after),
-				  "begin",
-				  "end",
-				  conditions,
-				  changes,
-				  conditions);
+
+	      std::string change_name = std::to_string(layer) + ": " + std::to_string(before) + "->" + std::to_string(after);
+	      move_graph.add_node(change_name,
+				  changes);
+	      change_names.push_back(change_name);
 	    }
 	}
+    }
+
+  move_graph.add_node("end");
+
+  // setup edges
+
+  for(std::string change_name : change_names)
+    {
+      move_graph.add_edge("begin to " + change_name,
+			  "begin",
+			  change_name);
+      move_graph.add_edge(change_name + " to end",
+			  change_name,
+			  "end");
     }
 
   return move_graph;

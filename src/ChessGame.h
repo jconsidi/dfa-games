@@ -3,14 +3,31 @@
 #ifndef CHESS_GAME_H
 #define CHESS_GAME_H
 
+#include <utility>
+
 #include "Board.h"
 #include "ChessDFAParams.h"
 #include "Game.h"
+#include "MoveSet.h"
 
 class ChessGame
   : public Game
 {
 private:
+
+  int _calc_layer(int rank, int file) const;
+  int _calc_square(int rank, int file) const;
+  change_vector _get_changes() const;
+  std::vector<std::tuple<int, int, int, int, std::vector<int>, bool>> _get_choices_basic(int) const;
+  void _get_choices_basic_helper(std::vector<std::tuple<int, int, int, int, std::vector<int>, bool>>&, int, int, int, const MoveSet&) const;
+  void _get_choices_basic_pawns(std::vector<std::tuple<int, int, int, int, std::vector<int>, bool>>&, int) const;
+  std::vector<std::pair<int, int>> _get_choices_from(int) const;
+  std::vector<std::pair<int, int>> _get_choices_to(int) const;
+  std::vector<std::tuple<int, int, int>> _get_choices_to_prev(int) const;
+  std::string _get_name_from(int, int) const;
+  std::string _get_name_to(int, int) const;
+  std::string _get_name_to_prev(int, int, int) const;
+  std::vector<int> _get_squares_between(int, int) const;
 
   virtual MoveGraph build_move_graph(int) const;
 
