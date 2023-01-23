@@ -42,6 +42,7 @@ protected:
   virtual ~Game();
 
   const dfa_shape_t& get_shape() const;
+  int get_shape_size() const {return shape.size();}
   void save(std::string, shared_dfa_ptr) const;
   shared_dfa_ptr load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr()> build_func) const;
 
