@@ -41,6 +41,10 @@ protected:
   Game(std::string, const dfa_shape_t&);
   virtual ~Game();
 
+  std::string get_name_losing(int, int) const;
+  std::string get_name_lost(int) const;
+  std::string get_name_winning(int, int) const;
+  std::string get_name_won(int) const;
   const dfa_shape_t& get_shape() const;
   int get_shape_size() const {return shape.size();}
   void save(std::string, shared_dfa_ptr) const;

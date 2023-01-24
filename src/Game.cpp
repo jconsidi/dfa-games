@@ -3,6 +3,7 @@
 #include "Game.h"
 
 #include <algorithm>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -83,75 +84,87 @@ shared_dfa_ptr Game::get_positions_initial() const
   return DFAUtil::from_string(get_position_initial());
 }
 
+std::string Game::get_name_losing(int side_to_move, int ply_max) const
+{
+  std::ostringstream dfa_name_builder;
+  dfa_name_builder << "ply_max=" << std::setfill('0') << std::setw(3) << ply_max << ",side=" << side_to_move << ",losing";
+  return dfa_name_builder.str();
+}
+
+std::string Game::get_name_lost(int side_to_move) const
+{
+  return "lost,side=" + std::to_string(side_to_move);
+}
+
+std::string Game::get_name_winning(int side_to_move, int ply_max) const
+{
+  std::ostringstream dfa_name_builder;
+  dfa_name_builder << "ply_max=" << std::setfill('0') << std::setw(3) << ply_max << ",side=" << side_to_move << ",winning";
+  return dfa_name_builder.str();
+}
+
+std::string Game::get_name_won(int side_to_move) const
+{
+  return "won,side=" + std::to_string(side_to_move);
+}
+
 shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const
 {
-  Profile profile("get_positions_losing");
-
   assert(ply_max >= 0);
 
-  std::ostringstream dfa_name_builder;
-  dfa_name_builder << "losing-side=" << side_to_move << ",ply_max=" << ply_max;
+  shared_dfa_ptr lost = get_positions_lost(side_to_move);
+  if(ply_max <= 0)
+    {
+      return lost;
+    }
 
-  return load_or_build(dfa_name_builder.str(),
-		       [=]()
+  if(lost->is_constant(0))
+    {
+      // all losses will be in an odd number of ply
+      if(ply_max % 2 == 0)
+	{
+	  --ply_max;
+	}
+    }
+
+  return load_or_build(get_name_losing(side_to_move, ply_max),
+		       [&]()
 		       {
-			 if(ply_max == 0)
-			   {
-			     return get_positions_lost(side_to_move);
-			   }
-
-			 assert(!"implemented");
+			 shared_dfa_ptr opponent_winning_sooner = get_positions_winning(1 - side_to_move, ply_max - 1);
+			 shared_dfa_ptr opponent_not_winning_sooner = DFAUtil::get_inverse(opponent_winning_sooner);
+			 shared_dfa_ptr not_losing_soon = get_moves_backward(side_to_move, opponent_not_winning_sooner);
+			 shared_dfa_ptr losing_soon = DFAUtil::get_difference(get_has_moves(side_to_move), not_losing_soon);
+			 return DFAUtil::get_union(losing_soon, lost);
 		       });
 }
 
 shared_dfa_ptr Game::get_positions_winning(int side_to_move, int ply_max) const
 {
-  Profile profile("get_positions_winning");
+  assert(ply_max >= 0);
 
-  int side_not_to_move = 1 - side_to_move;
-
-  profile.tic("opponent_has_move");
-  shared_dfa_ptr opponent_has_move = this->get_has_moves(side_not_to_move);
-
-  profile.tic("lost");
-  shared_dfa_ptr lost = this->get_positions_lost(side_not_to_move);
-  shared_dfa_ptr losing = lost;
-
-  profile.tic("winning 0");
-  shared_dfa_ptr winning = this->get_moves_backward(side_to_move, losing);
-  std::cout << "  move 0: " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
-
-  for(int move = 1; move < ply_max; ++move)
+  shared_dfa_ptr won = get_positions_won(side_to_move);
+  if(ply_max <= 0)
     {
-      auto tic = [&](std::string label_in){profile.tic(label_in + " " + std::to_string(move));};
-
-      tic("not_yet_winning");
-      shared_dfa_ptr not_yet_winning = DFAUtil::get_inverse(winning);
-
-      tic("not_yet_losing");
-      shared_dfa_ptr not_yet_losing(this->get_moves_backward(side_not_to_move, not_yet_winning));
-
-      tic("losing_more_if_has_move");
-      shared_dfa_ptr losing_more_if_has_move = DFAUtil::get_inverse(not_yet_losing);
-
-      tic("losing_more");
-      shared_dfa_ptr losing_more = DFAUtil::get_intersection(losing_more_if_has_move, opponent_has_move);
-
-      tic("finished check");
-      if(DFAUtil::get_difference(losing_more, losing)->is_constant(false))
-	{
-	  break;
-	}
-
-      tic("losing");
-      losing = DFAUtil::get_union(losing, losing_more);
-
-      tic("winning");
-      winning = this->get_moves_backward(side_to_move, losing);
-      std::cout << "  move " << move << ": " << winning->size() << " winning positions, " << winning->states() << " states" << std::endl;
+      return won;
     }
 
-  return winning;
+  if(won->is_constant(0))
+    {
+      // all wins will be in an odd number of ply
+      if(ply_max % 2 == 0)
+	{
+	  --ply_max;
+	}
+    }
+
+  return this->load_or_build(get_name_winning(side_to_move, ply_max),
+			     [=]()
+			     {
+			       shared_dfa_ptr losing_soon = this->get_positions_losing(1 - side_to_move, ply_max - 1);
+			       shared_dfa_ptr winning_soon = this->get_moves_backward(side_to_move, losing_soon);
+
+			       return DFAUtil::get_union(won, winning_soon);
+			     });
 }
 
 const dfa_shape_t& Game::get_shape() const
