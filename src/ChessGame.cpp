@@ -1183,8 +1183,12 @@ shared_dfa_ptr ChessGame::get_positions_lost(int side_to_move) const
 
   // lost if and only if check and no legal moves
 
-  return DFAUtil::get_difference(get_positions_check(side_to_move),
-						   this->get_has_moves(side_to_move));
+  return load_or_build(get_name_lost(side_to_move),
+		       [&]()
+		       {
+			 return DFAUtil::get_difference(get_positions_check(side_to_move),
+							get_has_moves(side_to_move));
+		       });
 }
 
 shared_dfa_ptr ChessGame::get_positions_won(int side_to_move) const
