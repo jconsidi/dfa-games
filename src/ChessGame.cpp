@@ -14,37 +14,6 @@
 
 static const dfa_shape_t chess_shape = {CHESS_DFA_SHAPE};
 
-#if 0
-
-static void add_change(int square,
-		       int pre_character,
-		       int post_character,
-		       std::vector<shared_dfa_ptr>& pre_conditions,
-		       change_vector& changes,
-		       std::vector<shared_dfa_ptr>& post_conditions)
-{
-  int layer = square + CHESS_SQUARE_OFFSET;
-
-  // clear rook's castle rights. done here so that the post condition
-  // doesn't try to keep them and conflict.
-  if(post_character == DFA_WHITE_ROOK_CASTLE)
-    {
-      post_character = DFA_WHITE_ROOK;
-    }
-  else if(post_character == DFA_BLACK_ROOK_CASTLE)
-    {
-      post_character = DFA_BLACK_ROOK;
-    }
-
-  pre_conditions.push_back(DFAUtil::get_fixed(chess_shape, layer, pre_character));
-
-  assert(!changes[layer].has_value());
-  changes[layer] = change_type(pre_character, post_character);
-
-  post_conditions.push_back(DFAUtil::get_fixed(chess_shape, layer, post_character));
-}
-#endif
-
 static bool chess_is_friendly(int side_to_move, int character)
 {
   if(character == DFA_BLANK)
