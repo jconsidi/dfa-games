@@ -9,7 +9,7 @@
 #include "DFAUtil.h"
 #include "Profile.h"
 
-#define COMPACT_THRESHOLD 10
+#define COMPACT_THRESHOLD 2
 #define CHECK_COMPACT_THRESHOLD(clauses) \
   ( \
   (clauses.size() >= COMPACT_THRESHOLD) && \
