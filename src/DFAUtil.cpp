@@ -136,6 +136,12 @@ shared_dfa_ptr DFAUtil::get_accept(const dfa_shape_t& shape_in)
 shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& changes_in)
 {
   Profile profile("get_change");
+
+  if(dfa_in->is_constant(0))
+    {
+      return DFAUtil::get_reject(dfa_in->get_shape());
+    }
+
   return shared_dfa_ptr(new ChangeDFA(*dfa_in, changes_in));
 }
 
