@@ -184,8 +184,6 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
       // process all edges leaving this node
 
-      IntersectionManager manager(positions_in->get_shape());
-
       for(int node_edge_index = 0; node_edge_index < node_edges[from_node_index].size(); ++node_edge_index)
 	{
 	  profile.tic("edge init");
@@ -201,15 +199,11 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
 	  // apply choice conditions
 	  profile.tic("edge conditions");
-	  for(shared_dfa_ptr condition : conditions)
-	    {
-	      edge_positions = manager.intersect(edge_positions, condition);
-	      if(edge_positions->is_constant(false))
-		{
-		  // no matching positions
-		  break;
-		}
-	    }
+
+	  move_edge_condition_vector conditions_todo = conditions;
+	  conditions_todo.push_back(edge_positions);
+	  edge_positions = DFAUtil::get_intersection_vector(shape, conditions_todo);
+
 	  std::cout << "  conditions for node " << to_node_index << " (" << node_names[to_node_index] << ") => " << DFAUtil::quick_stats(edge_positions) << std::endl;
 
 	  if(edge_positions->is_constant(false))
