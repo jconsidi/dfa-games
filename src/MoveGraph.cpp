@@ -218,6 +218,9 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 	  node_inputs[to_node_index] = DFAUtil::get_union(node_inputs[to_node_index],
 							  edge_positions);
 	}
+
+      // clear node input to reclaim space and open files
+      node_inputs[from_node_index] = shared_dfa_ptr(0);
     }
 
   assert(node_inputs.back());
