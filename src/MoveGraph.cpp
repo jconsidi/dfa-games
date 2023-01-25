@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "DFAUtil.h"
-#include "DNFBuilder.h"
 #include "IntersectionManager.h"
 #include "Profile.h"
 
@@ -143,11 +142,11 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
   assert(node_names.size() >= 2);
 
-  std::vector<DNFBuilder> node_builders(node_names.size(), positions_in->get_shape());
+  std::vector<shared_dfa_ptr> node_inputs(node_names.size(), DFAUtil::get_reject(shape));
 
-  node_builders[0].add_clause(DNFBuilder::clause_type(1, positions_in));
+  node_inputs[0] = positions_in;
 
-  for(int from_node_index = 0; from_node_index < node_names.size(); ++from_node_index)
+  for(int from_node_index = 0; from_node_index < node_names.size() - 1; ++from_node_index)
     {
       profile.tic("node init");
 
@@ -155,8 +154,8 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
       profile.tic("node inputs");
 
-      // combine all positions coming into this node
-      shared_dfa_ptr from_node_positions_input = node_builders[from_node_index].to_dfa();
+      shared_dfa_ptr from_node_positions_input = node_inputs[from_node_index];
+      assert(from_node_positions_input);
       std::cout << " node " << from_node_index << "/" << node_names.size() << " input: " << DFAUtil::quick_stats(from_node_positions_input) << std::endl;
       if(from_node_positions_input->is_constant(0))
 	{
@@ -166,7 +165,7 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
       profile.tic("node change");
 
       shared_dfa_ptr from_node_positions_output =
-	DFAUtil::get_change(from_node_positions_input,
+	DFAUtil::get_change(node_inputs[from_node_index],
 			    node_changes[from_node_index]);
 
       std::cout << " node " << from_node_index << "/" << node_names.size() << " output: " << DFAUtil::quick_stats(from_node_positions_output) << std::endl;
@@ -216,11 +215,13 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
 	  profile.tic("add output clause");
 
-	  node_builders[to_node_index].add_clause(std::vector<shared_dfa_ptr>({edge_positions}));
+	  node_inputs[to_node_index] = DFAUtil::get_union(node_inputs[to_node_index],
+							  edge_positions);
 	}
     }
 
-  return node_builders.back().to_dfa();
+  assert(node_inputs.back());
+  return node_inputs.back();
 }
 
 int MoveGraph::get_node_index(std::string node_name_in) const
