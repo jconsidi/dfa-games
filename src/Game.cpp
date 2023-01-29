@@ -172,6 +172,15 @@ const dfa_shape_t& Game::get_shape() const
   return shape;
 }
 
+shared_dfa_ptr Game::load(std::string dfa_name_in) const
+{
+  Profile profile("load " + dfa_name_in);
+
+  std::string dfa_name = name + "/" + dfa_name_in;
+
+  return shared_dfa_ptr(new DFA(shape, dfa_name));
+}
+
 shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr ()> build_func) const
 {
   Profile profile("load_or_build " + dfa_name_in);
@@ -181,7 +190,7 @@ shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared
   profile.tic("load");
   try
     {
-      shared_dfa_ptr output = shared_dfa_ptr(new DFA(shape, dfa_name));
+      shared_dfa_ptr output = load(dfa_name_in);
       output->set_name("saved(\"" + dfa_name_in + "\")");
       std::cout << "loaded " << dfa_name << " => " << DFAUtil::quick_stats(output) << std::endl;
 

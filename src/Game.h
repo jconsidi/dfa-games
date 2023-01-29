@@ -68,6 +68,10 @@ public:
   virtual shared_dfa_ptr get_positions_winning(int, int) const; // side to move wins in at most given ply
   virtual shared_dfa_ptr get_positions_won(int) const = 0; // side to move has won, no moves available
 
+  // saved position access
+
+  shared_dfa_ptr load(std::string dfa_name_in) const;
+
   // position evaluation
 
   virtual std::string position_to_string(const DFAString&) const = 0;
