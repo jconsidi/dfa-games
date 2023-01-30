@@ -74,7 +74,7 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
   for(int queen_character = 1; queen_character < 3; ++queen_character)
     {
       // 4 queens on each side
-      shared_dfa_ptr count_condition = DFAUtil::get_count_character(get_shape(), queen_character, 4, 4, 1);
+      shared_dfa_ptr count_condition = DFAUtil::get_count_character(get_shape(), queen_character, 4, 4);
       legal_condition = DFAUtil::get_intersection(legal_condition, count_condition);
     }
   legal_condition->set_name("legal_condition");
