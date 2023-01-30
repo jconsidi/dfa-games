@@ -2,6 +2,8 @@
 
 #include "Game.h"
 
+#include <sys/stat.h>
+
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -18,6 +20,8 @@ Game::Game(std::string name_in, const dfa_shape_t& shape_in)
   : name(name_in),
     shape(shape_in)
 {
+  std::string directory = std::string("scratch/") + name_in;
+  mkdir(directory.c_str(), 0700);
 }
 
 Game::~Game()
