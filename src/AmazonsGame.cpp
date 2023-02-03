@@ -199,9 +199,6 @@ DFAString AmazonsGame::get_position_initial() const
 
 std::string AmazonsGame::position_to_string(const DFAString& string_in) const
 {
-  // make sure this is not in the middle of a turn
-  assert(string_in[0] == 0);
-
   std::ostringstream output;
   for(int y = height - 1; y >= 0; --y)
     {
