@@ -20,12 +20,6 @@ private:
   std::string name;
   dfa_shape_t shape;
 
-public:
-
-  typedef std::tuple<std::vector<shared_dfa_ptr>, change_vector, std::vector<shared_dfa_ptr>, std::string> choice_type;
-
-private:
-
   mutable MoveGraph move_graphs_forward[2] = {dfa_shape_t(), dfa_shape_t()};
   mutable MoveGraph move_graphs_backward[2] = {dfa_shape_t(), dfa_shape_t()};
   mutable bool move_graphs_ready[2] = {false, false};
