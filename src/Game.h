@@ -23,7 +23,6 @@ private:
 public:
 
   typedef std::tuple<std::vector<shared_dfa_ptr>, change_vector, std::vector<shared_dfa_ptr>, std::string> choice_type;
-  typedef std::vector<choice_type> choice_vector;
 
 private:
 
