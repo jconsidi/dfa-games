@@ -9,6 +9,7 @@
 #include "ChessGame.h"
 #include "DFAUtil.h"
 #include "NormalNimGame.h"
+#include "OthelloGame.h"
 #include "TicTacToeGame.h"
 
 bool check_loss(const Game& game, int ply_max)
@@ -59,6 +60,16 @@ Game *get_game(std::string game_name)
 	}
 
       output = new NormalNimGame(dfa_shape_t(heaps, 16));
+    }
+  else if(game_name.starts_with("othello_"))
+    {
+      int width = 0;
+      int height = 0;
+      if(std::sscanf(game_name.c_str(), "othello_%dx%d", &width, &height) != 2)
+	{
+	  throw std::logic_error("get_name() failed parsing othello game name");
+	}
+      output = new OthelloGame(width, height);
     }
   else if(game_name.starts_with("tictactoe_"))
     {
