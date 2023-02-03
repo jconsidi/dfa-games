@@ -68,19 +68,6 @@ const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil::get_queen_m
   return output;
 }
 
-Game::choice_type GameUtil::get_choice(std::string name_in, int offset, int width, int height)
-{
-  Game::choice_type output;
-
-  change_vector& changes = std::get<1>(output);
-  changes.resize(offset + width * height);
-
-  std::string& name = std::get<3>(output);
-  name = name_in;
-
-  return output;
-}
-
 void GameUtil::update_choice(const dfa_shape_t& shape_in,
 			     Game::choice_type& choice,
 			     int layer,
