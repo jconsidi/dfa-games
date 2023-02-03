@@ -67,23 +67,3 @@ const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil::get_queen_m
 
   return output;
 }
-
-void GameUtil::update_choice(const dfa_shape_t& shape_in,
-			     Game::choice_type& choice,
-			     int layer,
-			     int before_character,
-			     int after_character,
-			     bool add_constraints)
-{
-  change_vector& changes = std::get<1>(choice);
-  changes[layer] = change_type(before_character, after_character);
-
-  if(add_constraints)
-    {
-      std::vector<shared_dfa_ptr>& pre_conditions = std::get<0>(choice);
-      pre_conditions.emplace_back(DFAUtil::get_fixed(shape_in, layer, before_character));
-
-      std::vector<shared_dfa_ptr>& post_conditions = std::get<2>(choice);
-      post_conditions.emplace_back(DFAUtil::get_fixed(shape_in, layer, after_character));
-    }
-}
