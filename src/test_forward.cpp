@@ -1,5 +1,6 @@
 // test_amazons_forward.cpp
 
+#include <cstdlib>
 #include <iostream>
 
 #include "test_utils.h"
@@ -8,12 +9,14 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: test_forward GAME_NAME\n";
+      std::cerr << "usage: test_forward GAME_NAME [depth]\n";
       return 1;
     }
 
   std::string game_name(argv[1]);
   Game *game = get_game(game_name);
+
+  int ply_max = (argc >= 3) ? atoi(argv[2]) : 2;
 
   auto initial_positions = game->get_positions_initial();
   assert(initial_positions->size() == 1);
@@ -25,11 +28,12 @@ int main(int argc, char **argv)
       std::cout << game->position_to_string(*iter) << std::endl;
     }
 
-  auto first_moves = game->get_moves_forward(0, initial_positions);
-  std::cout << first_moves->size() << " positions after first move." << std::endl;
-
-  auto second_moves = game->get_moves_forward(1, first_moves);
-  std::cout << second_moves->size() << " positions after second move." << std::endl;
+  shared_dfa_ptr current_positions = initial_positions;
+  for(int ply = 0; ply < ply_max; ++ply)
+    {
+      current_positions = game->get_moves_forward(ply % 2, current_positions);
+      std::cout << current_positions->size() << " positions after " << (ply + 1) << " ply." << std::endl;
+    }
 
   return 0;
 }
