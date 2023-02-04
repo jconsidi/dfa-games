@@ -19,6 +19,14 @@ MoveGraph::MoveGraph(const dfa_shape_t& shape_in)
 {
 }
 
+void MoveGraph::add_edge(std::string from_node_name,
+			 std::string to_node_name)
+{
+  add_edge(from_node_name + " to " + to_node_name,
+	   from_node_name,
+           to_node_name);
+}
+
 void MoveGraph::add_edge(std::string edge_name_in,
 			 std::string from_node_name,
 			 std::string to_node_name)

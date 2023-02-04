@@ -40,6 +40,7 @@ class MoveGraph
 
   MoveGraph(const dfa_shape_t&);
 
+  void add_edge(std::string, std::string);
   void add_edge(std::string, std::string, std::string);
   void add_edge(std::string, std::string, std::string, const move_edge_condition_vector&);
   void add_edge(std::string, std::string, std::string, shared_dfa_ptr);
