@@ -246,6 +246,11 @@ int MoveGraph::get_node_index(std::string node_name_in) const
   return search->second;
 }
 
+const move_edge_condition_vector& MoveGraph::get_node_pre_conditions(std::string node_name_in) const
+{
+  return node_pre_conditions[get_node_index(node_name_in)];
+}
+
 MoveGraph MoveGraph::reverse() const
 {
   MoveGraph output(shape);
