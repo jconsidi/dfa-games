@@ -19,6 +19,28 @@ int sign(int x)
   return 0;
 }
 
+std::vector<std::pair<int, int>> GameUtil::get_between(int x_begin, int y_begin, int x_end, int y_end)
+{
+  std::vector<std::pair<int, int>> output;
+
+  int x_delta = sign(x_end - x_begin);
+  int y_delta = sign(y_end - y_begin);
+
+  if(x_delta && y_delta)
+    {
+      assert(abs(x_end - x_begin) == abs(y_end - y_begin));
+    }
+
+  for(int x = x_begin + x_delta, y = y_begin + y_delta;
+      (x != x_end) || (y != y_end);
+      x += x_delta, y += y_delta)
+    {
+      output.emplace_back(x, y);
+    }
+
+  return output;
+}
+
 const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil::get_queen_moves(int offset, int width, int height)
 {
   static std::vector<std::tuple<int, int, std::vector<int>>> output;
