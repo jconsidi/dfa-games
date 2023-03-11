@@ -3,6 +3,7 @@
 #include "MoveGraph.h"
 
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "DFAUtil.h"
@@ -151,11 +152,15 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
   assert(node_names.size() >= 2);
 
-  std::vector<DNFBuilder> node_builders(node_names.size(), positions_in->get_shape());
+  std::vector<std::shared_ptr<DNFBuilder>> node_builders;
+  for(int i = 0; i < node_names.size(); ++i)
+    {
+      node_builders.emplace_back(new DNFBuilder(positions_in->get_shape()));
+    }
 
-  node_builders[0].add_clause(DNFBuilder::clause_type(1, positions_in));
+  node_builders[0]->add_clause(DNFBuilder::clause_type(1, positions_in));
 
-  for(int from_node_index = 0; from_node_index < node_names.size(); ++from_node_index)
+  for(int from_node_index = 0; from_node_index < node_names.size() - 1; ++from_node_index)
     {
       profile.tic("node init");
 
@@ -164,12 +169,16 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
       profile.tic("node inputs");
 
       // combine all positions coming into this node
-      shared_dfa_ptr from_node_positions_input = node_builders[from_node_index].to_dfa();
+      shared_dfa_ptr from_node_positions_input = node_builders[from_node_index]->to_dfa();
       std::cout << " node " << from_node_index << "/" << node_names.size() << " input: " << DFAUtil::quick_stats(from_node_positions_input) << std::endl;
       if(from_node_positions_input->is_constant(0))
 	{
 	  continue;
 	}
+
+      // drop node now that it is done
+
+      node_builders[from_node_index] = 0;
 
       profile.tic("node change");
 
@@ -224,14 +233,14 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 
 	  profile.tic("add output clause");
 
-	  node_builders[to_node_index].add_clause(std::vector<shared_dfa_ptr>({edge_positions}));
+	  node_builders[to_node_index]->add_clause(std::vector<shared_dfa_ptr>({edge_positions}));
 	}
 
       // clear node input to reclaim space and open files
-      node_inputs[from_node_index] = shared_dfa_ptr(0);
+      node_builders[from_node_index] = 0;
     }
 
-  return node_builders.back().to_dfa();
+  return node_builders.back()->to_dfa();
 }
 
 int MoveGraph::get_node_index(std::string node_name_in) const
