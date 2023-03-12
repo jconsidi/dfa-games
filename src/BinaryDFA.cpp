@@ -601,7 +601,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
   profile.tic("leaves");
 
   // initially empty since shortcircuiting will happen by last layer.
-  std::vector<dfa_state_t> next_pair_mapping;
+  MemoryMap<dfa_state_t> next_pair_mapping(1); // dummy initialization
 
   // backward pass
 
@@ -660,7 +660,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  {
 	    dfa_state_t next_compact = next_index.rank(next_pair);
 	    assert(next_compact < next_pair_mapping.size());
-	    dfa_state_t next_deduped = next_pair_mapping.at(next_compact);
+	    dfa_state_t next_deduped = next_pair_mapping[next_compact];
 	    return next_deduped;
 	  }
       };
@@ -695,7 +695,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward states");
 
-      std::vector<dfa_state_t> curr_pair_mapping(curr_layer_count);
+      MemoryMap<dfa_state_t> curr_pair_mapping =
+	(curr_layer_count * sizeof(size_t) < 1ULL << 30)
+	? MemoryMap<dfa_state_t>(curr_layer_count)
+	: MemoryMap<dfa_state_t>(binary_build_file_prefix(layer) + "-pair-mapping",
+				 curr_layer_count);
 
       // figure out first two states used
       dfa_state_t curr_logical = ~dfa_state_t(0);
@@ -752,11 +756,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       assert(curr_pair_mapping.size() == curr_layer_count);
 
-      next_pair_mapping.clear();
       std::swap(next_pair_mapping, curr_pair_mapping);
-
       assert(next_pair_mapping.size() > 0);
-      assert(curr_pair_mapping.size() == 0);
 
       // shrink state
 
