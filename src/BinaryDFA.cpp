@@ -614,7 +614,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       int curr_layer_shape = this->get_layer_shape(layer);
       const BitSet& curr_layer = pairs_by_layer.at(layer);
-      std::vector<dfa_state_t> curr_pair_mapping;
 
       profile.tic("backward curr index");
 
@@ -696,7 +695,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward states");
 
-      curr_pair_mapping.resize(curr_layer_count);
+      std::vector<dfa_state_t> curr_pair_mapping(curr_layer_count);
 
       // figure out first two states used
       dfa_state_t curr_logical = ~dfa_state_t(0);
