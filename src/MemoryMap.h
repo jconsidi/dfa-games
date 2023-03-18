@@ -11,13 +11,14 @@ template<class T>
 class MemoryMap
 {
  private:
-  size_t _size;
-  size_t _length;
+  std::string _filename;
+  int _flags;
+  mutable size_t _size;
+  mutable size_t _length;
 
-  void *_mapped;
+  mutable void *_mapped;
 
-  void mmap(int, int);
-  void munmap();
+  void mmap(int) const;
 
 public:
 
@@ -35,6 +36,8 @@ public:
   T *begin();
   T *end();
   size_t length() const;
+  void mmap() const;
+  void munmap();
   size_t size() const;
 };
 
