@@ -94,6 +94,7 @@ void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
 
   // add new clause
 
+  clause_in.back()->munmap();
   clauses.push_back(clause_in);
 
   // trigger compaction if there are too many clauses of the same
