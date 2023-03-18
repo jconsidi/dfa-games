@@ -476,6 +476,14 @@ bool DFA::is_linear() const
   return true;
 }
 
+void DFA::munmap() const
+{
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      layer_transitions[layer].munmap();
+    }
+}
+
 bool DFA::ready() const
 {
   return initial_state != ~dfa_state_t(0);

@@ -76,7 +76,7 @@ class DFA
   // ndim layers mapping (state, square contents) -> next state.
   std::vector<std::string> layer_file_names;
   std::vector<dfa_state_t> layer_sizes;
-  std::vector<MemoryMap<dfa_state_t>> layer_transitions;
+  mutable std::vector<MemoryMap<dfa_state_t>> layer_transitions;
 
   mutable bool temporary;
 
@@ -115,6 +115,8 @@ class DFA
 
   bool is_constant(bool) const;
   bool is_linear() const;
+
+  void munmap() const;
 
   bool ready() const;
   void save(std::string) const;
