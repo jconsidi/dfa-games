@@ -24,17 +24,49 @@ double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
   int ndim = dfa_a->get_shape_size();
 
+  const DFALinearBound& bound_a = dfa_a->get_linear_bound();
+  const DFALinearBound& bound_b = dfa_b->get_linear_bound();
+  bool might_intersect = true;
+
   std::vector<double> states_max = {1};
   for(int layer = 1; layer < ndim; ++layer)
     {
+      int layer_shape = dfa_a->get_layer_shape(layer);
+
       std::vector<double> layer_bounds;
 
       // fanout bound
-      layer_bounds.push_back(states_max.back() * dfa_a->get_layer_shape(layer));
+      layer_bounds.push_back(states_max.back() * layer_shape);
 
       // product bound
       layer_bounds.push_back(double(dfa_a->get_layer_size(layer)) *
 			     double(dfa_b->get_layer_size(layer)));
+
+      // inference from linear bounds showing potential intersection
+      if(might_intersect)
+	{
+	  bool layer_shares_characters = false;
+	  for(int c = 0; c < layer_shape; ++c)
+	    {
+	      if(bound_a.check_bound(layer, c) &&
+		 bound_b.check_bound(layer, c))
+		{
+		  layer_shares_characters = true;
+		  break;
+		}
+	    }
+	  if(!layer_shares_characters)
+	    {
+	      might_intersect = false;
+	    }
+	}
+      if(!might_intersect)
+	{
+	  layer_bounds.push_back(double(dfa_a->get_layer_size(layer)) +
+				 double(dfa_b->get_layer_size(layer)));
+	}
+
+      // done for this layer
 
       double layer_best = *(std::min_element(layer_bounds.begin(), layer_bounds.end()));
       states_max.push_back(layer_best);
