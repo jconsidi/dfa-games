@@ -3,8 +3,8 @@
 #include "DFAUtil.h"
 
 #include <iostream>
+#include <limits>
 #include <map>
-#include <queue>
 #include <sstream>
 
 #include "AcceptDFA.h"
@@ -19,6 +19,11 @@
 #include "StringDFA.h"
 #include "UnionDFA.h"
 
+double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
+{
+  return double(dfa_a->states()) * double(dfa_b->states());
+}
+
 shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_dfa_ptr)> reduce_func,
 					       const std::vector<shared_dfa_ptr>& dfas_in)
 {
@@ -27,38 +32,49 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
       throw std::logic_error("dfas_in is empty");
     }
 
-  typedef struct reverse_less
-  {
-    bool operator()(std::shared_ptr<const DFA> a,
-		    std::shared_ptr<const DFA> b) const
+  std::vector<shared_dfa_ptr> dfas_todo(dfas_in);
+
+  // TODO : make the total number of score evaluations quadratic
+  // instead of cubic.
+  while(dfas_todo.size() >= 2)
     {
-      return a->states() > b->states();
-    }
-  } reverse_less;
+      // find pair with cheapest bound on combination
 
-  std::priority_queue<shared_dfa_ptr, std::vector<shared_dfa_ptr>, reverse_less> dfa_queue;
+      int best_i = 0;
+      int best_j = 1;
+      double best_score = std::numeric_limits<double>::infinity();
 
-  for(int i = 0; i < dfas_in.size(); ++i)
-    {
-      dfa_queue.push(dfas_in[i]);
-    }
-
-  while(dfa_queue.size() > 1)
-    {
-      std::shared_ptr<const DFA> last = dfa_queue.top();
-      dfa_queue.pop();
-      std::shared_ptr<const DFA> second_last = dfa_queue.top();
-      dfa_queue.pop();
-
-      if(second_last->states() >= 1024)
+      for(int i = 0; i < dfas_todo.size() - 1; ++i)
 	{
-	  std::cout << "  merging DFAs with " << last->states() << " states and " << second_last->states() << " states (" << dfa_queue.size() << " remaining)" << std::endl;
+	  for(int j = i + 1; j < dfas_todo.size(); ++j)
+	    {
+	      double score = _binary_score(dfas_todo[i], dfas_todo[j]);
+	      if(score < best_score)
+		{
+		  best_i = i;
+		  best_j = j;
+		  best_score = score;
+		}
+	    }
 	}
-      dfa_queue.push(reduce_func(second_last, last));
-    }
-  assert(dfa_queue.size() == 1);
 
-  shared_dfa_ptr output = dfa_queue.top();
+      // merge this pair and drop the last entry
+
+      shared_dfa_ptr& dfa_i = dfas_todo[best_i];
+      shared_dfa_ptr& dfa_j = dfas_todo[best_j];
+
+      if((dfa_i->states() >= 1024) || (dfa_j->states() >= 1024))
+	{
+	  std::cout << "  merging DFAs with " << dfa_i->states() << " states and " << dfa_j->states() << " states (" << (dfas_todo.size() - 2) << " remaining)" << std::endl;
+	}
+
+      dfa_i = reduce_func(dfa_i, dfa_j);
+      dfa_j = dfas_todo.back();
+      dfas_todo.pop_back();
+    }
+  assert(dfas_todo.size() == 1);
+
+  shared_dfa_ptr output = dfas_todo[0];
   if(output->states() >= 1024)
     {
       std::cout << "  merged DFA has " << output->states() << " states and " << output->size() << " positions" << std::endl;
