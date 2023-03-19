@@ -61,6 +61,7 @@ public:
 
   bool operator<=(const DFALinearBound&) const;
 
+  bool check_bound(int, int) const;
   bool check_fixed(int, int) const;
 };
 

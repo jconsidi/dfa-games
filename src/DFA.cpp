@@ -734,6 +734,18 @@ bool DFALinearBound::operator<=(const DFALinearBound& bounds_right) const
   return true;
 }
 
+bool DFALinearBound::check_bound(int layer_in, int character_in) const
+{
+  assert(0 <= layer_in);
+  assert(layer_in < shape.size());
+
+  int layer_shape = shape[layer_in];
+  assert(0 <= character_in);
+  assert(character_in < layer_shape);
+
+  return bounds[layer_in][character_in];
+}
+
 bool DFALinearBound::check_fixed(int layer_in, int character_in) const
 {
   assert(0 <= layer_in);
