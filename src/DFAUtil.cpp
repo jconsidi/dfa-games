@@ -85,6 +85,8 @@ double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_dfa_ptr)> reduce_func,
 					       const std::vector<shared_dfa_ptr>& dfas_in)
 {
+  Profile profile("_reduce_associative_commutative");
+
   if(dfas_in.size() <= 0)
     {
       throw std::logic_error("dfas_in is empty");
@@ -97,6 +99,8 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
   while(dfas_todo.size() >= 2)
     {
       // find pair with cheapest bound on combination
+
+      profile.tic("pick");
 
       int best_i = 0;
       int best_j = 1;
@@ -118,6 +122,8 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
 
       // merge this pair and drop the last entry
 
+      profile.tic("reduce");
+
       shared_dfa_ptr& dfa_i = dfas_todo[best_i];
       shared_dfa_ptr& dfa_j = dfas_todo[best_j];
 
@@ -131,6 +137,8 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
       dfas_todo.pop_back();
     }
   assert(dfas_todo.size() == 1);
+
+  profile.tic("done");
 
   shared_dfa_ptr output = dfas_todo[0];
   if(output->states() >= 1024)
