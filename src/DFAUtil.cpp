@@ -105,6 +105,7 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
       int best_i = 0;
       int best_j = 1;
       double best_score = std::numeric_limits<double>::infinity();
+      double worst_score = -best_score;
 
       for(int i = 0; i < dfas_todo.size() - 1; ++i)
 	{
@@ -117,8 +118,14 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
 		  best_j = j;
 		  best_score = score;
 		}
+	      if(score > worst_score)
+		{
+		  worst_score = score;
+		}
 	    }
 	}
+
+      std::cout << "  best score " << best_score << ", worst score = " << worst_score << std::endl;
 
       // merge this pair and drop the last entry
 
