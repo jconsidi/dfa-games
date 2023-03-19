@@ -2,6 +2,7 @@
 
 #include "DFAUtil.h"
 
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -21,7 +22,32 @@
 
 double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
-  return double(dfa_a->states()) * double(dfa_b->states());
+  int ndim = dfa_a->get_shape_size();
+
+  std::vector<double> states_max = {1};
+  for(int layer = 1; layer < ndim; ++layer)
+    {
+      std::vector<double> layer_bounds;
+
+      // fanout bound
+      layer_bounds.push_back(states_max.back() * dfa_a->get_layer_shape(layer));
+
+      // product bound
+      layer_bounds.push_back(double(dfa_a->get_layer_size(layer)) *
+			     double(dfa_b->get_layer_size(layer)));
+
+      double layer_best = *(std::min_element(layer_bounds.begin(), layer_bounds.end()));
+      states_max.push_back(layer_best);
+    }
+  assert(states_max.size() == ndim);
+
+  double total_max = 0.0;
+  for(int i = 0; i < ndim; ++i)
+    {
+      total_max += states_max[i];
+    }
+
+  return total_max;
 }
 
 shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_dfa_ptr)> reduce_func,
