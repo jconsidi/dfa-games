@@ -444,6 +444,19 @@ void BinaryDFA::build_linear(const DFA& left_in,
   this->set_initial_state(changed_states[0][0]);
 }
 
+template<class T>
+static MemoryMap<T> memory_map_helper(int layer, std::string suffix, size_t size_in)
+{
+  size_t size_bytes = size_in * sizeof(T);
+  if(size_bytes < 1ULL << 20)
+    {
+      // skip file allocation if less than 1MB
+      return MemoryMap<T>(size_in);
+    }
+
+  return MemoryMap<T>(binary_build_file_prefix(layer) + "-" + suffix, size_in);
+}
+
 void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 				     const DFA& right_in,
 				     const BinaryFunction& leaf_func)
@@ -630,9 +643,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       LayerTransitionsHelper helper(left_in, right_in, layer);
 
       size_t curr_layer_count = curr_layer.count();
-      MemoryMap<size_t> curr_pairs = (curr_layer_count * sizeof(size_t) < 1ULL << 32)
-	? MemoryMap<size_t>(curr_layer_count)
-	: MemoryMap<size_t>(binary_build_file_prefix(layer) + "-sort", curr_layer_count);
+      MemoryMap<size_t> curr_pairs = memory_map_helper<size_t>(layer, "sort", curr_layer_count);
 
       size_t curr_pairs_k = 0;
       for(auto iter = curr_layer.cbegin();
@@ -665,8 +676,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  }
       };
 
-      // TODO : spill to disk if too big
-      MemoryMap<dfa_state_t> curr_transitions(curr_layer_count * curr_layer_shape);
+      MemoryMap<dfa_state_t> curr_transitions = memory_map_helper<dfa_state_t>(layer, "transitions", curr_layer_count * curr_layer_shape);
       for(dfa_state_t i = 0; i < curr_layer_count; ++i)
 	{
 	  for(int j = 0; j < curr_layer_shape; ++j)
@@ -677,7 +687,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward sort");
 
-      MemoryMap<dfa_state_t> curr_pairs_permutation(curr_layer_count);
+      MemoryMap<dfa_state_t> curr_pairs_permutation = memory_map_helper<dfa_state_t>(layer, "pairs_permutation", curr_layer_count);
       for(dfa_state_t i = 0; i < curr_layer_count; ++i)
 	{
 	  curr_pairs_permutation[i] = i;
@@ -695,11 +705,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward states");
 
-      MemoryMap<dfa_state_t> curr_pair_mapping =
-	(curr_layer_count * sizeof(size_t) < 1ULL << 30)
-	? MemoryMap<dfa_state_t>(curr_layer_count)
-	: MemoryMap<dfa_state_t>(binary_build_file_prefix(layer) + "-pair-mapping",
-				 curr_layer_count);
+      MemoryMap<dfa_state_t> curr_pair_mapping = memory_map_helper<dfa_state_t>(layer, "pair-mapping", curr_layer_count);
 
       // figure out first two states used
       dfa_state_t curr_logical = ~dfa_state_t(0);
