@@ -654,7 +654,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	}
       assert(curr_pairs_k == curr_pairs.size());
 
-      profile.tic("backward transitions");
+      profile.tic("backward transitions setup");
 
       auto get_next_state = [&](size_t curr_pair, int curr_j)
       {
@@ -676,7 +676,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  }
       };
 
+      profile.tic("backward transitions mmap");
+
       MemoryMap<dfa_state_t> curr_transitions = memory_map_helper<dfa_state_t>(layer, "transitions", curr_layer_count * curr_layer_shape);
+
+      profile.tic("backward transitions populate");
+
       for(dfa_state_t i = 0; i < curr_layer_count; ++i)
 	{
 	  for(int j = 0; j < curr_layer_shape; ++j)
@@ -685,13 +690,15 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	    }
 	}
 
-      profile.tic("backward sort");
+      profile.tic("backward sort mmap");
 
       MemoryMap<dfa_state_t> curr_pairs_permutation = memory_map_helper<dfa_state_t>(layer, "pairs_permutation", curr_layer_count);
       for(dfa_state_t i = 0; i < curr_layer_count; ++i)
 	{
 	  curr_pairs_permutation[i] = i;
 	}
+
+      profile.tic("backward sort");
 
       auto compare_pair = [&](size_t curr_pair_index_a, size_t curr_pair_index_b)
       {
