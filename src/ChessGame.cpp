@@ -1037,20 +1037,20 @@ shared_dfa_ptr ChessGame::get_positions_check(int checked_side) const
   static shared_dfa_ptr singletons[2] = {0, 0};
   if(!singletons[checked_side])
     {
-      singletons[checked_side] = load_or_build("check_positions-side=" + std::to_string(checked_side), [=]()
+      singletons[checked_side] = load_or_build("check_positions-side=" + std::to_string(checked_side), [&]()
       {
-	Profile profile(std::ostringstream() << "ChessGame::get_positions_check(" << checked_side << ")");
 	profile.tic("singleton");
 
-	shared_dfa_ptr basic_positions = get_positions_legal();
+	// constrain number of kings to one. otherwise threat checks blow up a lot.
 	int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+	shared_dfa_ptr king_positions = get_positions_king(checked_side);
 
 	std::vector<shared_dfa_ptr> checks;
 	for(int square = 0; square < 64; ++square)
 	  {
 	    std::vector<shared_dfa_ptr> square_requirements;
 	    square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, king_character));
-	    square_requirements.push_back(basic_positions); // makes union much cheaper below
+	    square_requirements.push_back(king_positions); // makes union much cheaper below
 	    square_requirements.push_back(get_positions_threat(checked_side, square));
 
 	    checks.emplace_back(DFAUtil::get_intersection_vector(chess_shape, square_requirements));
