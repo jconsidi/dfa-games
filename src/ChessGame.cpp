@@ -393,20 +393,6 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   Profile profile("build_move_graph");
 
-  shared_dfa_ptr basic_positions = get_positions_legal();
-  shared_dfa_ptr check_positions = get_positions_check(side_to_move);
-  shared_dfa_ptr not_check_positions = load_or_build("not_check_positions-side=" + std::to_string(side_to_move), [=]()
-  {
-    return DFAUtil::get_inverse(check_positions);
-  });
-
-  // shared pre/post conditions for all moves
-  shared_dfa_ptr pre_shared = basic_positions;
-  shared_dfa_ptr post_shared = load_or_build("post_shared-side=" + std::to_string(side_to_move), [=]()
-  {
-    return DFAUtil::get_intersection(basic_positions, not_check_positions);
-  });
-
   // build move graph
 
   MoveGraph move_graph(get_shape());
@@ -426,7 +412,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
   move_graph.add_edge("pre legal",
 		      "begin",
 		      "begin+1",
-		      pre_shared);
+		      get_positions_legal(side_to_move));
 
   // pick which piece will move and remove it from the board.
   for(auto from_choice : _get_choices_from(side_to_move))
@@ -740,7 +726,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
   move_graph.add_edge("post legal",
 		      "end-1",
 		      "end",
-		      post_shared);
+		      get_positions_legal(1 - side_to_move));
 
   // done
 
@@ -883,106 +869,6 @@ DFAString ChessGame::from_board_to_dfa_string(const Board& board_in)
   return DFAString(chess_shape, board_characters);
 }
 
-shared_dfa_ptr ChessGame::get_positions_legal() const
-{
-  Profile profile("get_positions_legal");
-
-  // basic position requirements:
-  // * make sure initial king indexes are correct
-  // * pawns in appropriate rows
-
-  static shared_dfa_ptr singleton;
-  if(!singleton)
-    {
-      singleton = load_or_build("legal_positions", [=]()
-      {
-	Profile profile("ChessGame::get_positions_legal()");
-	profile.tic("singleton");
-
-	std::vector<shared_dfa_ptr> requirements;
-	std::function<void(shared_dfa_ptr)> add_requirement = [&](shared_dfa_ptr requirement)
-	{
-	  assert(requirement->states() > 0);
-	  assert(requirement->ready());
-	  requirements.emplace_back(requirement);
-	};
-
-	std::function<void(int, int)> block_file = [&](int file, int character)
-	{
-	  for(int rank = 0; rank < 8; ++rank)
-	    {
-	      int square = rank * 8 + file;
-
-	      add_requirement(DFAUtil::get_inverse(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, character)));
-	    }
-	};
-
-	std::function<void(int, int)> block_row = [&](int rank, int character)
-	{
-	  for(int file = 0; file < 8; ++file)
-	    {
-	      int square = rank * 8 + file;
-
-	      add_requirement(DFAUtil::get_inverse(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, character)));
-	    }
-	};
-
-	// pawn restrictions
-
-	block_row(0, DFA_BLACK_PAWN);
-	block_row(7, DFA_BLACK_PAWN);
-	block_row(0, DFA_WHITE_PAWN);
-	block_row(7, DFA_WHITE_PAWN);
-
-	// en-passant pawn restrictions
-
-	block_row(0, DFA_BLACK_PAWN_EN_PASSANT);
-	block_row(1, DFA_BLACK_PAWN_EN_PASSANT);
-	block_row(2, DFA_BLACK_PAWN_EN_PASSANT);
-	block_row(4, DFA_BLACK_PAWN_EN_PASSANT);
-	block_row(5, DFA_BLACK_PAWN_EN_PASSANT);
-	block_row(6, DFA_BLACK_PAWN_EN_PASSANT);
-	block_row(7, DFA_BLACK_PAWN_EN_PASSANT);
-
-	block_row(0, DFA_WHITE_PAWN_EN_PASSANT);
-	block_row(1, DFA_WHITE_PAWN_EN_PASSANT);
-	block_row(2, DFA_WHITE_PAWN_EN_PASSANT);
-	block_row(3, DFA_WHITE_PAWN_EN_PASSANT);
-	block_row(5, DFA_WHITE_PAWN_EN_PASSANT);
-	block_row(6, DFA_WHITE_PAWN_EN_PASSANT);
-	block_row(7, DFA_WHITE_PAWN_EN_PASSANT);
-
-	// castle/rook restrictions
-
-	for(int file = 1; file < 7; ++file)
-	  {
-	    block_file(file, DFA_BLACK_ROOK_CASTLE);
-	    block_file(file, DFA_WHITE_ROOK_CASTLE);
-	  }
-
-	for(int rank = 1; rank < 8; ++rank)
-	  {
-	    block_row(rank, DFA_BLACK_ROOK_CASTLE);
-	  }
-
-	for(int rank = 0; rank < 7; ++rank)
-	  {
-	    block_row(rank, DFA_WHITE_ROOK_CASTLE);
-	  }
-
-	// king restrictions
-	requirements.push_back(get_positions_king(0));
-	requirements.push_back(get_positions_king(1));
-
-	std::cout << "get_positions_legal() => " << requirements.size() << " requirements" << std::endl;
-
-	return DFAUtil::get_intersection_vector(chess_shape, requirements);
-      });
-    }
-
-  return singleton;
-}
-
 shared_dfa_ptr ChessGame::get_positions_can_move_basic(int side_to_move, int square) const
 {
   shared_dfa_ptr singletons[2][64] = {{0}};
@@ -1103,6 +989,149 @@ shared_dfa_ptr ChessGame::get_positions_king(int king_side) const
     }
   return singletons[king_side];
 }
+
+shared_dfa_ptr ChessGame::get_positions_legal(int side_to_move) const
+{
+  Profile profile("get_positions_legal");
+
+  // legal position requirements:
+  // * make sure initial king indexes are correct
+  // * pawns in appropriate rows
+  // * current player has no en-passant pawns
+  // * opposing player not in check
+
+  return load_or_build("legal_positions,side_to_move=" + std::to_string(side_to_move), [&]()
+  {
+    profile.tic("requirements");
+
+    std::vector<shared_dfa_ptr> requirements;
+    std::function<void(shared_dfa_ptr)> add_requirement = [&](shared_dfa_ptr requirement)
+    {
+      assert(requirement->states() > 0);
+      assert(requirement->ready());
+      requirements.emplace_back(requirement);
+    };
+
+    add_requirement(get_positions_legal_shared());
+
+    // en-passant pawn restrictions
+
+    add_requirement(DFAUtil::get_count_character(chess_shape,
+						 (side_to_move == SIDE_BLACK) ? DFA_BLACK_PAWN_EN_PASSANT : DFA_WHITE_PAWN_EN_PASSANT,
+						 0, 0,
+						 CHESS_SQUARE_OFFSET));
+
+    // opposing side is not in check
+
+    requirements.push_back(load_or_build("not_check_positions-side=" + std::to_string(1 - side_to_move), [=]()
+    {
+      shared_dfa_ptr check_positions = get_positions_check(1 - side_to_move);
+      return DFAUtil::get_inverse(check_positions);
+    }));
+
+    std::cout << "get_positions_legal() => " << requirements.size() << " requirements" << std::endl;
+
+    profile.tic("intersection");
+
+    return DFAUtil::get_intersection_vector(chess_shape, requirements);
+  });
+}
+
+shared_dfa_ptr ChessGame::get_positions_legal_shared() const
+{
+  Profile profile("get_positions_legal_shared");
+
+  // legal position requirements:
+  // * make sure initial king indexes are correct
+  // * pawns in appropriate rows
+
+  return load_or_build("legal_positions_shared", [&]()
+  {
+    profile.tic("requirements");
+
+    std::vector<shared_dfa_ptr> requirements;
+    std::function<void(shared_dfa_ptr)> add_requirement = [&](shared_dfa_ptr requirement)
+    {
+      assert(requirement->states() > 0);
+      assert(requirement->ready());
+      requirements.emplace_back(requirement);
+    };
+
+    std::function<void(int, int)> block_file = [&](int file, int character)
+    {
+      for(int rank = 0; rank < 8; ++rank)
+	{
+	  int square = rank * 8 + file;
+
+	  add_requirement(DFAUtil::get_inverse(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, character)));
+	}
+    };
+
+    std::function<void(int, int)> block_row = [&](int rank, int character)
+    {
+      for(int file = 0; file < 8; ++file)
+	{
+	  int square = rank * 8 + file;
+
+	  add_requirement(DFAUtil::get_inverse(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, character)));
+	}
+    };
+
+    // pawn restrictions
+
+    block_row(0, DFA_BLACK_PAWN);
+    block_row(7, DFA_BLACK_PAWN);
+    block_row(0, DFA_WHITE_PAWN);
+    block_row(7, DFA_WHITE_PAWN);
+
+    // en-passant pawn restrictions
+
+    block_row(0, DFA_BLACK_PAWN_EN_PASSANT);
+    block_row(1, DFA_BLACK_PAWN_EN_PASSANT);
+    block_row(2, DFA_BLACK_PAWN_EN_PASSANT);
+    block_row(4, DFA_BLACK_PAWN_EN_PASSANT);
+    block_row(5, DFA_BLACK_PAWN_EN_PASSANT);
+    block_row(6, DFA_BLACK_PAWN_EN_PASSANT);
+    block_row(7, DFA_BLACK_PAWN_EN_PASSANT);
+
+    block_row(0, DFA_WHITE_PAWN_EN_PASSANT);
+    block_row(1, DFA_WHITE_PAWN_EN_PASSANT);
+    block_row(2, DFA_WHITE_PAWN_EN_PASSANT);
+    block_row(3, DFA_WHITE_PAWN_EN_PASSANT);
+    block_row(5, DFA_WHITE_PAWN_EN_PASSANT);
+    block_row(6, DFA_WHITE_PAWN_EN_PASSANT);
+    block_row(7, DFA_WHITE_PAWN_EN_PASSANT);
+
+    // castle/rook restrictions
+
+    for(int file = 1; file < 7; ++file)
+      {
+	block_file(file, DFA_BLACK_ROOK_CASTLE);
+	block_file(file, DFA_WHITE_ROOK_CASTLE);
+      }
+
+    for(int rank = 1; rank < 8; ++rank)
+      {
+	block_row(rank, DFA_BLACK_ROOK_CASTLE);
+      }
+
+    for(int rank = 0; rank < 7; ++rank)
+      {
+	block_row(rank, DFA_WHITE_ROOK_CASTLE);
+      }
+
+    // king restrictions
+    requirements.push_back(get_positions_king(0));
+    requirements.push_back(get_positions_king(1));
+
+    std::cout << "get_positions_legal_shared() => " << requirements.size() << " requirements" << std::endl;
+
+    profile.tic("intersection");
+
+    return DFAUtil::get_intersection_vector(chess_shape, requirements);
+  });
+}
+
 
 shared_dfa_ptr ChessGame::get_positions_threat(int threatened_side, int threatened_square) const
 {

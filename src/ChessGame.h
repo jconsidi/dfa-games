@@ -34,7 +34,8 @@ private:
   shared_dfa_ptr get_positions_can_move_basic(int, int) const;
   shared_dfa_ptr get_positions_can_move_capture(int, int) const;
   shared_dfa_ptr get_positions_king(int) const;
-  shared_dfa_ptr get_positions_legal() const;
+  shared_dfa_ptr get_positions_legal(int) const;
+  shared_dfa_ptr get_positions_legal_shared() const;
 
 public:
 
