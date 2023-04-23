@@ -6,6 +6,8 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <queue>
+#include <set>
 #include <sstream>
 
 #include "AcceptDFA.h"
@@ -92,67 +94,76 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
       throw std::logic_error("dfas_in is empty");
     }
 
-  std::vector<shared_dfa_ptr> dfas_todo(dfas_in);
-
-  // TODO : make the total number of score evaluations quadratic
-  // instead of cubic.
-  while(dfas_todo.size() >= 2)
+  if(dfas_in.size() == 1)
     {
-      // find pair with cheapest bound on combination
+      return dfas_in[0];
+    }
 
-      profile.tic("pick");
+  std::set<shared_dfa_ptr> dfas_todo;
+  std::priority_queue<std::tuple<double, shared_dfa_ptr, shared_dfa_ptr>> scored_pairs;
 
-      int best_i = 0;
-      int best_j = 1;
-      double best_score = std::numeric_limits<double>::infinity();
-      double worst_score = -best_score;
+  for(int i = 0; i < dfas_in.size(); ++i)
+    {
+      shared_dfa_ptr dfa_i = dfas_in[i];
+      dfas_todo.insert(dfa_i);
 
-      for(int i = 0; i < dfas_todo.size() - 1; ++i)
+      for(int j = i + 1; j < dfas_in.size(); ++j)
 	{
-	  for(int j = i + 1; j < dfas_todo.size(); ++j)
-	    {
-	      double score = _binary_score(dfas_todo[i], dfas_todo[j]);
-	      if(score < best_score)
-		{
-		  best_i = i;
-		  best_j = j;
-		  best_score = score;
-		}
-	      if(score > worst_score)
-		{
-		  worst_score = score;
-		}
-	    }
+	  shared_dfa_ptr dfa_j = dfas_in[j];
+	  scored_pairs.emplace(-_binary_score(dfa_i, dfa_j), dfa_i, dfa_j);
+	}
+    }
+
+  while(dfas_todo.size() > 1)
+    {
+      std::tuple<double, shared_dfa_ptr, shared_dfa_ptr> scored_pair = scored_pairs.top();
+      scored_pairs.pop();
+
+      // check if both DFAs are still around because we lazy cleaning up scored pairs.
+
+      shared_dfa_ptr dfa_i = std::get<1>(scored_pair);
+      shared_dfa_ptr dfa_j = std::get<2>(scored_pair);
+      if(!dfas_todo.contains(dfa_i) || !dfas_todo.contains(dfa_j))
+	{
+	  continue;
 	}
 
-      std::cout << "  best score " << best_score << ", worst score = " << worst_score << std::endl;
+      // remove both DFAs from remaining set
 
-      // merge this pair and drop the last entry
+      dfas_todo.erase(dfa_i);
+      dfas_todo.erase(dfa_j);
 
-      profile.tic("reduce");
-
-      shared_dfa_ptr& dfa_i = dfas_todo[best_i];
-      shared_dfa_ptr& dfa_j = dfas_todo[best_j];
+      // combine these DFAs and add to remaining set and score pairs
 
       if((dfa_i->states() >= 1024) || (dfa_j->states() >= 1024))
 	{
-	  std::cout << "  merging DFAs with " << dfa_i->states() << " states and " << dfa_j->states() << " states (" << (dfas_todo.size() - 2) << " remaining)" << std::endl;
+	  std::cout << "  merging DFAs with " << dfa_i->states() << " states and " << dfa_j->states() << " states (" << dfas_todo.size() << " remaining)" << std::endl;
 	}
 
-      dfa_i = reduce_func(dfa_i, dfa_j);
-      dfa_j = dfas_todo.back();
-      dfas_todo.pop_back();
+      shared_dfa_ptr dfa_reduced = reduce_func(dfa_i, dfa_j);
+      for(shared_dfa_ptr dfa_k : dfas_todo)
+	{
+	  scored_pairs.emplace(-_binary_score(dfa_reduced, dfa_k), dfa_reduced, dfa_k);
+	}
+
+      dfas_todo.insert(dfa_reduced);
     }
+
+  // done
+
   assert(dfas_todo.size() == 1);
 
-  profile.tic("done");
-
-  shared_dfa_ptr output = dfas_todo[0];
-  if(output->states() >= 1024)
+  for(shared_dfa_ptr output : dfas_todo)
     {
-      std::cout << "  merged DFA has " << output->states() << " states and " << output->size() << " positions" << std::endl;
+      if(output->states() >= 1024)
+	{
+	  std::cout << "  merged DFA has " << output->states() << " states and " << output->size() << " positions" << std::endl;
+	}
+
+      return output;
     }
-  return output;
+
+  assert(0);
 }
 
 std::string _shape_string(const dfa_shape_t& shape_in)
