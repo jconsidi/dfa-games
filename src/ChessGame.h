@@ -15,6 +15,8 @@ class ChessGame
 {
 private:
 
+  int max_pieces;
+
   int _calc_layer(int rank, int file) const;
   int _calc_square(int rank, int file) const;
   change_vector _get_changes() const;
@@ -40,6 +42,7 @@ private:
 public:
 
   ChessGame();
+  ChessGame(int);
 
   static shared_dfa_ptr from_board(const Board& board);
   static DFAString from_board_to_dfa_string(const Board& board);
