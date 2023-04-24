@@ -99,6 +99,8 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
       return dfas_in[0];
     }
 
+  // build priority queue to optimize reduce costs
+
   std::set<shared_dfa_ptr> dfas_todo;
   std::priority_queue<std::tuple<double, shared_dfa_ptr, shared_dfa_ptr>> scored_pairs;
 
@@ -113,6 +115,15 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
 	  scored_pairs.emplace(-_binary_score(dfa_i, dfa_j), dfa_i, dfa_j);
 	}
     }
+
+  // unmap DFAs to reduce open files
+
+  for(shared_dfa_ptr dfa : dfas_todo)
+    {
+      dfa->munmap();
+    }
+
+  // work through the priority queue
 
   while(dfas_todo.size() > 1)
     {
@@ -147,6 +158,11 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
 	}
 
       dfas_todo.insert(dfa_reduced);
+
+      // unmap the DFAs just accessed
+      dfa_i->munmap();
+      dfa_j->munmap();
+      dfa_reduced->munmap();
     }
 
   // done
