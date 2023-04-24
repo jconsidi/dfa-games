@@ -96,6 +96,8 @@ MemoryMap<T>& MemoryMap<T>::operator=(MemoryMap<T>&& other) noexcept
       this->munmap();
     }
 
+  _filename = other._filename;
+  _flags = other._flags;
   _size = other._size;
   _length = other._length;
   _mapped = other._mapped;
