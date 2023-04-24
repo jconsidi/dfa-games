@@ -204,7 +204,10 @@ void MemoryMap<T>::mmap(int fildes) const
 template<class T>
 void MemoryMap<T>::munmap()
 {
-  assert(_mapped);
+  if(!_mapped)
+    {
+      return;
+    }
 
   if(::munmap(_mapped, _length))
     {
