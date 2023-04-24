@@ -19,6 +19,7 @@ private:
 
   int _calc_layer(int rank, int file) const;
   int _calc_square(int rank, int file) const;
+  int _calc_castle_rank(int side) const;
   change_vector _get_changes() const;
   std::vector<std::tuple<int, int, int, int, std::vector<int>, bool>> _get_choices_basic(int) const;
   void _get_choices_basic_helper(std::vector<std::tuple<int, int, int, int, std::vector<int>, bool>>&, int, int, int, const MoveSet&) const;

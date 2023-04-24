@@ -47,6 +47,11 @@ ChessGame::ChessGame(int max_pieces_in)
 {
 }
 
+int ChessGame::_calc_castle_rank(int side) const
+{
+  return (side == SIDE_WHITE) ? 7 : 0;
+}
+
 int ChessGame::_calc_layer(int rank, int file) const
 {
   return _calc_square(rank, file) + CHESS_SQUARE_OFFSET;
@@ -559,7 +564,7 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   // castle left
 
-  int castle_rank = (side_to_move == SIDE_WHITE) ? 7 : 0;
+  int castle_rank = _calc_castle_rank(side_to_move);
 
   change_vector castle_left_changes = _get_changes();
 #if CHESS_SQUARE_OFFSET == 2
@@ -1129,6 +1134,22 @@ shared_dfa_ptr ChessGame::get_positions_legal_shared() const
     // king restrictions
     requirements.push_back(get_positions_king(0));
     requirements.push_back(get_positions_king(1));
+
+    // castle rights
+
+    for(int side = 0; side < 2; ++side)
+      {
+	int king_character = (side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+	int king_rank = _calc_castle_rank(side);
+	int king_square = king_rank * 8 + 4;
+
+	int castle_rook_character = (side == SIDE_WHITE) ? DFA_WHITE_ROOK_CASTLE : DFA_BLACK_ROOK_CASTLE;
+
+	shared_dfa_ptr king_initial_position = DFAUtil::get_fixed(chess_shape, king_square + CHESS_SQUARE_OFFSET, king_character);
+	shared_dfa_ptr castle_rights_cleared = DFAUtil::get_count_character(chess_shape, castle_rook_character, 0, 0, CHESS_SQUARE_OFFSET);
+
+	requirements.push_back(DFAUtil::get_union(king_initial_position, castle_rights_cleared));
+      }
 
     // max pieces restriction
 
