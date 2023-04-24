@@ -508,8 +508,20 @@ void DFA::save(std::string name_in) const
       throw std::runtime_error("DFA save rename failed");
     }
 
+  // repoint internal state at new directory
+
   directory = directory_new;
   name = name_in;
+  layer_file_names = get_layer_file_names(shape.size(), directory_new);
+
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      // switch layer memory maps to the new file names so they do not
+      // break on munmap. has an implied flush.
+      layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer]);
+      assert(layer_transitions[layer].size() == layer_sizes[layer] * shape[layer]);
+    }
+
   temporary = false;
 }
 

@@ -75,7 +75,7 @@ class DFA
   mutable std::string name;
 
   // ndim layers mapping (state, square contents) -> next state.
-  std::vector<std::string> layer_file_names;
+  mutable std::vector<std::string> layer_file_names;
   std::vector<dfa_state_t> layer_sizes;
   mutable std::vector<MemoryMap<dfa_state_t>> layer_transitions;
 
