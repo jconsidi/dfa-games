@@ -22,6 +22,7 @@ void populate_solved_games()
   solved_games.try_emplace("normalnim_2", 32, -1);
   solved_games.try_emplace("normalnim_3", 48, 1);
   solved_games.try_emplace("normalnim_4", 64, -1);
+  solved_games.try_emplace("othello_4x4", 12, -1);
   solved_games.try_emplace("othello_6x6", 32, -1); /* Feinstein 1993 */
   solved_games.try_emplace("tictactoe_1", 1, 1);
   solved_games.try_emplace("tictactoe_2", 3, 1);
