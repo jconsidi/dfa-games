@@ -31,6 +31,7 @@ private:
   shared_dfa_ptr get_positions_can_place(int) const;
   shared_dfa_ptr get_positions_can_place(int, int, int) const;
   shared_dfa_ptr get_positions_end() const;
+  shared_dfa_ptr get_positions_legal() const;
 
 public:
 

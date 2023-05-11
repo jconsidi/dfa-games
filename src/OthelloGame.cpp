@@ -40,6 +40,8 @@ MoveGraph OthelloGame::build_move_graph(int side_to_move) const
   MoveGraph move_graph(get_shape());
 
   move_graph.add_node("begin");
+  move_graph.add_node("begin+1");
+  move_graph.add_edge("begin legal", "begin", "begin+1", get_positions_legal());
 
   std::vector<std::string> move_end_names;
 
@@ -65,7 +67,7 @@ MoveGraph OthelloGame::build_move_graph(int side_to_move) const
 			      begin_changes,
 			      begin_pre_conditions,
 			      begin_post_conditions);
-	  move_graph.add_edge("begin", move_begin_name);
+	  move_graph.add_edge("begin+1", move_begin_name);
 
 	  std::string previous_name = move_begin_name;
 
@@ -159,11 +161,14 @@ MoveGraph OthelloGame::build_move_graph(int side_to_move) const
 	}
     }
 
-  move_graph.add_node("end");
+  move_graph.add_node("end+1");
   for(auto move_end_name : move_end_names)
     {
-      move_graph.add_edge(move_end_name, "end");
+      move_graph.add_edge(move_end_name, "end+1");
     }
+
+  move_graph.add_node("end");
+  move_graph.add_edge("end legal", "end+1", "end", get_positions_legal());
 
   // add pass moves
 
@@ -171,8 +176,8 @@ MoveGraph OthelloGame::build_move_graph(int side_to_move) const
 							  get_positions_can_place(side_to_move));
 
   move_graph.add_edge("pass",
-		      "begin",
-		      "end",
+		      "begin+1",
+		      "end+1",
 		      pass_condition);
 
   // done
@@ -296,6 +301,34 @@ shared_dfa_ptr OthelloGame::get_positions_end() const
     // game ends if neither side can place a piece
     return DFAUtil::get_inverse(DFAUtil::get_union(get_positions_can_place(0),
 						   get_positions_can_place(1)));
+  });
+}
+
+shared_dfa_ptr OthelloGame::get_positions_legal() const
+{
+  return load_or_build("legal", [=]()
+  {
+    std::vector<shared_dfa_ptr> conditions;
+
+    // initial squares cannot be blank
+
+    int first_x = width / 2 - 1;
+    int first_y = height / 2 - 1;
+
+    std::vector<std::pair<int, int>> initial_coordinates;
+    initial_coordinates.emplace_back(first_x, first_y);
+    initial_coordinates.emplace_back(first_x, first_y + 1);
+    initial_coordinates.emplace_back(first_x + 1, first_y);
+    initial_coordinates.emplace_back(first_x + 1, first_y + 1);
+
+    for(auto coordinate : initial_coordinates)
+      {
+	int layer = CALCULATE_LAYER(std::get<0>(coordinate), std::get<1>(coordinate));
+
+	conditions.push_back(DFAUtil::get_inverse(DFAUtil::get_fixed(get_shape(), layer, 0)));
+      };
+
+    return DFAUtil::get_intersection_vector(get_shape(), conditions);
   });
 }
 
