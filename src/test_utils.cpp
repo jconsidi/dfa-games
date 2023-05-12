@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "AmazonsGame.h"
+#include "BreakthroughGame.h"
 #include "ChessGame.h"
 #include "DFAUtil.h"
 #include "NormalNimGame.h"
@@ -39,6 +40,16 @@ Game *get_game(std::string game_name)
 	  throw std::logic_error("get_name() failed parsing amazons game name");
 	}
       output = new AmazonsGame(width, height);
+    }
+  else if(game_name.starts_with("breakthrough_"))
+    {
+      int width = 0;
+      int height = 0;
+      if(std::sscanf(game_name.c_str(), "breakthrough_%dx%d", &width, &height) != 2)
+	{
+	  throw std::logic_error("get_name() failed parsing breakthrough game name");
+	}
+      output = new BreakthroughGame(width, height);
     }
 #if CHESS_SQUARE_OFFSET == 0
   else if(game_name == "chess+0")

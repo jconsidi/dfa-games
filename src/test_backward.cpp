@@ -18,6 +18,9 @@ void populate_solved_games()
   solved_games.try_emplace("amazons_5x5", 17, 1); /* Muller 2001 */
   solved_games.try_emplace("amazons_5x6", 22, 1); /* Song 2014 */
   solved_games.try_emplace("amazons_6x4", 16, -1); /* Song 2014 */
+  solved_games.try_emplace("breakthrough_3x7", 55, -1);
+  solved_games.try_emplace("breakthrough_5x5", 51, -1);
+  solved_games.try_emplace("breakthrough_6x5", 61, -1); /* Saffidine 2011 */
   solved_games.try_emplace("normalnim_1", 16, 1);
   solved_games.try_emplace("normalnim_2", 32, -1);
   solved_games.try_emplace("normalnim_3", 48, 1);
