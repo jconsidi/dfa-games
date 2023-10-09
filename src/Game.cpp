@@ -88,6 +88,24 @@ shared_dfa_ptr Game::get_positions_initial() const
   return DFAUtil::from_string(get_position_initial());
 }
 
+shared_dfa_ptr Game::get_positions_reachable(int ply) const
+{
+  assert(ply >= 0);
+
+  if(ply == 0)
+    {
+      return get_positions_initial();
+    }
+
+  std::string name = "reachable,ply=" + std::to_string(ply);
+  return load_or_build(name,
+		       [&]()
+                       {
+			 shared_dfa_ptr previous = get_positions_reachable(ply - 1);
+			 return get_moves_forward((ply - 1) % 2, previous);
+		       });
+}
+
 std::string Game::get_name_losing(int side_to_move, int ply_max) const
 {
   std::ostringstream dfa_name_builder;
