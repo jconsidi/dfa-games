@@ -14,5 +14,6 @@ test_normal_nim_game
 test_perft
 test_perft_u
 test_reachable
+test_solved
 test_tictactoe_game
 typescript*
