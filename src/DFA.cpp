@@ -528,13 +528,32 @@ bool DFA::ready() const
 void DFA::save(std::string name_in) const
 {
   assert(ready());
-  assert(temporary);
+
+  std::string directory_new = std::string("scratch/") + name_in;
+  if(directory_new == directory)
+    {
+      // skip self-assignment
+      return;
+    }
+
+  if(!temporary)
+    {
+      // add symbolic link to existing DFA assuming fixed hierarchy depth
+      std::string directory_by_hash = "../dfas_by_hash/" + get_hash();
+      int ret = symlink(directory_by_hash.c_str(), directory_new.c_str());
+      if(ret)
+	{
+	  perror("DFA save rename");
+	  throw std::runtime_error("DFA save symlink failed");
+	}
+
+      return;
+    }
 
   // write initial state to disk
   MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state", 1);
   initial_state_mmap[0] = initial_state;
 
-  std::string directory_new = std::string("scratch/") + name_in;
   remove_directory(directory_new);
 
   int ret = rename(directory.c_str(), directory_new.c_str());
