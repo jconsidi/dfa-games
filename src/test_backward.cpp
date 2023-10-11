@@ -23,7 +23,15 @@ int main(int argc, char **argv)
   std::cout << "INITIAL POSITION:" << std::endl;
   std::cout << game->position_to_string(initial_position) << std::endl;
 
-  shared_dfa_ptr winning_positions = game->get_positions_winning(0, ply_max);
+  shared_dfa_ptr test_positions;
+  if(ply_max % 2)
+    {
+      test_positions = game->get_positions_winning(0, ply_max);
+    }
+  else
+    {
+      test_positions = game->get_positions_losing(0, ply_max);
+    }
 
   return 0;
 }
