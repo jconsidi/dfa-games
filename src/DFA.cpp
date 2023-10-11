@@ -2,11 +2,14 @@
 
 #include <assert.h>
 #include <dirent.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <iomanip>
 #include <sstream>
 #include <string>
 
@@ -321,6 +324,38 @@ void DFA::finalize()
 	  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], expected_transitions_size);
 	}
     }
+}
+
+std::string DFA::get_hash() const
+{
+  assert(ready());
+
+  if(hash == "")
+    {
+      unsigned char hash_output[SHA256_DIGEST_LENGTH];
+      static const EVP_MD *hash_implementation = EVP_sha256();
+      static EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+
+      EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
+      EVP_DigestUpdate(hash_context, &initial_state, sizeof(initial_state));
+      EVP_DigestUpdate(hash_context, layer_sizes.data(), layer_sizes.size() * sizeof(layer_sizes[0]));
+      for(int layer = 0; layer < ndim; ++layer)
+	{
+	  EVP_DigestUpdate(hash_context, &(layer_transitions[layer][0]), layer_transitions[layer].length());
+	}
+      EVP_DigestFinal_ex(hash_context, hash_output, 0);
+
+      std::stringstream ss;
+      for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+	{
+	  ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash_output[i];
+	}
+      hash = ss.str();
+    }
+
+  assert(hash.length() == 64);
+
+  return hash;
 }
 
 dfa_state_t DFA::get_initial_state() const

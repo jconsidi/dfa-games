@@ -79,6 +79,8 @@ class DFA
   std::vector<dfa_state_t> layer_sizes;
   mutable std::vector<MemoryMap<dfa_state_t>> layer_transitions;
 
+  mutable std::string hash;
+
   mutable bool temporary;
 
   mutable DFALinearBound *linear_bound = 0;
@@ -105,6 +107,7 @@ class DFA
 
   bool contains(const DFAString&) const;
 
+  std::string get_hash() const;
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   dfa_state_t get_layer_size(int) const;

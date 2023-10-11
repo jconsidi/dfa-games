@@ -3,6 +3,7 @@
 CXX=c++
 
 CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g -ferror-limit=1
+LDFLAGS=-L/usr/local/opt/openssl/lib -lcrypto
 
 TARGETS=divide generate_moves print random random_uci test_backward test_bitset test_change_dfa test_chess_game test_dfa test_forward test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_tictactoe_game
 
@@ -40,61 +41,61 @@ divide : divide.o chess.a
 	$(CXX) -o $@ $^
 
 generate_moves : generate_moves.o chess.a
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 print: print.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 prototype: prototype.o chess.a
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 random : random.o chess.a
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 random_uci : random_uci.o chess.a
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_backward : test_backward.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_bitset : test_bitset.o chess.a
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_change_dfa : test_change_dfa.o chess.a
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_chess_game : test_chess_game.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_chess_backward : test_chess_backward.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_dfa : test_dfa.o chess.a
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_forward : test_forward.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_memorymap : test_memorymap.o chess.a
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_normal_nim_game : test_normal_nim_game.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_perft : test_perft.o chess.a PerftTestCases.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_perft_u : test_perft_u.o chess.a PerftTestCases.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_reachable : test_reachable.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_solved : test_solved.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o chess.a test_utils.o
-	$(CXX) -o $@ $^
+	$(CXX) $(LDFLAGS) -o $@ $^
 
 chess.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o IntersectionManager.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnorderedBitSet.o VectorBitSet.o utils.o
 	$(AR) rcs $@ $^
