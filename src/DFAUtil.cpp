@@ -211,6 +211,34 @@ shared_dfa_ptr _singleton_if_constant(shared_dfa_ptr dfa_in)
   return dfa_in;
 }
 
+shared_dfa_ptr _try_load(const dfa_shape_t& shape_in, std::string name_in)
+{
+  try
+    {
+      return shared_dfa_ptr(new DFA(shape_in, name_in));
+    }
+  catch(std::runtime_error e)
+    {
+      return shared_dfa_ptr();
+    }
+}
+
+shared_dfa_ptr DFAUtil::dedupe_by_hash(shared_dfa_ptr dfa_in)
+{
+  std::string hash = dfa_in->get_hash();
+
+  shared_dfa_ptr previous = load_by_hash(dfa_in->get_shape(), hash);
+  if(previous)
+    {
+      // TODO : sanity check that this is the same DFA
+      return previous;
+    }
+
+  std::string name = "dfas_by_hash/" + hash;
+  dfa_in->save(name);
+  return dfa_in;
+}
+
 shared_dfa_ptr DFAUtil::from_string(const DFAString& string_in)
 {
   std::vector<DFAString> strings = {string_in};
@@ -395,7 +423,19 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 	}
     }
 
-  return _singleton_if_constant(shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in)));
+  left_in = dedupe_by_hash(left_in);
+  right_in = dedupe_by_hash(right_in);
+
+  std::string intersection_name = "intersection_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
+  shared_dfa_ptr intersection_previous = _try_load(left_in->get_shape(), intersection_name);
+  if(intersection_previous)
+    {
+      return intersection_previous;
+    }
+
+  shared_dfa_ptr intersection_new = dedupe_by_hash(shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in)));
+  intersection_new->save(intersection_name);
+  return intersection_new;
 }
 
 shared_dfa_ptr DFAUtil::get_intersection_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
@@ -481,7 +521,19 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
       return left_in;
     }
 
-  return _singleton_if_constant(shared_dfa_ptr(new UnionDFA(*left_in, *right_in)));
+  left_in = dedupe_by_hash(left_in);
+  right_in = dedupe_by_hash(right_in);
+
+  std::string union_name = "union_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
+  shared_dfa_ptr union_previous = _try_load(left_in->get_shape(), union_name);
+  if(union_previous)
+    {
+      return union_previous;
+    }
+
+  shared_dfa_ptr union_new = dedupe_by_hash(shared_dfa_ptr(new UnionDFA(*left_in, *right_in)));
+  union_new->save(union_name);
+  return union_new;
 }
 
 shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
@@ -492,6 +544,12 @@ shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std:
     }
 
   return _reduce_associative_commutative(get_union, dfas_in);
+}
+
+shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string hash_in)
+{
+  std::string name = "dfas_by_hash/" + hash_in;
+  return _try_load(shape_in, name);
 }
 
 std::string DFAUtil::quick_stats(shared_dfa_ptr dfa_in)
