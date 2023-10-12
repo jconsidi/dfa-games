@@ -234,8 +234,7 @@ shared_dfa_ptr DFAUtil::dedupe_by_hash(shared_dfa_ptr dfa_in)
       return previous;
     }
 
-  std::string name = "dfas_by_hash/" + hash;
-  dfa_in->save(name);
+  dfa_in->save_by_hash();
   return dfa_in;
 }
 

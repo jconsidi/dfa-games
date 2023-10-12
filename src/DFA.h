@@ -124,6 +124,7 @@ class DFA
 
   bool ready() const;
   void save(std::string) const;
+  void save_by_hash() const;
   void set_name(std::string) const;
   double size() const;
   size_t states() const;

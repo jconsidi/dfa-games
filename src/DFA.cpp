@@ -527,28 +527,44 @@ bool DFA::ready() const
 
 void DFA::save(std::string name_in) const
 {
-  assert(ready());
+  assert(!name_in.starts_with("dfas_by_hash/"));
 
-  std::string directory_new = std::string("scratch/") + name_in;
-  if(directory_new == directory)
+  save_by_hash();
+
+  std::string symlink_path = std::string("scratch/") + name_in;
+
+  // add symbolic link to existing directory in dfas_by_hash/
+  std::string symlink_target = "dfas_by_hash/" + get_hash();
+  for(char c : name_in)
     {
-      // skip self-assignment
-      return;
+      if(c == '/')
+	{
+	  symlink_target = "../" + symlink_target;
+	}
     }
 
+  unlink(symlink_path.c_str());
+
+  int ret = symlink(symlink_target.c_str(), symlink_path.c_str());
+  if(ret)
+    {
+      perror(("DFA save symlink " + symlink_path).c_str());
+      throw std::runtime_error("DFA save symlink failed");
+    }
+
+  name = name_in;
+}
+
+void DFA::save_by_hash() const
+{
+  assert(ready());
   if(!temporary)
     {
-      // add symbolic link to existing DFA assuming fixed hierarchy depth
-      std::string directory_by_hash = "../dfas_by_hash/" + get_hash();
-      int ret = symlink(directory_by_hash.c_str(), directory_new.c_str());
-      if(ret)
-	{
-	  perror("DFA save rename");
-	  throw std::runtime_error("DFA save symlink failed");
-	}
-
       return;
     }
+
+  std::string directory_new = std::string("scratch/dfas_by_hash/") + get_hash();
+  // TODO: check if hash directory already exists and share carefully
 
   // write initial state to disk
   MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state", 1);
@@ -566,7 +582,6 @@ void DFA::save(std::string name_in) const
   // repoint internal state at new directory
 
   directory = directory_new;
-  name = name_in;
   layer_file_names = get_layer_file_names(shape.size(), directory_new);
 
   for(int layer = 0; layer < ndim; ++layer)
