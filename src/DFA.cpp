@@ -151,6 +151,14 @@ DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
       throw std::runtime_error("initial_state file has an invalid size");
     }
   set_initial_state(initial_state_mmap[0]);
+
+  std::string hash_prefix = "dfas_by_hash/";
+  if(name_in.starts_with(hash_prefix) &&
+     (name_in.length() == hash_prefix.length() + 64))
+    {
+      hash = name_in.substr(hash_prefix.length());
+      assert(hash.length() == 64);
+    }
 }
 
 DFA::~DFA() noexcept(false)
