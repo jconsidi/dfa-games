@@ -141,6 +141,7 @@ DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
       layer_transitions.emplace_back(layer_file_names.at(layer));
 
       int layer_shape = get_layer_shape(layer);
+      assert(layer_transitions[layer].size() % layer_shape == 0);
       layer_sizes.push_back(layer_transitions[layer].size() / layer_shape);
     }
 
