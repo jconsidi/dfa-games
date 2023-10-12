@@ -332,6 +332,8 @@ std::string DFA::get_hash() const
 
   if(hash == "")
     {
+      Profile profile("get_hash");
+
       unsigned char hash_output[SHA256_DIGEST_LENGTH];
       static const EVP_MD *hash_implementation = EVP_sha256();
       static EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
