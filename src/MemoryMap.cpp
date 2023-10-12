@@ -148,9 +148,12 @@ void MemoryMap<T>::mmap() const
   int fildes = open(_filename.c_str(), O_RDWR);
   if(fildes == -1)
     {
-      std::cerr << "open " << _filename << " failed" << std::endl;
-      perror("open");
-      throw std::runtime_error("open() failed");
+      if(errno != ENOENT)
+	{
+	  std::cerr << "open " << _filename << " failed" << std::endl;
+	  perror("open");
+	}
+      throw std::runtime_error("open() failed in mmap()");
     }
 
   this->mmap(fildes);
