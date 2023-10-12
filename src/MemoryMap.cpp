@@ -48,8 +48,8 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
   int fildes = open(filename_in.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
   if(fildes == -1)
     {
-      perror("open");
-      throw std::logic_error("open() failed");
+      perror(("open " + filename_in).c_str());
+      throw std::logic_error("open() failed in constructor");
     }
 
   if(ftruncate(fildes, _length))
