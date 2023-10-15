@@ -562,7 +562,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       size_t next_left_size = left_in.get_layer_size(layer + 1);
       size_t next_right_size = right_in.get_layer_size(layer + 1);
 
-      profile.tic("forward mmap");
+      profile.tic("forward pairs bitset");
 
       assert(pairs_by_layer.size() == layer + 1);
       size_t next_size = next_left_size * next_right_size;
