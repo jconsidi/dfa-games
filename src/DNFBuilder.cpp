@@ -110,12 +110,14 @@ void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
 
   std::cout << "  " << clauses.size() << " clauses after compact with new" << std::endl;
 
+#if 0
   std::cout << "  " << clauses[0].size() << "|" << clauses[0].back()->states();
   for(int i = 1; i < clauses.size(); ++i)
     {
       std::cout << ", " << clauses[i].size() << "|" << clauses[i].back()->states();
     }
   std::cout << std::endl;
+#endif
 }
 
 void DNFBuilder::compact(int target_length)
