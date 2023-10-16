@@ -285,6 +285,24 @@ shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& c
       return DFAUtil::get_reject(dfa_in->get_shape());
     }
 
+  // check for NOP change
+
+  bool changes_found = false;
+  for(change_optional layer_change : changes_in)
+    {
+      if(layer_change.has_value())
+	{
+	  changes_found = true;
+	  break;
+	}
+    }
+  if(!changes_found)
+    {
+      return dfa_in;
+    }
+
+  // cached change
+
   dfa_in = dedupe_by_hash(dfa_in);
 
   std::ostringstream oss;
