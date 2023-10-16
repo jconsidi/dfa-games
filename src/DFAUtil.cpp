@@ -591,6 +591,11 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
       return union_previous;
     }
 
+  if((left_in->states() >= 1024) || (right_in->states() >= 1024))
+    {
+      std::cout << "UNION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
+    }
+
   shared_dfa_ptr union_new = dedupe_by_hash(shared_dfa_ptr(new UnionDFA(*left_in, *right_in)));
   union_new->save(union_name);
   return union_new;
