@@ -430,6 +430,11 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
       return left_in;
     }
 
+  if(left_in->get_hash() > right_in->get_hash())
+    {
+      std::swap(left_in, right_in);
+    }
+
   std::string intersection_name = "intersection_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
   shared_dfa_ptr intersection_previous = _try_load(left_in->get_shape(), intersection_name);
   if(intersection_previous)
@@ -531,6 +536,11 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
   if(left_in->get_hash() == right_in->get_hash())
     {
       return left_in;
+    }
+
+  if(left_in->get_hash() > right_in->get_hash())
+    {
+      std::swap(left_in, right_in);
     }
 
   std::string union_name = "union_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
