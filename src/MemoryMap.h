@@ -13,6 +13,7 @@ class MemoryMap
  private:
   std::string _filename;
   int _flags;
+  bool _readonly;
   mutable size_t _size;
   mutable size_t _length;
 
