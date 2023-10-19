@@ -65,6 +65,7 @@ public:
   // saved position access
 
   shared_dfa_ptr load(std::string dfa_name_in) const;
+  shared_dfa_ptr load_by_hash(std::string) const;
 
   // position evaluation
 

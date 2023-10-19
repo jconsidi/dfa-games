@@ -203,6 +203,11 @@ shared_dfa_ptr Game::load(std::string dfa_name_in) const
   return shared_dfa_ptr(new DFA(shape, dfa_name));
 }
 
+shared_dfa_ptr Game::load_by_hash(std::string hash_in) const
+{
+  return DFAUtil::load_by_hash(get_shape(), hash_in);
+}
+
 shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr ()> build_func) const
 {
   Profile profile("load_or_build " + dfa_name_in);
