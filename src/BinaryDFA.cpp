@@ -3,6 +3,7 @@
 #include "BinaryDFA.h"
 
 #include <assert.h>
+#include <string.h>
 
 #include <algorithm>
 #include <bit>
@@ -403,10 +404,29 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	}
       assert(curr_transition_pairs_k == curr_transition_pairs.size());
 
+      profile.tic("forward transition pairs sort mmap");
+
+      MemoryMap<size_t> curr_transition_pairs_sorted("scratch/binarydfa/transition_pairs_sorted", curr_transition_pairs.size());
+
+      profile.tic("forward transition pairs sort copy");
+
+      memcpy(&curr_transition_pairs_sorted[0], &curr_transition_pairs[0], curr_transition_pairs_sorted.length());
+
+      profile.tic("forward transition pairs sort");
+
+      std::sort(curr_transition_pairs_sorted.begin(), curr_transition_pairs_sorted.end());
+
       profile.tic("forward next pairs");
 
-      for(size_t next_pair : curr_transition_pairs)
+      size_t last_pair = 0ULL; // might be first entry but will be filtered
+      for(size_t next_pair : curr_transition_pairs_sorted)
 	{
+	  if(next_pair == last_pair)
+	    {
+	      continue;
+	    }
+	  last_pair = next_pair;
+
 	  dfa_state_t next_left_state = next_pair / next_right_size;
 	  dfa_state_t next_right_state = next_pair % next_right_size;
 
@@ -415,12 +435,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	      continue;
 	    }
 
-	  if(!next_pair_ranks.contains(next_pair))
-	    {
-	      dfa_state_t next_rank = next_pairs.size();
-	      next_pairs.push_back(next_pair);
-	      next_pair_ranks[next_pair] = next_rank;
-	    }
+	  dfa_state_t next_rank = next_pairs.size();
+	  next_pairs.push_back(next_pair);
+	  next_pair_ranks[next_pair] = next_rank;
 	}
 
       if(next_pairs.size() >= 100000)
