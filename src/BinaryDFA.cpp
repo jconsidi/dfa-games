@@ -10,234 +10,12 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 
-#include "BitSet.h"
 #include "Flashsort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "VectorBitSet.h"
-
-class LayerTransitions;
-
-class FilteredLayerTransitionsIterator;
-
-class LayerTransitionsHelper
-{
-protected:
-
-  const DFA& left;
-  const DFA& right;
-  const int layer;
-
-  const int curr_layer_shape;
-  const size_t curr_left_size;
-  const size_t curr_right_size;
-  const size_t next_left_size;
-  const size_t next_right_size;
-
-public:
-
-  LayerTransitionsHelper(const DFA& left_in,
-			 const DFA& right_in,
-			 int layer_in)
-    : left(left_in),
-      right(right_in),
-      layer(layer_in),
-      curr_layer_shape(left.get_layer_shape(layer)),
-      curr_left_size(left.get_layer_size(layer)),
-      curr_right_size(right.get_layer_size(layer)),
-      next_left_size(left.get_layer_size(layer+1)),
-      next_right_size(right.get_layer_size(layer + 1))
-  {
-  }
-
-  dfa_state_t decode_next_left(size_t next_pair) const
-  {
-    return next_pair / next_right_size;
-  }
-
-  dfa_state_t decode_next_right(size_t next_pair) const
-  {
-    return next_pair % next_right_size;
-  }
-
-  size_t get_next_pair(size_t curr_i, int curr_j) const
-  {
-    assert(curr_i < curr_left_size * curr_right_size);
-    dfa_state_t curr_left_state = curr_i / curr_right_size;
-    dfa_state_t curr_right_state = curr_i % curr_right_size;
-
-    DFATransitionsReference left_transitions = left.get_transitions(layer, curr_left_state);
-    DFATransitionsReference right_transitions = right.get_transitions(layer, curr_right_state);
-
-    size_t next_left_state = left_transitions.at(curr_j);
-    assert(next_left_state < next_left_size);
-    size_t next_right_state = right_transitions.at(curr_j);
-    assert(next_right_state < next_right_size);
-
-    return next_left_state * next_right_size + next_right_state;
-  }
-};
-
-class LayerTransitionsIterator
-  : public LayerTransitionsHelper
-{
-protected:
-
-  BitSetIterator iter;
-
-private:
-
-  mutable size_t curr_i;
-  int curr_j;
-
-protected:
-
-  LayerTransitionsIterator(const DFA& left_in,
-			   const DFA& right_in,
-			   int layer_in,
-			   BitSetIterator iter_in)
-    : LayerTransitionsHelper(left_in, right_in, layer_in),
-      iter(iter_in),
-      curr_i(0),
-      curr_j(0)
-  {
-  }
-
-public:
-
-  size_t operator*() const
-  {
-    if(curr_j == 0)
-      {
-	curr_i = *iter;
-      }
-
-    return this->get_next_pair(curr_i, curr_j);
-  }
-
-  LayerTransitionsIterator& operator++()
-  {
-    // prefix ++
-    curr_j = (curr_j + 1) % this->curr_layer_shape;
-    if(curr_j == 0)
-      {
-	++iter;
-      }
-    return *this;
-  }
-
-  bool operator<(const LayerTransitionsIterator& right_in) const
-  {
-    if(iter < right_in.iter)
-      {
-	return true;
-      }
-    else if(right_in.iter < iter)
-      {
-	return false;
-      }
-
-    return curr_j < right_in.curr_j;
-  }
-
-  friend LayerTransitions;
-};
-
-class FilteredLayerTransitionsIterator
-  : public LayerTransitionsIterator
-{
-  const BitSetIterator end;
-  std::function<bool(dfa_state_t, dfa_state_t)> filter_func;
-
-  FilteredLayerTransitionsIterator(const DFA& left_in,
-				   const DFA& right_in,
-				   int layer_in,
-				   BitSetIterator begin_in,
-				   BitSetIterator end_in,
-				   std::function<bool(dfa_state_t, dfa_state_t)> filter_in)
-    : LayerTransitionsIterator(left_in, right_in, layer_in, begin_in),
-      end(end_in),
-      filter_func(filter_in)
-  {
-    if(check_filter())
-      {
-	++(*this);
-      }
-  }
-
-public:
-
-  bool check_filter()
-  {
-    if(!(this->iter < end))
-      {
-	return false;
-      }
-
-    size_t pair = *(*this);
-
-    dfa_state_t left = this->decode_next_left(pair);
-    dfa_state_t right = this->decode_next_right(pair);
-
-    return filter_func(left, right);
-  }
-
-  FilteredLayerTransitionsIterator& operator++()
-  {
-    LayerTransitionsIterator *this2 = this;
-    ++(*this2);
-    while(check_filter())
-      {
-	++(*this2);
-      }
-
-    return *this;
-  }
-
-  friend LayerTransitions;
-};
-
-class LayerTransitions
-{
-  const DFA& left;
-  const DFA& right;
-  int layer;
-  const BitSet& layer_pairs;
-
-public:
-
-  LayerTransitions(const DFA& left_in,
-		   const DFA& right_in,
-		   int layer_in,
-		   const BitSet& layer_pairs_in)
-    : left(left_in),
-      right(right_in),
-      layer(layer_in),
-      layer_pairs(layer_pairs_in)
-  {
-  }
-
-  LayerTransitionsIterator cbegin() const
-  {
-    return LayerTransitionsIterator(left, right, layer, layer_pairs.cbegin());
-  }
-
-  FilteredLayerTransitionsIterator cbegin_filtered(std::function<bool(dfa_state_t, dfa_state_t)> filter_func) const
-  {
-    return FilteredLayerTransitionsIterator(left, right, layer, layer_pairs.cbegin(), layer_pairs.cend(), filter_func);
-  }
-
-  LayerTransitionsIterator cend() const
-  {
-    return LayerTransitionsIterator(left, right, layer, layer_pairs.cend());
-  }
-
-  FilteredLayerTransitionsIterator cend_filtered() const
-  {
-    return FilteredLayerTransitionsIterator(left, right, layer, layer_pairs.cend(), layer_pairs.cend(), [](dfa_state_t, dfa_state_t){return false;});
-  }
-};
 
 BinaryDFA::BinaryDFA(const DFA& left_in,
 		     const DFA& right_in,
@@ -530,11 +308,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     return false;
   };
 
-  std::vector<BitSet> pairs_by_layer;
-  pairs_by_layer.reserve(get_shape_size() + 1);
-
-  pairs_by_layer.emplace_back(left_in.get_layer_size(0) * right_in.get_layer_size(0));
-
   dfa_state_t initial_left = left_in.get_initial_state();
   dfa_state_t initial_right = right_in.get_initial_state();
   if(filter_func(initial_left, initial_right))
@@ -543,10 +316,23 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       return;
     }
 
+  // all reachable pairs of left/right states, represented as a size_t
+  // instead of a pair of dfa_state_t's.
+
+  std::vector<std::vector<size_t>> pairs_by_layer;
+  pairs_by_layer.reserve(get_shape_size() + 1);
+
+  // map pairs to compact ranks
+  std::vector<std::unordered_map<size_t, dfa_state_t>> pair_ranks_by_layer;
+  pair_ranks_by_layer.reserve(get_shape_size() + 1);
+
+  // manual setup of initial layer
+
   size_t initial_pair = initial_left * right_in.get_layer_size(0) + initial_right;
-  pairs_by_layer[0].prepare(initial_pair);
-  pairs_by_layer[0].allocate();
-  pairs_by_layer[0].add(initial_pair);
+  pairs_by_layer.emplace_back(1, initial_pair);
+
+  pair_ranks_by_layer.emplace_back(1);
+  pair_ranks_by_layer[0][initial_pair] = 0;
 
   // forward pass
 
@@ -559,46 +345,71 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       //
       // using size_t for product calculations...
 
+      int curr_layer_shape = this->get_layer_shape(layer);
+      size_t curr_left_size = left_in.get_layer_size(layer);
+      size_t curr_right_size = right_in.get_layer_size(layer);
+
       size_t next_left_size = left_in.get_layer_size(layer + 1);
       size_t next_right_size = right_in.get_layer_size(layer + 1);
 
       profile.tic("forward pairs bitset");
 
       assert(pairs_by_layer.size() == layer + 1);
-      size_t next_size = next_left_size * next_right_size;
-      bool disk_mmap = next_size >= 1ULL << 32;
-#if 0
-      if(disk_mmap)
-	{
-	  pairs_by_layer.emplace_back(binary_build_file_prefix(layer), next_size);
-	}
-      else
-#else
-	{
-	  pairs_by_layer.emplace_back(next_size);
-	}
-#endif
-      assert(pairs_by_layer.size() == layer + 2);
+      assert(pair_ranks_by_layer.size() == layer + 1);
 
-      const BitSet& curr_layer = pairs_by_layer.at(layer);
-      BitSet& next_layer = pairs_by_layer.at(layer + 1);
+      const std::vector<size_t>& curr_pairs = pairs_by_layer.at(layer);
+
+      pairs_by_layer.emplace_back();
+      std::vector<size_t>& next_pairs = pairs_by_layer.at(layer + 1);
+
+      pair_ranks_by_layer.emplace_back();
+      std::unordered_map<size_t, dfa_state_t>& next_pair_ranks = pair_ranks_by_layer.at(layer+1);
+
+      assert(pairs_by_layer.size() == layer + 2);
+      assert(pair_ranks_by_layer.size() == layer + 2);
 
       profile.tic("forward pairs");
 
-      LayerTransitions layer_transitions(left_in, right_in, layer, curr_layer);
-
-      populate_bitset<FilteredLayerTransitionsIterator>(next_layer,
-							layer_transitions.cbegin_filtered(filter_func),
-							layer_transitions.cend_filtered());
-
-      if(disk_mmap)
+      for(size_t curr_pair : curr_pairs)
 	{
-	  size_t bits_set = next_layer.count();
-	  size_t bits_total = next_layer.size();
+	  size_t curr_left_state = curr_pair / curr_right_size;
+	  assert(curr_left_state < curr_left_size);
+	  size_t curr_right_state = curr_pair % curr_right_size;
+
+	  DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
+	  DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
+
+	  for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
+	    {
+	      dfa_state_t next_left_state = left_transitions.at(curr_j);
+	      assert(next_left_state < next_left_size);
+	      dfa_state_t next_right_state = right_transitions.at(curr_j);
+	      assert(next_right_state < next_right_size);
+
+	      if(filter_func(next_left_state, next_right_state))
+		{
+		  continue;
+		}
+
+	      size_t next_pair = size_t(next_left_state) * next_right_size + size_t(next_right_state);
+	      if(!next_pair_ranks.contains(next_pair))
+		{
+		  dfa_state_t next_rank = next_pairs.size();
+		  next_pairs.push_back(next_pair);
+		  next_pair_ranks[next_pair] = next_rank;
+		}
+	    }
+	}
+
+      if(next_pairs.size() >= 100000)
+	{
+	  // stats compared to full quadratic blow up
+	  size_t bits_set = next_pairs.size();
+	  size_t bits_total = next_left_size * next_right_size;
 	  std::cout << "bits set = " << bits_set << " / " << bits_total << " ~ " << (double(bits_set) / double(bits_total)) << std::endl;
 	}
 
-      if(next_layer.count() == 0)
+      if(next_pairs.size() == 0)
 	{
 	  // all pairs in next layer were filtered. no need to continue.
 	  break;
@@ -606,7 +417,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     }
 
   assert(pairs_by_layer.size() > 0);
-  assert(pairs_by_layer.back().count() == 0);
+  assert(pairs_by_layer.back().size() == 0);
 
   // apply leaf function
 
@@ -624,57 +435,17 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("backward init");
 
       assert(pairs_by_layer.size() == layer + 2);
+      assert(pair_ranks_by_layer.size() == layer + 2);
 
       int curr_layer_shape = this->get_layer_shape(layer);
-      const BitSet& curr_layer = pairs_by_layer.at(layer);
+      size_t curr_right_size = right_in.get_layer_size(layer);
+      const std::vector<size_t>& curr_pairs = pairs_by_layer.at(layer);
+      size_t curr_layer_count = curr_pairs.size();
+      const std::unordered_map<size_t, dfa_state_t>& curr_pair_ranks = pair_ranks_by_layer.at(layer);
 
-      profile.tic("backward curr index");
-
-      BitSetIndex curr_index(curr_layer);
-
-      profile.tic("backward next index");
-
-      const BitSet& next_layer = pairs_by_layer.at(layer + 1);
-
-      BitSetIndex next_index(next_layer);
-
-      profile.tic("backward enumerate");
-
-      LayerTransitionsHelper helper(left_in, right_in, layer);
-
-      size_t curr_layer_count = curr_layer.count();
-      MemoryMap<size_t> curr_pairs = memory_map_helper<size_t>(layer, "sort", curr_layer_count);
-
-      size_t curr_pairs_k = 0;
-      for(auto iter = curr_layer.cbegin();
-	  iter < curr_layer.cend();
-	  ++curr_pairs_k, ++iter)
-	{
-	  curr_pairs[curr_pairs_k] = *iter;
-	}
-      assert(curr_pairs_k == curr_pairs.size());
-
-      profile.tic("backward transitions setup");
-
-      auto get_next_state = [&](size_t curr_pair, int curr_j)
-      {
-	assert(curr_layer.check(curr_pair));
-	size_t next_pair = helper.get_next_pair(curr_pair, curr_j);
-	dfa_state_t next_left = helper.decode_next_left(next_pair);
-	dfa_state_t next_right = helper.decode_next_right(next_pair);
-
-	if(filter_func(next_left, next_right))
-	  {
-	    return shortcircuit_func(next_left, next_right);
-	  }
-	else
-	  {
-	    dfa_state_t next_compact = next_index.rank(next_pair);
-	    assert(next_compact < next_pair_mapping.size());
-	    dfa_state_t next_deduped = next_pair_mapping[next_compact];
-	    return next_deduped;
-	  }
-      };
+      size_t next_left_size = left_in.get_layer_size(layer + 1);
+      size_t next_right_size = right_in.get_layer_size(layer + 1);
+      const std::unordered_map<size_t, dfa_state_t>& next_pair_ranks = pair_ranks_by_layer.at(layer+1);
 
       profile.tic("backward transitions mmap");
 
@@ -682,13 +453,38 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward transitions populate");
 
-      for(dfa_state_t i = 0; i < curr_layer_count; ++i)
+      size_t curr_transitions_k = 0;
+      for(size_t curr_pair : curr_pairs)
 	{
+	  dfa_state_t curr_left_state = curr_pair / curr_right_size;
+	  dfa_state_t curr_right_state = curr_pair % curr_right_size;
+
+	  DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
+	  DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
+
 	  for(int j = 0; j < curr_layer_shape; ++j)
 	    {
-	      curr_transitions[i * curr_layer_shape + j] = get_next_state(curr_pairs[i], j);
+	      dfa_state_t next_left_state = left_transitions.at(j);
+	      assert(next_left_state < next_left_size);
+	      dfa_state_t next_right_state = right_transitions.at(j);
+	      assert(next_right_state < next_right_size);
+
+	      if(filter_func(next_left_state, next_right_state))
+		{
+		  curr_transitions[curr_transitions_k++] = shortcircuit_func(next_left_state, next_right_state);
+		}
+	      else
+		{
+		  size_t next_pair = size_t(next_left_state) * next_right_size + size_t(next_right_state);
+
+		  dfa_state_t next_compact = next_pair_ranks.at(next_pair);
+		  assert(next_compact < next_pair_ranks.size());
+		  dfa_state_t next_deduped = next_pair_mapping[next_compact];
+		  curr_transitions[curr_transitions_k++] = next_deduped;
+		}
 	    }
 	}
+      assert(curr_transitions_k == curr_transitions.size());
 
       profile.tic("backward sort mmap");
 
@@ -756,7 +552,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       set_helper(0);
 
-      curr_pair_mapping[curr_index.rank(curr_pairs[curr_pairs_permutation[0]])] = curr_logical;
+      curr_pair_mapping[curr_pair_ranks.at(curr_pairs[curr_pairs_permutation[0]])] = curr_logical;
 
       for(size_t k = 1; k < curr_layer_count; ++k)
 	{
@@ -764,7 +560,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	    {
 	      set_helper(k);
 	    }
-	  curr_pair_mapping[curr_index.rank(curr_pairs[curr_pairs_permutation[k]])] = curr_logical;
+	  curr_pair_mapping[curr_pair_ranks.at(curr_pairs[curr_pairs_permutation[k]])] = curr_logical;
 	}
 
       assert(curr_pair_mapping.size() == curr_layer_count);
@@ -775,6 +571,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       // shrink state
 
       profile.tic("backward munmap");
+      pair_ranks_by_layer.pop_back();
       pairs_by_layer.pop_back();
 
       // cleanup in destructors
