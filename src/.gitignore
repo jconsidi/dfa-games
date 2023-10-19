@@ -9,6 +9,7 @@ test_chess_game
 test_chess_limited
 test_dfa
 test_forward
+test_get_union
 test_memorymap
 test_normal_nim_game
 test_perft
