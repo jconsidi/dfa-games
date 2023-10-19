@@ -72,6 +72,7 @@ void Profile::push_label_suffix(std::string suffix_in)
 
 void Profile::set_prefix(std::string prefix_in)
 {
+  tic("set_prefix");
   prefix = prefix_in;
 }
 
