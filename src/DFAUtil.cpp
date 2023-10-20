@@ -102,11 +102,16 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
   // build priority queue to optimize reduce costs
 
   std::set<shared_dfa_ptr> dfas_todo;
-  std::priority_queue<std::tuple<double, shared_dfa_ptr, shared_dfa_ptr>> scored_pairs;
+  std::priority_queue<std::tuple<double, std::string, std::string, shared_dfa_ptr, shared_dfa_ptr>> scored_pairs;
 
   auto enqueue_pair = [&](shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
   {
-    scored_pairs.emplace(-_binary_score(dfa_a, dfa_b), dfa_a, dfa_b);
+    if(dfa_a->get_hash() > dfa_b->get_hash())
+      {
+	std::swap(dfa_a, dfa_b);
+      }
+
+    scored_pairs.emplace(-_binary_score(dfa_a, dfa_b), dfa_a->get_hash(), dfa_b->get_hash(), dfa_a, dfa_b);
   };
 
   for(int i = 0; i < dfas_in.size(); ++i)
@@ -132,13 +137,13 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
 
   while(dfas_todo.size() > 1)
     {
-      std::tuple<double, shared_dfa_ptr, shared_dfa_ptr> scored_pair = scored_pairs.top();
+      std::tuple<double, std::string, std::string, shared_dfa_ptr, shared_dfa_ptr> scored_pair = scored_pairs.top();
       scored_pairs.pop();
 
       // check if both DFAs are still around because we lazy cleaning up scored pairs.
 
-      shared_dfa_ptr dfa_i = std::get<1>(scored_pair);
-      shared_dfa_ptr dfa_j = std::get<2>(scored_pair);
+      shared_dfa_ptr dfa_i = std::get<3>(scored_pair);
+      shared_dfa_ptr dfa_j = std::get<4>(scored_pair);
       if(!dfas_todo.contains(dfa_i) || !dfas_todo.contains(dfa_j))
 	{
 	  continue;
