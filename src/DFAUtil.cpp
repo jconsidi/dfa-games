@@ -104,6 +104,11 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
   std::set<shared_dfa_ptr> dfas_todo;
   std::priority_queue<std::tuple<double, shared_dfa_ptr, shared_dfa_ptr>> scored_pairs;
 
+  auto enqueue_pair = [&](shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
+  {
+    scored_pairs.emplace(-_binary_score(dfa_a, dfa_b), dfa_a, dfa_b);
+  };
+
   for(int i = 0; i < dfas_in.size(); ++i)
     {
       shared_dfa_ptr dfa_i = dfas_in[i];
@@ -112,7 +117,7 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
       for(int j = i + 1; j < dfas_in.size(); ++j)
 	{
 	  shared_dfa_ptr dfa_j = dfas_in[j];
-	  scored_pairs.emplace(-_binary_score(dfa_i, dfa_j), dfa_i, dfa_j);
+	  enqueue_pair(dfa_i, dfa_j);
 	}
     }
 
@@ -154,7 +159,7 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
       shared_dfa_ptr dfa_reduced = reduce_func(dfa_i, dfa_j);
       for(shared_dfa_ptr dfa_k : dfas_todo)
 	{
-	  scored_pairs.emplace(-_binary_score(dfa_reduced, dfa_k), dfa_reduced, dfa_k);
+	  enqueue_pair(dfa_reduced, dfa_k);
 	}
 
       dfas_todo.insert(dfa_reduced);
