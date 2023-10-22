@@ -35,7 +35,9 @@ public:
   T operator[](size_t) const;
 
   T *begin();
+  const T *begin() const;
   T *end();
+  const T *end() const;
   size_t length() const;
   void mmap() const;
   void munmap();

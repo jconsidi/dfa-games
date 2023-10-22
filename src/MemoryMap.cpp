@@ -134,9 +134,21 @@ T *MemoryMap<T>::begin()
 }
 
 template<class T>
+const T *MemoryMap<T>::begin() const
+{
+  return ((const T *) _mapped);
+}
+
+template<class T>
 T *MemoryMap<T>::end()
 {
   return ((T *) _mapped) + _size;
+}
+
+template<class T>
+const T *MemoryMap<T>::end() const
+{
+  return ((const T *) _mapped) + _size;
 }
 
 template<class T>
