@@ -12,7 +12,6 @@
 #include <string>
 #include <unordered_map>
 
-#include "Flashsort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "VectorBitSet.h"
