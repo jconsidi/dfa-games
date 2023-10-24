@@ -536,7 +536,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward sort mmap");
 
-      MemoryMap<dfa_state_t> curr_pairs_permutation = memory_map_helper<dfa_state_t>(layer, "pairs_permutation", curr_layer_count);
+      MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count);
       for(dfa_state_t i = 0; i < curr_layer_count; ++i)
 	{
 	  curr_pairs_permutation[i] = i;
