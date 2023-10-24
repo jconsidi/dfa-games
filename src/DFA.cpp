@@ -204,6 +204,8 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
 
   // add new state
 
+  assert(layer_sizes[layer] < UINT32_MAX);
+
   size_t current_offset = size_t(layer_sizes[layer]) * size_t(layer_shape);
   size_t next_offset = current_offset + size_t(layer_shape);
 
