@@ -556,7 +556,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward states");
 
-      MemoryMap<dfa_state_t> curr_pair_mapping = memory_map_helper<dfa_state_t>(layer, "pair-mapping", curr_layer_count);
+      MemoryMap<dfa_state_t> curr_pair_mapping = memory_map_helper<dfa_state_t>(layer % 2, "pair-mapping", curr_layer_count);
 
       // figure out first two states used
       dfa_state_t curr_logical = ~dfa_state_t(0);
