@@ -510,7 +510,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward transitions mmap");
 
-      MemoryMap<dfa_state_t> curr_transitions = memory_map_helper<dfa_state_t>(layer, "transitions", curr_layer_count * curr_layer_shape);
+      MemoryMap<dfa_state_t> curr_transitions("scratch/binarydfa/transitions", curr_layer_count * curr_layer_shape);
 
       profile.tic("backward transitions populate");
 
