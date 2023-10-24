@@ -623,8 +623,13 @@ shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std:
 
 shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string hash_in)
 {
+#if 1
   std::string name = "dfas_by_hash/" + hash_in;
   return _try_load(shape_in, name);
+#else
+  // test mode with hash cache disabled
+  return shared_dfa_ptr(0);
+#endif
 }
 
 std::string DFAUtil::quick_stats(shared_dfa_ptr dfa_in)
