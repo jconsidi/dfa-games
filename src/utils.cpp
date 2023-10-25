@@ -1,6 +1,7 @@
 // util.cpp
 
 #include <bit>
+#include <cassert>
 
 #include "chess.h"
 

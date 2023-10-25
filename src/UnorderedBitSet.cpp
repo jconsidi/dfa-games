@@ -2,6 +2,8 @@
 
 #include "UnorderedBitSet.h"
 
+#include <cassert>
+
 UnorderedBitSet::UnorderedBitSet(size_t size_in)
   : _size(size_in)
 {

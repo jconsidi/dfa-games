@@ -2,6 +2,7 @@
 
 #include "AmazonsGame.h"
 
+#include <cassert>
 #include <sstream>
 
 #include "DFAUtil.h"

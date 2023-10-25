@@ -2,6 +2,7 @@
 
 #include "FlexBitSet.h"
 
+#include <cassert>
 #include <iostream>
 
 FlexBitSet::FlexBitSet(size_t size_in)

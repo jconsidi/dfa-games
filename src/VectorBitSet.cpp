@@ -3,6 +3,7 @@
 #include "VectorBitSet.h"
 
 #include <bit>
+#include <cassert>
 
 VectorBitSet::VectorBitSet(size_t size_in)
   : _size(size_in),

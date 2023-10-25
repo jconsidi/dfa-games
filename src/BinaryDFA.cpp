@@ -2,10 +2,9 @@
 
 #include "BinaryDFA.h"
 
-#include <assert.h>
-
 #include <algorithm>
 #include <bit>
+#include <cassert>
 #include <iostream>
 #include <queue>
 #include <sstream>

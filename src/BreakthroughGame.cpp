@@ -2,6 +2,7 @@
 
 #include "BreakthroughGame.h"
 
+#include <cassert>
 #include <sstream>
 #include <string>
 

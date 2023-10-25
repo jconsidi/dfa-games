@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 
+#include <cassert>
 #include <iostream>
 #include <vector>
 

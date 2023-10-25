@@ -3,6 +3,7 @@
 #include "Profile.h"
 
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <iostream>
 #include <map>

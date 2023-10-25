@@ -2,6 +2,8 @@
 
 #include "OrderedBitSet.h"
 
+#include <cassert>
+
 OrderedBitSet::OrderedBitSet(size_t size_in)
   : _size(size_in)
 {

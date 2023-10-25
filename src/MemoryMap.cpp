@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <cassert>
 #include <iostream>
 
 template<class T>

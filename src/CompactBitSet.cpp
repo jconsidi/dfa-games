@@ -3,6 +3,7 @@
 #include "CompactBitSet.h"
 
 #include <bit>
+#include <cassert>
 
 #define COMPACT_FACTOR 64
 
