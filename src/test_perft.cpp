@@ -51,7 +51,7 @@ int main()
 	  test(name, fen, expected_outputs);
 	}
     }
-  catch(std::logic_error e)
+  catch(const std::logic_error& e)
     {
       std::cerr << e.what() << std::endl;
       return 1;

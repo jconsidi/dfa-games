@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 	  test(name, fen, expected_outputs.size());
 	}
     }
-  catch(std::logic_error e)
+  catch(const std::logic_error& e)
     {
       std::cerr << e.what() << std::endl;
       return 1;

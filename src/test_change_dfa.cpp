@@ -88,7 +88,7 @@ int main()
       test_suite(dfa_shape_t({TEST4_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST5_DFA_SHAPE}));
     }
-  catch(std::logic_error e)
+  catch(const std::logic_error& e)
     {
       std::cerr << e.what() << std::endl;
       std::cerr.flush();

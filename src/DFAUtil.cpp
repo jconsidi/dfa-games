@@ -227,7 +227,7 @@ shared_dfa_ptr _try_load(const dfa_shape_t& shape_in, std::string name_in)
     {
       return shared_dfa_ptr(new DFA(shape_in, name_in));
     }
-  catch(std::runtime_error e)
+  catch(const std::runtime_error& e)
     {
       return shared_dfa_ptr();
     }

@@ -223,7 +223,7 @@ shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared
 
       return output;
     }
-  catch(std::runtime_error e)
+  catch(const std::runtime_error& e)
     {
     }
 

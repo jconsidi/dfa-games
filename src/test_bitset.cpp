@@ -53,7 +53,7 @@ int main()
       test_vector(1ULL << 23, vector({(1ULL << 20) + 4096, (1ULL << 20) + 32767, 1ULL << 22}));
       test_vector(1ULL << 37, vector({0, 1ULL << 20, 1ULL << 30, 1ULL << 36}));
     }
-  catch(std::logic_error e)
+  catch(const std::logic_error& e)
     {
       std::cerr << e.what() << std::endl;
       std::cerr.flush();
