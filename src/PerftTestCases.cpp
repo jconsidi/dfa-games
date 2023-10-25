@@ -4,7 +4,7 @@
 
 #include "chess.h"
 
-const std::vector<const PerftTestCase> perft_test_cases =
+const std::vector<PerftTestCase> perft_test_cases =
   {
     {"initial position", INITIAL_FEN, std::vector<uint64_t>({20, 400, 8902, 197281, 4865609})},
 

@@ -10,6 +10,6 @@
 
 typedef std::tuple<std::string, std::string, std::vector<uint64_t>> PerftTestCase;
 
-extern const std::vector<const PerftTestCase> perft_test_cases;
+extern const std::vector<PerftTestCase> perft_test_cases;
 
 #endif
