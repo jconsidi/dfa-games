@@ -6,6 +6,7 @@
 #include <ctype.h>
 
 #include <cassert>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
