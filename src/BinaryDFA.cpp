@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <bit>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <queue>
 #include <sstream>
@@ -545,9 +546,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       auto compare_pair = [&](size_t curr_pair_index_a, size_t curr_pair_index_b)
       {
-	return std::memcmp(&(curr_transitions[curr_pair_index_a * curr_layer_shape]),
-			   &(curr_transitions[curr_pair_index_b * curr_layer_shape]),
-			   sizeof(dfa_state_t) * curr_layer_shape) < 0;
+	return ::memcmp(&(curr_transitions[curr_pair_index_a * curr_layer_shape]),
+			&(curr_transitions[curr_pair_index_b * curr_layer_shape]),
+			sizeof(dfa_state_t) * curr_layer_shape) < 0;
       };
 
       // make permutation of pairs sorted by transitions
