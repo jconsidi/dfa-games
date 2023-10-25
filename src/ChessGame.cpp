@@ -1034,7 +1034,7 @@ shared_dfa_ptr ChessGame::get_positions_legal(int side_to_move) const
 
     // opposing side is not in check
 
-    requirements.push_back(load_or_build("not_check_positions-side=" + std::to_string(1 - side_to_move), [=]()
+    requirements.push_back(load_or_build("not_check_positions-side=" + std::to_string(1 - side_to_move), [&]()
     {
       shared_dfa_ptr check_positions = get_positions_check(1 - side_to_move);
       return DFAUtil::get_inverse(check_positions);

@@ -52,7 +52,7 @@ shared_dfa_ptr Game::get_has_moves(int side_to_move) const
     {
       this->singleton_has_moves[side_to_move] = \
 	load_or_build("has_moves-side=" + std::to_string(side_to_move),
-		      [=]()
+		      [&]()
 		      {
 			shared_dfa_ptr all_positions = DFAUtil::get_accept(shape);
 			return this->get_moves_backward(side_to_move, all_positions);
@@ -180,7 +180,7 @@ shared_dfa_ptr Game::get_positions_winning(int side_to_move, int ply_max) const
     }
 
   return this->load_or_build(get_name_winning(side_to_move, ply_max),
-			     [=]()
+			     [&]()
 			     {
 			       shared_dfa_ptr losing_sooner = this->get_positions_losing(1 - side_to_move, ply_max - 1);
 			       shared_dfa_ptr winning_soon = this->get_moves_backward(side_to_move, losing_sooner);

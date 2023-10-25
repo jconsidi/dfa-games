@@ -250,7 +250,7 @@ shared_dfa_ptr OthelloGame::get_positions_can_flip(int side_to_move, int x_begin
 
 shared_dfa_ptr OthelloGame::get_positions_can_place(int side_to_move) const
 {
-  return load_or_build("can_place,side=" + std::to_string(side_to_move), [=]()
+  return load_or_build("can_place,side=" + std::to_string(side_to_move), [&]()
   {
     std::vector<shared_dfa_ptr> place_choices;
     for(int x = 0; x < width; ++x)
@@ -296,7 +296,7 @@ shared_dfa_ptr OthelloGame::get_positions_can_place(int side_to_move, int x_begi
 
 shared_dfa_ptr OthelloGame::get_positions_end() const
 {
-  return load_or_build("end", [=]()
+  return load_or_build("end", [&]()
   {
     // game ends if neither side can place a piece
     return DFAUtil::get_inverse(DFAUtil::get_union(get_positions_can_place(0),
@@ -306,7 +306,7 @@ shared_dfa_ptr OthelloGame::get_positions_end() const
 
 shared_dfa_ptr OthelloGame::get_positions_legal() const
 {
-  return load_or_build("legal", [=]()
+  return load_or_build("legal", [&]()
   {
     std::vector<shared_dfa_ptr> conditions;
 
