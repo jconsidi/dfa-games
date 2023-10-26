@@ -599,9 +599,13 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	assert(new_state == curr_logical);
       };
 
-      add_state_helper(0);
+      auto set_output_helper = [&](size_t curr_pairs_sorted_index)
+      {
+	curr_pair_rank_to_output[curr_pair_ranks.at(curr_pairs[curr_pairs_permutation[curr_pairs_sorted_index]])] = curr_logical;
+      };
 
-      curr_pair_rank_to_output[curr_pair_ranks.at(curr_pairs[curr_pairs_permutation[0]])] = curr_logical;
+      add_state_helper(0);
+      set_output_helper(0);
 
       for(size_t k = 1; k < curr_layer_count; ++k)
 	{
@@ -609,7 +613,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	    {
 	      add_state_helper(k);
 	    }
-	  curr_pair_rank_to_output[curr_pair_ranks.at(curr_pairs[curr_pairs_permutation[k]])] = curr_logical;
+	  set_output_helper(k);
 	}
 
       assert(curr_pair_rank_to_output.size() == curr_layer_count);
