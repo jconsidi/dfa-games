@@ -322,18 +322,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
   std::vector<MemoryMap<size_t>> pairs_by_layer;
   pairs_by_layer.reserve(get_shape_size() + 1);
 
-  // map pairs to compact ranks
-  std::vector<std::unordered_map<size_t, dfa_state_t>> pair_ranks_by_layer;
-  pair_ranks_by_layer.reserve(get_shape_size() + 1);
-
   // manual setup of initial layer
 
   size_t initial_pair = initial_left * right_in.get_layer_size(0) + initial_right;
   pairs_by_layer.emplace_back(1);
   pairs_by_layer[0][0] = initial_pair;
-
-  pair_ranks_by_layer.emplace_back(1);
-  pair_ranks_by_layer[0][initial_pair] = 0;
 
   // transitions helper
 
@@ -385,7 +378,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       size_t next_right_size = right_in.get_layer_size(layer + 1);
 
       assert(pairs_by_layer.size() == layer + 1);
-      assert(pair_ranks_by_layer.size() == layer + 1);
 
       profile.tic("forward transition pairs");
 
@@ -423,8 +415,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       pairs_by_layer.emplace_back(memory_map_helper<size_t>(layer, "pairs", next_pairs_count));
       MemoryMap<size_t>& next_pairs = pairs_by_layer.at(layer + 1);
 
-      pair_ranks_by_layer.emplace_back();
-      std::unordered_map<size_t, dfa_state_t>& next_pair_ranks = pair_ranks_by_layer.at(layer+1);
+      std::unordered_map<size_t, dfa_state_t> next_pair_ranks;
+      next_pair_ranks.reserve(next_pairs_count);
 
       if(next_pairs_count == 0)
 	{
@@ -474,7 +466,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
   assert(pairs_by_layer.size() > 0);
   assert(pairs_by_layer.back().size() == 0);
-  assert(pair_ranks_by_layer.size() == pairs_by_layer.size());
 
   // apply leaf function
 
@@ -492,7 +483,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("backward init");
 
       assert(pairs_by_layer.size() == layer + 2);
-      assert(pair_ranks_by_layer.size() == layer + 2);
 
       int curr_layer_shape = this->get_layer_shape(layer);
       const MemoryMap<size_t>& curr_pairs = pairs_by_layer.at(layer);
@@ -633,7 +623,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       // shrink state
 
       profile.tic("backward munmap");
-      pair_ranks_by_layer.pop_back();
       pairs_by_layer.pop_back();
 
       // cleanup in destructors
@@ -642,7 +631,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
   profile.set_prefix("");
 
   assert(pairs_by_layer.size() == 1);
-  assert(pair_ranks_by_layer.size() == 1);
 
   assert(next_pair_rank_to_output.size() == 1);
   this->set_initial_state(next_pair_rank_to_output[0]);
