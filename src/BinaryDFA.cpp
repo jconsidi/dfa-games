@@ -499,7 +499,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       int curr_layer_shape = this->get_layer_shape(layer);
       const MemoryMap<size_t>& curr_pairs = pairs_by_layer.at(layer);
       size_t curr_layer_count = curr_pairs.size();
-      const std::unordered_map<size_t, dfa_state_t>& curr_pair_ranks = pair_ranks_by_layer.at(layer);
 
       size_t next_left_size = left_in.get_layer_size(layer + 1);
       size_t next_right_size = right_in.get_layer_size(layer + 1);
@@ -601,7 +600,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       auto set_output_helper = [&](size_t curr_pairs_sorted_index)
       {
-	curr_pair_rank_to_output[curr_pair_ranks.at(curr_pairs[curr_pairs_permutation[curr_pairs_sorted_index]])] = curr_logical;
+	dfa_state_t curr_rank = curr_pairs_permutation[curr_pairs_sorted_index];
+	curr_pair_rank_to_output[curr_rank] = curr_logical;
       };
 
       add_state_helper(0);
