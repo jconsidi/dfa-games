@@ -19,10 +19,13 @@ MemoryMap<T>::MemoryMap(size_t size_in)
     _length(sizeof(T) * _size),
     _mapped(0)
 {
-  assert(size_in > 0);
+  assert(size_in >= 0);
   assert(_length / sizeof(T) == _size);
 
-  this->mmap(0);
+  if(size_in > 0)
+    {
+      this->mmap(0);
+    }
 }
 
 template<class T>
