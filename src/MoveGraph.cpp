@@ -8,7 +8,6 @@
 
 #include "DFAUtil.h"
 #include "DNFBuilder.h"
-#include "IntersectionManager.h"
 #include "Profile.h"
 
 static change_vector reverse_changes(const change_vector& changes_in);
@@ -320,15 +319,14 @@ static change_vector reverse_changes(const change_vector& changes_in)
 
 static void sort_edges(std::vector<move_edge>& edges)
 {
+  // used to do this to do this to optimize intersection caching, but
+  // now just doing the process more deterministic. not quite there.
+
   Profile profile("sort_edges");
 
   std::stable_sort(edges.begin(), edges.end(), [](const move_edge& a,
 						  const move_edge& b)
   {
-    // just optimizing pre-condition caching for now to leverage small
-    // IntersectionManager cache, and not worrying about DNFBuilder
-    // optimization of later nodes.
-
     // compare pre conditions
 
     auto pre_a = std::get<1>(a);
