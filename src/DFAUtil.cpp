@@ -327,16 +327,12 @@ shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& c
 	}
     }
   std::string change_name = oss.str();
-
-  shared_dfa_ptr change_previous = _try_load(dfa_in->get_shape(), change_name);
-  if(change_previous)
-    {
-      return change_previous;
-    }
-
-  shared_dfa_ptr change_new = dedupe_by_hash(shared_dfa_ptr(new ChangeDFA(*dfa_in, changes_in)));
-  change_new->save(change_name);
-  return change_new;
+  return load_or_build(dfa_in->get_shape(),
+		       change_name,
+		       [&]()
+		       {
+			 return shared_dfa_ptr(new ChangeDFA(*dfa_in, changes_in));
+		       });
 }
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_in)
@@ -487,15 +483,12 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
     }
 
   std::string intersection_name = "intersection_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
-  shared_dfa_ptr intersection_previous = _try_load(left_in->get_shape(), intersection_name);
-  if(intersection_previous)
-    {
-      return intersection_previous;
-    }
-
-  shared_dfa_ptr intersection_new = dedupe_by_hash(shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in)));
-  intersection_new->save(intersection_name);
-  return intersection_new;
+  return load_or_build(left_in->get_shape(),
+		       intersection_name,
+		       [&]()
+		       {
+			 return shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in));
+		       });
 }
 
 shared_dfa_ptr DFAUtil::get_intersection_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
@@ -595,20 +588,17 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
     }
 
   std::string union_name = "union_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
-  shared_dfa_ptr union_previous = _try_load(left_in->get_shape(), union_name);
-  if(union_previous)
-    {
-      return union_previous;
-    }
+  return load_or_build(left_in->get_shape(),
+		       union_name,
+		       [&]()
+		       {
+			 if((left_in->states() >= 1024) || (right_in->states() >= 1024))
+			   {
+			     std::cout << "UNION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
+			   }
 
-  if((left_in->states() >= 1024) || (right_in->states() >= 1024))
-    {
-      std::cout << "UNION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
-    }
-
-  shared_dfa_ptr union_new = dedupe_by_hash(shared_dfa_ptr(new UnionDFA(*left_in, *right_in)));
-  union_new->save(union_name);
-  return union_new;
+			 return shared_dfa_ptr(new UnionDFA(*left_in, *right_in));
+		       });
 }
 
 shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
