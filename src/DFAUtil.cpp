@@ -487,6 +487,11 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 		       intersection_name,
 		       [&]()
 		       {
+			 if((left_in->states() >= 1024) || (right_in->states() >= 1024))
+			   {
+			     std::cout << "INTERSECTION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
+			   }
+
 			 return shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in));
 		       });
 }
