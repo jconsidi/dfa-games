@@ -655,7 +655,7 @@ shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string n
   output = dedupe_by_hash(output);
 
   profile.tic("stats");
-  std::cout << "built " << name_in << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
+  std::cout << "built " << name_in << " => " << output->states() << " states" << std::endl;
 
   profile.tic("save");
   output->save(name_in);
