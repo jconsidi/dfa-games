@@ -642,29 +642,34 @@ double DFA::size() const
 {
   assert(ready());
 
-  std::vector<double> previous_counts({0, 1}); // reject, accept
-  for(int layer = ndim - 1; layer >= 0; --layer)
+  if((size_cache == 0.0) && (initial_state != 0))
     {
-      int layer_shape = this->get_layer_shape(layer);
-
-      std::vector<double> current_counts;
-      dfa_state_t layer_size = get_layer_size(layer);
-      for(dfa_state_t state_index = 0; state_index < layer_size; ++state_index)
+      std::vector<double> previous_counts({0, 1}); // reject, accept
+      for(int layer = ndim - 1; layer >= 0; --layer)
 	{
-	  DFATransitionsReference transitions = this->get_transitions(layer, state_index);
+	  int layer_shape = this->get_layer_shape(layer);
 
-	  double state_count = 0;
-	  for(int i = 0; i < layer_shape; ++i)
+	  std::vector<double> current_counts;
+	  dfa_state_t layer_size = get_layer_size(layer);
+	  for(dfa_state_t state_index = 0; state_index < layer_size; ++state_index)
 	    {
-	      state_count += previous_counts.at(transitions[i]);
+	      DFATransitionsReference transitions = this->get_transitions(layer, state_index);
+
+	      double state_count = 0;
+	      for(int i = 0; i < layer_shape; ++i)
+		{
+		  state_count += previous_counts.at(transitions[i]);
+		}
+	      current_counts.push_back(state_count);
 	    }
-	  current_counts.push_back(state_count);
+
+	  previous_counts = current_counts;
 	}
 
-      previous_counts = current_counts;
+      size_cache = previous_counts.at(initial_state);
     }
 
-  return previous_counts.at(initial_state);
+    return size_cache;
 }
 
 size_t DFA::states() const

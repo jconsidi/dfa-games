@@ -84,6 +84,7 @@ class DFA
 
   mutable std::string hash;
 
+  mutable double size_cache = 0.0;
   mutable bool temporary;
 
   mutable DFALinearBound *linear_bound = 0;
