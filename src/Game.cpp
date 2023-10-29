@@ -195,11 +195,8 @@ const dfa_shape_t& Game::get_shape() const
 
 shared_dfa_ptr Game::load(std::string dfa_name_in) const
 {
-  Profile profile("load " + dfa_name_in);
-
   std::string dfa_name = name + "/" + dfa_name_in;
-
-  return shared_dfa_ptr(new DFA(shape, dfa_name));
+  return DFAUtil::load_by_name(shape, dfa_name);
 }
 
 shared_dfa_ptr Game::load_by_hash(std::string hash_in) const
@@ -212,29 +209,5 @@ shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared
   Profile profile("load_or_build " + dfa_name_in);
 
   std::string dfa_name = name + "/" + dfa_name_in;
-
-  profile.tic("load");
-  try
-    {
-      shared_dfa_ptr output = load(dfa_name_in);
-      output->set_name("saved(\"" + dfa_name_in + "\")");
-      std::cout << "loaded " << dfa_name << " => " << DFAUtil::quick_stats(output) << std::endl;
-
-      return output;
-    }
-  catch(const std::runtime_error& e)
-    {
-    }
-
-  profile.tic("build");
-  std::cout << "building " << dfa_name << std::endl;
-  shared_dfa_ptr output = build_func();
-  output->set_name("saved(\"" + dfa_name_in + "\")");
-
-  profile.tic("stats");
-  std::cout << "built " << dfa_name << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
-
-  profile.tic("save");
-  output->save(dfa_name);
-  return output;
+  return DFAUtil::load_or_build(shape, dfa_name, build_func);
 }

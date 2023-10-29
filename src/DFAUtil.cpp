@@ -632,6 +632,43 @@ shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string ha
 #endif
 }
 
+shared_dfa_ptr DFAUtil::load_by_name(const dfa_shape_t& shape_in, std::string name_in)
+{
+  Profile profile("load " + name_in);
+
+  return shared_dfa_ptr(new DFA(shape_in, name_in));
+}
+
+shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string name_in, std::function<shared_dfa_ptr()> build_func)
+{
+  Profile profile("load_or_build " + name_in);
+
+  profile.tic("load");
+  try
+    {
+      shared_dfa_ptr output = load_by_name(shape_in, name_in);
+      output->set_name("saved(\"" + name_in + "\")");
+      std::cout << "loaded " << name_in << " => " << DFAUtil::quick_stats(output) << std::endl;
+
+      return output;
+    }
+  catch(const std::runtime_error& e)
+    {
+    }
+
+  profile.tic("build");
+  std::cout << "building " << name_in << std::endl;
+  shared_dfa_ptr output = build_func();
+  output->set_name("saved(\"" + name_in + "\")");
+
+  profile.tic("stats");
+  std::cout << "built " << name_in << " => " << output->size() << " positions, " << output->states() << " states" << std::endl;
+
+  profile.tic("save");
+  output->save(name_in);
+  return output;
+}
+
 std::string DFAUtil::quick_stats(shared_dfa_ptr dfa_in)
 {
   std::ostringstream stats_builder;
