@@ -57,15 +57,9 @@ Game *get_game(std::string game_name)
       output = new ChessGame();
     }
 #elif CHESS_SQUARE_OFFSET == 2
-  else if(game_name.starts_with("chess+2_"))
+  else if(game_name.starts_with("chess+2"))
     {
-      int max_pieces = 0;
-      if(std::sscanf(game_name.c_str(), "chess+2_%d", &max_pieces) != 1)
-	{
-	  throw std::logic_error("get_name() failed parsing chess game name");
-	}
-
-      output = new ChessGame(max_pieces);
+      output = new ChessGame();
     }
 #endif
   else if(game_name.starts_with("normalnim_"))

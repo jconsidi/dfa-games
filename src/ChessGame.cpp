@@ -37,13 +37,7 @@ static bool chess_is_hostile(int side_to_move, int character)
 }
 
 ChessGame::ChessGame()
-  : ChessGame(64)
-{
-}
-
-ChessGame::ChessGame(int max_pieces_in)
-  : Game("chess+" + std::to_string(CHESS_SQUARE_OFFSET) + "_" + std::to_string(max_pieces_in), chess_shape),
-    max_pieces(max_pieces_in)
+  : Game("chess+" + std::to_string(CHESS_SQUARE_OFFSET), chess_shape)
 {
 }
 
@@ -1150,10 +1144,6 @@ shared_dfa_ptr ChessGame::get_positions_legal_shared() const
 
 	requirements.push_back(DFAUtil::get_union(king_initial_position, castle_rights_cleared));
       }
-
-    // max pieces restriction
-
-    requirements.push_back(DFAUtil::get_count_character(chess_shape, DFA_BLANK, 64 - max_pieces, 64, CHESS_SQUARE_OFFSET));
 
     // ready to combine
 
