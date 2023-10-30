@@ -724,8 +724,14 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   // apply post constraints at end
 
+  move_graph.add_node("end-2");
+  connect("clear en passant end", "end-2");
+
   move_graph.add_node("end-1");
-  connect("clear en passant end", "end-1");
+  move_graph.add_edge("post not check",
+		      "end-2",
+		      "end-1",
+		      get_positions_not_check(side_to_move));
 
   move_graph.add_node("end");
   move_graph.add_edge("post legal",
@@ -1026,14 +1032,6 @@ shared_dfa_ptr ChessGame::get_positions_legal(int side_to_move) const
 						 0, 0,
 						 CHESS_SQUARE_OFFSET));
 
-    // opposing side is not in check
-
-    requirements.push_back(load_or_build("not_check_positions-side=" + std::to_string(1 - side_to_move), [&]()
-    {
-      shared_dfa_ptr check_positions = get_positions_check(1 - side_to_move);
-      return DFAUtil::get_inverse(check_positions);
-    }));
-
     std::cout << "get_positions_legal() => " << requirements.size() << " requirements" << std::endl;
 
     profile.tic("intersection");
@@ -1155,6 +1153,18 @@ shared_dfa_ptr ChessGame::get_positions_legal_shared() const
   });
 }
 
+shared_dfa_ptr ChessGame::get_positions_not_check(int checked_side) const
+{
+  // opposing side is not in check
+
+  return load_or_build("not_check_positions-side=" + std::to_string(checked_side), [&]()
+  {
+    shared_dfa_ptr check_positions = get_positions_check(checked_side);
+    return DFAUtil::get_inverse(check_positions);
+  });
+
+  return DFAUtil::get_inverse(get_positions_check(checked_side));
+}
 
 shared_dfa_ptr ChessGame::get_positions_threat(int threatened_side, int threatened_square) const
 {

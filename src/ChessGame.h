@@ -37,6 +37,7 @@ private:
   shared_dfa_ptr get_positions_king(int) const;
   shared_dfa_ptr get_positions_legal(int) const;
   shared_dfa_ptr get_positions_legal_shared() const;
+  shared_dfa_ptr get_positions_not_check(int) const;
 
 public:
 
