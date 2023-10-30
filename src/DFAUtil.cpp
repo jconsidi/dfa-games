@@ -183,7 +183,7 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
     {
       if(output->states() >= 1024)
 	{
-	  std::cout << "  merged DFA has " << output->states() << " states and " << output->size() << " positions" << std::endl;
+	  std::cout << "  merged DFA has " << output->states() << " states" << std::endl;
 	}
 
       return output;
