@@ -236,21 +236,6 @@ shared_dfa_ptr _try_load(const dfa_shape_t& shape_in, std::string name_in)
     }
 }
 
-shared_dfa_ptr DFAUtil::dedupe_by_hash(shared_dfa_ptr dfa_in)
-{
-  std::string hash = dfa_in->get_hash();
-
-  shared_dfa_ptr previous = load_by_hash(dfa_in->get_shape(), hash);
-  if(previous)
-    {
-      // TODO : sanity check that this is the same DFA
-      return previous;
-    }
-
-  dfa_in->save_by_hash();
-  return dfa_in;
-}
-
 shared_dfa_ptr DFAUtil::from_string(const DFAString& string_in)
 {
   std::vector<DFAString> strings = {string_in};
@@ -315,8 +300,6 @@ shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& c
     }
 
   // cached change
-
-  dfa_in = dedupe_by_hash(dfa_in);
 
   std::ostringstream oss;
   oss << "change_cache/";
@@ -429,9 +412,6 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
     {
       return get_reject(left_in->get_shape());
     }
-
-  left_in = dedupe_by_hash(left_in);
-  right_in = dedupe_by_hash(right_in);
 
   if(left_in->get_hash() == right_in->get_hash())
     {
@@ -580,9 +560,6 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
       return left_in;
     }
 
-  left_in = dedupe_by_hash(left_in);
-  right_in = dedupe_by_hash(right_in);
-
   if(left_in->get_hash() == right_in->get_hash())
     {
       return left_in;
@@ -673,9 +650,6 @@ shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string n
   std::cout << "building " << name_in << std::endl;
   shared_dfa_ptr output = build_func();
   output->set_name("saved(\"" + name_in + "\")");
-
-  profile.tic("dedupe_by_hash");
-  output = dedupe_by_hash(output);
 
   profile.tic("stats");
   std::cout << "built " << name_in << " => " << output->states() << " states" << std::endl;
