@@ -153,37 +153,9 @@ DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
     }
   set_initial_state(initial_state_mmap[0]);
 
-  std::string hash_prefix = "dfas_by_hash/";
-  if(name_in.starts_with(hash_prefix))
-    {
-      assert(name_in.length() == hash_prefix.length() + 64);
-      hash = name_in.substr(hash_prefix.length());
-      assert(hash.length() == 64);
-    }
-  else
-    {
-      // read symbolic link which should be pointing to hash directory.
-
-      char link_target[1024] = {0};
-      ssize_t ret = readlink(directory.c_str(), link_target, sizeof(link_target) - 1);
-      if(ret >= 0)
-	{
-	  std::string link_target_string(link_target);
-	  int hash_offset = link_target_string.length() - hash_prefix.length() - 64;
-	  assert(hash_offset >= 0);
-	  if((hash_offset >= 0) &&
-	     (link_target_string.substr(hash_offset, hash_prefix.length()) == hash_prefix))
-	    {
-	      hash = link_target_string.substr(hash_offset + hash_prefix.length());
-	    }
-	}
-      else
-	{
-	  perror("readlink");
-	}
-    }
-
-  assert(hash.length() == 64);
+  hash = parse_hash(name_in);
+  assert(hash);
+  assert(hash->length() == 64);
 }
 
 DFA::~DFA() noexcept(false)
@@ -366,7 +338,7 @@ std::string DFA::get_hash() const
 {
   assert(ready());
 
-  if(hash == "")
+  if(!hash)
     {
       Profile profile("get_hash");
 
@@ -391,9 +363,9 @@ std::string DFA::get_hash() const
       hash = ss.str();
     }
 
-  assert(hash.length() == 64);
+  assert(hash->length() == 64);
 
-  return hash;
+  return *hash;
 }
 
 dfa_state_t DFA::get_initial_state() const
@@ -556,6 +528,42 @@ void DFA::munmap() const
     {
       layer_transitions[layer].munmap();
     }
+}
+
+std::optional<std::string> DFA::parse_hash(std::string name_in)
+{
+  std::string hash_prefix = "dfas_by_hash/";
+  if(name_in.starts_with(hash_prefix))
+    {
+      assert(name_in.length() == hash_prefix.length() + 64);
+      std::string hash = name_in.substr(hash_prefix.length());
+      assert(hash.length() == 64);
+      return std::optional<std::string>(hash);
+    }
+
+  // read symbolic link which should be pointing to hash directory.
+
+  std::string directory = "scratch/" + name_in;
+  char link_target[1024] = {0};
+  ssize_t ret = readlink(directory.c_str(), link_target, sizeof(link_target) - 1);
+  if(ret >= 0)
+    {
+      std::string link_target_string(link_target);
+      int hash_offset = link_target_string.length() - hash_prefix.length() - 64;
+      assert(hash_offset >= 0);
+      if((hash_offset >= 0) &&
+	 (link_target_string.substr(hash_offset, hash_prefix.length()) == hash_prefix))
+	{
+	  std::string hash = link_target_string.substr(hash_offset + hash_prefix.length());
+	  return std::optional<std::string>(hash);
+	}
+    }
+  else
+    {
+      perror("readlink");
+    }
+
+  return std::optional<std::string>();
 }
 
 bool DFA::ready() const

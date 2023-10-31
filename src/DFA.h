@@ -8,6 +8,7 @@
 #include <cassert>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -82,7 +83,7 @@ class DFA
   std::vector<dfa_state_t> layer_sizes;
   mutable std::vector<MemoryMap<dfa_state_t>> layer_transitions;
 
-  mutable std::string hash;
+  mutable std::optional<std::string> hash;
 
   mutable double size_cache = 0.0;
   mutable bool temporary;
@@ -126,6 +127,7 @@ class DFA
 
   void munmap() const;
 
+  static std::optional<std::string> parse_hash(std::string);
   bool ready() const;
   void save(std::string) const;
   void save_by_hash() const;
