@@ -6,13 +6,16 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <memory>
 #include <queue>
 #include <set>
 #include <sstream>
+#include <unordered_map>
 
 #include "AcceptDFA.h"
 #include "ChangeDFA.h"
 #include "CountCharacterDFA.h"
+#include "DFA.h"
 #include "DifferenceDFA.h"
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
@@ -619,8 +622,25 @@ shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std:
 shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string hash_in)
 {
 #if 1
+  static std::unordered_map<std::string, std::weak_ptr<const DFA>> _dfas_by_hash;
+
+  auto search = _dfas_by_hash.find(hash_in);
+  if(search != _dfas_by_hash.end())
+    {
+      std::weak_ptr<const DFA> weak_dfa = search->second;
+      if(shared_dfa_ptr dfa = weak_dfa.lock())
+	{
+	  return dfa;
+	}
+    }
+
   std::string name = "dfas_by_hash/" + hash_in;
-  return _try_load(shape_in, name);
+  shared_dfa_ptr dfa = _try_load(shape_in, name);
+  if(dfa)
+    {
+      _dfas_by_hash[hash_in] = dfa;
+    }
+  return dfa;
 #else
   // test mode with hash cache disabled
   return shared_dfa_ptr(0);
