@@ -430,19 +430,35 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
       return get_reject(left_in->get_shape());
     }
 
-  bool left_linear = left_in->is_linear();
-  bool right_linear = right_in->is_linear();
+  left_in = dedupe_by_hash(left_in);
+  right_in = dedupe_by_hash(right_in);
 
-  if(left_linear || right_linear)
+  if(left_in->get_hash() == right_in->get_hash())
     {
-      // use linear bounds to check if either DFA is a subset of the
-      // other DFA. in that case, we can immediately return the
-      // subset.
+      return left_in;
+    }
 
-      const DFALinearBound& left_bound = left_in->get_linear_bound();
-      const DFALinearBound& right_bound = right_in->get_linear_bound();
+  if(left_in->get_hash() > right_in->get_hash())
+    {
+      std::swap(left_in, right_in);
+    }
 
-      if(left_linear && right_linear)
+  std::string intersection_name = "intersection_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
+  return load_or_build(left_in->get_shape(), intersection_name, [&]()
+  {
+    bool left_linear = left_in->is_linear();
+    bool right_linear = right_in->is_linear();
+
+    if(left_linear || right_linear)
+      {
+	// use linear bounds to check if either DFA is a subset of the
+	// other DFA. in that case, we can immediately return the
+	// subset.
+
+	const DFALinearBound& left_bound = left_in->get_linear_bound();
+	const DFALinearBound& right_bound = right_in->get_linear_bound();
+
+	if(left_linear && right_linear)
 	  {
 	    // both linear
 	    if(left_bound <= right_bound)
@@ -470,33 +486,15 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 	      return left_in;
 	    }
 	}
-    }
+      }
 
-  left_in = dedupe_by_hash(left_in);
-  right_in = dedupe_by_hash(right_in);
+    if((left_in->states() >= 1024) || (right_in->states() >= 1024))
+      {
+	std::cout << "INTERSECTION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
+      }
 
-  if(left_in->get_hash() == right_in->get_hash())
-    {
-      return left_in;
-    }
-
-  if(left_in->get_hash() > right_in->get_hash())
-    {
-      std::swap(left_in, right_in);
-    }
-
-  std::string intersection_name = "intersection_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
-  return load_or_build(left_in->get_shape(),
-		       intersection_name,
-		       [&]()
-		       {
-			 if((left_in->states() >= 1024) || (right_in->states() >= 1024))
-			   {
-			     std::cout << "INTERSECTION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
-			   }
-
-			 return shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in));
-		       });
+    return shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in));
+  });
 }
 
 shared_dfa_ptr DFAUtil::get_intersection_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
