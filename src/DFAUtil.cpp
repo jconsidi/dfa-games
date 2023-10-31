@@ -626,6 +626,12 @@ shared_dfa_ptr DFAUtil::load_by_name(const dfa_shape_t& shape_in, std::string na
 {
   Profile profile("load " + name_in);
 
+  std::optional<std::string> hash = DFA::parse_hash(name_in);
+  if(hash)
+    {
+      return load_by_hash(shape_in, *hash);
+    }
+
   return shared_dfa_ptr(new DFA(shape_in, name_in));
 }
 
