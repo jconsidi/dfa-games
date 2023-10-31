@@ -558,7 +558,7 @@ std::optional<std::string> DFA::parse_hash(std::string name_in)
 	  return std::optional<std::string>(hash);
 	}
     }
-  else
+  else if(errno != ENOENT)
     {
       perror("readlink");
     }
