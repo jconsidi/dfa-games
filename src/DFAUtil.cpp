@@ -643,10 +643,13 @@ shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string n
   try
     {
       shared_dfa_ptr output = load_by_name(shape_in, name_in);
-      output->set_name("saved(\"" + name_in + "\")");
-      std::cout << "loaded " << name_in << " => " << DFAUtil::quick_stats(output) << std::endl;
+      if(output)
+	{
+	  output->set_name("saved(\"" + name_in + "\")");
+	  std::cout << "loaded " << name_in << " => " << DFAUtil::quick_stats(output) << std::endl;
 
-      return output;
+	  return output;
+	}
     }
   catch(const std::runtime_error& e)
     {
