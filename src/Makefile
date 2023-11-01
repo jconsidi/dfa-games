@@ -2,8 +2,17 @@
 
 CXX=g++
 
-CXXFLAGS=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g -I/usr/local/include -Wno-sign-compare
-LDFLAGS=-L/usr/local/opt/openssl/lib -lcrypto -L/usr/local/lib -ltbb
+CXXFLAGS_SHARED=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g
+LDFLAGS_SHARED=-L/usr/local/opt/openssl/lib -lcrypto
+
+ifeq ($(CXX), g++)
+# enable parallel execution when using g++ since available in libstdc++
+CXXFLAGS=$(CXXFLAGS_SHARED) -I/usr/local/include -Wno-sign-compare
+LDFLAGS=$(LDFLAGS_SHARED) -L/usr/local/lib -ltbb
+else
+CXXFLAGS=$(CXXFLAGS_SHARED)
+LDFLAGS=$(LDFLAGS_SHARED)
+endif
 
 TARGETS=divide generate_moves print random random_uci test_backward test_bitset test_change_dfa test_chess_game test_dfa test_forward test_get_union test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_tictactoe_game
 
