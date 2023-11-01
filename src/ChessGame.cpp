@@ -347,6 +347,9 @@ std::string ChessGame::_get_name_to_prev(int to_character, int to_square, int pr
 
 std::vector<int> ChessGame::_get_squares_between(int from_square, int to_square) const
 {
+  assert((0 <= from_square) && (from_square < 64));
+  assert((0 <= to_square) && (to_square < 64));
+
   std::vector<int> output;
 
   BoardMask between_mask = between_masks.masks[from_square][to_square];
