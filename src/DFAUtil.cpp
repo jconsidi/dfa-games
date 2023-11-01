@@ -91,10 +91,12 @@ double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
   return total_max;
 }
 
-shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_dfa_ptr)> reduce_func,
-					       const std::vector<shared_dfa_ptr>& dfas_in)
+shared_dfa_ptr _reduce_aci(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_dfa_ptr)> reduce_func,
+			   const std::vector<shared_dfa_ptr>& dfas_in)
 {
-  Profile profile("_reduce_associative_commutative");
+  // reduce DFAs assuming reduce function is associative, commutative, and idempotent.
+
+  Profile profile("_reduce_aci");
 
   if(dfas_in.size() <= 0)
     {
@@ -121,16 +123,21 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
     scored_pairs.emplace(-_binary_score(dfa_a, dfa_b), dfa_a->get_hash(), dfa_b->get_hash(), dfa_a, dfa_b);
   };
 
-  for(int i = 0; i < dfas_in.size(); ++i)
-    {
-      shared_dfa_ptr dfa_i = dfas_in[i];
-      dfas_todo.insert(dfa_i);
+  // add distinct DFAs and queue up pairs
 
-      for(int j = i + 1; j < dfas_in.size(); ++j)
+  for(shared_dfa_ptr dfa_i : dfas_in)
+    {
+      if(dfas_todo.contains(dfa_i))
 	{
-	  shared_dfa_ptr dfa_j = dfas_in[j];
+	  continue;
+	}
+
+      for(shared_dfa_ptr dfa_j : dfas_todo)
+	{
 	  enqueue_pair(dfa_i, dfa_j);
 	}
+
+      dfas_todo.insert(dfa_i);
     }
 
   // unmap DFAs to reduce open files
@@ -144,6 +151,8 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
 
   while(dfas_todo.size() > 1)
     {
+      size_t start_size = dfas_todo.size();
+
       std::tuple<double, std::string, std::string, shared_dfa_ptr, shared_dfa_ptr> scored_pair = scored_pairs.top();
       scored_pairs.pop();
 
@@ -151,6 +160,7 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
 
       shared_dfa_ptr dfa_i = std::get<3>(scored_pair);
       shared_dfa_ptr dfa_j = std::get<4>(scored_pair);
+      assert(dfa_i != dfa_j);
       if(!dfas_todo.contains(dfa_i) || !dfas_todo.contains(dfa_j))
 	{
 	  continue;
@@ -161,6 +171,8 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
       dfas_todo.erase(dfa_i);
       dfas_todo.erase(dfa_j);
 
+      assert(dfas_todo.size() == start_size - 2);
+
       // combine these DFAs and add to remaining set and score pairs
 
       if((dfa_i->states() >= 1024) || (dfa_j->states() >= 1024))
@@ -169,12 +181,16 @@ shared_dfa_ptr _reduce_associative_commutative(std::function<shared_dfa_ptr(shar
 	}
 
       shared_dfa_ptr dfa_reduced = reduce_func(dfa_i, dfa_j);
-      for(shared_dfa_ptr dfa_k : dfas_todo)
+      if(!dfas_todo.contains(dfa_reduced))
 	{
-	  enqueue_pair(dfa_reduced, dfa_k);
-	}
+	  for(shared_dfa_ptr dfa_k : dfas_todo)
+	    {
+	      enqueue_pair(dfa_reduced, dfa_k);
+	    }
 
-      dfas_todo.insert(dfa_reduced);
+	  dfas_todo.insert(dfa_reduced);
+	  assert(dfas_todo.size() == start_size - 1);
+	}
 
       // unmap the DFAs just accessed
       dfa_i->munmap();
@@ -513,7 +529,7 @@ shared_dfa_ptr DFAUtil::get_intersection_vector(const dfa_shape_t& shape_in, con
       nonlinear_staging[i] = get_intersection(nonlinear_staging[i], linear_staging);
     }
 
-  return _reduce_associative_commutative(get_intersection, nonlinear_staging);
+  return _reduce_aci(get_intersection, nonlinear_staging);
 }
 
 shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
@@ -595,7 +611,7 @@ shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std:
       return get_reject(shape_in);
     }
 
-  return _reduce_associative_commutative(get_union, dfas_in);
+  return _reduce_aci(get_union, dfas_in);
 }
 
 shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string hash_in)
