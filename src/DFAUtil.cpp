@@ -29,9 +29,11 @@ double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
   int ndim = dfa_a->get_shape_size();
 
+#ifdef BINARY_SCORE_LINEAR_BOUND
   const DFALinearBound& bound_a = dfa_a->get_linear_bound();
   const DFALinearBound& bound_b = dfa_b->get_linear_bound();
   bool might_intersect = true;
+#endif
 
   std::vector<double> states_max = {1};
   for(int layer = 1; layer < ndim; ++layer)
@@ -47,6 +49,7 @@ double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
       layer_bounds.push_back(double(dfa_a->get_layer_size(layer)) *
 			     double(dfa_b->get_layer_size(layer)));
 
+#ifdef BINARY_SCORE_LINEAR_BOUND
       // inference from linear bounds showing potential intersection
       if(might_intersect)
 	{
@@ -70,6 +73,7 @@ double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 	  layer_bounds.push_back(double(dfa_a->get_layer_size(layer)) +
 				 double(dfa_b->get_layer_size(layer)));
 	}
+#endif
 
       // done for this layer
 
