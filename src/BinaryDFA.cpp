@@ -385,7 +385,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward transition pairs sort");
 
+#ifdef __clang__
+      std::sort(curr_transition_pairs.begin(), curr_transition_pairs.end());
+#else
       std::sort(std::execution::par_unseq, curr_transition_pairs.begin(), curr_transition_pairs.end());
+#endif
 
       profile.tic("forward next pairs count");
 
@@ -551,7 +555,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       };
 
       // make permutation of pairs sorted by transitions
+#ifdef __clang__
+      std::sort(curr_pairs_permutation.begin(), curr_pairs_permutation.end(), compare_pair);
+#else
       std::sort(std::execution::par_unseq, curr_pairs_permutation.begin(), curr_pairs_permutation.end(), compare_pair);
+#endif
 
       profile.tic("backward states");
 
