@@ -333,6 +333,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
   std::function<MemoryMap<size_t>(int)> build_transition_pairs = [&](int layer)
   {
+    Profile profile2("build_transition_pairs");
+
+    profile2.tic("init");
+
     int curr_layer_shape = this->get_layer_shape(layer);
     const MemoryMap<size_t>& curr_pairs = pairs_by_layer.at(layer);
 
@@ -347,6 +351,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     right_in.get_transitions(layer, 0);
 
     auto curr_pair_indexes = std::views::iota(size_t(0), curr_pairs.size());
+
+    // read left transitions
+    profile2.tic("left");
     std::for_each(
 #ifndef __clang__
 		  std::execution::par_unseq,
@@ -358,22 +365,40 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 		    size_t curr_pair_offset = curr_i * curr_layer_shape;
 
 		    size_t curr_left_state = curr_pair / curr_right_size;
-		    size_t curr_right_state = curr_pair % curr_right_size;
-
 		    DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
-		    DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
 
 		    for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
 		      {
 			dfa_state_t next_left_state = left_transitions.at(curr_j);
-			dfa_state_t next_right_state = right_transitions.at(curr_j);
-
-			size_t next_pair = size_t(next_left_state) * next_right_size + size_t(next_right_state);
-			curr_transition_pairs[curr_pair_offset + curr_j] = next_pair;
+			curr_transition_pairs[curr_pair_offset + curr_j] = size_t(next_left_state) * next_right_size;
 		      }
 		  });
 
-      return curr_transition_pairs;
+    // read right transitions
+    profile2.tic("right");
+    std::for_each(
+#ifndef __clang__
+		  std::execution::par_unseq,
+#endif
+		  curr_pair_indexes.begin(),
+		  curr_pair_indexes.end(),
+		  [&](int curr_i) {
+		    size_t curr_pair = curr_pairs[curr_i];
+		    size_t curr_pair_offset = curr_i * curr_layer_shape;
+
+		    size_t curr_right_state = curr_pair % curr_right_size;
+		    DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
+
+		    for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
+		      {
+			dfa_state_t next_right_state = right_transitions.at(curr_j);
+			curr_transition_pairs[curr_pair_offset + curr_j] += size_t(next_right_state);
+		      }
+		  });
+
+    // done
+    profile2.tic("done");
+    return curr_transition_pairs;
   };
 
   // forward pass
