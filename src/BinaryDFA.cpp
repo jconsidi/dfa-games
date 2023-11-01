@@ -9,6 +9,7 @@
 #include <execution>
 #include <iostream>
 #include <queue>
+#include <ranges>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -340,25 +341,37 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
     MemoryMap<size_t> curr_transition_pairs(curr_pairs.size() * curr_layer_shape);
 
-    size_t curr_transition_pairs_k = 0;
-    for(auto &curr_pair : curr_pairs)
-      {
-	size_t curr_left_state = curr_pair / curr_right_size;
-	size_t curr_right_state = curr_pair % curr_right_size;
+    // make sure inputs are memory mapped before going parallel
+    curr_pairs.mmap();
+    left_in.get_transitions(layer, 0);
+    right_in.get_transitions(layer, 0);
 
-	DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
-	DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
+    auto curr_pair_indexes = std::views::iota(size_t(0), curr_pairs.size());
+    std::for_each(
+#ifndef __clang__
+		  std::execution::par_unseq,
+#endif
+		  curr_pair_indexes.begin(),
+		  curr_pair_indexes.end(),
+		  [&](int curr_i) {
+		    size_t curr_pair = curr_pairs[curr_i];
+		    size_t curr_pair_offset = curr_i * curr_layer_shape;
 
-	for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
-	  {
-	    dfa_state_t next_left_state = left_transitions.at(curr_j);
-	    dfa_state_t next_right_state = right_transitions.at(curr_j);
+		    size_t curr_left_state = curr_pair / curr_right_size;
+		    size_t curr_right_state = curr_pair % curr_right_size;
 
-	    size_t next_pair = size_t(next_left_state) * next_right_size + size_t(next_right_state);
-	    curr_transition_pairs[curr_transition_pairs_k++] = next_pair;
-	  }
-      }
-      assert(curr_transition_pairs_k == curr_transition_pairs.size());
+		    DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
+		    DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
+
+		    for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
+		      {
+			dfa_state_t next_left_state = left_transitions.at(curr_j);
+			dfa_state_t next_right_state = right_transitions.at(curr_j);
+
+			size_t next_pair = size_t(next_left_state) * next_right_size + size_t(next_right_state);
+			curr_transition_pairs[curr_pair_offset + curr_j] = next_pair;
+		      }
+		  });
 
       return curr_transition_pairs;
   };
