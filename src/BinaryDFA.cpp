@@ -18,6 +18,10 @@
 #include "Profile.h"
 #include "VectorBitSet.h"
 
+#ifndef __clang__
+#define BINARY_DFA_PARALLEL
+#endif
+
 BinaryDFA::BinaryDFA(const DFA& left_in,
 		     const DFA& right_in,
 		     const BinaryFunction& leaf_func)
@@ -355,7 +359,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     // read left transitions
     profile2.tic("left");
     std::for_each(
-#ifndef __clang__
+#ifdef BINARY_DFA_PARALLEL
 		  std::execution::par_unseq,
 #endif
 		  curr_pair_indexes.begin(),
@@ -377,7 +381,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     // read right transitions
     profile2.tic("right");
     std::for_each(
-#ifndef __clang__
+#ifdef BINARY_DFA_PARALLEL
 		  std::execution::par_unseq,
 #endif
 		  curr_pair_indexes.begin(),
@@ -423,11 +427,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward transition pairs sort");
 
-#ifdef __clang__
-      std::sort(curr_transition_pairs.begin(), curr_transition_pairs.end());
-#else
-      std::sort(std::execution::par_unseq, curr_transition_pairs.begin(), curr_transition_pairs.end());
+      std::sort(
+#ifdef BINARY_DFA_PARALLEL
+		std::execution::par_unseq,
 #endif
+		curr_transition_pairs.begin(),
+		curr_transition_pairs.end());
 
       profile.tic("forward next pairs count");
 
@@ -593,11 +598,13 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       };
 
       // make permutation of pairs sorted by transitions
-#ifdef __clang__
-      std::sort(curr_pairs_permutation.begin(), curr_pairs_permutation.end(), compare_pair);
-#else
-      std::sort(std::execution::par_unseq, curr_pairs_permutation.begin(), curr_pairs_permutation.end(), compare_pair);
+      std::sort(
+#ifdef BINARY_DFA_PARALLEL
+		std::execution::par_unseq,
 #endif
+		curr_pairs_permutation.begin(),
+		curr_pairs_permutation.end(),
+		compare_pair);
 
       profile.tic("backward states");
 
