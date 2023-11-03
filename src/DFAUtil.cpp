@@ -611,6 +611,16 @@ shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std:
       return get_reject(shape_in);
     }
 
+  if(dfas_in.size() >= 50)
+    {
+      std::cout << "UNION VECTOR";
+      for(const shared_dfa_ptr& dfa : dfas_in)
+	{
+	  std::cout << " " << dfa->get_hash();
+	}
+      std::cout << std::endl;
+    }
+
   return _reduce_aci(get_union, dfas_in);
 }
 
