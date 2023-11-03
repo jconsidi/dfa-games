@@ -354,51 +354,69 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     left_in.get_transitions(layer, 0);
     right_in.get_transitions(layer, 0);
 
+#ifdef BINARY_DFA_PARALLEL
     auto curr_pair_indexes = std::views::iota(size_t(0), curr_pairs.size());
+#endif
 
     // read left transitions
     profile2.tic("left");
-    std::for_each(
+
+    auto update_left_transition = [&](size_t curr_i)
+    {
+      size_t curr_pair = curr_pairs[curr_i];
+      size_t curr_pair_offset = curr_i * curr_layer_shape;
+
+      size_t curr_left_state = curr_pair / curr_right_size;
+      DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
+
+      for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
+	{
+	  dfa_state_t next_left_state = left_transitions.at(curr_j);
+	  curr_transition_pairs[curr_pair_offset + curr_j] = size_t(next_left_state) * next_right_size;
+	}
+    };
+
 #ifdef BINARY_DFA_PARALLEL
-		  std::execution::par_unseq,
-#endif
+    std::for_each(std::execution::par_unseq,
 		  curr_pair_indexes.begin(),
 		  curr_pair_indexes.end(),
-		  [&](size_t curr_i) {
-		    size_t curr_pair = curr_pairs[curr_i];
-		    size_t curr_pair_offset = curr_i * curr_layer_shape;
-
-		    size_t curr_left_state = curr_pair / curr_right_size;
-		    DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
-
-		    for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
-		      {
-			dfa_state_t next_left_state = left_transitions.at(curr_j);
-			curr_transition_pairs[curr_pair_offset + curr_j] = size_t(next_left_state) * next_right_size;
-		      }
-		  });
+		  update_left_transition);
+#else
+    for(size_t curr_i = 0; curr_i < curr_pairs.size(); ++curr_i)
+      {
+	update_left_transition(curr_i);
+      }
+#endif
 
     // read right transitions
     profile2.tic("right");
-    std::for_each(
+
+    auto update_right_transition = [&](size_t curr_i)
+    {
+      size_t curr_pair = curr_pairs[curr_i];
+      size_t curr_pair_offset = curr_i * curr_layer_shape;
+
+      size_t curr_right_state = curr_pair % curr_right_size;
+      DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
+
+      for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
+	{
+	  dfa_state_t next_right_state = right_transitions.at(curr_j);
+	  curr_transition_pairs[curr_pair_offset + curr_j] += size_t(next_right_state);
+	}
+    };
+
 #ifdef BINARY_DFA_PARALLEL
-		  std::execution::par_unseq,
-#endif
+    std::for_each(std::execution::par_unseq,
 		  curr_pair_indexes.begin(),
 		  curr_pair_indexes.end(),
-		  [&](size_t curr_i) {
-		    size_t curr_pair = curr_pairs[curr_i];
-		    size_t curr_pair_offset = curr_i * curr_layer_shape;
-
-		    size_t curr_right_state = curr_pair % curr_right_size;
-		    DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
-
-		    for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
-		      {
-			dfa_state_t next_right_state = right_transitions.at(curr_j);
-			curr_transition_pairs[curr_pair_offset + curr_j] += size_t(next_right_state);
-		      }
-		  });
+		  update_right_transition);
+#else
+    for(size_t curr_i = 0; curr_i < curr_pairs.size(); ++curr_i)
+      {
+	update_right_transition(curr_i);
+      }
+#endif
 
     // done
     profile2.tic("done");
@@ -549,50 +567,56 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward transitions populate");
 
+      auto populate_backward_transition = [&](size_t curr_k)
+      {
+	size_t next_pair = curr_transition_pairs[curr_k];
+
+	dfa_state_t next_left_state = next_pair / next_right_size;
+	assert(next_left_state < next_left_size);
+	dfa_state_t next_right_state = next_pair % next_right_size;
+
+	if(filter_func(next_left_state, next_right_state))
+	  {
+	    curr_transitions[curr_k] = shortcircuit_func(next_left_state, next_right_state);
+	  }
+	else
+	  {
+	    size_t next_rank_min = 0;
+	    size_t next_rank_max = next_layer_count - 1;
+
+	    while(next_rank_min < next_rank_max)
+	      {
+		size_t next_rank_mid = (next_rank_min + next_rank_max) / 2;
+		size_t next_rank_mid_pair = next_pairs[next_rank_mid];
+		if(next_rank_mid_pair < next_pair)
+		  {
+		    next_rank_min = next_rank_mid + 1;
+		  }
+		else
+		  {
+		    next_rank_max = next_rank_mid;
+		  }
+	      }
+	    assert(next_rank_min == next_rank_max);
+	    assert(next_pairs[next_rank_min] == next_pair);
+
+	    curr_transitions[curr_k] = next_pair_rank_to_output[next_rank_min];
+	  }
+      };
+
+#ifdef BINARY_DFA_PARALLEL
       auto curr_transition_pair_indexes = std::views::iota(size_t(0), curr_transition_pairs.size());
 
-    std::for_each(
-#ifdef BINARY_DFA_PARALLEL
-		  std::execution::par_unseq,
+      std::for_each(std::execution::par_unseq,
+		    curr_transition_pair_indexes.begin(),
+		    curr_transition_pair_indexes.end(),
+		    populate_backward_transition);
+#else
+      for(size_t curr_k = 0; curr_k < curr_transition_pairs.size(); ++curr_k)
+	{
+	  populate_backward_transition(curr_k);
+	}
 #endif
-		  curr_transition_pair_indexes.begin(),
-		  curr_transition_pair_indexes.end(),
-		  [&](size_t curr_k)
-		  {
-		    size_t next_pair = curr_transition_pairs[curr_k];
-
-		    dfa_state_t next_left_state = next_pair / next_right_size;
-		    assert(next_left_state < next_left_size);
-		    dfa_state_t next_right_state = next_pair % next_right_size;
-
-		    if(filter_func(next_left_state, next_right_state))
-		      {
-			curr_transitions[curr_k] = shortcircuit_func(next_left_state, next_right_state);
-		      }
-		    else
-		      {
-			size_t next_rank_min = 0;
-			size_t next_rank_max = next_layer_count - 1;
-
-			while(next_rank_min < next_rank_max)
-			  {
-			    size_t next_rank_mid = (next_rank_min + next_rank_max) / 2;
-			    size_t next_rank_mid_pair = next_pairs[next_rank_mid];
-			    if(next_rank_mid_pair < next_pair)
-			      {
-				next_rank_min = next_rank_mid + 1;
-			      }
-			    else
-			      {
-				next_rank_max = next_rank_mid;
-			      }
-			  }
-			assert(next_rank_min == next_rank_max);
-			assert(next_pairs[next_rank_min] == next_pair);
-
-			curr_transitions[curr_k] = next_pair_rank_to_output[next_rank_min];
-		      }
-		  });
 
       profile.tic("backward sort mmap");
 
