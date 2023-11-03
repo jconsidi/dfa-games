@@ -364,7 +364,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 #endif
 		  curr_pair_indexes.begin(),
 		  curr_pair_indexes.end(),
-		  [&](int curr_i) {
+		  [&](size_t curr_i) {
 		    size_t curr_pair = curr_pairs[curr_i];
 		    size_t curr_pair_offset = curr_i * curr_layer_shape;
 
@@ -386,7 +386,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 #endif
 		  curr_pair_indexes.begin(),
 		  curr_pair_indexes.end(),
-		  [&](int curr_i) {
+		  [&](size_t curr_i) {
 		    size_t curr_pair = curr_pairs[curr_i];
 		    size_t curr_pair_offset = curr_i * curr_layer_shape;
 
@@ -557,7 +557,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 #endif
 		  curr_transition_pair_indexes.begin(),
 		  curr_transition_pair_indexes.end(),
-		  [&](int curr_k)
+		  [&](size_t curr_k)
 		  {
 		    size_t next_pair = curr_transition_pairs[curr_k];
 
