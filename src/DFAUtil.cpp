@@ -206,7 +206,7 @@ shared_dfa_ptr _reduce_aci(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_d
     {
       if(output->states() >= 1024)
 	{
-	  std::cout << "  merged DFA has " << output->states() << " states" << std::endl;
+	  std::cout << "  merged DFA has " << DFAUtil::quick_stats(output) << std::endl;
 	}
 
       return output;
