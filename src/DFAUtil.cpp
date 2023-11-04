@@ -705,7 +705,7 @@ std::string DFAUtil::quick_stats(shared_dfa_ptr dfa_in)
   size_t states = dfa_in->states();
   stats_builder << states << " states";
 
-  if(states <= 1000000)
+  if(states <= 100000)
     {
       stats_builder << ", " << dfa_in->size() << " positions";
     }
