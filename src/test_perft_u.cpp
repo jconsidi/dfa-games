@@ -22,10 +22,10 @@ shared_dfa_ptr boards_to_dfa(const std::set<Board>& boards)
   std::cout << "converting " << boards.size() << " boards to dfas" << std::endl;
 
   std::vector<DFAString> board_strings;
-  std::for_each(boards.cbegin(), boards.cend(), [&](const Board& board)
-  {
-    board_strings.push_back(ChessGame::from_board_to_dfa_string(board));
-  });
+  for(const Board& board : boards)
+    {
+      board_strings.push_back(ChessGame::from_board_to_dfa_string(board));
+    }
 
   return DFAUtil::from_strings(chess_shape, board_strings);
 }
@@ -139,15 +139,15 @@ void test(const Board& board_in, int depth_max)
       assert(expected_boards.size() == depth + 1);
 
       // extend expected_boards
-      std::for_each(expected_boards[depth - 1].cbegin(), expected_boards[depth - 1].cend(), [&](const Board& board_previous)
-      {
-	Board moves[CHESS_MAX_MOVES];
-	int num_moves = board_previous.generate_moves(moves);
-	for(int i = 0; i < num_moves; ++i)
-	  {
-	    expected_boards[depth].insert(moves[i]);
-	  }
-      });
+      for(const Board& board_previous : expected_boards[depth - 1])
+	{
+	  Board moves[CHESS_MAX_MOVES];
+	  int num_moves = board_previous.generate_moves(moves);
+	  for(int i = 0; i < num_moves; ++i)
+	    {
+	      expected_boards[depth].insert(moves[i]);
+	    }
+	}
 
       // extend actual_dfas
       int side_to_move = (board_in.get_side_to_move() + depth - 1) % 2;
