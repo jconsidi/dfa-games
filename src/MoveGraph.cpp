@@ -11,7 +11,6 @@
 #include "Profile.h"
 
 static change_vector reverse_changes(const change_vector& changes_in);
-static void sort_edges(std::vector<move_edge>& edges);
 
 MoveGraph::MoveGraph(const dfa_shape_t& shape_in)
   : shape(shape_in),
@@ -194,10 +193,6 @@ shared_dfa_ptr MoveGraph::get_moves(shared_dfa_ptr positions_in) const
 	  continue;
 	}
 
-      // sort edges leaving this node for pre-condition efficiency
-
-      sort_edges(node_edges[from_node_index]);
-
       // process all edges leaving this node
 
       for(int node_edge_index = 0; node_edge_index < node_edges[from_node_index].size(); ++node_edge_index)
@@ -315,54 +310,4 @@ static change_vector reverse_changes(const change_vector& changes_in)
     }
 
   return changes_out;
-}
-
-static void sort_edges(std::vector<move_edge>& edges)
-{
-  // used to do this to do this to optimize intersection caching, but
-  // now just doing the process more deterministic. not quite there.
-
-  Profile profile("sort_edges");
-
-  std::stable_sort(edges.begin(), edges.end(), [](const move_edge& a,
-						  const move_edge& b)
-  {
-    // compare pre conditions
-
-    auto pre_a = std::get<1>(a);
-    auto pre_b = std::get<1>(b);
-    for(int i = 0; (i < pre_a.size()) && (i < pre_b.size()); ++i)
-      {
-	// sort more states first, so reversing comparisons
-	if(pre_a[i]->states() > pre_b[i]->states())
-	  {
-	    return true;
-	  }
-	else if(pre_a[i]->states() < pre_b[i]->states())
-	  {
-	    return false;
-	  }
-
-	if(pre_a[i] < pre_b[i])
-	  {
-	    return true;
-	  }
-	else if(pre_a[i] > pre_b[i])
-	  {
-	    return false;
-	  }
-      }
-
-    if(pre_a.size() < pre_b.size())
-      {
-	return true;
-      }
-    else if(pre_b.size() < pre_b.size())
-      {
-	return false;
-      }
-
-    // do not compare change choice
-    return false;
-  });
 }
