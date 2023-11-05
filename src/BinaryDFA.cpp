@@ -567,17 +567,15 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward transitions populate");
 
-      auto populate_backward_transition = [&](size_t curr_k)
+      auto calculate_backward_transition = [&](size_t next_pair)
       {
-	size_t next_pair = curr_transition_pairs[curr_k];
-
 	dfa_state_t next_left_state = next_pair / next_right_size;
 	assert(next_left_state < next_left_size);
 	dfa_state_t next_right_state = next_pair % next_right_size;
 
 	if(filter_func(next_left_state, next_right_state))
 	  {
-	    curr_transitions[curr_k] = shortcircuit_func(next_left_state, next_right_state);
+	    return shortcircuit_func(next_left_state, next_right_state);
 	  }
 	else
 	  {
@@ -600,23 +598,18 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	    assert(next_rank_min == next_rank_max);
 	    assert(next_pairs[next_rank_min] == next_pair);
 
-	    curr_transitions[curr_k] = next_pair_rank_to_output[next_rank_min];
+	    return next_pair_rank_to_output[next_rank_min];
 	  }
       };
 
+      std::transform(
 #ifdef BINARY_DFA_PARALLEL
-      auto curr_transition_pair_indexes = std::views::iota(size_t(0), curr_transition_pairs.size());
-
-      std::for_each(std::execution::par_unseq,
-		    curr_transition_pair_indexes.begin(),
-		    curr_transition_pair_indexes.end(),
-		    populate_backward_transition);
-#else
-      for(size_t curr_k = 0; curr_k < curr_transition_pairs.size(); ++curr_k)
-	{
-	  populate_backward_transition(curr_k);
-	}
+		     std::execution::par_unseq,
 #endif
+		     curr_transition_pairs.begin(),
+		     curr_transition_pairs.end(),
+		     curr_transitions.begin(),
+		     calculate_backward_transition);
 
       profile.tic("backward sort mmap");
 
