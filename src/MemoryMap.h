@@ -32,7 +32,7 @@ public:
 
   MemoryMap& operator=(MemoryMap&&) noexcept;
   T& operator[](size_t);
-  T operator[](size_t) const;
+  const T& operator[](size_t) const;
 
   T *begin();
   const T *begin() const;

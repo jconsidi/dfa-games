@@ -124,7 +124,7 @@ T& MemoryMap<T>::operator[](size_t i)
 }
 
 template<class T>
-T MemoryMap<T>::operator[](size_t i) const
+const T& MemoryMap<T>::operator[](size_t i) const
 {
   this->mmap();
   assert(i < _size);
