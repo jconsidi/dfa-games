@@ -354,16 +354,14 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     left_in.get_transitions(layer, 0);
     right_in.get_transitions(layer, 0);
 
-#ifdef BINARY_DFA_PARALLEL
-    auto curr_pair_indexes = std::views::iota(size_t(0), curr_pairs.size());
-#endif
-
     // read left transitions
     profile2.tic("left");
 
-    auto update_left_transition = [&](size_t curr_i)
+    auto update_left_transition = [&](const size_t& curr_pair)
     {
-      size_t curr_pair = curr_pairs[curr_i];
+      size_t curr_i = &curr_pair - curr_pairs.begin();
+      assert(curr_pairs[curr_i] == curr_pair);
+
       size_t curr_pair_offset = curr_i * curr_layer_shape;
 
       size_t curr_left_state = curr_pair / curr_right_size;
@@ -377,23 +375,28 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     };
 
 #ifdef BINARY_DFA_PARALLEL
+    // do first update serially to avoid race condition on left DFA mmap
+    update_left_transition(curr_pairs[0]);
+
     std::for_each(std::execution::par_unseq,
-		  curr_pair_indexes.begin(),
-		  curr_pair_indexes.end(),
+		  curr_pairs.begin() + 1,
+		  curr_pairs.end(),
 		  update_left_transition);
 #else
     for(size_t curr_i = 0; curr_i < curr_pairs.size(); ++curr_i)
       {
-	update_left_transition(curr_i);
+	update_left_transition(curr_pairs[curr_i]);
       }
 #endif
 
     // read right transitions
     profile2.tic("right");
 
-    auto update_right_transition = [&](size_t curr_i)
+    auto update_right_transition = [&](const size_t& curr_pair)
     {
-      size_t curr_pair = curr_pairs[curr_i];
+      size_t curr_i = &curr_pair - curr_pairs.begin();
+      assert(curr_pairs[curr_i] == curr_pair);
+
       size_t curr_pair_offset = curr_i * curr_layer_shape;
 
       size_t curr_right_state = curr_pair % curr_right_size;
@@ -407,14 +410,17 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     };
 
 #ifdef BINARY_DFA_PARALLEL
+    // do first update serially to avoid race condition on right DFA mmap
+    update_right_transition(curr_pairs[0]);
+
     std::for_each(std::execution::par_unseq,
-		  curr_pair_indexes.begin(),
-		  curr_pair_indexes.end(),
+		  curr_pairs.begin() + 1,
+		  curr_pairs.end(),
 		  update_right_transition);
 #else
     for(size_t curr_i = 0; curr_i < curr_pairs.size(); ++curr_i)
       {
-	update_right_transition(curr_i);
+	update_right_transition(curr_pairs[curr_i]);
       }
 #endif
 
