@@ -17,6 +17,7 @@
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "VectorBitSet.h"
+#include "sort.h"
 
 BinaryDFA::BinaryDFA(const DFA& left_in,
 		     const DFA& right_in,
@@ -448,12 +449,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward transition pairs sort");
 
-      std::sort(
-#ifdef __cpp_lib_parallel_algorithm
-		std::execution::par_unseq,
-#endif
-		curr_transition_pairs.begin(),
-		curr_transition_pairs.end());
+      sort<size_t>(curr_transition_pairs.begin(), curr_transition_pairs.end());
 
       profile.tic("forward next pairs count");
 
@@ -633,13 +629,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       };
 
       // make permutation of pairs sorted by transitions
-      std::sort(
-#ifdef __cpp_lib_parallel_algorithm
-		std::execution::par_unseq,
-#endif
-		curr_pairs_permutation.begin(),
-		curr_pairs_permutation.end(),
-		compare_pair);
+
+      sort<dfa_state_t>(curr_pairs_permutation.begin(),
+			curr_pairs_permutation.end(),
+			compare_pair);
 
       profile.tic("backward states");
 
