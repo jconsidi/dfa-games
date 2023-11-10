@@ -134,24 +134,28 @@ const T& MemoryMap<T>::operator[](size_t i) const
 template<class T>
 T *MemoryMap<T>::begin()
 {
+  assert(_mapped);
   return ((T *) _mapped);
 }
 
 template<class T>
 const T *MemoryMap<T>::begin() const
 {
+  assert(_mapped);
   return ((const T *) _mapped);
 }
 
 template<class T>
 T *MemoryMap<T>::end()
 {
+  assert(_mapped);
   return ((T *) _mapped) + _size;
 }
 
 template<class T>
 const T *MemoryMap<T>::end() const
 {
+  assert(_mapped);
   return ((const T *) _mapped) + _size;
 }
 
