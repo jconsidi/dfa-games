@@ -451,28 +451,32 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       sort<size_t>(curr_transition_pairs.begin(), curr_transition_pairs.end());
 
+      profile.tic("forward next pairs unique");
+
+      auto unique_end = std::unique(
+#ifdef __cpp_lib_parallel_algorithm
+				    std::execution::par_unseq,
+#endif
+				    curr_transition_pairs.begin(),
+				    curr_transition_pairs.end());
+
       profile.tic("forward next pairs count");
 
-      size_t last_pair = 0ULL; // might be first entry but will be filtered
-      size_t next_pairs_count = 0;
-      for(size_t next_pair : curr_transition_pairs)
-	{
-	  if(next_pair == last_pair)
-	    {
-	      continue;
-	    }
-	  last_pair = next_pair;
-
+      auto keep_func = [&](size_t next_pair)
+      {
 	  dfa_state_t next_left_state = next_pair / next_right_size;
 	  dfa_state_t next_right_state = next_pair % next_right_size;
 
-	  if(filter_func(next_left_state, next_right_state))
-	    {
-	      continue;
-	    }
+	  return !filter_func(next_left_state, next_right_state);
+      };
 
-	  ++next_pairs_count;
-	}
+      size_t next_pairs_count = std::count_if(
+#ifdef __cpp_lib_parallel_algorithm
+					      std::execution::par_unseq,
+#endif
+					      curr_transition_pairs.begin(),
+					      unique_end,
+					      keep_func);
 
       profile.tic("forward next pairs mmap");
 
@@ -486,28 +490,15 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward next pairs populate");
 
-      last_pair = 0ULL; // might be first entry but will be filtered
-      size_t next_rank = 0;
-      for(size_t next_pair : curr_transition_pairs)
-	{
-	  if(next_pair == last_pair)
-	    {
-	      continue;
-	    }
-	  last_pair = next_pair;
-
-	  dfa_state_t next_left_state = next_pair / next_right_size;
-	  dfa_state_t next_right_state = next_pair % next_right_size;
-
-	  if(filter_func(next_left_state, next_right_state))
-	    {
-	      continue;
-	    }
-
-	  next_pairs[next_rank] = next_pair;
-	  ++next_rank;
-	}
-      assert(next_rank == next_pairs_count);
+      auto copy_end = std::copy_if(
+#ifdef __cpp_lib_parallel_algorithm
+				   std::execution::par_unseq,
+#endif
+				   curr_transition_pairs.begin(),
+				   unique_end,
+				   next_pairs.begin(),
+				   keep_func);
+      assert(copy_end == next_pairs.end());
 
       if(next_pairs.size() >= 100000)
 	{
