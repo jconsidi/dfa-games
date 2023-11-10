@@ -18,10 +18,6 @@
 #include "Profile.h"
 #include "VectorBitSet.h"
 
-#ifndef __clang__
-#define BINARY_DFA_PARALLEL
-#endif
-
 BinaryDFA::BinaryDFA(const DFA& left_in,
 		     const DFA& right_in,
 		     const BinaryFunction& leaf_func)
@@ -375,7 +371,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	}
     };
 
-#ifdef BINARY_DFA_PARALLEL
+#ifdef __cpp_lib_parallel_algorithm
     // do first update serially to avoid race condition on left DFA mmap
     update_left_transition(curr_pairs[0]);
 
@@ -410,7 +406,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	}
     };
 
-#ifdef BINARY_DFA_PARALLEL
+#ifdef __cpp_lib_parallel_algorithm
     // do first update serially to avoid race condition on right DFA mmap
     update_right_transition(curr_pairs[0]);
 
@@ -453,7 +449,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("forward transition pairs sort");
 
       std::sort(
-#ifdef BINARY_DFA_PARALLEL
+#ifdef __cpp_lib_parallel_algorithm
 		std::execution::par_unseq,
 #endif
 		curr_transition_pairs.begin(),
@@ -610,7 +606,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       };
 
       std::transform(
-#ifdef BINARY_DFA_PARALLEL
+#ifdef __cpp_lib_parallel_algorithm
 		     std::execution::par_unseq,
 #endif
 		     curr_transition_pairs.begin(),
@@ -638,7 +634,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       // make permutation of pairs sorted by transitions
       std::sort(
-#ifdef BINARY_DFA_PARALLEL
+#ifdef __cpp_lib_parallel_algorithm
 		std::execution::par_unseq,
 #endif
 		curr_pairs_permutation.begin(),
