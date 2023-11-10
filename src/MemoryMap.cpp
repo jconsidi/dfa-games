@@ -237,6 +237,19 @@ void MemoryMap<T>::mmap(int fildes) const
 }
 
 template<class T>
+void MemoryMap<T>::msync()
+{
+  assert(_mapped);
+
+  int ret = ::msync(_mapped, _length, MS_SYNC);
+  if(ret)
+    {
+      perror("msync");
+      throw std::logic_error("msync failed");
+    }
+}
+
+template<class T>
 void MemoryMap<T>::munmap()
 {
   if(!_mapped)
