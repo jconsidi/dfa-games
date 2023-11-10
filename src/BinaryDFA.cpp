@@ -347,7 +347,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     size_t curr_right_size = right_in.get_layer_size(layer);
     size_t next_right_size = right_in.get_layer_size(layer + 1);
 
-    MemoryMap<size_t> curr_transition_pairs(curr_pairs.size() * curr_layer_shape);
+    MemoryMap<size_t> curr_transition_pairs("scratch/binarydfa/transition_pairs",
+					    curr_pairs.size() * curr_layer_shape);
 
     // make sure inputs are memory mapped before going parallel
     curr_pairs.mmap();
