@@ -273,7 +273,7 @@ void MemoryMap<T>::msync()
 }
 
 template<class T>
-void MemoryMap<T>::munmap()
+void MemoryMap<T>::munmap() const
 {
   if(!_mapped)
     {

@@ -42,7 +42,7 @@ public:
   size_t length() const;
   void mmap() const;
   void msync();
-  void munmap();
+  void munmap() const;
   size_t size() const;
 };
 
