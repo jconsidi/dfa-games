@@ -20,6 +20,7 @@ class MemoryMap
   mutable void *_mapped;
 
   void mmap(int) const;
+  int open(int, int) const;
 
 public:
 

@@ -37,7 +37,31 @@ MemoryMap<T>::MemoryMap(std::string filename_in)
     _length(0),
     _mapped(0)
 {
-  this->mmap();
+  int fildes = open(O_RDONLY, 0);
+
+  struct stat stat_buffer;
+  int stat_ret = fstat(fildes, &stat_buffer);
+  if(stat_ret != 0)
+    {
+      perror("constructor stat");
+      throw std::runtime_error("constructor stat failed");
+    }
+  if(stat_buffer.st_size % sizeof(T) != 0)
+    {
+      throw std::runtime_error("invalid length of file to mmap");
+    }
+
+  _length = stat_buffer.st_size;
+  _size = _length / sizeof(T);
+
+  this->mmap(fildes);
+
+  int close_ret = close(fildes);
+  if(close_ret != 0)
+    {
+      perror("constructor close");
+      throw std::runtime_error("constructor close failed");
+    }
 }
 
 template<class T>
@@ -52,12 +76,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
   assert(size_in > 0);
   assert(_length / sizeof(T) == _size);
 
-  int fildes = open(filename_in.c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-  if(fildes == -1)
-    {
-      perror(("open " + filename_in).c_str());
-      throw std::logic_error("open() failed in constructor");
-    }
+  int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
   if(ftruncate(fildes, _length))
     {
@@ -67,7 +86,12 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
 
   this->mmap(fildes);
 
-  close(fildes);
+  int close_ret = close(fildes);
+  if(close_ret != 0)
+    {
+      perror("constructor close");
+      throw std::runtime_error("constructor close failed");
+    }
 }
 
 template<class T>
@@ -167,9 +191,10 @@ void MemoryMap<T>::mmap() const
       return;
     }
 
+  assert(_filename != "");
   assert(_flags != MAP_ANONYMOUS);
 
-  int fildes = open(_filename.c_str(), _readonly ? O_RDONLY : O_RDWR);
+  int fildes = open(_readonly ? O_RDONLY : O_RDWR, 0);
   if(fildes == -1)
     {
       if(errno != ENOENT)
@@ -181,7 +206,13 @@ void MemoryMap<T>::mmap() const
     }
 
   this->mmap(fildes);
-  close(fildes);
+
+  int close_ret = close(fildes);
+  if(close_ret != 0)
+    {
+      perror("mmap close");
+      throw std::runtime_error("mmap close failed");
+    }
 }
 
 template<class T>
@@ -203,16 +234,8 @@ void MemoryMap<T>::mmap(int fildes) const
 	  throw std::runtime_error("invalid length of file to mmap");
 	}
 
-      if(_length > 0)
-	{
-	  assert(stat_buffer.st_size == _length);
-	  assert(_size == _length / sizeof(T));
-	}
-      else
-	{
-	  _length = stat_buffer.st_size;
-	  _size = _length / sizeof(T);
-	}
+      assert(stat_buffer.st_size == _length);
+      assert(_size == _length / sizeof(T));
     }
 
   if(_length >> 30)
@@ -269,6 +292,22 @@ template<class T>
 size_t MemoryMap<T>::length() const
 {
   return _length;
+}
+
+template <class T>
+int MemoryMap<T>::open(int flags, int mode) const
+{
+  assert(!_mapped);
+  assert(_filename != "");
+
+  int fildes = ::open(_filename.c_str(), flags, mode);
+  if(fildes == -1)
+    {
+      perror(("open " + _filename).c_str());
+      throw std::logic_error("open() failed");
+    }
+
+  return fildes;
 }
 
 template<class T>
