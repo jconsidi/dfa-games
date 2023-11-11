@@ -79,7 +79,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
   if(ftruncate(fildes, _length))
     {
       perror("ftruncate");
-      throw std::logic_error("ftruncate() failed");
+      throw std::runtime_error("ftruncate() failed");
     }
 
   this->mmap(fildes);
@@ -262,7 +262,7 @@ void MemoryMap<T>::mmap(int fildes) const
     {
       _mapped = 0;
       perror("mmap");
-      throw std::logic_error("mmap failed");
+      throw std::runtime_error("mmap failed");
     }
   assert(_mapped);
 }
@@ -276,7 +276,7 @@ void MemoryMap<T>::msync()
   if(ret)
     {
       perror("msync");
-      throw std::logic_error("msync failed");
+      throw std::runtime_error("msync failed");
     }
 }
 
@@ -290,7 +290,7 @@ void MemoryMap<T>::munmap() const
 
   if(::munmap(_mapped, _length))
     {
-      throw std::logic_error("munmap failed");
+      throw std::runtime_error("munmap failed");
     }
 
   _mapped = 0;
@@ -312,7 +312,7 @@ int MemoryMap<T>::open(int flags, int mode) const
   if(fildes == -1)
     {
       perror(("open " + _filename).c_str());
-      throw std::logic_error("open() failed");
+      throw std::runtime_error("open() failed");
     }
 
   return fildes;
