@@ -74,7 +74,7 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
 static std::string binary_build_file_prefix(int layer)
 {
   std::ostringstream filename_builder;
-  filename_builder << "scratch/binarydfa/layer=" << (layer < 9 ? "0" : "") << (layer + 1);
+  filename_builder << "scratch/binarydfa/layer=" << (layer < 10 ? "0" : "") << layer;
   return filename_builder.str();
 }
 
