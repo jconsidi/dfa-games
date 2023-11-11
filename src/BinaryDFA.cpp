@@ -451,6 +451,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       sort<size_t>(curr_transition_pairs.begin(), curr_transition_pairs.end());
 
+      profile.tic("forward transition pairs sort msync");
+
+      curr_transition_pairs.msync();
+
       profile.tic("forward next pairs unique");
 
       auto unique_end = std::unique(
@@ -459,6 +463,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 #endif
 				    curr_transition_pairs.begin(),
 				    curr_transition_pairs.end());
+
+      profile.tic("forward next pairs unique msync");
+
+      curr_transition_pairs.msync();
 
       profile.tic("forward next pairs count");
 
@@ -500,6 +508,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 				   keep_func);
       assert(copy_end == next_pairs.end());
 
+      profile.tic("forward next pairs msync");
+
+      next_pairs.msync();
+
+      profile.tic("forward stats");
+
       if(next_pairs.size() >= 100000)
 	{
 	  // stats compared to full quadratic blow up
@@ -513,6 +527,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  // all pairs in next layer were filtered. no need to continue.
 	  break;
 	}
+
+      profile.tic("forward cleanup");
     }
 
   assert(pairs_by_layer.size() > 0);
