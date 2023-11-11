@@ -227,13 +227,6 @@ void BinaryDFA::build_linear(const DFA& left_in,
 template<class T>
 static MemoryMap<T> memory_map_helper(int layer, std::string suffix, size_t size_in)
 {
-  size_t size_bytes = size_in * sizeof(T);
-  if(size_bytes < 1ULL << 20)
-    {
-      // skip file allocation if less than 1MB
-      return MemoryMap<T>(size_in);
-    }
-
   return MemoryMap<T>(binary_build_file_prefix(layer) + "-" + suffix, size_in);
 }
 
@@ -327,7 +320,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
   // manual setup of initial layer
 
   size_t initial_pair = initial_left * right_in.get_layer_size(0) + initial_right;
-  pairs_by_layer.emplace_back(1);
+  pairs_by_layer.push_back(memory_map_helper<size_t>(0, "pairs", 1));
   pairs_by_layer[0][0] = initial_pair;
 
   // transitions helper
@@ -340,8 +333,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
     int curr_layer_shape = this->get_layer_shape(layer);
     const MemoryMap<size_t>& curr_pairs = pairs_by_layer.at(layer);
+    assert(curr_pairs.size() > 0);
+    curr_pairs.mmap();
 
+    size_t curr_left_size = left_in.get_layer_size(layer);
     size_t curr_right_size = right_in.get_layer_size(layer);
+    assert(curr_pairs[curr_pairs.size() - 1] < curr_left_size * curr_right_size);
     size_t next_right_size = right_in.get_layer_size(layer + 1);
 
     MemoryMap<size_t> curr_transition_pairs("scratch/binarydfa/transition_pairs",
@@ -363,6 +360,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       size_t curr_pair_offset = curr_i * curr_layer_shape;
 
       size_t curr_left_state = curr_pair / curr_right_size;
+      assert(curr_left_state < curr_left_size);
       DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
 
       for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
@@ -421,6 +419,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	update_right_transition(curr_pairs[curr_i]);
       }
 #endif
+
+    // cleanup
+
+    profile2.tic("curr pairs munmap");
+
+    curr_pairs.munmap();
 
     // done
     profile2.tic("done");
@@ -560,7 +564,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward next pair mmap");
 
-      MemoryMap<size_t>& next_pairs = pairs_by_layer.at(layer+1);
+      const MemoryMap<size_t>& next_pairs = pairs_by_layer.at(layer+1);
+      next_pairs.mmap();
       size_t next_layer_count = next_pairs.size();
 
       profile.tic("backward transitions input");
