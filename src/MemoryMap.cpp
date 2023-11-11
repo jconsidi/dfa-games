@@ -19,7 +19,6 @@ MemoryMap<T>::MemoryMap(size_t size_in)
     _length(sizeof(T) * _size),
     _mapped(0)
 {
-  assert(size_in >= 0);
   assert(_length / sizeof(T) == _size);
 
   if(size_in > 0)
@@ -73,7 +72,6 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
     _length(sizeof(T) * _size),
     _mapped(0)
 {
-  assert(size_in > 0);
   assert(_length / sizeof(T) == _size);
 
   int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -191,6 +189,11 @@ void MemoryMap<T>::mmap() const
       return;
     }
 
+  if(_length == 0)
+    {
+      return;
+    }
+
   assert(_filename != "");
   assert(_flags != MAP_ANONYMOUS);
 
@@ -236,6 +239,11 @@ void MemoryMap<T>::mmap(int fildes) const
 
       assert(stat_buffer.st_size == _length);
       assert(_size == _length / sizeof(T));
+    }
+
+  if(_length == 0)
+    {
+      return;
     }
 
   if(_length >> 30)
