@@ -650,7 +650,13 @@ double DFA::size() const
 {
   assert(ready());
 
-  if((size_cache == 0.0) && (initial_state != 0))
+  if(initial_state == 0)
+    {
+      assert(size_cache == 0.0);
+      return 0.0;
+    }
+
+  if(size_cache == 0.0)
     {
       std::vector<double> previous_counts({0, 1}); // reject, accept
       for(int layer = ndim - 1; layer >= 0; --layer)
@@ -677,7 +683,9 @@ double DFA::size() const
       size_cache = previous_counts.at(initial_state);
     }
 
-    return size_cache;
+  assert(size_cache >= 1.0);
+
+  return size_cache;
 }
 
 size_t DFA::states() const
