@@ -480,7 +480,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward next pairs mmap");
 
-      pairs_by_layer.emplace_back(memory_map_helper<size_t>(layer, "pairs", next_pairs_count));
+      pairs_by_layer.emplace_back(memory_map_helper<size_t>(layer + 1, "pairs", next_pairs_count));
       MemoryMap<size_t>& next_pairs = pairs_by_layer.at(layer + 1);
 
       if(next_pairs_count == 0)
