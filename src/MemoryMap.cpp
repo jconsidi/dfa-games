@@ -140,16 +140,16 @@ MemoryMap<T>& MemoryMap<T>::operator=(MemoryMap<T>&& other) noexcept
 template<class T>
 T& MemoryMap<T>::operator[](size_t i)
 {
-  this->mmap();
   assert(i < _size);
+  this->mmap();
   return ((T *) _mapped)[i];
 }
 
 template<class T>
 const T& MemoryMap<T>::operator[](size_t i) const
 {
-  this->mmap();
   assert(i < _size);
+  this->mmap();
   return ((T *) _mapped)[i];
 }
 
