@@ -453,6 +453,27 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
 
+      profile.tic("forward transition pairs filter");
+
+      auto remove_func = [&](size_t next_pair)
+      {
+	  dfa_state_t next_left_state = next_pair / next_right_size;
+	  dfa_state_t next_right_state = next_pair % next_right_size;
+
+	  return filter_func(next_left_state, next_right_state);
+      };
+
+      auto remove_end = \
+	std::remove_if(
+#ifdef __cpp_lib_parallel_algorithm
+		       std::execution::par_unseq,
+#endif
+		       curr_transition_pairs.begin(),
+		       curr_transition_pairs.end(),
+		       remove_func);
+
+      std::cout << "pair count = " << (remove_end - curr_transition_pairs.begin()) << " (filtered)" << std::endl;
+
       profile.tic("forward transition pairs unique");
 
       auto pre_sort_unique_end = \
@@ -461,7 +482,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 		    std::execution::par_unseq,
 #endif
 		    curr_transition_pairs.begin(),
-		    curr_transition_pairs.end());
+		    remove_end);
 
       std::cout << "pair count = " << (pre_sort_unique_end - curr_transition_pairs.begin()) << " (pre sort unique)" << std::endl;
 
@@ -490,23 +511,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward next pairs count");
 
-      auto keep_func = [&](size_t next_pair)
-      {
-	  dfa_state_t next_left_state = next_pair / next_right_size;
-	  dfa_state_t next_right_state = next_pair % next_right_size;
-
-	  return !filter_func(next_left_state, next_right_state);
-      };
-
-      size_t next_pairs_count = std::count_if(
-#ifdef __cpp_lib_parallel_algorithm
-					      std::execution::par_unseq,
-#endif
-					      curr_transition_pairs.begin(),
-					      unique_end,
-					      keep_func);
-
-      std::cout << "pair count = " << next_pairs_count << " (filtered)" << std::endl;
+      size_t next_pairs_count = unique_end - curr_transition_pairs.begin();
 
       profile.tic("forward next pairs mmap");
 
@@ -520,14 +525,13 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward next pairs populate");
 
-      auto copy_end = std::copy_if(
+      auto copy_end = std::copy(
 #ifdef __cpp_lib_parallel_algorithm
 				   std::execution::par_unseq,
 #endif
 				   curr_transition_pairs.begin(),
 				   unique_end,
-				   next_pairs.begin(),
-				   keep_func);
+				   next_pairs.begin());
       assert(copy_end == next_pairs.end());
 
       profile.tic("forward next pairs msync");
