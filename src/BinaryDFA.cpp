@@ -451,9 +451,23 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
 
+      std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
+
+      profile.tic("forward transition pairs unique");
+
+      auto pre_sort_unique_end = \
+	std::unique(
+#ifdef __cpp_lib_parallel_algorithm
+		    std::execution::par_unseq,
+#endif
+		    curr_transition_pairs.begin(),
+		    curr_transition_pairs.end());
+
+      std::cout << "pair count = " << (pre_sort_unique_end - curr_transition_pairs.begin()) << " (pre sort unique)" << std::endl;
+
       profile.tic("forward transition pairs sort");
 
-      sort<size_t>(curr_transition_pairs.begin(), curr_transition_pairs.end());
+      sort<size_t>(curr_transition_pairs.begin(), pre_sort_unique_end);
 
       profile.tic("forward transition pairs sort msync");
 
@@ -461,13 +475,15 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward next pairs unique");
 
-      auto unique_end = std::unique(
+      auto unique_end = \
+	std::unique(
 #ifdef __cpp_lib_parallel_algorithm
-				    std::execution::par_unseq,
+		    std::execution::par_unseq,
 #endif
-				    curr_transition_pairs.begin(),
-				    curr_transition_pairs.end());
+		    curr_transition_pairs.begin(),
+		    pre_sort_unique_end);
 
+      std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
       profile.tic("forward next pairs unique msync");
 
       curr_transition_pairs.msync();
@@ -489,6 +505,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 					      curr_transition_pairs.begin(),
 					      unique_end,
 					      keep_func);
+
+      std::cout << "pair count = " << next_pairs_count << " (filtered)" << std::endl;
 
       profile.tic("forward next pairs mmap");
 
