@@ -56,6 +56,11 @@ Game *get_game(std::string game_name)
     {
       output = new ChessGame();
     }
+#elif CHESS_SQUARE_OFFSET == 1
+  else if(game_name == "chess+1")
+    {
+      output = new ChessGame();
+    }
 #elif CHESS_SQUARE_OFFSET == 2
   else if(game_name.starts_with("chess+2"))
     {

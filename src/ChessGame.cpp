@@ -431,11 +431,11 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
       int from_layer = from_square + CHESS_SQUARE_OFFSET;
       change_vector from_changes = _get_changes();
       from_changes[from_layer] = change_type(from_character, DFA_BLANK);
-#if CHESS_SQUARE_OFFSET == 2
+#ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
       if(from_character == king_character)
 	{
 	  // temporarily clear king index to avoid fanout setting it later.
-	  from_changes[side_to_move] = change_type(from_square, 0);
+	  from_changes[CHESS_SIDE_TO_MOVE_KING_LAYER] = change_type(from_square, 0);
 	}
 #endif
 
@@ -455,11 +455,11 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
       change_vector to_changes = _get_changes();
       // main change happens at a following to/prev node.
-#if CHESS_SQUARE_OFFSET == 2
+#ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
       if(to_character == king_character)
 	{
 	  // set king index now
-	  to_changes[side_to_move] = change_type(0, to_square);
+	  to_changes[CHESS_SIDE_TO_MOVE_KING_LAYER] = change_type(0, to_square);
 	}
 #endif
 
@@ -564,8 +564,8 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
   int castle_rank = _calc_castle_rank(side_to_move);
 
   change_vector castle_left_changes = _get_changes();
-#if CHESS_SQUARE_OFFSET == 2
-  castle_left_changes[side_to_move] = change_type(0, _calc_square(castle_rank, 2));
+#ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
+  castle_left_changes[CHESS_SIDE_TO_MOVE_KING_LAYER] = change_type(0, _calc_square(castle_rank, 2));
 #endif
   castle_left_changes[_calc_layer(castle_rank, 0)] = change_type(rook_castle_character, DFA_BLANK);
   castle_left_changes[_calc_layer(castle_rank, 1)] = change_type(DFA_BLANK, DFA_BLANK);
@@ -591,8 +591,8 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
   // castle right
 
   change_vector castle_right_changes = _get_changes();
-#if CHESS_SQUARE_OFFSET == 2
-  castle_right_changes[side_to_move] = change_type(0, _calc_square(castle_rank, 6));
+#ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
+  castle_right_changes[CHESS_SIDE_TO_MOVE_KING_LAYER] = change_type(0, _calc_square(castle_rank, 6));
 #endif
   castle_right_changes[_calc_layer(castle_rank, 4)] = change_type(DFA_BLANK, DFA_BLANK); // king's old position
   castle_right_changes[_calc_layer(castle_rank, 5)] = change_type(DFA_BLANK, rook_character);
@@ -727,14 +727,70 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 
   // apply post constraints at end
 
-  move_graph.add_node("end-2");
-  connect("clear en passant end", "end-2");
+  move_graph.add_node("post not check");
+  move_graph.add_edge("not check",
+		      "clear en passant end",
+		      "post not check",
+		      get_positions_not_check(side_to_move));
+
+#if CHESS_SQUARE_OFFSET == 1
+  auto get_curr_king_node_name = [](int square) {
+    return "curr side_to_move king square=" + std::to_string(square);
+  };
+
+  auto get_next_king_node_name = [](int square) {
+    return "next side_to_move king square=" + std::to_string(square);
+  };
+
+  for(int curr_king_square = 0; curr_king_square < 64; ++curr_king_square)
+    {
+      change_vector index_changes = _get_changes();
+      index_changes[0] = change_type(curr_king_square, 0);
+      index_changes[CHESS_SQUARE_OFFSET + curr_king_square] = change_type(king_character, king_character);
+
+      move_graph.add_node(get_curr_king_node_name(curr_king_square),
+			  index_changes);
+
+      move_graph.add_edge("post not check",
+			  get_curr_king_node_name(curr_king_square));
+    }
+
+  int next_king_character = DFA_WHITE_KING + (1 - side_to_move);
+  for(int next_king_square = 0; next_king_square < 64; ++next_king_square)
+    {
+      change_vector index_changes = _get_changes();
+      index_changes[0] = change_type(0, next_king_square);
+      index_changes[CHESS_SQUARE_OFFSET + next_king_square] = change_type(next_king_character, next_king_character);
+
+      move_graph.add_node(get_next_king_node_name(next_king_square),
+			  index_changes);
+
+      for(int curr_king_square = 0; curr_king_square < 64; ++curr_king_square)
+	{
+	  if(curr_king_square == next_king_square)
+	    {
+	      continue;
+	    }
+
+	  move_graph.add_edge(get_curr_king_node_name(curr_king_square),
+			      get_next_king_node_name(next_king_square));
+	}
+    }
+
+  move_graph.add_node("post index");
+  for(int next_king_square = 0; next_king_square < 64; ++next_king_square)
+    {
+      move_graph.add_edge(get_next_king_node_name(next_king_square),
+			  "post index");
+    }
+#endif
 
   move_graph.add_node("end-1");
-  move_graph.add_edge("post not check",
-		      "end-2",
-		      "end-1",
-		      get_positions_not_check(side_to_move));
+#if CHESS_SQUARE_OFFSET == 1
+  connect("post index", "end-1");
+#else
+  connect("post not check", "end-1");
+#endif
 
   move_graph.add_node("end");
   move_graph.add_edge("post legal",
@@ -762,7 +818,11 @@ DFAString ChessGame::from_board_to_dfa_string(const Board& board_in)
 
   std::vector<int> board_characters;
 
-#if CHESS_SQUARE_OFFSET == 2
+#if CHESS_SQUARE_OFFSET == 1
+  // site to move king index
+  assert(pieces_by_side_type[board_in.side_to_move][PIECE_KING]);
+  board_characters.push_back(std::countr_zero(pieces_by_side_type[board_in.side_to_move][PIECE_KING]));
+#elif CHESS_SQUARE_OFFSET == 2
   // white king index
   assert(pieces_by_side_type[SIDE_WHITE][PIECE_KING]);
   board_characters.push_back(std::countr_zero(pieces_by_side_type[SIDE_WHITE][PIECE_KING]));
@@ -928,9 +988,9 @@ shared_dfa_ptr ChessGame::get_positions_check(int side_to_move) const
     for(int square = 0; square < 64; ++square)
       {
 	std::vector<shared_dfa_ptr> square_requirements;
-#if CHESS_SQUARE_OFFSET == 2
+#ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
 	// the index at the beginning says the king is on this square. makes the union much cheaper.
-	square_requirements.push_back(DFAUtil::get_fixed(chess_shape, side_to_move, square));
+	square_requirements.push_back(DFAUtil::get_fixed(chess_shape, CHESS_SIDE_TO_MOVE_KING_LAYER, square));
 #endif
 	// the king is actually on this square.
 	square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, king_character));
@@ -946,7 +1006,7 @@ shared_dfa_ptr ChessGame::get_positions_check(int side_to_move) const
   });
 }
 
-#if CHESS_SQUARE_OFFSET == 2
+#ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
 shared_dfa_ptr ChessGame::get_positions_king(int side_to_move) const
 {
   // 2023-11-12 : returns constraints on side to move king.
@@ -965,7 +1025,7 @@ shared_dfa_ptr ChessGame::get_positions_king(int side_to_move) const
 	std::vector<shared_dfa_ptr> king_square_requirements;
 
 	// king index
-	king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, side_to_move, king_square));
+	king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, CHESS_SIDE_TO_MOVE_KING_LAYER, king_square));
 	// king on target square
 	king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, CHESS_SQUARE_OFFSET + king_square, king_character));
 	// exactly one king
@@ -1010,6 +1070,14 @@ shared_dfa_ptr ChessGame::get_positions_legal(int side_to_move) const
 						 (side_to_move == SIDE_BLACK) ? DFA_BLACK_PAWN_EN_PASSANT : DFA_WHITE_PAWN_EN_PASSANT,
 						 0, 0,
 						 CHESS_SQUARE_OFFSET));
+
+    // side to move king index
+
+#if CHESS_SQUARE_OFFSET == 1
+    add_requirement(get_positions_king(side_to_move));
+#endif
+
+    // combine
 
     std::cout << "get_positions_legal() => " << requirements.size() << " requirements" << std::endl;
 

@@ -10,6 +10,12 @@
 #include "Game.h"
 #include "MoveSet.h"
 
+#if CHESS_SQUARE_OFFSET == 1
+#define CHESS_SIDE_TO_MOVE_KING_LAYER 0
+#elif CHESS_SQUARE_OFFSET == 2
+#define CHESS_SIDE_TO_MOVE_KING_LAYER side_to_move
+#endif
+
 class ChessGame
   : public Game
 {
@@ -34,7 +40,9 @@ private:
 
   shared_dfa_ptr get_positions_can_move_basic(int, int) const;
   shared_dfa_ptr get_positions_can_move_capture(int, int) const;
+#ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
   shared_dfa_ptr get_positions_king(int) const;
+#endif
   shared_dfa_ptr get_positions_legal(int) const;
   shared_dfa_ptr get_positions_legal_shared() const;
   shared_dfa_ptr get_positions_not_check(int) const;
