@@ -912,23 +912,32 @@ shared_dfa_ptr ChessGame::get_positions_can_move_capture(int side_to_move, int s
   });
 }
 
-shared_dfa_ptr ChessGame::get_positions_check(int checked_side) const
+shared_dfa_ptr ChessGame::get_positions_check(int side_to_move) const
 {
+  // 2023-11-12: assume checked side is side to move. otherwise
+  // position is not reachable. this is relevant for offset=1.
+
   Profile profile("get_positions_check");
 
-  return load_or_build("check_positions-side=" + std::to_string(checked_side), [&]()
+  return load_or_build("check_positions-side=" + std::to_string(side_to_move), [&]()
   {
     // constrain number of kings to one. otherwise threat checks blow up a lot.
-    int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
-    shared_dfa_ptr king_positions = get_positions_king(checked_side);
+    int king_character = (side_to_move == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
     std::vector<shared_dfa_ptr> checks;
     for(int square = 0; square < 64; ++square)
       {
 	std::vector<shared_dfa_ptr> square_requirements;
+#if CHESS_SQUARE_OFFSET == 2
+	// the index at the beginning says the king is on this square. makes the union much cheaper.
+	square_requirements.push_back(DFAUtil::get_fixed(chess_shape, side_to_move, square));
+#endif
+	// the king is actually on this square.
 	square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, king_character));
-	square_requirements.push_back(king_positions); // makes union much cheaper below
-	square_requirements.push_back(get_positions_threat(checked_side, square));
+	// there is only king for this side
+	square_requirements.push_back(DFAUtil::get_count_character(chess_shape, king_character, 1, 1, CHESS_SQUARE_OFFSET));
+	// this square is threatened.
+	square_requirements.push_back(get_positions_threat(side_to_move, square));
 
 	checks.emplace_back(DFAUtil::get_intersection_vector(chess_shape, square_requirements));
       }
