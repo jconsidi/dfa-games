@@ -885,123 +885,92 @@ DFAString ChessGame::from_board_to_dfa_string(const Board& board_in)
 
 shared_dfa_ptr ChessGame::get_positions_can_move_basic(int side_to_move, int square) const
 {
-  shared_dfa_ptr singletons[2][64] = {{0}};
-
-  if(!singletons[side_to_move][square])
-    {
-      singletons[side_to_move][square] =
-        load_or_build("can_move_basic-side=" + std::to_string(side_to_move) + ",square=" + std::to_string(square),
-		      [&]()
-		      {
-			shared_dfa_ptr empty = DFAUtil::get_fixed(get_shape(), square + CHESS_SQUARE_OFFSET, DFA_BLANK);
-			return DFAUtil::get_union(empty,
-						  get_positions_can_move_capture(side_to_move, square));
-		      });
-    }
-
-  return singletons[side_to_move][square];
+  return load_or_build("can_move_basic-side=" + std::to_string(side_to_move) + ",square=" + std::to_string(square), [&]()
+  {
+    shared_dfa_ptr empty = DFAUtil::get_fixed(get_shape(), square + CHESS_SQUARE_OFFSET, DFA_BLANK);
+    return DFAUtil::get_union(empty,
+			      get_positions_can_move_capture(side_to_move, square));
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_can_move_capture(int side_to_move, int square) const
 {
-  shared_dfa_ptr singletons[2][64] = {{0}};
+  return load_or_build("can_move_capture-side=" + std::to_string(side_to_move) + ",square=" + std::to_string(square), [&]()
+  {
+    int layer = square + CHESS_SQUARE_OFFSET;
 
-  if(!singletons[side_to_move][square])
-    {
-      singletons[side_to_move][square] =
-	load_or_build("can_move_capture-side=" + std::to_string(side_to_move) + ",square=" + std::to_string(square),
-		      [&]()
-		      {
-			int layer = square + CHESS_SQUARE_OFFSET;
+    std::vector<shared_dfa_ptr> partials;
+    for(int c = 0; c < chess_shape[layer]; ++c)
+      {
+	if(chess_is_hostile(side_to_move, c) && (c != DFA_BLACK_KING) && (c != DFA_WHITE_KING))
+	  {
+	    partials.push_back(DFAUtil::get_fixed(get_shape(), layer, c));
+	  }
+      }
 
-			std::vector<shared_dfa_ptr> partials;
-			for(int c = 0; c < chess_shape[layer]; ++c)
-			  {
-			    if(chess_is_hostile(side_to_move, c) && (c != DFA_BLACK_KING) && (c != DFA_WHITE_KING))
-			      {
-				partials.push_back(DFAUtil::get_fixed(get_shape(), layer, c));
-			      }
-			  }
-
-			return DFAUtil::get_union_vector(chess_shape, partials);
-		      });
-    }
-
-  return singletons[side_to_move][square];
+    return DFAUtil::get_union_vector(chess_shape, partials);
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_check(int checked_side) const
 {
   Profile profile("get_positions_check");
 
-  static shared_dfa_ptr singletons[2] = {0, 0};
-  if(!singletons[checked_side])
-    {
-      singletons[checked_side] = load_or_build("check_positions-side=" + std::to_string(checked_side), [&]()
+  return load_or_build("check_positions-side=" + std::to_string(checked_side), [&]()
+  {
+    // constrain number of kings to one. otherwise threat checks blow up a lot.
+    int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+    shared_dfa_ptr king_positions = get_positions_king(checked_side);
+
+    std::vector<shared_dfa_ptr> checks;
+    for(int square = 0; square < 64; ++square)
       {
-	profile.tic("singleton");
+	std::vector<shared_dfa_ptr> square_requirements;
+	square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, king_character));
+	square_requirements.push_back(king_positions); // makes union much cheaper below
+	square_requirements.push_back(get_positions_threat(checked_side, square));
 
-	// constrain number of kings to one. otherwise threat checks blow up a lot.
-	int king_character = (checked_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
-	shared_dfa_ptr king_positions = get_positions_king(checked_side);
+	checks.emplace_back(DFAUtil::get_intersection_vector(chess_shape, square_requirements));
+      }
 
-	std::vector<shared_dfa_ptr> checks;
-	for(int square = 0; square < 64; ++square)
-	  {
-	    std::vector<shared_dfa_ptr> square_requirements;
-	    square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, square + CHESS_SQUARE_OFFSET, king_character));
-	    square_requirements.push_back(king_positions); // makes union much cheaper below
-	    square_requirements.push_back(get_positions_threat(checked_side, square));
-
-	    checks.emplace_back(DFAUtil::get_intersection_vector(chess_shape, square_requirements));
-	  }
-
-	return DFAUtil::get_union_vector(chess_shape, checks);
-      });
-    }
-
-  return singletons[checked_side];
+    return DFAUtil::get_union_vector(chess_shape, checks);
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_king(int king_side) const
 {
   Profile profile("get_positions_king");
 
-  static shared_dfa_ptr singletons[2] = {0, 0};
-  if(!singletons[king_side])
-    {
-      singletons[king_side] = load_or_build("king_positions-side=" + std::to_string(king_side), [=]()
-      {
-	int king_character = (king_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+  return load_or_build("king_positions-side=" + std::to_string(king_side), [=]()
+  {
+    int king_character = (king_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
-	shared_dfa_ptr count_constraint(new CountCharacterDFA(chess_shape, king_character, 1, 1, CHESS_SQUARE_OFFSET));
+    shared_dfa_ptr count_constraint(new CountCharacterDFA(chess_shape, king_character, 1, 1, CHESS_SQUARE_OFFSET));
 
 #if CHESS_SQUARE_OFFSET == 0
-	return count_constraint;
+    return count_constraint;
 #elif CHESS_SQUARE_OFFSET == 2
-	std::vector<shared_dfa_ptr> king_choices;
-	for(int king_square = 0; king_square < 64; ++king_square)
-	  {
-	    std::vector<shared_dfa_ptr> king_square_requirements;
+    std::vector<shared_dfa_ptr> king_choices;
+    for(int king_square = 0; king_square < 64; ++king_square)
+      {
+	std::vector<shared_dfa_ptr> king_square_requirements;
 
-	    // king index
-	    king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, king_side, king_square));
-	    // king on target square
-	    king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, CHESS_SQUARE_OFFSET + king_square, king_character));
-	    // exactly one king
-	    king_square_requirements.emplace_back(count_constraint);
+	// king index
+	king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, king_side, king_square));
+	// king on target square
+	king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, CHESS_SQUARE_OFFSET + king_square, king_character));
+	// exactly one king
+	king_square_requirements.emplace_back(count_constraint);
 
-	    king_choices.emplace_back(DFAUtil::get_intersection_vector(chess_shape, king_square_requirements));
-	    assert(king_choices[king_square]->size() > 0);
-	  }
+	king_choices.emplace_back(DFAUtil::get_intersection_vector(chess_shape, king_square_requirements));
+	assert(king_choices[king_square]->size() > 0);
+      }
 
-	return DFAUtil::get_union_vector(chess_shape, king_choices);
+    return DFAUtil::get_union_vector(chess_shape, king_choices);
 #else
 #error
 #endif
-      });
-    }
-  return singletons[king_side];
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_legal(int side_to_move) const
@@ -1171,65 +1140,57 @@ shared_dfa_ptr ChessGame::get_positions_threat(int threatened_side, int threaten
 {
   Profile profile("get_positions_threat");
 
-  static shared_dfa_ptr singletons[2][64];
-
-  if(!singletons[threatened_side][threatened_square])
+  return load_or_build("threat_positions-side=" + std::to_string(threatened_side) + ",square=" + std::to_string(threatened_square), [=]()
+  {
+    BoardMask threatened_mask = 1ULL << threatened_square;
+    std::vector<shared_dfa_ptr> threats;
+    std::function<void(int, const MoveSet&)> add_threat = [&](int threatening_character, const MoveSet& moves)
     {
-      singletons[threatened_side][threatened_square] = \
-	load_or_build("threat_positions-side=" + std::to_string(threatened_side) + ",square=" + std::to_string(threatened_square), [=]()
+      for(int threatening_square = 0; threatening_square < 64; ++threatening_square)
 	{
-	  BoardMask threatened_mask = 1ULL << threatened_square;
-	  std::vector<shared_dfa_ptr> threats;
-	  std::function<void(int, const MoveSet&)> add_threat = [&](int threatening_character, const MoveSet& moves)
-	  {
-	    for(int threatening_square = 0; threatening_square < 64; ++threatening_square)
-	      {
-		if(!(moves.moves[threatening_square] & threatened_mask))
-		  {
-		    continue;
-		  }
-
-		std::vector<shared_dfa_ptr> threat_components;
-		threat_components.emplace_back(DFAUtil::get_fixed(chess_shape, threatening_square + CHESS_SQUARE_OFFSET, threatening_character));
-
-		BoardMask between_mask = between_masks.masks[threatening_square][threatened_square];
-		for(int between_square = std::countr_zero(between_mask); between_square < 64; between_square += 1 + std::countr_zero(between_mask >> (between_square + 1)))
-		  {
-		    threat_components.emplace_back(DFAUtil::get_fixed(chess_shape, between_square + CHESS_SQUARE_OFFSET, DFA_BLANK));
-		  }
-
-		threats.push_back(DFAUtil::get_intersection_vector(chess_shape, threat_components));
-	      }
-	  };
-
-	  if(threatened_side == SIDE_WHITE)
+	  if(!(moves.moves[threatening_square] & threatened_mask))
 	    {
-	      add_threat(DFA_BLACK_BISHOP, bishop_moves);
-	      add_threat(DFA_BLACK_KING, king_moves);
-	      add_threat(DFA_BLACK_KNIGHT, knight_moves);
-	      add_threat(DFA_BLACK_PAWN, pawn_captures_black);
-	      add_threat(DFA_BLACK_PAWN_EN_PASSANT, pawn_captures_black);
-	      add_threat(DFA_BLACK_QUEEN, queen_moves);
-	      add_threat(DFA_BLACK_ROOK, rook_moves);
-	      add_threat(DFA_BLACK_ROOK_CASTLE, rook_moves);
-	    }
-	  else
-	    {
-	      add_threat(DFA_WHITE_BISHOP, bishop_moves);
-	      add_threat(DFA_WHITE_KING, king_moves);
-	      add_threat(DFA_WHITE_KNIGHT, knight_moves);
-	      add_threat(DFA_WHITE_PAWN, pawn_captures_white);
-	      add_threat(DFA_WHITE_PAWN_EN_PASSANT, pawn_captures_white);
-	      add_threat(DFA_WHITE_QUEEN, queen_moves);
-	      add_threat(DFA_WHITE_ROOK, rook_moves);
-	      add_threat(DFA_WHITE_ROOK_CASTLE, rook_moves);
+	      continue;
 	    }
 
-	  return DFAUtil::get_union_vector(chess_shape, threats);
-	});
-    }
+	  std::vector<shared_dfa_ptr> threat_components;
+	  threat_components.emplace_back(DFAUtil::get_fixed(chess_shape, threatening_square + CHESS_SQUARE_OFFSET, threatening_character));
 
-  return singletons[threatened_side][threatened_square];
+	  BoardMask between_mask = between_masks.masks[threatening_square][threatened_square];
+	  for(int between_square = std::countr_zero(between_mask); between_square < 64; between_square += 1 + std::countr_zero(between_mask >> (between_square + 1)))
+	    {
+	      threat_components.emplace_back(DFAUtil::get_fixed(chess_shape, between_square + CHESS_SQUARE_OFFSET, DFA_BLANK));
+	    }
+
+	  threats.push_back(DFAUtil::get_intersection_vector(chess_shape, threat_components));
+	}
+    };
+
+    if(threatened_side == SIDE_WHITE)
+      {
+	add_threat(DFA_BLACK_BISHOP, bishop_moves);
+	add_threat(DFA_BLACK_KING, king_moves);
+	add_threat(DFA_BLACK_KNIGHT, knight_moves);
+	add_threat(DFA_BLACK_PAWN, pawn_captures_black);
+	add_threat(DFA_BLACK_PAWN_EN_PASSANT, pawn_captures_black);
+	add_threat(DFA_BLACK_QUEEN, queen_moves);
+	add_threat(DFA_BLACK_ROOK, rook_moves);
+	add_threat(DFA_BLACK_ROOK_CASTLE, rook_moves);
+      }
+    else
+      {
+	add_threat(DFA_WHITE_BISHOP, bishop_moves);
+	add_threat(DFA_WHITE_KING, king_moves);
+	add_threat(DFA_WHITE_KNIGHT, knight_moves);
+	add_threat(DFA_WHITE_PAWN, pawn_captures_white);
+	add_threat(DFA_WHITE_PAWN_EN_PASSANT, pawn_captures_white);
+	add_threat(DFA_WHITE_QUEEN, queen_moves);
+	add_threat(DFA_WHITE_ROOK, rook_moves);
+	add_threat(DFA_WHITE_ROOK_CASTLE, rook_moves);
+      }
+
+    return DFAUtil::get_union_vector(chess_shape, threats);
+  });
 }
 
 DFAString ChessGame::get_position_initial() const
