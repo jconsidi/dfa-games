@@ -1165,8 +1165,6 @@ shared_dfa_ptr ChessGame::get_positions_not_check(int checked_side) const
     shared_dfa_ptr check_positions = get_positions_check(checked_side);
     return DFAUtil::get_inverse(check_positions);
   });
-
-  return DFAUtil::get_inverse(get_positions_check(checked_side));
 }
 
 shared_dfa_ptr ChessGame::get_positions_threat(int threatened_side, int threatened_square) const
