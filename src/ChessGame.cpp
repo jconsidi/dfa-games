@@ -946,26 +946,26 @@ shared_dfa_ptr ChessGame::get_positions_check(int side_to_move) const
   });
 }
 
-shared_dfa_ptr ChessGame::get_positions_king(int king_side) const
+#if CHESS_SQUARE_OFFSET == 2
+shared_dfa_ptr ChessGame::get_positions_king(int side_to_move) const
 {
+  // 2023-11-12 : returns constraints on side to move king.
+
   Profile profile("get_positions_king");
 
-  return load_or_build("king_positions-side=" + std::to_string(king_side), [=]()
+  return load_or_build("king_positions-side=" + std::to_string(side_to_move), [=]()
   {
-    int king_character = (king_side == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
+    int king_character = (side_to_move == SIDE_WHITE) ? DFA_WHITE_KING : DFA_BLACK_KING;
 
     shared_dfa_ptr count_constraint(new CountCharacterDFA(chess_shape, king_character, 1, 1, CHESS_SQUARE_OFFSET));
 
-#if CHESS_SQUARE_OFFSET == 0
-    return count_constraint;
-#elif CHESS_SQUARE_OFFSET == 2
     std::vector<shared_dfa_ptr> king_choices;
     for(int king_square = 0; king_square < 64; ++king_square)
       {
 	std::vector<shared_dfa_ptr> king_square_requirements;
 
 	// king index
-	king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, king_side, king_square));
+	king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, side_to_move, king_square));
 	// king on target square
 	king_square_requirements.emplace_back(DFAUtil::get_fixed(chess_shape, CHESS_SQUARE_OFFSET + king_square, king_character));
 	// exactly one king
@@ -976,11 +976,9 @@ shared_dfa_ptr ChessGame::get_positions_king(int king_side) const
       }
 
     return DFAUtil::get_union_vector(chess_shape, king_choices);
-#else
-#error
-#endif
   });
 }
+#endif
 
 shared_dfa_ptr ChessGame::get_positions_legal(int side_to_move) const
 {
@@ -1105,8 +1103,19 @@ shared_dfa_ptr ChessGame::get_positions_legal_shared() const
       }
 
     // king restrictions
+
+    // one king per side
+    std::vector<int> king_characters = {DFA_WHITE_KING, DFA_WHITE_KING};
+    for(int king_character : king_characters)
+      {
+	requirements.push_back(DFAUtil::get_count_character(chess_shape, king_character, 1, 1, CHESS_SQUARE_OFFSET));
+      }
+
+#if CHESS_SQUARE_OFFSET == 2
+    // both side to move constraints always apply
     requirements.push_back(get_positions_king(0));
     requirements.push_back(get_positions_king(1));
+#endif
 
     // castle rights
 
