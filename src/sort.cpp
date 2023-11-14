@@ -135,12 +135,14 @@ T *sort_unique(T *begin, T *end)
 
   if(size_elements >= 1048576) // simple parallel
     {
+      end = std::unique(std::execution::par_unseq, begin, end);
       std::sort(std::execution::par_unseq, begin, end);
       return std::unique(std::execution::par_unseq, begin, end);
     }
 #endif
 
   // base case
+  end = std::unique(begin, end);
   std::sort(begin, end);
   return std::unique(begin, end);
 }
