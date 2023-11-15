@@ -12,9 +12,13 @@
 #ifdef __cpp_lib_parallel_algorithm
 #define TRY_PARALLEL_2(f, a, b) f(std::execution::par_unseq, a, b)
 #define TRY_PARALLEL_3(f, a, b, c) f(std::execution::par_unseq, a, b, c)
+#define TRY_PARALLEL_4(f, a, b, c, d) f(std::execution::par_unseq, a, b, c, d)
+#define TRY_PARALLEL_5(f, a, b, c, d, e) f(std::execution::par_unseq, a, b, c, d, e)
 #else
 #define TRY_PARALLEL_2(f, a, b) f(a, b)
 #define TRY_PARALLEL_3(f, a, b, c) f(a, b, c)
+#define TRY_PARALLEL_4(f, a, b, c, d) f(a, b, c, d)
+#define TRY_PARALLEL_5(f, a, b, c, d, e) f(a, b, c, d, e)
 #endif
 
 #define SORT_MAX_PARALLEL_BYTES (size_t(1) << 32)
@@ -76,79 +80,126 @@ void sort(T *begin, T *end, std::function<int(T, T)> compare)
 template <class T>
 T *sort_unique(T *begin, T *end)
 {
-#ifdef __cpp_lib_parallel_algorithm
-  size_t size_elements = (end - begin);
-  size_t size_bytes = size_elements * sizeof(T);
-  if((size_bytes >= SORT_MAX_PARALLEL_BYTES) && (size_elements >= 8))
+  T *begin_original = begin;
+  T *dest = begin;
+
+  auto handle_overlap = [&](T *next)
+  {
+    // if [begin_original, dest) ends with value at next, pop it off
+    // to avoid duplicate when [next, ...) is copied.
+    if((dest > begin_original) && (*(dest-1) == *next))
+      {
+	--dest;
+      }
+  };
+
+  while(begin + (1ULL << 20) < end)
     {
-      T *mid = begin + size_elements / 2;
+      // large remaining unsorted region
 
-      // parallel policy is allowed O(n log n) swaps, and uncertain
-      // about working space, so stay serial.
-      std::nth_element(begin, mid, end);
+      assert(dest <= begin);
 
-      // first range: [begin, mid) -> [begin, first_end)
-      T *first_end = sort_unique<T>(begin, mid);
-      assert(begin < first_end);
-      if(*(first_end - 1) == *mid)
+      if(begin - dest >= end - begin)
 	{
-	  // remove overlap with [mid, end)
-	  --first_end;
+	  // [dest, begin) has room for the remainder without further
+	  // shrinkage.
+	  //
+	  // process two halves independently, then merge at
+	  // destination.
+
+	  T *mid = begin + (end - begin) / 2;
+	  assert(begin < mid);
+	  assert(mid < end);
+
+	  // [begin, mid)
+	  T *begin_end = sort_unique(begin, mid);
+	  handle_overlap(begin);
+
+	  // [mid, end)
+	  T *mid_end = sort_unique(mid, end);
+	  handle_overlap(mid);
+
+	  // output
+	  dest = TRY_PARALLEL_5(std::set_union, begin, begin_end, mid, mid_end, dest);
+	  assert(dest <= begin);
+
+	  begin = end;
 	}
-      ssize_t first_space = first_end - begin;
-
-      T *mid_2 = mid + size_elements / 4;
-      assert(mid < mid_2);
-      assert(mid_2 < end);
-
-      // second range: [mid, mid_2) -> [mid, second_end)
-      T *second_end = sort_unique<T>(mid, mid_2);
-      ssize_t second_size = second_end - mid;
-
-      // third range: [mid_2, end) -> [mid_2, third_end)
-      T *third_end = sort_unique<T>(mid_2, end);
-      ssize_t third_size = third_end - mid_2;
-
-      // merge second and third range behind first if space
-
-      if(second_size + third_size <= first_space)
+      else if(begin - dest >= (end - begin) / 16)
 	{
-	  return std::set_union(std::execution::par_unseq,
-				mid, second_end,
-				mid_2, third_end,
-				first_end);
+	  // [dest, begin) can take a minimum fraction of the
+	  // remainder.
+	  //
+	  // split off a chunk that will fit before unique.
+
+	  T *mid = begin + (begin - dest);
+	  assert(begin < mid);
+	  assert(mid < end);
+	  assert(mid - begin <= begin - dest);
+	  std::nth_element(begin, mid, end);
+
+	  // [begin, mid)
+	  T *begin_end = sort_unique(begin, mid);
+	  assert(begin_end - begin <= begin - dest);
+	  handle_overlap(begin);
+
+	  // output
+	  dest = TRY_PARALLEL_3(std::copy, begin, begin_end, dest);
+
+	  begin = mid;
 	}
+      else
+	{
+	  // not much room beween dest and begin so handle a small chunk
+	  // and copy handling overlap.
+	  T *mid = begin + (end - begin) / 16;
+	  assert(begin < mid);
+	  assert(mid < end);
+	  std::nth_element(begin, mid, end);
 
-      // move third range behind second and merge them
+	  // [begin, mid)
+	  T *begin_end = sort_unique(begin, mid);
+	  handle_overlap(begin);
 
-      T *third_copy_end = std::copy(std::execution::par_unseq,
-				    mid_2, third_end,
-				    second_end);
-      assert(third_copy_end == second_end + third_size);
+	  // output - serial copy because of overlap
+	  dest = std::copy(begin, begin_end, dest);
 
-      std::inplace_merge(mid, second_end, third_copy_end);
-
-      T *merged_unique_end = std::unique(mid, third_copy_end);
-
-      // move combined second and third ranges behind first range
-
-      return std::copy(std::execution::par_unseq,
-		       mid, merged_unique_end,
-		       first_end);
+	  begin = mid;
+	}
     }
-
-  if(size_elements >= 1048576) // simple parallel
-    {
-      end = std::unique(std::execution::par_unseq, begin, end);
-      std::sort(std::execution::par_unseq, begin, end);
-      return std::unique(std::execution::par_unseq, begin, end);
-    }
-#endif
 
   // base case
-  end = std::unique(begin, end);
-  std::sort(begin, end);
-  return std::unique(begin, end);
+
+  if(begin < end)
+    {
+      TRY_PARALLEL_2(std::sort, begin, end);
+      end = TRY_PARALLEL_2(std::unique, begin, end);
+
+      if(dest < begin)
+	{
+	  // need to move [begin, end) to [dest,...)
+
+	  if(dest + (end - begin) < begin)
+	    {
+	      // ranges do not overlap
+	      dest = TRY_PARALLEL_3(std::copy, begin, end, dest);
+	    }
+	  else
+	    {
+	      // must copy serially because of overlapping range.
+	      dest = std::copy(begin, end, dest);
+	    }
+	}
+      else
+	{
+	  dest = end;
+	}
+
+      begin = end;
+    }
+  assert(begin == end);
+
+  return dest;
 }
 
 // template instantiations
