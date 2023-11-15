@@ -9,6 +9,14 @@
 #include <cassert>
 #include <execution>
 
+#ifdef __cpp_lib_parallel_algorithm
+#define TRY_PARALLEL_2(f, a, b) f(std::execution::par_unseq, a, b)
+#define TRY_PARALLEL_3(f, a, b, c) f(std::execution::par_unseq, a, b, c)
+#else
+#define TRY_PARALLEL_2(f, a, b) f(a, b)
+#define TRY_PARALLEL_3(f, a, b, c) f(a, b, c)
+#endif
+
 #define SORT_MAX_PARALLEL_BYTES (size_t(1) << 32)
 
 template <class T>
@@ -33,11 +41,9 @@ void sort(T *begin, T *end)
 
       return;
     }
-
-  std::sort(std::execution::par_unseq, begin, end);
-#else
-  std::sort(begin, end);
 #endif
+
+  TRY_PARALLEL_2(std::sort, begin, end);
 }
 
 template <class T>
@@ -62,11 +68,9 @@ void sort(T *begin, T *end, std::function<int(T, T)> compare)
 
       return;
     }
-
-  std::sort(std::execution::par_unseq, begin, end, compare);
-#else
-  std::sort(begin, end, compare);
 #endif
+
+  TRY_PARALLEL_3(std::sort, begin, end, compare);
 }
 
 template <class T>
