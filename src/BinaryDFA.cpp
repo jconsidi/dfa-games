@@ -474,12 +474,25 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       std::cout << "pair count = " << (remove_end - curr_transition_pairs.begin()) << " (filtered)" << std::endl;
 
+      profile.tic("forward transition pairs unique");
+
+      auto pre_sort_unique_end =
+	std::unique(
+#ifdef __cpp_lib_parallel_algorithm
+		    std::execution::par_unseq,
+#endif
+		    curr_transition_pairs.begin(),
+		    remove_end);
+
+      std::cout << "pair count = " << (pre_sort_unique_end - curr_transition_pairs.begin()) << " (pre sort unique)" << std::endl;
+
       profile.tic("forward transition pairs sort unique");
 
       auto unique_end = sort_unique<size_t>(curr_transition_pairs.begin(),
-					    remove_end);
+					    pre_sort_unique_end);
 
       std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
+
       profile.tic("forward next pairs unique msync");
 
       curr_transition_pairs.msync();
