@@ -420,6 +420,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       }
 #endif
 
+    // flush to disk
+
+    profile2.tic("msync");
+
+    curr_transition_pairs.msync();
+
     // cleanup
 
     profile2.tic("curr pairs munmap");
@@ -632,6 +638,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 		     curr_transitions.begin(),
 		     calculate_backward_transition);
 
+      profile.tic("backward transitions msync");
+
+      curr_transitions.msync();
+
       profile.tic("backward sort mmap");
 
       assert(curr_layer_count <= size_t(UINT32_MAX));
@@ -655,6 +665,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       sort<dfa_state_t>(curr_pairs_permutation.begin(),
 			curr_pairs_permutation.end(),
 			compare_pair);
+
+      profile.tic("backward sort msync");
+
+      curr_pairs_permutation.msync();
 
       profile.tic("backward states");
 
