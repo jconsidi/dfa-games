@@ -174,6 +174,7 @@ T *sort_unique(T *begin, T *end)
     {
       TRY_PARALLEL_2(std::sort, begin, end);
       end = TRY_PARALLEL_2(std::unique, begin, end);
+      handle_overlap(begin);
 
       if(dest < begin)
 	{
