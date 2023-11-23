@@ -12,7 +12,6 @@
 #include <ranges>
 #include <sstream>
 #include <string>
-#include <unordered_map>
 
 #include "MemoryMap.h"
 #include "Profile.h"
