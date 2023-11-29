@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=divide generate_moves print random random_uci test_backward test_bitset test_change_dfa test_chess_game test_dfa test_forward test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_solved test_sort_unique test_tictactoe_game
+TARGETS=divide generate_moves print random random_uci test_backward test_bitset test_change_dfa test_chess_game test_dfa test_forward test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game
 
 all : $(TARGETS)
 
@@ -102,6 +102,9 @@ test_perft : test_perft.o chess.a PerftTestCases.o
 	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_perft_u : test_perft_u.o chess.a PerftTestCases.o
+	$(CXX) $(LDFLAGS) -o $@ $^
+
+test_reachable : test_reachable.o chess.a test_utils.o
 	$(CXX) $(LDFLAGS) -o $@ $^
 
 test_solved : test_solved.o chess.a test_utils.o

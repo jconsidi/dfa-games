@@ -159,6 +159,28 @@ shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const
 		       });
 }
 
+shared_dfa_ptr Game::get_positions_reachable(int side_to_move, int ply) const
+{
+  assert((0 <= side_to_move) && (side_to_move < 2));
+  assert(0 <= ply);
+
+  if(ply == 0)
+    {
+      return DFAUtil::get_accept(shape);
+    }
+
+  std::ostringstream dfa_name_builder;
+  dfa_name_builder << "reachable,side_to_move=" << std::to_string(side_to_move) << ",ply=" << std::to_string(ply);
+
+  return load_or_build(dfa_name_builder.str(), [&]()
+  {
+    shared_dfa_ptr previous = get_positions_reachable(1 - side_to_move,
+						      ply - 1);
+    return get_moves_forward(1 - side_to_move,
+			     previous);
+  });
+}
+
 shared_dfa_ptr Game::get_positions_winning(int side_to_move, int ply_max) const
 {
   assert(ply_max >= 0);
