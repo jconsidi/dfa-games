@@ -1,4 +1,4 @@
-// test_amazons_forward.cpp
+// test_forward.cpp
 
 #include <cstdlib>
 #include <iostream>
@@ -28,11 +28,10 @@ int main(int argc, char **argv)
       std::cout << game->position_to_string(*iter) << std::endl;
     }
 
-  shared_dfa_ptr current_positions = initial_positions;
-  for(int ply = 0; ply < ply_max; ++ply)
+  for(int ply = 0; ply <= ply_max; ++ply)
     {
-      current_positions = game->get_moves_forward(ply % 2, current_positions);
-      std::cout << current_positions->size() << " positions after " << (ply + 1) << " ply." << std::endl;
+      shared_dfa_ptr positions = game->get_positions_forward(ply);
+      std::cout << positions->size() << " positions after " << ply << " ply." << std::endl;
     }
 
   return 0;

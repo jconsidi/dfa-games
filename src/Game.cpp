@@ -82,12 +82,7 @@ std::string Game::get_name() const
   return name;
 }
 
-shared_dfa_ptr Game::get_positions_initial() const
-{
-  return DFAUtil::from_string(get_position_initial());
-}
-
-shared_dfa_ptr Game::get_positions_reachable(int ply) const
+shared_dfa_ptr Game::get_positions_forward(int ply) const
 {
   assert(ply >= 0);
 
@@ -96,13 +91,18 @@ shared_dfa_ptr Game::get_positions_reachable(int ply) const
       return get_positions_initial();
     }
 
-  std::string name = "reachable,ply=" + std::to_string(ply);
+  std::string name = "forward,ply=" + std::to_string(ply);
   return load_or_build(name,
 		       [&]()
                        {
-			 shared_dfa_ptr previous = get_positions_reachable(ply - 1);
+			 shared_dfa_ptr previous = get_positions_forward(ply - 1);
 			 return get_moves_forward((ply - 1) % 2, previous);
 		       });
+}
+
+shared_dfa_ptr Game::get_positions_initial() const
+{
+  return DFAUtil::from_string(get_position_initial());
 }
 
 std::string Game::get_name_losing(int side_to_move, int ply_max) const
