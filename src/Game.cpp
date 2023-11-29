@@ -119,7 +119,7 @@ shared_dfa_ptr Game::get_positions_forward(int ply) const
   return load_or_build(name,
 		       [&]()
                        {
-			 Shared_dfa_ptr previous = get_positions_forward(ply - 1);
+			 shared_dfa_ptr previous = get_positions_forward(ply - 1);
 			 return get_moves_forward((ply - 1) % 2, previous);
 		       });
 }
