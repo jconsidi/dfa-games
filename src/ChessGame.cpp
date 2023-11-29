@@ -1066,9 +1066,16 @@ shared_dfa_ptr ChessGame::get_positions_legal(int side_to_move) const
 
     // en-passant pawn restrictions
 
+    // side to move can not have en passant pawns
     add_requirement(DFAUtil::get_count_character(chess_shape,
 						 (side_to_move == SIDE_BLACK) ? DFA_BLACK_PAWN_EN_PASSANT : DFA_WHITE_PAWN_EN_PASSANT,
 						 0, 0,
+						 CHESS_SQUARE_OFFSET));
+
+    // side not to move can have at most one en passant pawn
+    add_requirement(DFAUtil::get_count_character(chess_shape,
+						 (side_to_move == SIDE_BLACK) ? DFA_WHITE_PAWN_EN_PASSANT : DFA_BLACK_PAWN_EN_PASSANT,
+						 0, 1,
 						 CHESS_SQUARE_OFFSET));
 
     // side to move king index
