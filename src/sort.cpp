@@ -98,7 +98,7 @@ T *sort_unique(T *begin, T *end)
 	  continue;
 	}
 
-      if((end - begin) * sizeof(T) <= 1ULL << 20)
+      if((end - begin) * sizeof(T) <= SORT_MAX_PARALLEL_BYTES)
 	{
 	  // base case : less than 1MB
 	  TRY_PARALLEL_2(std::sort, begin, end);
@@ -132,9 +132,9 @@ T *sort_unique(T *begin, T *end)
 	  continue;
 	}
 
-      // partition values into 32 buckets
+      // partition values into buckets
 
-      const T target_buckets = 32;
+      const T target_buckets = 1024;
       T divisor = (value_max - value_min + (target_buckets - 2)) / (target_buckets - 1);
 
       std::vector<T *> partition = flashsort_partition<T, T>(begin, end, [=](const T& v){return (v - value_min) / divisor;});
@@ -144,7 +144,7 @@ T *sort_unique(T *begin, T *end)
 	{
 	  std::cout << "value range = [" << value_min << "," << value_max << "], divisor = " << divisor << std::endl;
 	}
-      assert(partition.size() <= 33);
+      assert(partition.size() - 1 <= target_buckets);
       for(size_t i = partition.size() - 1; i > 0; --i)
 	{
 	  ends.push_back(partition[i]);
