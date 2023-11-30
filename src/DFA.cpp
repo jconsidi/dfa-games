@@ -99,6 +99,8 @@ DFA::DFA(const dfa_shape_t& shape_in)
     layer_transitions(),
     temporary(true)
 {
+  assert(ndim > 0);
+
   mkdir(directory.c_str(), 0700);
 
   for(int layer = 0; layer < ndim; ++layer)
