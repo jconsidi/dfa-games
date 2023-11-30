@@ -1180,7 +1180,7 @@ shared_dfa_ptr ChessGame::get_positions_legal_shared() const
     // king restrictions
 
     // one king per side
-    std::vector<int> king_characters = {DFA_WHITE_KING, DFA_WHITE_KING};
+    std::vector<int> king_characters = {DFA_BLACK_KING, DFA_WHITE_KING};
     for(int king_character : king_characters)
       {
 	requirements.push_back(DFAUtil::get_count_character(chess_shape, king_character, 1, 1, CHESS_SQUARE_OFFSET));
