@@ -43,7 +43,6 @@ private:
 #ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
   shared_dfa_ptr get_positions_king(int) const;
 #endif
-  shared_dfa_ptr get_positions_legal(int) const;
   shared_dfa_ptr get_positions_legal_shared() const;
   shared_dfa_ptr get_positions_not_check(int) const;
 
@@ -57,6 +56,7 @@ public:
   virtual DFAString get_position_initial() const;
 
   shared_dfa_ptr get_positions_check(int) const;
+  shared_dfa_ptr get_positions_legal(int) const;
   virtual shared_dfa_ptr get_positions_lost(int) const;
   shared_dfa_ptr get_positions_threat(int, int) const;
   virtual shared_dfa_ptr get_positions_won(int) const;
