@@ -8,6 +8,9 @@
 #include <algorithm>
 #include <cassert>
 #include <execution>
+#include <iostream>
+
+#include "Flashsort.h"
 
 #ifdef __cpp_lib_parallel_algorithm
 #define TRY_PARALLEL_2(f, a, b) f(std::execution::par_unseq, a, b)
@@ -80,125 +83,73 @@ void sort(T *begin, T *end, std::function<int(T, T)> compare)
 template <class T>
 T *sort_unique(T *begin, T *end)
 {
-  T *begin_original = begin;
   T *dest = begin;
 
-  auto handle_overlap = [&](T *next)
-  {
-    // if [begin_original, dest) ends with value at next, pop it off
-    // to avoid duplicate when [next, ...) is copied.
-    if((dest > begin_original) && (*(dest-1) == *next))
-      {
-	--dest;
-      }
-  };
-
-  while(begin + (1ULL << 20) < end)
+  std::vector<T *> ends = {end};
+  while(ends.size())
     {
-      // large remaining unsorted region
+      end = ends.back();
+      ends.pop_back();
+      assert(begin <= end);
 
-      assert(dest <= begin);
-
-      if(begin - dest >= end - begin)
+      if(begin == end)
 	{
-	  // [dest, begin) has room for the remainder without further
-	  // shrinkage.
-	  //
-	  // process two halves independently, then merge at
-	  // destination.
-
-	  T *mid = begin + (end - begin) / 2;
-	  assert(begin < mid);
-	  assert(mid < end);
-
-	  // [begin, mid)
-	  T *begin_end = sort_unique(begin, mid);
-	  handle_overlap(begin);
-
-	  // [mid, end)
-	  T *mid_end = sort_unique(mid, end);
-	  handle_overlap(mid);
-
-	  // output
-	  dest = TRY_PARALLEL_5(std::set_union, begin, begin_end, mid, mid_end, dest);
-	  assert(dest <= begin);
-
-	  begin = end;
+	  // empty partition
+	  continue;
 	}
-      else if(begin - dest >= (end - begin) / 16)
+
+      if((end - begin) * sizeof(T) <= 1ULL << 20)
 	{
-	  // [dest, begin) can take a minimum fraction of the
-	  // remainder.
-	  //
-	  // split off a chunk that will fit before unique.
+	  // base case : less than 1MB
+	  TRY_PARALLEL_2(std::sort, begin, end);
+	  end = TRY_PARALLEL_2(std::unique, begin, end);
 
-	  T *mid = begin + (begin - dest);
-	  assert(begin < mid);
-	  assert(mid < end);
-	  assert(mid - begin <= begin - dest);
-	  std::nth_element(begin, mid, end);
-
-	  // [begin, mid)
-	  T *begin_end = sort_unique(begin, mid);
-	  assert(begin_end - begin <= begin - dest);
-	  handle_overlap(begin);
-
-	  // output
-	  dest = TRY_PARALLEL_3(std::copy, begin, begin_end, dest);
-
-	  begin = mid;
-	}
-      else
-	{
-	  // not much room beween dest and begin so handle a small chunk
-	  // and copy handling overlap.
-	  T *mid = begin + (end - begin) / 16;
-	  assert(begin < mid);
-	  assert(mid < end);
-	  std::nth_element(begin, mid, end);
-
-	  // [begin, mid)
-	  T *begin_end = sort_unique(begin, mid);
-	  handle_overlap(begin);
-
-	  // output - serial copy because of overlap
-	  dest = std::copy(begin, begin_end, dest);
-
-	  begin = mid;
-	}
-    }
-
-  // base case
-
-  if(begin < end)
-    {
-      TRY_PARALLEL_2(std::sort, begin, end);
-      end = TRY_PARALLEL_2(std::unique, begin, end);
-      handle_overlap(begin);
-
-      if(dest < begin)
-	{
-	  // need to move [begin, end) to [dest,...)
-
-	  if(dest + (end - begin) < begin)
+	  // copy carefully
+	  if((begin - dest) >= (end - begin))
 	    {
-	      // ranges do not overlap
+	      // no overlap -> parallel copy
 	      dest = TRY_PARALLEL_3(std::copy, begin, end, dest);
 	    }
 	  else
 	    {
-	      // must copy serially because of overlapping range.
+	      // overlap -> serial copy
 	      dest = std::copy(begin, end, dest);
 	    }
-	}
-      else
-	{
-	  dest = end;
+
+	  begin = end;
+	  continue;
 	}
 
-      begin = end;
+      // get range of values in current range
+
+      T value_min = *TRY_PARALLEL_2(std::min_element, begin, end);
+      T value_max = *TRY_PARALLEL_2(std::max_element, begin, end);
+      if(value_min == value_max)
+	{
+	  // only one value in this range
+	  *dest++ = value_min;
+	  begin = end;
+	  continue;
+	}
+
+      // partition values into 32 buckets
+
+      const T target_buckets = 32;
+      T divisor = (value_max - value_min + (target_buckets - 2)) / (target_buckets - 1);
+
+      std::vector<T *> partition = flashsort_partition<T, T>(begin, end, [=](const T& v){return (v - value_min) / divisor;});
+      assert(partition.at(0) == begin);
+      assert(partition.back() == end);
+      if(partition.size() > target_buckets + 1)
+	{
+	  std::cout << "value range = [" << value_min << "," << value_max << "], divisor = " << divisor << std::endl;
+	}
+      assert(partition.size() <= 33);
+      for(size_t i = partition.size() - 1; i > 0; --i)
+	{
+	  ends.push_back(partition[i]);
+	}
     }
-  assert(begin == end);
 
   return dest;
 }
