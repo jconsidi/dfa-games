@@ -415,6 +415,9 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 {
   Profile profile("get_intersection");
 
+  assert(left_in);
+  assert(right_in);
+
   if(left_in->is_constant(true))
     {
       return right_in;
@@ -499,6 +502,11 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 
 shared_dfa_ptr DFAUtil::get_intersection_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
 {
+  for(shared_dfa_ptr dfa: dfas_in)
+    {
+      assert(dfa.get());
+    }
+
   shared_dfa_ptr linear_staging = get_accept(shape_in);
   std::vector<shared_dfa_ptr> nonlinear_staging;
 
@@ -562,6 +570,9 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
 {
   Profile profile("get_union");
 
+  assert(left_in);
+  assert(right_in);
+
   if(left_in->is_constant(true))
     {
       return get_accept(left_in->get_shape());
@@ -606,6 +617,11 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
 
 shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
 {
+  for(shared_dfa_ptr dfa: dfas_in)
+    {
+      assert(dfa.get());
+    }
+
   if(dfas_in.size() <= 0)
     {
       return get_reject(shape_in);
