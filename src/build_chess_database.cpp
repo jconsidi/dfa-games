@@ -97,7 +97,9 @@ shared_dfa_ptr build_database(const ChessGame& game, int pieces_max, int ply_max
 	// winning
 
 	shared_dfa_ptr losing = build_database(game, pieces_max, ply_max - 1);
-	return game.get_moves_backward(side_to_move, losing);
+	shared_dfa_ptr winning = game.get_moves_backward(side_to_move, losing);
+	// join to legal to reapply pieces_max constraint
+	return DFAUtil::get_intersection(winning, legal);
       }
     else
       {
