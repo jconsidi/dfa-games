@@ -422,6 +422,18 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 		      "begin+1",
 		      get_positions_legal(side_to_move));
 
+  // from character nodes
+  // not strictly necessary, but trying to reduce union complexity
+
+  for(int from_character = 1 + side_to_move;
+      from_character < DFA_MAX;
+      from_character += 2)
+    {
+      std::string from_character_name = "from_char=" + std::to_string(from_character);
+      move_graph.add_node(from_character_name);
+      move_graph.add_edge(from_character_name, "begin+1", from_character_name);
+    }
+
   // pick which piece will move and remove it from the board.
   for(auto from_choice : _get_choices_from(side_to_move))
     {
@@ -439,11 +451,12 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
 	}
 #endif
 
+      std::string from_character_name = "from_char=" + std::to_string(from_character);
       std::string from_name = _get_name_from(from_character, from_square);
       move_graph.add_node(from_name,
 			  from_changes);
       move_graph.add_edge(from_name,
-			  "begin+1",
+			  from_character_name,
 			  from_name);
     }
 
