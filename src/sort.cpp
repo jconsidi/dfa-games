@@ -24,7 +24,7 @@
 #define TRY_PARALLEL_5(f, a, b, c, d, e) f(a, b, c, d, e)
 #endif
 
-#define SORT_MAX_PARALLEL_BYTES (size_t(1) << 32)
+#define SORT_MAX_PARALLEL_BYTES (size_t(1) << 30)
 
 template <class T>
 void sort(T *begin, T *end)
