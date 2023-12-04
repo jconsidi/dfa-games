@@ -12,10 +12,13 @@
 #include <ranges>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 
+#include "Flashsort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "VectorBitSet.h"
+#include "parallel.h"
 #include "sort.h"
 
 BinaryDFA::BinaryDFA(const DFA& left_in,
@@ -421,9 +424,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
     // flush to disk
 
-    profile2.tic("msync");
+    profile2.tic("sync");
 
-    curr_transition_pairs.msync();
+    sync();
 
     // cleanup
 
@@ -458,7 +461,26 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
 
-      profile.tic("forward transition pairs filter");
+      profile.tic("forward transition pairs sync");
+
+      sync();
+
+      profile.tic("forward transition pairs unique");
+
+      size_t *unique_end = curr_transition_pairs.begin();
+      auto copy_helper = [&](size_t *begin, size_t *end)
+      {
+	if(begin - unique_end <= end - begin)
+	  {
+	    // no overlap -> parallel copy
+	    unique_end = TRY_PARALLEL_3(std::copy, begin, end, unique_end);
+	  }
+	else
+	  {
+	    // overlap -> serial copy
+	    unique_end = std::copy(begin, end, unique_end);
+	  }
+      };
 
       auto remove_func = [&](size_t next_pair)
       {
@@ -468,39 +490,127 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  return filter_func(next_left_state, next_right_state);
       };
 
-      auto remove_end = \
-	std::remove_if(
-#ifdef __cpp_lib_parallel_algorithm
-		       std::execution::par_unseq,
-#endif
-		       curr_transition_pairs.begin(),
-		       curr_transition_pairs.end(),
-		       remove_func);
+      std::vector<std::tuple<size_t *, size_t *, size_t, size_t>> unique_queue;
+      unique_queue.emplace_back(curr_transition_pairs.begin(),
+				curr_transition_pairs.end(),
+				0,
+				next_left_size * next_right_size);
+      while(unique_queue.size())
+	{
+	  profile.tic("unique round init");
 
-      std::cout << "pair count = " << (remove_end - curr_transition_pairs.begin()) << " (filtered)" << std::endl;
+	  auto unique_todo = unique_queue.back();
+	  unique_queue.pop_back();
 
-      profile.tic("forward transition pairs unique");
+	  // moving [begin, end) which has values in [value_min, value_max)
+	  // to [unique_end, ...) after filtering, sorting, and deduping.
+	  size_t *begin = std::get<0>(unique_todo);
+	  size_t *end = std::get<1>(unique_todo);
+	  size_t value_min = std::get<2>(unique_todo);
+	  size_t value_max = std::get<3>(unique_todo);
 
-      auto pre_sort_unique_end =
-	std::unique(
-#ifdef __cpp_lib_parallel_algorithm
-		    std::execution::par_unseq,
-#endif
-		    curr_transition_pairs.begin(),
-		    remove_end);
+	  assert(unique_end <= begin);
+	  assert(begin <= end);
+	  assert(value_min < value_max);
 
-      std::cout << "pair count = " << (pre_sort_unique_end - curr_transition_pairs.begin()) << " (pre sort unique)" << std::endl;
+	  // constant syncs to ward off the OOM killer
+	  if((end - begin) * sizeof(size_t) >= 1ULL << 30)
+	    {
+	      // current chunk is at least 1GB
+	      sync();
+	    }
 
-      profile.tic("forward transition pairs sort unique");
+	  if(begin == end)
+	    {
+	      // empty range
+	      continue;
+	    }
 
-      auto unique_end = sort_unique<size_t>(curr_transition_pairs.begin(),
-					    pre_sort_unique_end);
+	  size_t value_width = value_max - value_min;
+	  if(value_width <= 1024)
+	    {
+	      // small range of values remaining, so go with count
+	      // sort approach and make a bitmap of which ones are
+	      // present.
+
+	      profile.tic("unique round count");
+
+	      std::vector<bool> values_present(value_width, false);
+	      for(size_t *v_iter = begin; v_iter < end; ++v_iter)
+		{
+		  assert(value_min <= *v_iter);
+		  assert(*v_iter < value_max);
+		  values_present.at(*v_iter - value_min) = true;
+		}
+
+	      for(size_t v = value_min; v < value_max; ++v)
+		{
+		  if(values_present.at(v - value_min) && !remove_func(v))
+		    {
+		      *unique_end++ = v;
+		    }
+		}
+
+	      continue;
+	    }
+
+	  if((end - begin) * sizeof(size_t) <= 1ULL << 30)
+	    {
+	      // range is at most 1GB, so just handle directly
+
+	      profile.tic("unique round base");
+
+	      end = TRY_PARALLEL_3(std::remove_if, begin, end, remove_func);
+	      TRY_PARALLEL_2(std::sort, begin, end);
+	      end = TRY_PARALLEL_2(std::unique, begin, end);
+	      copy_helper(begin, end);
+	      continue;
+	    }
+
+	  // use flashsort permutation to partition by value
+
+	  profile.tic("unique round partition");
+
+	  size_t target_buckets = 1024;
+	  size_t divisor = (value_width + target_buckets - 1) / target_buckets;
+	  assert(divisor > 0);
+
+	  std::vector<size_t *> partition = flashsort_partition<size_t, size_t>(begin, end, [=](const size_t& v){return (v - value_min) / divisor;});
+	  assert(partition.at(0) == begin);
+	  assert(partition.back() == end);
+	  assert(partition.size() - 1 <= target_buckets);
+	  for(int i = partition.size() - 2; i >= 0; --i)
+	    {
+	      assert(partition[i] <= partition[i + 1]);
+	      if(partition[i] == partition[i + 1])
+		{
+		  continue;
+		}
+
+	      size_t partition_value_min = value_min + i * divisor;
+	      size_t partition_value_max = value_min + (i + 1) * divisor;
+
+	      size_t partition_value_min_check = *std::min_element(partition[i], partition[i+1]);
+	      size_t partition_value_max_check = *std::max_element(partition[i], partition[i+1]);
+	      assert(partition_value_min <= partition_value_min_check);
+	      assert(partition_value_max_check < partition_value_max);
+
+	      unique_queue.emplace_back(partition[i],
+					partition[i + 1],
+					partition_value_min,
+					partition_value_max);
+	    }
+	}
 
       std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
 
-      profile.tic("forward next pairs unique msync");
+      profile.tic("forward transitions msync");
 
-      curr_transition_pairs.msync();
+      // sync if 1GB+
+      if(curr_transition_pairs.length() >= 1ULL << 30)
+	{
+	  curr_transition_pairs.msync();
+	}
 
       profile.tic("forward next pairs count");
 
@@ -529,7 +639,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward next pairs msync");
 
-      next_pairs.msync();
+      // sync if 1GB+
+      if(next_pairs.length() >= 1ULL << 30)
+	{
+	  next_pairs.msync();
+	}
 
       profile.tic("forward stats");
 
