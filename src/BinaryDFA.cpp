@@ -21,6 +21,27 @@
 #include "parallel.h"
 #include "sort.h"
 
+static const size_t SYNC_THRESHOLD_BYTES = 1ULL << 25;
+
+static void sync_if_big(size_t length)
+{
+  // sync to disk if more than 32MB
+
+  if(length >= SYNC_THRESHOLD_BYTES)
+    {
+      sync();
+    }
+}
+
+template<class T>
+static void sync_if_big(MemoryMap<T>& memory_map)
+{
+  if(memory_map.length() >= SYNC_THRESHOLD_BYTES)
+    {
+      memory_map.msync();
+    }
+}
+
 BinaryDFA::BinaryDFA(const DFA& left_in,
 		     const DFA& right_in,
 		     const BinaryFunction& leaf_func)
@@ -426,7 +447,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
     profile2.tic("sync");
 
-    sync();
+    sync_if_big<size_t>(curr_transition_pairs);
 
     // cleanup
 
@@ -463,7 +484,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward transition pairs sync");
 
-      sync();
+      sync_if_big<size_t>(curr_transition_pairs);
 
       profile.tic("forward transition pairs unique");
 
@@ -514,11 +535,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  assert(value_min < value_max);
 
 	  // constant syncs to ward off the OOM killer
-	  if((end - begin) * sizeof(size_t) >= 1ULL << 30)
-	    {
-	      // current chunk is at least 1GB
-	      sync();
-	    }
+	  size_t range_bytes = (end - begin) * sizeof(size_t);
+	  sync_if_big(range_bytes);
 
 	  if(begin == end)
 	    {
@@ -554,7 +572,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	      continue;
 	    }
 
-	  size_t range_bytes = (end - begin) * sizeof(size_t);
 	  if(range_bytes <= 1ULL << 30)
 	    {
 	      // range is at most 1GB, so just handle directly
@@ -562,28 +579,16 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	      profile.tic("unique round base");
 
 	      end = TRY_PARALLEL_3(std::remove_if, begin, end, remove_func);
-	      if(range_bytes >= 1ULL << 25)
-		{
-		  sync();
-		}
+	      sync_if_big(range_bytes);
 
 	      TRY_PARALLEL_2(std::sort, begin, end);
-	      if(range_bytes >= 1ULL << 25)
-		{
-		  sync();
-		}
+	      sync_if_big(range_bytes);
 
 	      end = TRY_PARALLEL_2(std::unique, begin, end);
-	      if(range_bytes >= 1ULL << 25)
-		{
-		  sync();
-		}
+	      sync_if_big(range_bytes);
 
 	      copy_helper(begin, end);
-	      if(range_bytes >= 1ULL << 25)
-		{
-		  sync();
-		}
+	      sync_if_big(range_bytes);
 
 	      continue;
 	    }
@@ -627,11 +632,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward transitions msync");
 
-      // sync if 1GB+
-      if(curr_transition_pairs.length() >= 1ULL << 30)
-	{
-	  curr_transition_pairs.msync();
-	}
+      sync_if_big<size_t>(curr_transition_pairs);
 
       profile.tic("forward next pairs count");
 
@@ -660,11 +661,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward next pairs msync");
 
-      // sync if 1GB+
-      if(next_pairs.length() >= 1ULL << 30)
-	{
-	  next_pairs.msync();
-	}
+      sync_if_big<size_t>(next_pairs);
 
       profile.tic("forward stats");
 
@@ -774,7 +771,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward transitions msync");
 
-      curr_transitions.msync();
+      sync_if_big<dfa_state_t>(curr_transitions);
 
       profile.tic("backward sort mmap");
 
@@ -802,7 +799,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward sort msync");
 
-      curr_pairs_permutation.msync();
+      sync_if_big<dfa_state_t>(curr_pairs_permutation);
 
       profile.tic("backward states");
 
