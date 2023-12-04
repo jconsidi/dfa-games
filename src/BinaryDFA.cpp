@@ -554,16 +554,37 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	      continue;
 	    }
 
-	  if((end - begin) * sizeof(size_t) <= 1ULL << 30)
+	  size_t range_bytes = (end - begin) * sizeof(size_t);
+	  if(range_bytes <= 1ULL << 30)
 	    {
 	      // range is at most 1GB, so just handle directly
 
 	      profile.tic("unique round base");
 
 	      end = TRY_PARALLEL_3(std::remove_if, begin, end, remove_func);
+	      if(range_bytes >= 1ULL << 25)
+		{
+		  sync();
+		}
+
 	      TRY_PARALLEL_2(std::sort, begin, end);
+	      if(range_bytes >= 1ULL << 25)
+		{
+		  sync();
+		}
+
 	      end = TRY_PARALLEL_2(std::unique, begin, end);
+	      if(range_bytes >= 1ULL << 25)
+		{
+		  sync();
+		}
+
 	      copy_helper(begin, end);
+	      if(range_bytes >= 1ULL << 25)
+		{
+		  sync();
+		}
+
 	      continue;
 	    }
 
