@@ -518,7 +518,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 				next_left_size * next_right_size);
       while(unique_queue.size())
 	{
-	  profile.tic("unique round init");
+	  Profile profile2("dedupe sort unique");
+	  profile2.tic("unique round init");
 
 	  auto unique_todo = unique_queue.back();
 	  unique_queue.pop_back();
@@ -551,7 +552,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	      // sort approach and make a bitmap of which ones are
 	      // present.
 
-	      profile.tic("unique round count");
+	      profile2.tic("unique round count");
 
 	      std::vector<bool> values_present(value_width, false);
 	      for(size_t *v_iter = begin; v_iter < end; ++v_iter)
@@ -576,7 +577,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	    {
 	      // "small" range, so just handle directly
 
-	      profile.tic("unique round base");
+	      profile2.tic("unique round base");
 
 	      end = TRY_PARALLEL_3(std::remove_if, begin, end, remove_func);
 	      sync_if_big(range_bytes);
@@ -595,7 +596,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
 	  // use flashsort permutation to partition by value
 
-	  profile.tic("unique round partition");
+	  profile2.tic("unique round partition");
 
 	  size_t target_buckets = 1024;
 	  size_t divisor = (value_width + target_buckets - 1) / target_buckets;
