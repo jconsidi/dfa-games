@@ -572,9 +572,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	      continue;
 	    }
 
-	  if(range_bytes <= 1ULL << 30)
+	  if(range_bytes <= 1ULL << 28)
 	    {
-	      // range is at most 1GB, so just handle directly
+	      // "small" range, so just handle directly
 
 	      profile.tic("unique round base");
 
