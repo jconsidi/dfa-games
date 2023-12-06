@@ -518,7 +518,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 				next_left_size * next_right_size);
       while(unique_queue.size())
 	{
-	  Profile profile2("dedupe sort unique");
+	  Profile profile2("unique round");
 	  profile2.tic("unique round init");
 
 	  auto unique_todo = unique_queue.back();
