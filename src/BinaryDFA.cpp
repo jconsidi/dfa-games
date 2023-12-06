@@ -489,8 +489,20 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("forward transition pairs unique");
 
       size_t *unique_end = curr_transition_pairs.begin();
+
+      auto check_next_pair = [&](size_t next_pair)
+      {
+	if(unique_end > curr_transition_pairs.begin())
+	  {
+	    assert(*(unique_end - 1) < next_pair);
+	  }
+      };
+
       auto copy_helper = [&](size_t *begin, size_t *end)
       {
+	assert(begin < end);
+	check_next_pair(*begin);
+
 	ssize_t source_count = end - begin;
 	ssize_t no_overlap_count = begin - unique_end;
 	if(source_count <= no_overlap_count)
@@ -536,6 +548,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  assert(unique_end <= begin);
 	  assert(begin <= end);
 	  assert(value_min < value_max);
+	  check_next_pair(value_min);
 
 	  // constant syncs to ward off the OOM killer
 	  size_t range_bytes = (end - begin) * sizeof(size_t);
