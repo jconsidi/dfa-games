@@ -491,7 +491,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       size_t *unique_end = curr_transition_pairs.begin();
       auto copy_helper = [&](size_t *begin, size_t *end)
       {
-	if(begin - unique_end <= end - begin)
+	ssize_t source_count = end - begin;
+	ssize_t no_overlap_count = begin - unique_end;
+	if(source_count <= no_overlap_count)
 	  {
 	    // no overlap -> parallel copy
 	    unique_end = TRY_PARALLEL_3(std::copy, begin, end, unique_end);
@@ -663,6 +665,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("forward next pairs msync");
 
       sync_if_big<size_t>(next_pairs);
+
+      profile.tic("forward next pairs paranoia");
+
+      assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
 
       profile.tic("forward stats");
 
