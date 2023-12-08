@@ -8,6 +8,7 @@
 #include <cstring>
 #include <execution>
 #include <iostream>
+#include <memory>
 #include <queue>
 #include <ranges>
 #include <sstream>
@@ -735,6 +736,51 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       next_pairs.mmap();
       size_t next_layer_count = next_pairs.size();
 
+      profile.tic("backward next pair index");
+
+      // index entries have first pair of 4KB block (64 bit pair)
+      std::vector<MemoryMap<size_t>> next_pairs_index;
+      auto add_next_pairs_index = [&](const MemoryMap<size_t>& previous_pairs)
+      {
+	next_pairs_index.emplace_back("scratch/binarydfa/next_pairs_index-" + std::to_string(next_pairs_index.size()), (previous_pairs.size() + 511) / 512);
+	MemoryMap<size_t>& new_index = next_pairs_index.back();
+
+	for(size_t i = 0; i < new_index.size(); ++i)
+	  {
+	    new_index[i] = previous_pairs[i * 512];
+	  }
+
+	sync_if_big(new_index);
+      };
+      add_next_pairs_index(next_pairs);
+
+      // add more indexes until under 1MB
+      while(next_pairs_index.back().length() > 1ULL << 20)
+	{
+	  add_next_pairs_index(next_pairs_index.back());
+	}
+
+      auto search_index = [&](const MemoryMap<size_t>& next_pairs_index, size_t next_pair, size_t offset_min, size_t offset_max)
+      {
+	assert(offset_min <= offset_max);
+	assert(offset_max < next_pairs_index.size());
+
+	while(offset_min < offset_max)
+	  {
+	    size_t offset_mid = offset_min + (offset_max - offset_min + 1) / 2;
+	    if(next_pairs_index[offset_mid] <= next_pair)
+	      {
+		offset_min = offset_mid;
+	      }
+	    else
+	      {
+		offset_max = offset_mid - 1;
+	      }
+	  }
+
+	return offset_min;
+      };
+
       profile.tic("backward transitions input");
 
       MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
@@ -757,23 +803,32 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  }
 	else
 	  {
-	    size_t next_rank_min = 0;
-	    size_t next_rank_max = next_layer_count - 1;
+	    size_t offset_min = 0;
+	    size_t offset_max = next_pairs_index.back().size() - 1;
 
-	    while(next_rank_min < next_rank_max)
+	    for(int index_index = next_pairs_index.size() - 1; index_index > 0; --index_index)
 	      {
-		size_t next_rank_mid = (next_rank_min + next_rank_max) / 2;
-		size_t next_rank_mid_pair = next_pairs[next_rank_mid];
-		if(next_rank_mid_pair < next_pair)
-		  {
-		    next_rank_min = next_rank_mid + 1;
-		  }
-		else
-		  {
-		    next_rank_max = next_rank_mid;
-		  }
+		// compute index range in next index
+		offset_min = search_index(next_pairs_index.at(index_index),
+					  next_pair,
+					  offset_min,
+					  offset_max) * 512;
+
+		offset_max = std::min(offset_min + 511,
+				      next_pairs_index[index_index - 1].size() - 1);
 	      }
-	    assert(next_rank_min == next_rank_max);
+
+	    offset_min = search_index(next_pairs_index.at(0),
+				      next_pair,
+				      offset_min,
+				      offset_max) * 512;
+	    offset_max = std::min(offset_min + 511,
+				  next_layer_count - 1);
+
+	    size_t next_rank_min = search_index(next_pairs,
+						next_pair,
+						offset_min,
+						offset_max);
 	    assert(next_pairs[next_rank_min] == next_pair);
 
 	    return next_pair_rank_to_output[next_rank_min];
