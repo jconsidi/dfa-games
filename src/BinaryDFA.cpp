@@ -633,10 +633,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	      size_t partition_value_min = value_min + i * divisor;
 	      size_t partition_value_max = value_min + (i + 1) * divisor;
 
+#ifdef PARANOIA
 	      size_t partition_value_min_check = *std::min_element(partition[i], partition[i+1]);
 	      size_t partition_value_max_check = *std::max_element(partition[i], partition[i+1]);
 	      assert(partition_value_min <= partition_value_min_check);
 	      assert(partition_value_max_check < partition_value_max);
+#endif
 
 	      unique_queue.emplace_back(partition[i],
 					partition[i + 1],
