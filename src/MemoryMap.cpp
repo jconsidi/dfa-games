@@ -199,16 +199,6 @@ void MemoryMap<T>::mmap() const
   assert(_flags != MAP_ANONYMOUS);
 
   int fildes = open(_readonly ? O_RDONLY : O_RDWR, 0);
-  if(fildes == -1)
-    {
-      if(errno != ENOENT)
-	{
-	  std::cerr << "open " << _filename << " failed" << std::endl;
-	  perror("open");
-	}
-      throw std::runtime_error("open() failed in mmap()");
-    }
-
   this->mmap(fildes);
 
   int close_ret = close(fildes);
