@@ -128,6 +128,7 @@ MemoryMap<T>& MemoryMap<T>::operator=(MemoryMap<T>&& other) noexcept
 
   _filename = other._filename;
   _flags = other._flags;
+  _readonly = other._readonly;
   _size = other._size;
   _length = other._length;
   _mapped = other._mapped;
