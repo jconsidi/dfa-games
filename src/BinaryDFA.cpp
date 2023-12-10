@@ -742,9 +742,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       // index entries have first pair of 4KB block (64 bit pair)
       std::vector<MemoryMap<size_t>> next_pairs_index;
+      next_pairs_index.reserve(3);
       auto add_next_pairs_index = [&](const MemoryMap<size_t>& previous_pairs)
       {
-	next_pairs_index.emplace_back("scratch/binarydfa/next_pairs_index-" + std::to_string(next_pairs_index.size()), (previous_pairs.size() + 511) / 512);
+	std::string index_name = "scratch/binarydfa/next_pairs_index-" + std::to_string(next_pairs_index.size());
+	size_t index_length = (previous_pairs.size() + 511) / 512;
+	next_pairs_index.emplace_back(index_name, index_length);
 	MemoryMap<size_t>& new_index = next_pairs_index.back();
 
 	for(size_t i = 0; i < new_index.size(); ++i)
@@ -755,10 +758,12 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	sync_if_big(new_index);
       };
       add_next_pairs_index(next_pairs);
+      assert(next_pairs_index.size() == 1);
 
       // add more indexes until under 1MB
       while(next_pairs_index.back().length() > 1ULL << 20)
 	{
+	  assert(next_pairs_index.size() < next_pairs_index.capacity());
 	  add_next_pairs_index(next_pairs_index.back());
 	}
 
