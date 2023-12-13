@@ -487,7 +487,68 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       sync_if_big<size_t>(curr_transition_pairs);
 
-      profile.tic("forward transition pairs unique");
+      // helper functions
+
+      auto copy_helper = [&](size_t *begin, size_t *end, size_t *dest)
+      {
+	assert(dest <= begin);
+	assert(begin < end);
+
+	ssize_t source_count = end - begin;
+	ssize_t no_overlap_count = begin - dest;
+	if(source_count <= no_overlap_count)
+	  {
+	    // no overlap -> parallel copy
+	    dest = TRY_PARALLEL_3(std::copy, begin, end, dest);
+	  }
+	else
+	  {
+	    // overlap -> serial copy
+	    dest = std::copy(begin, end, dest);
+	  }
+
+	sync_if_big((end - begin) * sizeof(size_t));
+
+	return dest;
+      };
+
+      profile.tic("forward transition pairs filter unique");
+
+      auto remove_func = [&](size_t next_pair)
+      {
+	  dfa_state_t next_left_state = next_pair / next_right_size;
+	  dfa_state_t next_right_state = next_pair % next_right_size;
+
+	  return filter_func(next_left_state, next_right_state);
+      };
+
+      size_t filter_block_size = 1ULL << 25;
+
+      size_t *filter_end = curr_transition_pairs.begin();
+      for(size_t *block_begin = curr_transition_pairs.begin();
+	  block_begin < curr_transition_pairs.end();
+	  block_begin += filter_block_size)
+	{
+	  size_t *block_end = std::min(block_begin + filter_block_size,
+				       curr_transition_pairs.end());
+	  size_t block_bytes = (block_end - block_begin) * sizeof(size_t);
+
+	  block_end = TRY_PARALLEL_3(std::remove_if, block_begin, block_end, remove_func);
+	  sync_if_big(block_bytes);
+	  if(block_end == block_begin)
+	    {
+	      continue;
+	    }
+
+	  block_end = TRY_PARALLEL_2(std::unique, block_begin, block_end);
+	  sync_if_big(block_bytes);
+
+	  filter_end = copy_helper(block_begin, block_end, filter_end);
+	}
+
+      std::cout << "pair count = " << (filter_end - curr_transition_pairs.begin()) << " (post filter unique)" << std::endl;
+
+      profile.tic("forward transition pairs sort unique");
 
       size_t *unique_end = curr_transition_pairs.begin();
 
@@ -499,36 +560,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  }
       };
 
-      auto copy_helper = [&](size_t *begin, size_t *end)
-      {
-	assert(begin < end);
-	check_next_pair(*begin);
-
-	ssize_t source_count = end - begin;
-	ssize_t no_overlap_count = begin - unique_end;
-	if(source_count <= no_overlap_count)
-	  {
-	    // no overlap -> parallel copy
-	    unique_end = TRY_PARALLEL_3(std::copy, begin, end, unique_end);
-	  }
-	else
-	  {
-	    // overlap -> serial copy
-	    unique_end = std::copy(begin, end, unique_end);
-	  }
-      };
-
-      auto remove_func = [&](size_t next_pair)
-      {
-	  dfa_state_t next_left_state = next_pair / next_right_size;
-	  dfa_state_t next_right_state = next_pair % next_right_size;
-
-	  return filter_func(next_left_state, next_right_state);
-      };
-
       std::vector<std::tuple<size_t *, size_t *, size_t, size_t>> unique_queue;
       unique_queue.emplace_back(curr_transition_pairs.begin(),
-				curr_transition_pairs.end(),
+				filter_end,
 				0,
 				next_left_size * next_right_size);
       while(unique_queue.size())
@@ -580,7 +614,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
 	      for(size_t v = value_min; v < value_max; ++v)
 		{
-		  if(values_present.at(v - value_min) && !remove_func(v))
+		  if(values_present.at(v - value_min))
 		    {
 		      *unique_end++ = v;
 		    }
@@ -595,16 +629,14 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
 	      profile2.tic("base");
 
-	      end = TRY_PARALLEL_3(std::remove_if, begin, end, remove_func);
-	      sync_if_big(range_bytes);
-
 	      TRY_PARALLEL_2(std::sort, begin, end);
 	      sync_if_big(range_bytes);
 
 	      end = TRY_PARALLEL_2(std::unique, begin, end);
 	      sync_if_big(range_bytes);
 
-	      copy_helper(begin, end);
+	      check_next_pair(*begin);
+	      unique_end = copy_helper(begin, end, unique_end);
 	      sync_if_big(range_bytes);
 
 	      continue;
