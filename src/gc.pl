@@ -10,9 +10,13 @@ use File::stat;
 $, = " ";
 $\ = "\n";
 
-my $usage = "usage: $0 <delete ts max>\n";
+my $usage = "usage: $0 <delete ts min> <delete ts max>\n";
 
-my $delete_ts_max = $ARGV[0];
+my $delete_ts_min = $ARGV[0];
+die($usage) unless $delete_ts_min;
+$delete_ts_min = str2time($delete_ts_min);
+
+my $delete_ts_max = $ARGV[1];
 die($usage) unless $delete_ts_max;
 $delete_ts_max = str2time($delete_ts_max);
 
@@ -57,7 +61,8 @@ for my $dfa_hash (readdir(DFAS_BY_HASH_DIR))
 
   my $dfa_hash_full = "scratch/dfas_by_hash/" . $dfa_hash;
 
-  next unless stat($dfa_hash_full)->mtime < $delete_ts_max;
+  my $mtime = stat($dfa_hash_full)->mtime;
+  next unless $delete_ts_min <= $mtime and $mtime <= $delete_ts_max;
 
   push(@delete_hashes, $dfa_hash);
 }
