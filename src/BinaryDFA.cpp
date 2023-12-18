@@ -654,6 +654,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  assert(partition.at(0) == begin);
 	  assert(partition.back() == end);
 	  assert(partition.size() - 1 <= target_buckets);
+	  sync_if_big(range_bytes);
+
 	  for(int i = partition.size() - 2; i >= 0; --i)
 	    {
 	      assert(partition[i] <= partition[i + 1]);
