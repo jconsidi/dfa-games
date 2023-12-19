@@ -15,21 +15,20 @@ int main(int argc, char **argv)
     }
 
   std::string game_name(argv[1]);
-  Game *game = get_game(game_name);
 
-  std::string left_hash(argv[2]);
-  shared_dfa_ptr left = game->load_by_hash(left_hash);
+  std::string left_hash_or_name(argv[2]);
+  shared_dfa_ptr left = get_dfa(game_name, left_hash_or_name);
   if(left == 0)
     {
-      std::cerr << "DFA not found for left hash " << left_hash << "." << std::endl;
+      std::cerr << "DFA not found for left hash or name " << left_hash_or_name << "." << std::endl;
       return 1;
     }
   
-  std::string right_hash(argv[3]);
-  shared_dfa_ptr right = game->load_by_hash(right_hash);
+  std::string right_hash_or_name(argv[3]);
+  shared_dfa_ptr right = get_dfa(game_name, right_hash_or_name);
   if(right == 0)
     {
-      std::cerr << "DFA not found for right hash " << right_hash << "." << std::endl;
+      std::cerr << "DFA not found for right hash or name " << right_hash_or_name << "." << std::endl;
       return 1;
     }
 
