@@ -10,6 +10,7 @@ test_chess_game
 test_chess_limited
 test_dfa
 test_forward
+test_get_intersection
 test_get_union
 test_get_union_vector
 test_memorymap
