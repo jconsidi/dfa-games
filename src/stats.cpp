@@ -17,10 +17,14 @@ int main(int argc, char **argv)
 
   // args = game, DFA name
   std::string game_name(argv[1]);
-  Game *game = get_game(game_name);
-
   std::string positions_name(argv[2]);
-  shared_dfa_ptr positions = game->load(positions_name);
+  shared_dfa_ptr positions = get_dfa(game_name, positions_name);
+  if(!positions)
+    {
+      std::cerr << positions_name << " not found." << std::endl;
+      return 1;
+    }
+
   std::cout << "states: " << positions->states() << std::endl;
   std::cout << "positions: " << positions->size() << std::endl;
 
