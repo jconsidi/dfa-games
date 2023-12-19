@@ -34,8 +34,6 @@ MoveGraph BreakthroughGame::build_move_graph(int side_to_move) const
   // game not done yet
 
   std::vector<shared_dfa_ptr> not_done_conditions;
-  // side to move has pieces
-  not_done_conditions.push_back(DFAUtil::get_count_character(get_shape(), side_to_move + 1, 1, width * height - 1));
   // side not to move did not get to last row
   not_done_conditions.push_back((side_to_move == 0) ?
 				DFAUtil::get_count_character(get_shape(), 2, 0, 0, 0, width) :
