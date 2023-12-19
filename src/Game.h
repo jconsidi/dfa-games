@@ -32,12 +32,13 @@ private:
 protected:
 
   Game(std::string, const dfa_shape_t&);
-  virtual ~Game();
 
   int get_shape_size() const {return shape.size();}
   void save(std::string, shared_dfa_ptr) const;
 
 public:
+
+  virtual ~Game();
 
   // move generation
   shared_dfa_ptr get_has_moves(int) const;
