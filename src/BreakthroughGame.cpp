@@ -82,9 +82,6 @@ MoveGraph BreakthroughGame::build_move_graph(int side_to_move) const
       }
     }
 
-  // push/capture nodes
-
-
   // end nodes
   move_graph.add_node("end-1");
   move_graph.add_node("end");
