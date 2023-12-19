@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <iostream>
+#include <memory>
 
 #include "AmazonsGame.h"
 #include "BreakthroughGame.h"
@@ -25,6 +26,22 @@ bool check_win(const Game& game, int ply_max)
   DFAString initial_position = game.get_position_initial();
   shared_dfa_ptr winning = game.get_positions_winning(0, ply_max);
   return winning->contains(initial_position);
+}
+
+shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name)
+{
+  const std::unique_ptr<Game> game(get_game(game_name));
+
+  if(hash_or_name.length() == 64)
+    {
+      shared_dfa_ptr hash_dfa = game->load_by_hash(hash_or_name);
+      if(hash_dfa)
+	{
+	  return hash_dfa;
+	}
+    }
+
+  return game->load(hash_or_name);
 }
 
 Game *get_game(std::string game_name)
