@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: test_backward GAME_NAME\n";
+      std::cerr << "usage: test_backward GAME_NAME [PLY_MAX]\n";
       return 1;
     }
 
@@ -18,6 +18,7 @@ int main(int argc, char **argv)
   Game *game = get_game(game_name);
 
   int ply_max = (argc >= 3) ? atoi(argv[2]) : 1;
+  std::cout << "PLY MAX: " << ply_max << std::endl;
 
   DFAString initial_position = game->get_position_initial();
   std::cout << "INITIAL POSITION:" << std::endl;
