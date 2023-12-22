@@ -473,22 +473,22 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 		return right_in;
 	      }
 	  }
-      else if(left_linear)
-	{
-	  // only left linear
-	  if(right_bound <= left_bound)
-	    {
-	      return right_in;
-	    }
-	}
-      else
-	{
-	  // only right linear
-	  if(left_bound <= right_bound)
-	    {
-	      return left_in;
-	    }
-	}
+	else if(left_linear)
+	  {
+	    // only left linear
+	    if(right_bound <= left_bound)
+	      {
+		return right_in;
+	      }
+	  }
+	else
+	  {
+	    // only right linear
+	    if(left_bound <= right_bound)
+	      {
+		return left_in;
+	      }
+	  }
       }
 
     if((left_in->states() >= 1024) || (right_in->states() >= 1024))
