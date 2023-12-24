@@ -9,6 +9,26 @@
 #include "BreakthroughGame.h"
 #include "DFAUtil.h"
 
+std::vector<int> get_penultimate_vector(int width, int height)
+{
+  std::vector<int> output;
+  for(int row = 0; row < height; ++row)
+    {
+      int row_character = (row == 1) ? 2 : (row == height - 2) ? 1 : 0;
+
+      for(int col = 0; col < width; ++col)
+	{
+	  output.push_back(row_character);
+	}
+    }
+  return output;
+}
+
+DFAString get_penultimate_string(const Game& game, int width, int height)
+{
+  return DFAString(game.get_shape(), get_penultimate_vector(width, height));
+}
+
 void test_forward(const BreakthroughGame& game, int width, int height)
 {
   // deliberately not using get_positions_forward() to avoid cache.
@@ -66,6 +86,35 @@ void test_forward(const BreakthroughGame& game, int width, int height)
   check_ply(4, positions_4);
 }
 
+void test_lost(const BreakthroughGame& game, int width, int height)
+{
+  DFAString initial = game.get_position_initial();
+  DFAString penultimate = get_penultimate_string(game, width, height);
+
+  std::vector<DFAString> not_lost = {initial, penultimate};
+
+  for(int side_to_move = 0; side_to_move < 2; ++side_to_move)
+    {
+      shared_dfa_ptr lost = game.get_positions_lost(side_to_move);
+
+      for(const DFAString& position : not_lost)
+	{
+	  shared_dfa_ptr moves = game.get_moves_forward(side_to_move, DFAUtil::from_string(position));
+
+	  std::cout << game.position_to_string(position) << std::endl;
+
+	  // confirm these positions have moves, so by definition they
+	  // did not lose yet.
+	  std::cout << "MOVES " << DFAUtil::quick_stats(moves) << std::endl;
+	  assert(!moves->is_constant(false));
+	  assert(moves->size() > 0);
+
+	  // confirm not classified as lost
+	  assert(!lost->contains(position));
+	}
+    }
+}
+
 void test_reachable(const BreakthroughGame& game, int width, int height)
 {
   // deliberately not using get_positions_reachable() to avoid cache
@@ -118,24 +167,17 @@ void test_reachable(const BreakthroughGame& game, int width, int height)
     {
       // setup each side to have their penultimate row filled with their pieces
 
-      std::vector<int> penultimate;
-      for(int row = 0; row < height; ++row)
-	{
-	  int row_character = (row == 1) ? 2 : (row == height - 2) ? 1 : 0;
-
-	  for(int col = 0; col < width; ++col)
-	    {
-	      penultimate.push_back(row_character);
-	    }
-	}
+      std::vector<int> penultimate = get_penultimate_vector(width, height);
       check_both(penultimate, true);
     }
 }
 
 void test(int width, int height)
 {
+
   std::cout << "TESTING " << width << "x" << height << std::endl;
   std::cout << std::endl;
+  assert(height >= 4);
 
   BreakthroughGame game(width, height);
 
@@ -143,6 +185,7 @@ void test(int width, int height)
   std::cout << game.position_to_string(initial_position) << std::endl;
 
   test_forward(game, width, height);
+  test_lost(game, width, height);
   test_reachable(game, width, height);
 }
 
