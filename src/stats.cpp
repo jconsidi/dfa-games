@@ -17,11 +17,11 @@ int main(int argc, char **argv)
 
   // args = game, DFA name
   std::string game_name(argv[1]);
-  std::string positions_name(argv[2]);
-  shared_dfa_ptr positions = get_dfa(game_name, positions_name);
+  std::string hash_or_name(argv[2]);
+  shared_dfa_ptr positions = get_dfa(game_name, hash_or_name);
   if(!positions)
     {
-      std::cerr << positions_name << " not found." << std::endl;
+      std::cerr << hash_or_name << " not found." << std::endl;
       return 1;
     }
 
