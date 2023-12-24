@@ -107,7 +107,7 @@ std::string Game::get_name_losing(int side_to_move, int ply_max) const
 
 std::string Game::get_name_lost(int side_to_move) const
 {
-  return "lost,side=" + std::to_string(side_to_move);
+  return "lost,side_to_move=" + std::to_string(side_to_move);
 }
 
 std::string Game::get_name_winning(int side_to_move, int ply_max) const
@@ -119,7 +119,7 @@ std::string Game::get_name_winning(int side_to_move, int ply_max) const
 
 std::string Game::get_name_won(int side_to_move) const
 {
-  return "won,side=" + std::to_string(side_to_move);
+  return "won,side_to_move=" + std::to_string(side_to_move);
 }
 
 shared_dfa_ptr Game::get_positions_forward(int ply) const
