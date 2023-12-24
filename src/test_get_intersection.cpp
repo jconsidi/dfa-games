@@ -23,7 +23,7 @@ int main(int argc, char **argv)
       std::cerr << "DFA not found for left hash or name " << left_hash_or_name << "." << std::endl;
       return 1;
     }
-  
+
   std::string right_hash_or_name(argv[3]);
   shared_dfa_ptr right = get_dfa(game_name, right_hash_or_name);
   if(right == 0)
@@ -34,6 +34,6 @@ int main(int argc, char **argv)
 
   shared_dfa_ptr test_intersection = DFAUtil::get_intersection(left, right);
   assert(test_intersection != 0);
-  
+
   return 0;
 }

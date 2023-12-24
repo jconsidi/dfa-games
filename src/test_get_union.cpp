@@ -24,7 +24,7 @@ int main(int argc, char **argv)
       std::cerr << "DFA not found for left hash " << left_hash << "." << std::endl;
       return 1;
     }
-  
+
   std::string right_hash(argv[3]);
   shared_dfa_ptr right = game->load_by_hash(right_hash);
   if(right == 0)
@@ -35,6 +35,6 @@ int main(int argc, char **argv)
 
   shared_dfa_ptr test_union = DFAUtil::get_union(left, right);
   assert(test_union != 0);
-  
+
   return 0;
 }

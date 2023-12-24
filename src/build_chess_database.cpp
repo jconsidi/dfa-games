@@ -21,7 +21,7 @@ void print_stuff(const ChessGame& game, std::string name, shared_dfa_ptr positio
     {
       std::cout << game.position_to_string(*iter) << std::endl;
       break;
-    }  
+    }
   std::cout << "############################################################" << std::endl;
 }
 
@@ -30,7 +30,7 @@ shared_dfa_ptr build_legal(const ChessGame& game, int side_to_move, int pieces_m
   std::ostringstream name_builder;
   name_builder << "legal_positions,side_to_move=" << std::to_string(side_to_move);
   name_builder << ",pieces_max=" << std::to_string(pieces_max);
-  
+
   return game.load_or_build(name_builder.str(), [&]()
   {
     std::vector<shared_dfa_ptr> conditions;
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
       std::cerr << "PIECES_MAX must be at least two." << std::endl;
       return 1;
     }
-  
+
   int ply_max = atoi(argv[2]);
   if(ply_max < 0)
     {

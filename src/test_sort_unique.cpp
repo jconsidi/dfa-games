@@ -32,7 +32,7 @@ int main()
 
   std::vector<size_t> test_1({42});
   test(test_1, 1);
-  
+
   std::vector<size_t> test_2({0, 1, 2, 3});
   test(test_2, 4);
 
@@ -41,7 +41,7 @@ int main()
 
   std::vector<size_t> test_4(1ULL << 22, 0);
   test(test_4, 1);
-  
+
   std::vector<size_t> test_5;
   for(int i = 0; i < 1ULL << 20; ++i)
     {
