@@ -22,7 +22,9 @@ shared_dfa_ptr initial_positions_manual()
     ++next_square;
   };
 
-#if CHESS_SQUARE_OFFSET == 2
+#if CHESS_SQUARE_OFFSET == 1
+  set_square(60);
+#elif CHESS_SQUARE_OFFSET == 2
   set_square(60); // white king position
   set_square(4); // black king position
 #endif
@@ -110,7 +112,7 @@ int main()
   assert(initial_positions_check->size() == 1);
 
   profile.tic("black_check_board");
-  Board black_check_board("rnbq1bnr/ppppkppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR w KQkq - 0 1");
+  Board black_check_board("rnbq1bnr/ppppkppp/8/4p3/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 0 1");
   assert(black_check_board.is_check(SIDE_BLACK));
   shared_dfa_ptr black_check_dfa = ChessGame::from_board(black_check_board);
 
