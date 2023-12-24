@@ -22,8 +22,8 @@ int main(int argc, char **argv)
       std::string game_name(argv[1]);
       Game *game = get_game(game_name);
 
-      std::string positions_name(argv[2]);
-      shared_dfa_ptr positions = game->load(positions_name);
+      std::string hash_or_name(argv[2]);
+      shared_dfa_ptr positions = get_dfa(game_name, hash_or_name);
 
       for(auto iter = positions->cbegin();
 	  iter < positions->cend();
