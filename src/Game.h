@@ -41,6 +41,10 @@ public:
   virtual ~Game();
 
   // move generation
+
+  virtual shared_dfa_ptr build_positions_lost(int) const;
+  virtual shared_dfa_ptr build_positions_won(int) const;
+
   shared_dfa_ptr get_has_moves(int) const;
 
   shared_dfa_ptr get_moves_backward(int, shared_dfa_ptr) const;
@@ -57,10 +61,10 @@ public:
   shared_dfa_ptr get_positions_forward(int) const;
   shared_dfa_ptr get_positions_initial() const;
   virtual shared_dfa_ptr get_positions_losing(int, int) const; // side to move loses in at most given ply
-  virtual shared_dfa_ptr get_positions_lost(int) const = 0; // side to move has lost, no moves available
+  shared_dfa_ptr get_positions_lost(int) const; // side to move has lost, no moves available
   shared_dfa_ptr get_positions_reachable(int, int) const;
   virtual shared_dfa_ptr get_positions_winning(int, int) const; // side to move wins in at most given ply
-  virtual shared_dfa_ptr get_positions_won(int) const = 0; // side to move has won, no moves available
+  shared_dfa_ptr get_positions_won(int) const; // side to move has won, no moves available
 
   const dfa_shape_t& get_shape() const;
 

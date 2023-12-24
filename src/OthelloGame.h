@@ -35,9 +35,10 @@ private:
 
 public:
 
+  virtual shared_dfa_ptr build_positions_lost(int) const; // side to move has lost, no moves available
+  virtual shared_dfa_ptr build_positions_won(int) const; // side to move has won, no moves available
+
   virtual DFAString get_position_initial() const;
-  virtual shared_dfa_ptr get_positions_lost(int) const; // side to move has lost, no moves available
-  virtual shared_dfa_ptr get_positions_won(int) const; // side to move has won, no moves available
 
   virtual std::string position_to_string(const DFAString&) const;
 };

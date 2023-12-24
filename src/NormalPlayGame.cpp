@@ -11,6 +11,11 @@ NormalPlayGame::NormalPlayGame(std::string name_in, const dfa_shape_t& shape_in)
 {
 }
 
+shared_dfa_ptr NormalPlayGame::build_positions_lost(int side_to_move) const
+{
+  return get_positions_losing(side_to_move, 0);
+}
+
 shared_dfa_ptr NormalPlayGame::get_positions_losing(int side_to_move,
 						    int ply_max) const
 {
@@ -37,11 +42,6 @@ shared_dfa_ptr NormalPlayGame::get_positions_losing(int side_to_move,
 			     });
 }
 
-shared_dfa_ptr NormalPlayGame::get_positions_lost(int side_to_move) const
-{
-  return get_positions_losing(side_to_move, 0);
-}
-
 shared_dfa_ptr NormalPlayGame::get_positions_winning(int side_to_move,
 						     int ply_max) const
 {
@@ -65,9 +65,4 @@ shared_dfa_ptr NormalPlayGame::get_positions_winning(int side_to_move,
 			       shared_dfa_ptr winning_soon = this->get_moves_backward(side_to_move, losing_soon);
 			       return winning_soon;
 			     });
-}
-
-shared_dfa_ptr NormalPlayGame::get_positions_won(int side_to_move) const
-{
-  return get_positions_winning(side_to_move, 0);
 }

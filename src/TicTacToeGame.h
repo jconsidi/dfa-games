@@ -23,12 +23,11 @@ private:
 
   virtual DFAString get_position_initial() const;
 
-  virtual shared_dfa_ptr get_positions_lost(int) const;
-  virtual shared_dfa_ptr get_positions_won(int) const;
-
   shared_dfa_ptr get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta) const;
 
  public:
+
+  virtual shared_dfa_ptr build_positions_lost(int) const;
 
   virtual std::string position_to_string(const DFAString&) const;
 };

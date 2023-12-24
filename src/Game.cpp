@@ -43,6 +43,22 @@ void Game::build_move_graphs(int side_to_move) const
   move_graphs_ready[side_to_move] = true;
 }
 
+shared_dfa_ptr Game::build_positions_lost(int side_to_move) const
+{
+  // default implementation. build_positions_lost or
+  // build_positions_won should be overridden.
+
+  return DFAUtil::get_reject(get_shape());
+}
+
+shared_dfa_ptr Game::build_positions_won(int side_to_move) const
+{
+  // default implementation. build_positions_lost or
+  // build_positions_won should be overridden.
+
+  return DFAUtil::get_reject(get_shape());
+}
+
 shared_dfa_ptr Game::get_has_moves(int side_to_move) const
 {
   Profile profile("get_has_moves");
@@ -160,6 +176,15 @@ shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const
 		       });
 }
 
+shared_dfa_ptr Game::get_positions_lost(int side_to_move) const
+{
+  return this->load_or_build(get_name_lost(side_to_move),
+			     [&]()
+			     {
+			       return build_positions_lost(side_to_move);
+			     });
+}
+
 shared_dfa_ptr Game::get_positions_reachable(int side_to_move, int ply) const
 {
   assert((0 <= side_to_move) && (side_to_move < 2));
@@ -208,6 +233,15 @@ shared_dfa_ptr Game::get_positions_winning(int side_to_move, int ply_max) const
 			       shared_dfa_ptr winning_soon = this->get_moves_backward(side_to_move, losing_sooner);
 
 			       return DFAUtil::get_union(won, winning_soon);
+			     });
+}
+
+shared_dfa_ptr Game::get_positions_won(int side_to_move) const
+{
+  return this->load_or_build(get_name_won(side_to_move),
+			     [&]()
+			     {
+			       return build_positions_won(side_to_move);
 			     });
 }
 

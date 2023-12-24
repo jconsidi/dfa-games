@@ -816,6 +816,16 @@ MoveGraph ChessGame::build_move_graph(int side_to_move) const
   return move_graph;
 }
 
+shared_dfa_ptr ChessGame::build_positions_lost(int side_to_move) const
+{
+  Profile profile("build_positions_lost");
+
+  // lost if and only if check and no legal moves
+
+  return DFAUtil::get_difference(get_positions_check(side_to_move),
+				 get_has_moves(side_to_move));
+}
+
 shared_dfa_ptr ChessGame::from_board(const Board& board_in)
 {
   std::vector<DFAString> dfa_strings;
@@ -1305,29 +1315,6 @@ DFAString ChessGame::get_position_initial() const
 
   Board initial_board(INITIAL_FEN);
   return from_board_to_dfa_string(initial_board);
-}
-
-shared_dfa_ptr ChessGame::get_positions_lost(int side_to_move) const
-{
-  Profile profile("get_positions_lost");
-
-  // lost if and only if check and no legal moves
-
-  return load_or_build(get_name_lost(side_to_move),
-		       [&]()
-		       {
-			 return DFAUtil::get_difference(get_positions_check(side_to_move),
-							get_has_moves(side_to_move));
-		       });
-}
-
-shared_dfa_ptr ChessGame::get_positions_won(int side_to_move) const
-{
-  Profile profile("get_positions_won");
-
-  // lost if and only if check and no legal moves
-
-  return DFAUtil::get_reject(chess_shape);
 }
 
 Board ChessGame::position_to_board(int side_to_move, const DFAString& position_in) const

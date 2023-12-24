@@ -185,6 +185,41 @@ MoveGraph OthelloGame::build_move_graph(int side_to_move) const
   return move_graph;
 }
 
+shared_dfa_ptr OthelloGame::build_positions_lost(int side_to_move) const
+{
+  return get_positions_won(1 - side_to_move);
+}
+
+shared_dfa_ptr OthelloGame::build_positions_won(int side_to_move) const
+{
+  ASSERT_SIDE_TO_MOVE(side_to_move);
+
+  int side_not_to_move = 1 - side_to_move;
+  shared_dfa_ptr end_positions = get_positions_end();
+
+  std::vector<shared_dfa_ptr> advantage_staging;
+  for(int side_to_move_count = 1; side_to_move_count <= width * height; ++side_to_move_count)
+    {
+      shared_dfa_ptr side_to_move_constraint =
+	DFAUtil::get_count_character(get_shape(),
+				     1 + side_to_move,
+				     side_to_move_count);
+
+      // constraint other side to have fewer pieces
+      shared_dfa_ptr side_not_to_move_constraint =
+	DFAUtil::get_count_character(get_shape(),
+				     1 + side_not_to_move,
+				     0, side_to_move_count - 1);
+
+      advantage_staging.push_back(DFAUtil::get_intersection(side_to_move_constraint,
+							    side_not_to_move_constraint));
+    }
+
+  shared_dfa_ptr advantage_positions = DFAUtil::get_union_vector(get_shape(), advantage_staging);
+
+  return DFAUtil::get_intersection(end_positions, advantage_positions);
+}
+
 std::string OthelloGame::get_name_flip(int x_begin, int y_begin, int x_end, int y_end) const
 {
   return "flip x=" + std::to_string(x_begin) + ",y=" + std::to_string(y_begin) + " to x=" + std::to_string(x_end) + ",y=" + std::to_string(y_end);
@@ -329,44 +364,6 @@ shared_dfa_ptr OthelloGame::get_positions_legal() const
       };
 
     return DFAUtil::get_intersection_vector(get_shape(), conditions);
-  });
-}
-
-shared_dfa_ptr OthelloGame::get_positions_lost(int side_to_move) const
-{
-  return get_positions_won(1 - side_to_move);
-}
-
-shared_dfa_ptr OthelloGame::get_positions_won(int side_to_move) const
-{
-  ASSERT_SIDE_TO_MOVE(side_to_move);
-
-  return load_or_build(get_name_won(side_to_move), [&]()
-  {
-    int side_not_to_move = 1 - side_to_move;
-    shared_dfa_ptr end_positions = get_positions_end();
-
-    std::vector<shared_dfa_ptr> advantage_staging;
-    for(int side_to_move_count = 1; side_to_move_count <= width * height; ++side_to_move_count)
-      {
-	shared_dfa_ptr side_to_move_constraint =
-	  DFAUtil::get_count_character(get_shape(),
-				       1 + side_to_move,
-				       side_to_move_count);
-
-	// constraint other side to have fewer pieces
-	shared_dfa_ptr side_not_to_move_constraint =
-	  DFAUtil::get_count_character(get_shape(),
-				       1 + side_not_to_move,
-				       0, side_to_move_count - 1);
-
-	advantage_staging.push_back(DFAUtil::get_intersection(side_to_move_constraint,
-							      side_not_to_move_constraint));
-      }
-
-    shared_dfa_ptr advantage_positions = DFAUtil::get_union_vector(get_shape(), advantage_staging);
-
-    return DFAUtil::get_intersection(end_positions, advantage_positions);
   });
 }
 
