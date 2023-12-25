@@ -52,14 +52,19 @@ int main(int argc, char **argv)
 
   losing_by_ply[forward_ply_max + 1] = DFAUtil::get_reject(game->get_shape());
   winning_by_ply[forward_ply_max + 1] = DFAUtil::get_reject(game->get_shape());
-  
+
+  bool complete_expected = false;
   for(int ply = forward_ply_max; ply >= 0; --ply)
     {
       std::cout << "PLY " << ply << std::endl;
-      
+
       int side_to_move = ply % 2;
 
       shared_dfa_ptr positions = game->get_positions_forward(ply);
+      if(positions->is_constant(false))
+	{
+	  complete_expected = true;
+	}
 
       winning_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "winning"), [&]()
       {
@@ -76,7 +81,7 @@ int main(int argc, char **argv)
 	shared_dfa_ptr lost_check = DFAUtil::get_intersection(lost, winning_by_ply[ply]);
 	std::cout << "LOST CHECK " << DFAUtil::quick_stats(lost_check) << std::endl;
 	assert(lost_check->is_constant(false));
-      
+
 	shared_dfa_ptr could_lose = game->get_moves_backward(side_to_move, winning_by_ply[ply + 1]);
 	shared_dfa_ptr wont_lose = game->get_moves_backward(side_to_move, DFAUtil::get_inverse(winning_by_ply[ply + 1]));
 	shared_dfa_ptr will_lose = DFAUtil::get_difference(could_lose, wont_lose);
@@ -91,6 +96,10 @@ int main(int argc, char **argv)
 	shared_dfa_ptr winning_or_losing = DFAUtil::get_union(winning_by_ply[ply], losing_by_ply[ply]);
 	return DFAUtil::get_difference(positions, winning_or_losing);
       });
+      if(complete_expected)
+	{
+	  assert(unknown_by_ply[ply]->is_constant(false));
+	}
 
       double positions_size = positions->size();
       double winning_size = winning_by_ply[ply]->size();
@@ -103,7 +112,7 @@ int main(int argc, char **argv)
 	output << std::defaultfloat << result_size << " " << result << " (" << std::setprecision(4) << std::fixed << (result_size / positions_size) << ")";
 	return output.str();
       };
-      
+
       std::cout << "PLY " << ply << " STATS " << std::defaultfloat << positions_size << " positions, ";
       std::cout << summarize_result("winning", winning_size) << ", ";
       std::cout << summarize_result("losing", losing_size) << ", ";
