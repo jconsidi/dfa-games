@@ -65,6 +65,8 @@ int main(int argc, char **argv)
 	{
 	  complete_expected = true;
 	}
+      double positions_size = positions->size();
+      std::cout << "PLY " << ply << " POSITIONS " << positions_size << std::endl;
 
       winning_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "winning"), [&]()
       {
@@ -74,6 +76,8 @@ int main(int argc, char **argv)
 	return DFAUtil::get_intersection(DFAUtil::get_union(won, will_win),
 					 positions);
       });
+      double winning_size = winning_by_ply[ply]->size();
+      std::cout << "PLY " << ply << " WINNING " << winning_size << std::endl;
 
       losing_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "losing"), [&]()
       {
@@ -86,21 +90,20 @@ int main(int argc, char **argv)
 	return DFAUtil::get_intersection(DFAUtil::get_union(lost, will_lose),
 					 positions);
       });
+      double losing_size = losing_by_ply[ply]->size();
+      std::cout << "PLY " << ply << " LOSING " << losing_size << std::endl;
 
       unknown_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "unknown"), [&]()
       {
 	shared_dfa_ptr winning_or_losing = DFAUtil::get_union(winning_by_ply[ply], losing_by_ply[ply]);
 	return DFAUtil::get_difference(positions, winning_or_losing);
       });
+      double unknown_size = unknown_by_ply[ply]->size();
+      std::cout << "PLY " << ply << " UNKNOWN " << unknown_size << std::endl;
       if(complete_expected)
 	{
 	  assert(unknown_by_ply[ply]->is_constant(false));
 	}
-
-      double positions_size = positions->size();
-      double winning_size = winning_by_ply[ply]->size();
-      double losing_size = losing_by_ply[ply]->size();
-      double unknown_size = unknown_by_ply[ply]->size();
 
       auto summarize_result = [&](std::string result, double result_size)
       {
