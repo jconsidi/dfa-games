@@ -78,14 +78,10 @@ int main(int argc, char **argv)
       losing_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "losing"), [&]()
       {
 	shared_dfa_ptr lost = game->get_positions_lost(side_to_move);
-	shared_dfa_ptr lost_check = DFAUtil::get_intersection(lost, winning_by_ply[ply]);
-	std::cout << "LOST CHECK " << DFAUtil::quick_stats(lost_check) << std::endl;
-	assert(lost_check->is_constant(false));
 
 	shared_dfa_ptr could_lose = game->get_moves_backward(side_to_move, winning_by_ply[ply + 1]);
 	shared_dfa_ptr wont_lose = game->get_moves_backward(side_to_move, DFAUtil::get_inverse(winning_by_ply[ply + 1]));
 	shared_dfa_ptr will_lose = DFAUtil::get_difference(could_lose, wont_lose);
-	assert(DFAUtil::get_intersection(will_lose, winning_by_ply[ply])->is_constant(false));
 
 	return DFAUtil::get_intersection(DFAUtil::get_union(lost, will_lose),
 					 positions);
@@ -119,9 +115,8 @@ int main(int argc, char **argv)
       std::cout << summarize_result("unknown", unknown_size) << std::endl;
 
       shared_dfa_ptr winning_and_losing = DFAUtil::get_intersection(winning_by_ply[ply], losing_by_ply[ply]);
-      std::cout << "winning and losing " << DFAUtil::quick_stats(winning_and_losing) << std::endl;
       assert(winning_and_losing->is_constant(false));
-}
+    }
 
   return 0;
 }
