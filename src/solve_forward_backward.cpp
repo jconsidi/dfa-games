@@ -52,6 +52,7 @@ int main(int argc, char **argv)
 
   losing_by_ply[forward_ply_max + 1] = DFAUtil::get_reject(game->get_shape());
   winning_by_ply[forward_ply_max + 1] = DFAUtil::get_reject(game->get_shape());
+  unknown_by_ply[forward_ply_max + 1] = DFAUtil::get_accept(game->get_shape());
 
   bool complete_expected = false;
   for(int ply = forward_ply_max; ply >= 0; --ply)
@@ -79,8 +80,21 @@ int main(int argc, char **argv)
       double winning_size = winning_by_ply[ply]->size();
       std::cout << "PLY " << ply << " WINNING " << winning_size << std::endl;
 
+#ifndef PARANOIA
+      bool next_ply_complete = unknown_by_ply[ply + 1]->is_constant(0);
+#endif
+
       losing_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "losing"), [&]()
       {
+#ifndef PARANOIA
+	if(next_ply_complete)
+	  {
+	    // if next ply was completely solved, then we can just do
+	    // set subtraction.
+	    return DFAUtil::get_difference(positions, winning_by_ply[ply]);
+	  }
+#endif
+
 	shared_dfa_ptr lost = game->get_positions_lost(side_to_move);
 
 	shared_dfa_ptr could_lose = game->get_moves_backward(side_to_move, winning_by_ply[ply + 1]);
@@ -95,6 +109,13 @@ int main(int argc, char **argv)
 
       unknown_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "unknown"), [&]()
       {
+#ifndef PARANOIA
+	if(next_ply_complete)
+	  {
+	    return DFAUtil::get_reject(game->get_shape());
+	  }
+#endif
+
 	shared_dfa_ptr winning_or_losing = DFAUtil::get_union(winning_by_ply[ply], losing_by_ply[ply]);
 	return DFAUtil::get_difference(positions, winning_or_losing);
       });
@@ -117,8 +138,10 @@ int main(int argc, char **argv)
       std::cout << summarize_result("losing", losing_size) << ", ";
       std::cout << summarize_result("unknown", unknown_size) << std::endl;
 
+#ifdef PARANOIA
       shared_dfa_ptr winning_and_losing = DFAUtil::get_intersection(winning_by_ply[ply], losing_by_ply[ply]);
       assert(winning_and_losing->is_constant(false));
+#endif
     }
 
   return 0;
