@@ -225,6 +225,11 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
     });
   };
 
+  for(int node_index = 0; node_index < node_names.size(); ++node_index)
+    {
+      get_node_output(node_index);
+    }
+
   return get_node_output(node_names.size() - 1);
 }
 
