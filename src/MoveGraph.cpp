@@ -240,9 +240,45 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
     });
   };
 
+  std::vector<bool> node_todo(node_names.size(), false);
+  node_todo.back() = true;
+  for(int node_index = node_names.size() - 1; node_index >= 0; --node_index)
+    {
+      for(const move_edge& edge : node_edges[node_index])
+	{
+	  int to_node_index = std::get<2>(edge);
+	  if(node_todo.at(to_node_index))
+	    {
+	      node_todo[node_index] = true;
+	    }
+	}
+
+      if(!node_todo[node_index])
+	{
+	  std::cout << "node " << node_index << " is not needed." << std::endl;
+	  continue;
+	}
+
+      try
+	{
+	  DFAUtil::load_by_name(shape, output_names.at(node_index));
+	  std::cout << "node " << node_index << " is already built." << std::endl;
+	  node_todo[node_index] = false;
+	  continue;
+	}
+      catch(const std::runtime_error& e)
+	{
+	}
+
+      std::cout << "node " << node_index << " needs to be built." << std::endl;
+    }
+
   for(int node_index = 0; node_index < node_names.size(); ++node_index)
     {
-      get_node_output(node_index);
+      if(node_todo.at(node_index))
+	{
+	  get_node_output(node_index);
+	}
     }
 
   return get_node_output(node_names.size() - 1);
