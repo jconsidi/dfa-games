@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <vector>
 
 #include "DFAUtil.h"
@@ -152,7 +153,10 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
   std::function<shared_dfa_ptr(int)> get_node_output = [&](int node_index)
   {
-    std::string output_name = "move_nodes/" + name_prefix + "," + positions_in->get_hash() + ",node=" + std::to_string(node_index);
+    std::ostringstream output_name_builder;
+    output_name_builder << "move_nodes/" << name_prefix << "," << positions_in->get_hash();
+    output_name_builder << ",node=" << std::setfill('0') << std::setw(4) << node_index;
+    std::string output_name = output_name_builder.str();
 
     return DFAUtil::load_or_build(shape, output_name, [&]()
     {
