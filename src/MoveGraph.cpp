@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -242,8 +243,10 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
   std::vector<bool> node_todo(node_names.size(), false);
   node_todo.back() = true;
+  std::vector<std::vector<int>> cleanup_schedule(node_names.size());
   for(int node_index = node_names.size() - 1; node_index >= 0; --node_index)
     {
+      int last_to_node_index = 0;
       for(const move_edge& edge : node_edges[node_index])
 	{
 	  int to_node_index = std::get<2>(edge);
@@ -251,6 +254,13 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 	    {
 	      node_todo[node_index] = true;
 	    }
+
+	  last_to_node_index = std::max(last_to_node_index, to_node_index);
+	}
+      if(node_index + 1 < node_names.size())
+	{
+	  // schedule cleanup except the last node
+	  cleanup_schedule.at(last_to_node_index).push_back(node_index);
 	}
 
       if(!node_todo[node_index])
@@ -278,6 +288,12 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
       if(node_todo.at(node_index))
 	{
 	  get_node_output(node_index);
+	}
+
+      for(int cleanup_node_index : cleanup_schedule.at(node_index))
+	{
+	  std::string cleanup_link = "scratch/" + output_names.at(cleanup_node_index);
+	  unlink(cleanup_link.c_str());
 	}
     }
 
