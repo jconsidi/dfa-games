@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 #include "DFAUtil.h"
@@ -161,6 +162,17 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
       output_names.push_back(output_name_builder.str());
     }
 
+  // invert edges for faster lookups
+  std::vector<std::vector<std::pair<int, move_edge>>> node_inputs(node_names.size());
+  for(int from_node_index = 0; from_node_index < node_edges.size(); ++from_node_index)
+    {
+      for(const move_edge& edge : node_edges[from_node_index])
+	{
+	  int to_node_index = std::get<2>(edge);
+	  node_inputs.at(to_node_index).emplace_back(from_node_index, edge);
+	}
+    }
+
   std::function<shared_dfa_ptr(int)> get_node_output = [&](int node_index)
   {
     std::string output_name = output_names.at(node_index);
@@ -182,38 +194,34 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 	{
 	  // process all edges coming into this node
 
-	  // TODO : restructure node_edges to make this more efficient
-	  for(int from_node_index = 0; from_node_index < node_edges.size(); ++from_node_index)
+	  for(int node_edge_index = 0; node_edge_index < node_inputs[node_index].size(); ++node_edge_index)
 	    {
-	      for(int node_edge_index = 0; node_edge_index < node_edges[from_node_index].size(); ++node_edge_index)
-		{
-		  const move_edge& edge = node_edges[from_node_index][node_edge_index];
+	      profile.tic("edge init");
 
-		  profile.tic("edge init");
+	      const std::pair<int, move_edge>& from_edge = node_inputs[node_index][node_edge_index];
 
-		  const std::string& edge_name = std::get<0>(edge);
-		  const move_edge_condition_vector& conditions = std::get<1>(edge);
-		  int to_node_index = std::get<2>(edge);
-		  if(to_node_index != node_index)
-		    {
-		      continue;
-		    }
+	      int from_node_index = std::get<0>(from_edge);
+	      const move_edge& edge = std::get<1>(from_edge);
 
-		  std::cout << " node " << from_node_index << "/" << node_names.size() << " (" << node_names[from_node_index] << "), edge " << node_edge_index << "/" << node_edges[from_node_index].size() << " (" << edge_name << ")" << std::endl;
+	      const std::string& edge_name = std::get<0>(edge);
+	      const move_edge_condition_vector& conditions = std::get<1>(edge);
+	      int to_node_index = std::get<2>(edge);
+	      assert(to_node_index == node_index);
 
-		  shared_dfa_ptr edge_positions = get_node_output(from_node_index);
+	      std::cout << " node " << from_node_index << "/" << node_names.size() << " (" << node_names[from_node_index] << "), incoming edge " << node_edge_index << "/" << node_edges[from_node_index].size() << " (" << edge_name << ")" << std::endl;
 
-		  // apply choice conditions
-		  profile.tic("edge conditions");
+	      shared_dfa_ptr edge_positions = get_node_output(from_node_index);
 
-		  move_edge_condition_vector conditions_todo = conditions;
-		  conditions_todo.push_back(edge_positions);
-		  edge_positions = DFAUtil::get_intersection_vector(shape, conditions_todo);
+	      // apply choice conditions
+	      profile.tic("edge conditions");
 
-		  std::cout << "  conditions for node " << to_node_index << " (" << node_names[to_node_index] << ") => " << DFAUtil::quick_stats(edge_positions) << std::endl;
+	      move_edge_condition_vector conditions_todo = conditions;
+	      conditions_todo.push_back(edge_positions);
+	      edge_positions = DFAUtil::get_intersection_vector(shape, conditions_todo);
 
-		  node_builder.add_clause(DNFBuilder::clause_type(1, edge_positions));
-		}
+	      std::cout << "  conditions for node " << to_node_index << " (" << node_names[to_node_index] << ") => " << DFAUtil::quick_stats(edge_positions) << std::endl;
+
+	      node_builder.add_clause(DNFBuilder::clause_type(1, edge_positions));
 	    }
 	}
 
