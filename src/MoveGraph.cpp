@@ -151,12 +151,19 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
   assert(node_names.size() >= 2);
 
+  std::vector<std::string> output_names;
+  for(int node_index = 0; node_index < node_names.size(); ++node_index)
+    {
+      std::ostringstream output_name_builder;
+      output_name_builder << "move_nodes/" << name_prefix << "," << positions_in->get_hash();
+      output_name_builder << ",node=" << std::setfill('0') << std::setw(4) << node_index;
+
+      output_names.push_back(output_name_builder.str());
+    }
+
   std::function<shared_dfa_ptr(int)> get_node_output = [&](int node_index)
   {
-    std::ostringstream output_name_builder;
-    output_name_builder << "move_nodes/" << name_prefix << "," << positions_in->get_hash();
-    output_name_builder << ",node=" << std::setfill('0') << std::setw(4) << node_index;
-    std::string output_name = output_name_builder.str();
+    std::string output_name = output_names.at(node_index);
 
     return DFAUtil::load_or_build(shape, output_name, [&]()
     {
