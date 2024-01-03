@@ -50,7 +50,7 @@ class MoveGraph
   void add_node(std::string, const change_vector&, const move_edge_condition_vector&, const move_edge_condition_vector&);
   void add_node(std::string, int, int, int);
 
-  shared_dfa_ptr get_moves(shared_dfa_ptr) const;
+  shared_dfa_ptr get_moves(std::string name_prefix, shared_dfa_ptr) const;
   const move_edge_condition_vector& get_node_pre_conditions(std::string) const;
 
   MoveGraph reverse() const;
