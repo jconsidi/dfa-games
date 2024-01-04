@@ -323,6 +323,7 @@ size_t MemoryMap<T>::size() const
 
 #include "BinaryDFA.h"
 
+template class MemoryMap<double>;
 template class MemoryMap<int>;
 template class MemoryMap<size_t>;
 template class MemoryMap<uint32_t>;

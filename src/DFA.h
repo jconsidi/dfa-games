@@ -85,7 +85,7 @@ class DFA
 
   mutable std::optional<std::string> hash;
 
-  mutable double size_cache = 0.0;
+  mutable MemoryMap<double> size_cache;
   mutable bool temporary;
 
   mutable DFALinearBound *linear_bound = 0;

@@ -97,6 +97,7 @@ DFA::DFA(const dfa_shape_t& shape_in)
     layer_file_names(get_layer_file_names(shape_in.size(), directory)),
     layer_sizes(),
     layer_transitions(),
+    size_cache("/dev/null", 0), // dummy initialization, directory does not exist yet
     temporary(true)
 {
   assert(ndim > 0);
@@ -125,6 +126,10 @@ DFA::DFA(const dfa_shape_t& shape_in)
   assert(layer_sizes.size() == ndim);
   assert(layer_file_names.size() == ndim);
   assert(layer_transitions.size() == ndim);
+
+  // real size_cache initialization
+  size_cache = MemoryMap<double>(directory + "/size_cache", 1);
+  size_cache[0] = 0.0;
 }
 
 DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
@@ -135,6 +140,7 @@ DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
     layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
     layer_transitions(),
+    size_cache(directory + "/size_cache", 1),
     temporary(false)
 {
   assert(shape.size() == ndim);
@@ -654,11 +660,11 @@ double DFA::size() const
 
   if(initial_state == 0)
     {
-      assert(size_cache == 0.0);
+      assert(size_cache[0] == 0.0);
       return 0.0;
     }
 
-  if(size_cache == 0.0)
+  if(size_cache[0] == 0.0)
     {
       std::vector<double> previous_counts({0, 1}); // reject, accept
       for(int layer = ndim - 1; layer >= 0; --layer)
@@ -682,12 +688,12 @@ double DFA::size() const
 	  previous_counts = current_counts;
 	}
 
-      size_cache = previous_counts.at(initial_state);
+      size_cache[0] = previous_counts.at(initial_state);
     }
 
-  assert(size_cache >= 1.0);
+  assert(size_cache[0] >= 1.0);
 
-  return size_cache;
+  return size_cache[0];
 }
 
 size_t DFA::states() const
