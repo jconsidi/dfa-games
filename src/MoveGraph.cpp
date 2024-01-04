@@ -271,10 +271,13 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
       try
 	{
-	  DFAUtil::load_by_name(shape, output_names.at(node_index));
-	  std::cout << "node " << node_index << " is already built." << std::endl;
-	  node_todo[node_index] = false;
-	  continue;
+	  shared_dfa_ptr previous = DFAUtil::load_by_name(shape, output_names.at(node_index));
+	  if(previous)
+	    {
+	      std::cout << "node " << node_index << " is already built." << std::endl;
+	      node_todo[node_index] = false;
+	      continue;
+	    }
 	}
       catch(const std::runtime_error& e)
 	{
