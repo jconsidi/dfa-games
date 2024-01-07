@@ -272,6 +272,34 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
   finalize();
 }
 
+std::string DFA::calculate_hash() const
+{
+  Profile profile("calculate_hash");
+
+  assert(ready());
+
+  unsigned char hash_output[SHA256_DIGEST_LENGTH];
+  static const EVP_MD *hash_implementation = EVP_sha256();
+  static EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+
+  EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
+  EVP_DigestUpdate(hash_context, &initial_state, sizeof(initial_state));
+  EVP_DigestUpdate(hash_context, layer_sizes.data(), layer_sizes.size() * sizeof(layer_sizes[0]));
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      EVP_DigestUpdate(hash_context, &(layer_transitions[layer][0]), layer_transitions[layer].length());
+    }
+  EVP_DigestFinal_ex(hash_context, hash_output, 0);
+
+  std::stringstream ss;
+  for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+      ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash_output[i];
+    }
+
+  return ss.str();
+}
+
 DFAIterator DFA::cbegin() const
 {
   if(initial_state == 0)
@@ -348,27 +376,7 @@ std::string DFA::get_hash() const
 
   if(!hash)
     {
-      Profile profile("get_hash");
-
-      unsigned char hash_output[SHA256_DIGEST_LENGTH];
-      static const EVP_MD *hash_implementation = EVP_sha256();
-      static EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
-
-      EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
-      EVP_DigestUpdate(hash_context, &initial_state, sizeof(initial_state));
-      EVP_DigestUpdate(hash_context, layer_sizes.data(), layer_sizes.size() * sizeof(layer_sizes[0]));
-      for(int layer = 0; layer < ndim; ++layer)
-	{
-	  EVP_DigestUpdate(hash_context, &(layer_transitions[layer][0]), layer_transitions[layer].length());
-	}
-      EVP_DigestFinal_ex(hash_context, hash_output, 0);
-
-      std::stringstream ss;
-      for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-	{
-	  ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash_output[i];
-	}
-      hash = ss.str();
+      hash = calculate_hash();
     }
 
   assert(hash->length() == 64);

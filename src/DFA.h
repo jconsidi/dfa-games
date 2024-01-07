@@ -107,6 +107,8 @@ class DFA
   DFA(const dfa_shape_t&, std::string);
   virtual ~DFA() noexcept(false);
 
+  std::string calculate_hash() const;
+
   DFAIterator cbegin() const;
   DFAIterator cend() const;
 
