@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_chess_database divide generate_moves print random random_uci solve_forward_backward states stats test_backward test_bitset test_breakthrough test_change_dfa test_chess_game test_dfa test_forward test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game
+TARGETS=build_chess_database check divide generate_moves print random random_uci solve_forward_backward states stats test_backward test_bitset test_breakthrough test_change_dfa test_chess_game test_dfa test_forward test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game
 
 all : $(TARGETS)
 
@@ -48,6 +48,9 @@ time : all
 	time ./test_perft
 
 build_chess_database : build_chess_database.o chess.a test_utils.o
+	$(CXX) $(LDFLAGS) -o $@ $^
+
+check : check.o chess.a test_utils.o
 	$(CXX) $(LDFLAGS) -o $@ $^
 
 divide : divide.o chess.a
