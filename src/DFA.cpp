@@ -620,9 +620,19 @@ void DFA::save_by_hash() const
   std::string directory_new = std::string("scratch/dfas_by_hash/") + get_hash();
   // TODO: check if hash directory already exists and share carefully
 
+  // flush state to disk
+
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      layer_transitions.at(layer).msync();
+    }
+
+  size_cache.msync();
+
   // write initial state to disk
   MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state", 1);
   initial_state_mmap[0] = initial_state;
+  initial_state_mmap.msync();
 
   remove_directory(directory_new);
 
