@@ -30,6 +30,12 @@ std::vector<std::string> get_layer_file_names(int ndim, std::string directory)
   return output;
 }
 
+std::string create_directory(std::string directory)
+{
+  mkdir(directory.c_str(), 0700);
+  return directory;
+}
+
 void remove_directory(std::string directory)
 {
   DIR *dir = opendir(directory.c_str());
@@ -93,11 +99,11 @@ DFATransitionsReference::DFATransitionsReference(const DFATransitionsReference& 
 DFA::DFA(const dfa_shape_t& shape_in)
   : shape(shape_in),
     ndim(shape.size()),
-    directory("scratch/temp/" + std::to_string(next_dfa_id++)),
+    directory(create_directory("scratch/temp/" + std::to_string(next_dfa_id++))),
     layer_file_names(get_layer_file_names(shape_in.size(), directory)),
     layer_sizes(),
     layer_transitions(),
-    size_cache("/dev/null", 0), // dummy initialization, directory does not exist yet
+    size_cache(directory + "/size_cache", 1),
     temporary(true)
 {
   assert(ndim > 0);
@@ -127,8 +133,7 @@ DFA::DFA(const dfa_shape_t& shape_in)
   assert(layer_file_names.size() == ndim);
   assert(layer_transitions.size() == ndim);
 
-  // real size_cache initialization
-  size_cache = MemoryMap<double>(directory + "/size_cache", 1);
+  // finish size_cache initialization
   size_cache[0] = 0.0;
 }
 
