@@ -10,7 +10,7 @@ int main()
 {
   std::string filename = "/tmp/test-mm.bin";
 
-  MemoryMap<int> a(filename, 10);
+  MemoryMap<int32_t> a(filename, 10);
   a.mmap();
   for(int i = 0; i < 10; ++i)
     {
@@ -22,7 +22,7 @@ int main()
       assert(a[i] == i);
     }
 
-  MemoryMap<int> b(filename, 10);
+  MemoryMap<int32_t> b(filename, 10);
   b.mmap();
   for(int i = 0; i < 10; ++i)
     {

@@ -325,6 +325,6 @@ size_t MemoryMap<T>::size() const
 
 template class MemoryMap<double>;
 template class MemoryMap<int>;
-template class MemoryMap<size_t>;
-template class MemoryMap<uint32_t>;
-template class MemoryMap<uint64_t>;
+template class MemoryMap<long long unsigned int>;
+template class MemoryMap<long unsigned int>;
+template class MemoryMap<unsigned int>;
