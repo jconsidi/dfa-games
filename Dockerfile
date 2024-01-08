@@ -31,7 +31,7 @@ WORKDIR $HOME
 
 RUN mkdir $HOME/scratch
 ADD src/setup-scratch.sh $HOME/
-RUN ./setup-scratch.sh
+RUN /bin/bash ./setup-scratch.sh
 
 ADD src/Makefile $HOME/
 ADD src/*.h $HOME/
