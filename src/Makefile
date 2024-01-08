@@ -47,97 +47,97 @@ test_perft_u_suite : ./test_perft_u
 time : all
 	time ./test_perft
 
-build_chess_database : build_chess_database.o test_utils.o chess.a
+build_chess_database : build_chess_database.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-check : check.o test_utils.o chess.a
+check : check.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-divide : divide.o chess.a
+divide : divide.o dfagames.a
 	$(CXX) -o $@ $^
 
-generate_moves : generate_moves.o chess.a
+generate_moves : generate_moves.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-print: print.o test_utils.o chess.a
+print: print.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-prototype: prototype.o chess.a
+prototype: prototype.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-random : random.o chess.a
+random : random.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-random_uci : random_uci.o chess.a
+random_uci : random_uci.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-solve_forward_backward : solve_forward_backward.o test_utils.o chess.a
+solve_forward_backward : solve_forward_backward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-states : states.o test_utils.o chess.a
+states : states.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-stats : stats.o test_utils.o chess.a
+stats : stats.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_backward : test_backward.o test_utils.o chess.a
+test_backward : test_backward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_breakthrough : test_breakthrough.o test_utils.o chess.a
+test_breakthrough : test_breakthrough.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_bitset : test_bitset.o chess.a
+test_bitset : test_bitset.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_change_dfa : test_change_dfa.o chess.a
+test_change_dfa : test_change_dfa.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_chess_game : test_chess_game.o test_utils.o chess.a
+test_chess_game : test_chess_game.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_chess_backward : test_chess_backward.o test_utils.o chess.a
+test_chess_backward : test_chess_backward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_dfa : test_dfa.o chess.a
+test_dfa : test_dfa.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_forward : test_forward.o test_utils.o chess.a
+test_forward : test_forward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_get_intersection : test_get_intersection.o test_utils.o chess.a
+test_get_intersection : test_get_intersection.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_get_union : test_get_union.o test_utils.o chess.a
+test_get_union : test_get_union.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_get_union_vector : test_get_union_vector.o test_utils.o chess.a
+test_get_union_vector : test_get_union_vector.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_memorymap : test_memorymap.o chess.a
+test_memorymap : test_memorymap.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_normal_nim_game : test_normal_nim_game.o test_utils.o chess.a
+test_normal_nim_game : test_normal_nim_game.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_perft : test_perft.o chess.a PerftTestCases.o
+test_perft : test_perft.o dfagames.a PerftTestCases.o
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_perft_u : test_perft_u.o chess.a PerftTestCases.o
+test_perft_u : test_perft_u.o dfagames.a PerftTestCases.o
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_reachable : test_reachable.o test_utils.o chess.a
+test_reachable : test_reachable.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_solved : test_solved.o test_utils.o chess.a
+test_solved : test_solved.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_sort_unique : test_sort_unique.o test_utils.o chess.a
+test_sort_unique : test_sort_unique.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o test_utils.o chess.a
+test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-chess.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnorderedBitSet.o VectorBitSet.o sort.o utils.o
+dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnorderedBitSet.o VectorBitSet.o sort.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################
