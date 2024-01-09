@@ -373,25 +373,30 @@ shared_dfa_ptr DFAUtil::get_difference(shared_dfa_ptr left_in, shared_dfa_ptr ri
 {
   Profile profile("get_difference");
 
-  if(left_in->is_constant(true))
-    {
-      return get_inverse(right_in);
-    }
-  else if(left_in->is_constant(false))
-    {
-      return get_reject(left_in->get_shape());
-    }
+  std::string difference_name = "difference_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
 
-  if(right_in->is_constant(true))
-    {
-      return get_reject(left_in->get_shape());
-    }
-  else if(right_in->is_constant(false))
-    {
-      return left_in;
-    }
+  return load_or_build(left_in->get_shape(), difference_name, [&]()
+  {
+    if(left_in->is_constant(true))
+      {
+	return get_inverse(right_in);
+      }
+    else if(left_in->is_constant(false))
+      {
+	return get_reject(left_in->get_shape());
+      }
 
-  return _singleton_if_constant(shared_dfa_ptr(new DifferenceDFA(*left_in, *right_in)));
+    if(right_in->is_constant(true))
+      {
+	return get_reject(left_in->get_shape());
+      }
+    else if(right_in->is_constant(false))
+      {
+	return left_in;
+      }
+
+    return _singleton_if_constant(shared_dfa_ptr(new DifferenceDFA(*left_in, *right_in)));
+  });
 }
 
 shared_dfa_ptr DFAUtil::get_fixed(const dfa_shape_t& shape_in, int fixed_layer, int fixed_character)
