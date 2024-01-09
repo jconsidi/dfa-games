@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_chess_database build_forward divide generate_moves print random random_uci solve_forward_backward states stats test_backward test_bitset test_breakthrough test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game validate_dfa validate_forward
+TARGETS=build_chess_database build_forward build_forward_backward divide generate_moves print random random_uci states stats test_backward test_bitset test_breakthrough test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game validate_dfa validate_forward
 
 all : $(TARGETS)
 
@@ -53,6 +53,9 @@ build_chess_database : build_chess_database.o test_utils.o dfagames.a
 build_forward : build_forward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
+build_forward_backward : build_forward_backward.o test_utils.o dfagames.a
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
 divide : divide.o dfagames.a
 	$(CXX) -o $@ $^
 
@@ -69,9 +72,6 @@ random : random.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 random_uci : random_uci.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-solve_forward_backward : solve_forward_backward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 states : states.o test_utils.o dfagames.a

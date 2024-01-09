@@ -1,10 +1,10 @@
 build_chess_database
 build_forward
+build_forward_backward
 divide
 generate_moves
 random
 random_uci
-solve_forward_backward
 test_backward
 test_bitset
 test_change_dfa
