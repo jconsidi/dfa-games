@@ -20,6 +20,8 @@ int main(int argc, char **argv)
   int ply_max = (argc >= 3) ? atoi(argv[2]) : 2;
   int check_positions = 1000000;
 
+  dfa_shape_t shape = game->get_shape();
+
   DFAString initial_position = game->get_position_initial();
   std::cout << "INITIAL POSITION" << std::endl;
   std::cout << game->position_to_string(initial_position) << std::endl;
@@ -52,17 +54,15 @@ int main(int argc, char **argv)
 
       if(expected_complete)
 	{
-	  if(expected_samples.size() == 0)
-	    {
-	      // no expected samples, so this ply should have no positions.
-	      assert(positions->is_constant(0));
-	    }
-	  else
-	    {
-	      shared_dfa_ptr expected_u = DFAUtil::from_strings(expected_samples[0].get_shape(), expected_samples);
+	  shared_dfa_ptr expected_u =
+	    (expected_samples.size() > 0)
+	    ? DFAUtil::from_strings(shape, expected_samples)
+	    : DFAUtil::get_reject(shape);
 
-	      shared_dfa_ptr extra = DFAUtil::get_difference(positions, expected_u);
-	      assert(extra->is_constant(0));
+	  if(!DFAUtil::check_equal(positions, expected_u))
+	    {
+	      std::cerr << "POSITIONS DIFFERENCE AT PLY " << ply << std::endl;
+	      return 1;
 	    }
 	}
 
