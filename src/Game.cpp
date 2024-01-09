@@ -266,6 +266,20 @@ shared_dfa_ptr Game::load_by_hash(std::string hash_in) const
   return DFAUtil::load_by_hash(get_shape(), hash_in);
 }
 
+shared_dfa_ptr Game::load_by_name(std::string dfa_name_in) const
+{
+  // load by name, but return NULL when there's an issue
+  try
+    {
+      std::string dfa_name = name + "/" + dfa_name_in;
+      return DFAUtil::load_by_name(shape, dfa_name);
+    }
+  catch(const std::runtime_error& e)
+    {
+      return shared_dfa_ptr(0);
+    }
+}
+
 shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr ()> build_func) const
 {
   Profile profile("load_or_build " + dfa_name_in);

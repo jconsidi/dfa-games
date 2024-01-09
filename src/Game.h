@@ -72,6 +72,7 @@ public:
 
   shared_dfa_ptr load(std::string dfa_name_in) const;
   shared_dfa_ptr load_by_hash(std::string) const;
+  shared_dfa_ptr load_by_name(std::string dfa_name_in) const;
   shared_dfa_ptr load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr()> build_func) const;
 
   // position evaluation
