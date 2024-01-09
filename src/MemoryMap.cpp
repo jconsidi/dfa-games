@@ -261,7 +261,10 @@ void MemoryMap<T>::mmap(int fildes) const
 template<class T>
 void MemoryMap<T>::msync()
 {
-  assert(_mapped);
+  if(!_mapped)
+    {
+      return;
+    }
 
   int ret = ::msync(_mapped, _length, MS_SYNC);
   if(ret)
