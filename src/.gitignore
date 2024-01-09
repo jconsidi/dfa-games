@@ -6,6 +6,7 @@ generate_moves
 random
 random_uci
 test_backward
+test_breakthrough_game
 test_bitset
 test_change_dfa
 test_chess_game
