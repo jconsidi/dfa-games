@@ -3,8 +3,11 @@ build_forward
 build_forward_backward
 divide
 generate_moves
+print
 random
 random_uci
+scratch
+stats
 test_backward
 test_breakthrough_game
 test_bitset
