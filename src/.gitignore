@@ -1,4 +1,5 @@
 build_chess_database
+build_forward
 divide
 generate_moves
 random
@@ -10,7 +11,6 @@ test_change_dfa
 test_chess_game
 test_chess_limited
 test_dfa
-test_forward
 test_get_intersection
 test_get_union
 test_get_union_vector
