@@ -131,16 +131,16 @@ shared_dfa_ptr Game::get_positions_forward(int ply) const
 {
   assert(ply >= 0);
 
-  if(ply == 0)
-    {
-      return get_positions_initial();
-    }
-
   std::ostringstream name_builder;
   name_builder << "forward,ply=" << std::setfill('0') << std::setw(3) << ply;
   return load_or_build(name_builder.str(),
 		       [&]()
                        {
+			 if(ply == 0)
+			   {
+			     return get_positions_initial();
+			   }
+
 			 shared_dfa_ptr previous = get_positions_forward(ply - 1);
 			 return get_moves_forward((ply - 1) % 2, previous);
 		       });
