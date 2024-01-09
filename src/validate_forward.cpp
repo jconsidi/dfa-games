@@ -31,13 +31,18 @@ int main(int argc, char **argv)
 
   for(int ply = 0; ply <= ply_max; ++ply)
     {
+      std::cout << "############################################################" << std::endl;
+      std::cout << "PLY " << ply << std::endl;
+      std::cout << "############################################################" << std::endl;
+
       shared_dfa_ptr positions = game->get_positions_forward(ply);
-      std::cout << positions->size() << " positions after " << ply << " ply." << std::endl;
       std::cout << std::endl;
       if(ply == 0)
 	{
 	  assert(positions->size() == 1);
 	}
+
+      std::cout << "CHECKING INCLUSION" << std::endl;
 
       for(const DFAString& expected_sample : expected_samples)
 	{
@@ -54,6 +59,8 @@ int main(int argc, char **argv)
 
       if(expected_complete)
 	{
+	  std::cout << "CHECKING EQUALITY" << std::endl;
+
 	  shared_dfa_ptr expected_u =
 	    (expected_samples.size() > 0)
 	    ? DFAUtil::from_strings(shape, expected_samples)
@@ -65,9 +72,15 @@ int main(int argc, char **argv)
 	      return 1;
 	    }
 	}
+      else
+	{
+	  std::cout << "SKIPPING EQUALITY (incomplete samples)" << std::endl;
+	}
 
       // use lexicographically first positions to get a (non-random)
       // sample of positions expected after next ply.
+
+      std::cout << "CHECKING FIRST " << check_positions << " POSITIONS" << std::endl;
 
       int side_to_move = ply % 2;
 
@@ -84,7 +97,7 @@ int main(int argc, char **argv)
 	  std::vector<DFAString> moves = game->validate_moves(side_to_move, position);
 	  int result = game->validate_result(side_to_move, position);
 
-	  // should not have both moves and a final result 
+	  // should not have both moves and a final result
 	  if((moves.size() > 0) && (result != 0))
 	    {
 	      std::cerr << "CONFLICT" << std::endl;
