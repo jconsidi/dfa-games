@@ -183,3 +183,100 @@ std::string BreakthroughGame::position_to_string(const DFAString& string_in) con
 
   return output.str();
 }
+
+std::vector<DFAString> BreakthroughGame::validate_moves(int side_to_move, DFAString position) const
+{
+  auto shape = get_shape();
+
+  std::vector<DFAString> output;
+
+  int friendly_char = 1 + side_to_move;
+  int hostile_char = 1 + (1 - side_to_move);
+
+  int row_delta = (side_to_move == 0) ? 1 : -1;
+
+  // check if other side won
+  if(side_to_move == 0)
+    {
+      for(int layer = 0; layer < width; ++layer)
+	{
+	  if(position[layer] == hostile_char)
+	    {
+	      return output;
+	    }
+	}
+    }
+  else
+    {
+      for(int layer = shape.size() - width; layer < shape.size(); ++layer)
+	{
+	  if(position[layer] == hostile_char)
+	    {
+	      return output;
+	    }
+	}
+    }
+
+  // move generation
+
+  for(int layer_from = 0; layer_from < shape.size(); ++layer_from)
+    {
+      if(position[layer_from] == friendly_char)
+	{
+	  int row_from = layer_from / width;
+	  int col_from = layer_from % width;
+
+	  int row_to = row_from + row_delta;
+	  if((row_to < 0) || (height <= row_to))
+	    {
+	      continue;
+	    }
+
+	  for(int col_delta = -1; col_delta <= 1; ++col_delta)
+	    {
+	      int col_to = col_from + col_delta;
+	      if((col_to < 0) || (width <= col_to))
+		{
+		  continue;
+		}
+
+	      int layer_to = row_to * width + col_to;
+	      if(position[layer_to] == friendly_char)
+		{
+		  // cannot capture own pieces
+		  continue;
+		}
+	      if((col_delta == 0) && (position[layer_to] == hostile_char))
+		{
+		  // cannot capture forward
+		  continue;
+		}
+
+	      std::vector<int> position_new;
+	      for(int layer = 0; layer < shape.size(); ++layer)
+		{
+		  if(layer == layer_from)
+		    {
+		      // from square now empty
+		      position_new.push_back(0);
+		    }
+		  else if(layer == layer_to)
+		    {
+		      // to square now taken
+		      position_new.push_back(friendly_char);
+		    }
+		  else
+		    {
+		      position_new.push_back(position[layer]);
+		    }
+		}
+
+	      output.emplace_back(shape, position_new);
+	    }
+	}
+    }
+
+  // done
+
+  return output;
+}

@@ -393,3 +393,13 @@ std::string OthelloGame::position_to_string(const DFAString& string_in) const
 
   return output.str();
 }
+
+std::vector<DFAString> OthelloGame::validate_moves(int, DFAString) const
+{
+  throw std::logic_error("not implemented");
+}
+
+int OthelloGame::validate_result(int, DFAString) const
+{
+  throw std::logic_error("not implemented");
+}

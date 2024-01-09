@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_chess_database build_forward check divide generate_moves print random random_uci solve_forward_backward states stats test_backward test_bitset test_breakthrough test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game
+TARGETS=build_chess_database build_forward check divide generate_moves print random random_uci solve_forward_backward states stats test_backward test_bitset test_breakthrough test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game validate_forward
 
 all : $(TARGETS)
 
@@ -135,6 +135,9 @@ test_sort_unique : test_sort_unique.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o test_utils.o dfagames.a
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+validate_forward : validate_forward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnorderedBitSet.o VectorBitSet.o sort.o utils.o

@@ -228,3 +228,8 @@ std::string AmazonsGame::position_to_string(const DFAString& string_in) const
 
   return output.str();
 }
+
+std::vector<DFAString> AmazonsGame::validate_moves(int, DFAString) const
+{
+  throw std::logic_error("not implemented");
+}

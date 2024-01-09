@@ -1463,3 +1463,25 @@ std::string ChessGame::position_to_string(const DFAString& position_in) const
   // side to move does not matter with current string output
   return position_to_board(SIDE_WHITE, position_in).to_string();
 }
+
+std::vector<DFAString> ChessGame::validate_moves(int side_to_move, DFAString position) const
+{
+  Board board = position_to_board(side_to_move, position);
+
+  Board moves[CHESS_MAX_MOVES];
+  int num_moves = board.generate_moves(moves);
+
+  std::vector<DFAString> output;
+  for(int i = 0; i < num_moves; ++i)
+    {
+      output.push_back(from_board_to_dfa_string(moves[i]));
+    }
+
+  return output;
+}
+
+int ChessGame::validate_result(int side_to_move, DFAString position) const
+{
+  Board board = position_to_board(side_to_move, position);
+  return board.is_checkmate() ? -1 : 0;
+}

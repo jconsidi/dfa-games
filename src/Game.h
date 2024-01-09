@@ -77,6 +77,11 @@ public:
   // position evaluation
 
   virtual std::string position_to_string(const DFAString&) const = 0;
+
+  // validation
+
+  virtual std::vector<DFAString> validate_moves(int, DFAString) const = 0;
+  virtual int validate_result(int, DFAString) const = 0;
 };
 
 #endif
