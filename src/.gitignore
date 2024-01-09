@@ -23,4 +23,5 @@ test_solved
 test_sort_unique
 test_tictactoe_game
 typescript*
+validate_dfa
 validate_forward

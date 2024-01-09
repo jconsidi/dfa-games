@@ -1,4 +1,4 @@
-// check.cpp
+// validate_dfa.cpp
 
 #include <iostream>
 
