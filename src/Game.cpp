@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 
 #include <algorithm>
+#include <format>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -82,7 +83,9 @@ shared_dfa_ptr Game::get_moves_backward(int side_to_move, shared_dfa_ptr positio
   Profile profile("get_moves_backward");
 
   build_move_graphs(side_to_move);
-  return move_graphs_backward[side_to_move].get_moves(name + ",backward", positions_in);
+
+  std::string name_prefix = std::format("{:s},backward,side_to_move={:d}", name, side_to_move);
+  return move_graphs_backward[side_to_move].get_moves(name_prefix, positions_in);
 }
 
 shared_dfa_ptr Game::get_moves_forward(int side_to_move, shared_dfa_ptr positions_in) const
@@ -90,7 +93,9 @@ shared_dfa_ptr Game::get_moves_forward(int side_to_move, shared_dfa_ptr position
   Profile profile("get_moves_forward");
 
   build_move_graphs(side_to_move);
-  return move_graphs_forward[side_to_move].get_moves(name + ",forward", positions_in);
+
+  std::string name_prefix = std::format("{:s},forward,side_to_move={:d}", name, side_to_move);
+  return move_graphs_forward[side_to_move].get_moves(name_prefix, positions_in);
 }
 
 std::string Game::get_name() const
