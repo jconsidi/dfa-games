@@ -266,7 +266,9 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
       if(!node_todo[node_index])
 	{
+#ifdef VERBOSE
 	  std::cout << "node " << node_index << " is not needed." << std::endl;
+#endif
 	  continue;
 	}
 
@@ -275,7 +277,9 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 	  shared_dfa_ptr previous = DFAUtil::load_by_name(shape, output_names.at(node_index));
 	  if(previous)
 	    {
+#ifdef VERBOSE
 	      std::cout << "node " << node_index << " is already built." << std::endl;
+#endif
 	      node_todo[node_index] = false;
 	      continue;
 	    }
@@ -284,7 +288,9 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 	{
 	}
 
+#ifdef VERBOSE
       std::cout << "node " << node_index << " needs to be built." << std::endl;
+#endif
     }
 
   for(int node_index = 0; node_index < node_names.size(); ++node_index)
