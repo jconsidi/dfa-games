@@ -6,10 +6,12 @@
 #include <vector>
 
 #include "DFA.h"
+#include "Game.h"
 
 bool validate_disjoint(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b);
 bool validate_equal(shared_dfa_ptr, shared_dfa_ptr);
 bool validate_partition(shared_dfa_ptr, std::vector<shared_dfa_ptr>);
+bool validate_result(const Game&, int, shared_dfa_ptr, int, int);
 bool validate_subset(shared_dfa_ptr, shared_dfa_ptr);
 
 #endif

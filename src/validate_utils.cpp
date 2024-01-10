@@ -54,6 +54,64 @@ bool validate_partition(shared_dfa_ptr target, std::vector<shared_dfa_ptr> parti
   return true;
 }
 
+bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr positions, int result_expected, int max_examples)
+{
+  if(result_expected != 0)
+    {
+      // verify these are terminal positions according to the DFA move
+      // generator.
+
+      std::cout << " CHECK NO MOVES (bulk)" << std::endl;
+
+      shared_dfa_ptr moves = game.get_moves_forward(side_to_move, positions);
+      if(!moves->is_constant(0))
+	{
+	  double moves_size = moves->size();
+	  std::cerr << "POSITIONS NOT TERMINAL: found " << moves_size << " moves for positions with expected result " << result_expected << std::endl;
+	  return false;
+	}
+    }
+
+  std::cout << " CHECK EXAMPLES" << std::endl;
+
+  int result_examples = 0;
+  for(auto iter = positions->cbegin();
+      (iter < positions->cend()) && (result_examples < max_examples);
+      ++iter, ++result_examples)
+    {
+      DFAString position(*iter);
+
+      int result_actual = game.validate_result(side_to_move, position);
+      bool result_mismatch = result_actual != result_expected;
+
+      std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
+      bool moves_mismatch = (result_expected != 0) && (moves.size() != 0);
+
+      if(result_mismatch || moves_mismatch)
+	{
+	  std::cerr << game.position_to_string(position) << std::endl;
+
+	  if(result_mismatch)
+	    {
+	      std::cerr << "RESULT MISMATCH: expected " << result_expected << ", actual " << result_actual << std::endl;
+	    }
+
+	  if(moves_mismatch)
+	    {
+	      std::cerr << "MOVES MISMATCH: expected " << 0 << ", actual " << moves.size() << std::endl;
+	    }
+
+	  std::cerr << std::endl;
+
+	  return false;
+	}
+    }
+
+  std::cout << "checked " << result_examples << " examples" << std::endl;
+
+  return true;
+}
+
 bool validate_subset(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
   shared_dfa_ptr subset_check = DFAUtil::get_difference(dfa_a, dfa_b);
