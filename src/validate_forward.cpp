@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: test_forward GAME_NAME [depth]\n";
+      std::cerr << "usage: test_forward GAME_NAME [depth] [max examples]\n";
       return 1;
     }
 
@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   Game *game = get_game(game_name);
 
   int ply_max = (argc >= 3) ? atoi(argv[2]) : 2;
-  int check_positions = 1000000;
+  int max_examples = (argc >= 4) ? atoi(argv[3]) : 1000000;
 
   dfa_shape_t shape = game->get_shape();
 
@@ -81,16 +81,16 @@ int main(int argc, char **argv)
       // use lexicographically first positions to get a (non-random)
       // sample of positions expected after next ply.
 
-      std::cout << "CHECKING FIRST " << check_positions << " POSITIONS" << std::endl;
+      std::cout << "CHECKING FIRST " << max_examples << " POSITIONS" << std::endl;
 
       int side_to_move = ply % 2;
 
-      expected_complete = check_positions >= positions->size();
+      expected_complete = max_examples >= positions->size();
 
       expected_samples.clear();
       int k = 0;
       for(auto iter = positions->cbegin();
-	  (iter < positions->cend()) && (k < check_positions);
+	  (iter < positions->cend()) && (k < max_examples);
 	  ++iter, ++k)
 	{
 	  DFAString position(*iter);
