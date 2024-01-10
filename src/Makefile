@@ -134,7 +134,7 @@ test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o test_utils.o dfagame
 validate_dfa : validate_dfa.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-validate_forward : validate_forward.o test_utils.o dfagames.a
+validate_forward : validate_forward.o test_utils.o validate_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnorderedBitSet.o VectorBitSet.o sort.o utils.o

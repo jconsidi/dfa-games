@@ -256,25 +256,6 @@ shared_dfa_ptr _try_load(const dfa_shape_t& shape_in, std::string name_in)
     }
 }
 
-bool DFAUtil::check_equal(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
-{
-  if(dfa_a->get_shape() != dfa_b->get_shape())
-    {
-      return false;
-    }
-
-  if(dfa_a->get_hash() == dfa_b->get_hash())
-    {
-      // trust hash matches
-      return true;
-    }
-
-  // hashes may be different if states are in a different order...
-
-  return (get_difference(dfa_a, dfa_b)->is_constant(false) &&
-	  get_difference(dfa_b, dfa_a)->is_constant(false));
-}
-
 shared_dfa_ptr DFAUtil::from_string(const DFAString& string_in)
 {
   std::vector<DFAString> strings = {string_in};

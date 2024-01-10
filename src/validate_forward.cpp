@@ -5,6 +5,7 @@
 
 #include "DFAUtil.h"
 #include "test_utils.h"
+#include "validate_utils.h"
 
 int main(int argc, char **argv)
 {
@@ -66,7 +67,7 @@ int main(int argc, char **argv)
 	    ? DFAUtil::from_strings(shape, expected_samples)
 	    : DFAUtil::get_reject(shape);
 
-	  if(!DFAUtil::check_equal(positions, expected_u))
+	  if(!validate_equal(positions, expected_u))
 	    {
 	      std::cerr << "POSITIONS DIFFERENCE AT PLY " << ply << std::endl;
 	      return 1;

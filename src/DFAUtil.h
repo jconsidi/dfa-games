@@ -15,7 +15,6 @@ class DFAUtil
 {
 public:
 
-  static bool check_equal(shared_dfa_ptr, shared_dfa_ptr);
   static shared_dfa_ptr from_string(const DFAString&);
   static shared_dfa_ptr from_strings(const dfa_shape_t&, const std::vector<DFAString>&);
   static shared_dfa_ptr get_accept(const dfa_shape_t&);
