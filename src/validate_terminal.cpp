@@ -68,14 +68,14 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: test_forward GAME_NAME [depth]\n";
+      std::cerr << "usage: validate_terminal GAME_NAME [MAX_EXAMPLES]\n";
       return 1;
     }
 
   std::string game_name(argv[1]);
   Game *game = get_game(game_name);
 
-  int max_examples = 1000000;
+  int max_examples = (argc >= 3) ? atoi(argv[2]) : 1000000;
 
   // run same checks for both sides to move
   for(int side_to_move = 0; side_to_move < 2; ++side_to_move)
