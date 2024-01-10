@@ -29,3 +29,4 @@ test_tictactoe_game
 typescript*
 validate_dfa
 validate_forward
+validate_terminal
