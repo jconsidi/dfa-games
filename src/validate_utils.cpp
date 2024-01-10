@@ -6,6 +6,11 @@
 
 #include "DFAUtil.h"
 
+bool validate_disjoint(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
+{
+  return DFAUtil::get_intersection(dfa_a, dfa_b)->is_constant(0);
+}
+
 bool validate_equal(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
   if(dfa_a->get_shape() != dfa_b->get_shape())
@@ -38,8 +43,7 @@ bool validate_partition(shared_dfa_ptr target, std::vector<shared_dfa_ptr> parti
     {
       for(int j = i + 1; j < partition.size(); ++j)
 	{
-	  shared_dfa_ptr disjoint_check = DFAUtil::get_intersection(partition[i], partition[j]);
-	  if(!disjoint_check->is_constant(false))
+	  if(!validate_disjoint(partition[i], partition[j]))
 	    {
 	      std::cerr << "PARTITION CHECK FAILED: PARTITIONS " << i << "+" << j << " ARE NOT DISJOINT" << std::endl;
 	      return false;
