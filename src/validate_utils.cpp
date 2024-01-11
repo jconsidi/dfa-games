@@ -20,8 +20,9 @@ shared_dfa_ptr load_helper(const Game& game, const std::format_string<Args...>& 
   return output;
 }
 
-template shared_dfa_ptr load_helper(const Game& game, const std::format_string<int&>&, int&);
 template shared_dfa_ptr load_helper(const Game& game, const std::format_string<int&, int&, int&>&, int&, int&, int&);
+template shared_dfa_ptr load_helper(const Game& game, const std::format_string<int&, int&, std::string&>&, int&, int&, std::string&);
+template shared_dfa_ptr load_helper(const Game& game, const std::format_string<int&>&, int&);
 
 bool validate_disjoint(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
