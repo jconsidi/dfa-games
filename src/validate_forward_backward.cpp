@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: validate_forward_backward test_forward GAME_NAME [FORWARD_PLY] [BACKWARD PLY]\n";
+      std::cerr << "usage: validate_forward_backward test_forward GAME_NAME [FORWARD_PLY] [BACKWARD_PLY] [MAX_EXAMPLES]\n";
       return 1;
     }
 
@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
   int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 10;
   int backward_ply_max = (argc >= 4) ? atoi(argv[3]) : 0;
-  int max_examples = 1000000;
+  int max_examples = (argc >= 5) ? atoi(argv[4]) : 1000000;
 
   dfa_shape_t shape = game->get_shape();
 
