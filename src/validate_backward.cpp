@@ -84,7 +84,10 @@ int main(int argc, char **argv)
     ? atoi(argv[2])
     : 10;
 
-  int max_examples = 1000000;
+  int max_examples =
+    (argc >= 4)
+    ? atoi(argv[3])
+    : 1000000;
 
   // run same checks for both sides to move
   for(int ply = 0; ply <= ply_max; ++ply)
