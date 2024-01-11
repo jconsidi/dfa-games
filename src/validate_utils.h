@@ -3,10 +3,14 @@
 #ifndef VALIDATE_UTILS_H
 #define VALIDATE_UTILS_H
 
+#include <format>
 #include <vector>
 
 #include "DFA.h"
 #include "Game.h"
+
+template <class... Args>
+shared_dfa_ptr load_helper(const Game& game, const std::format_string<Args...>& name_format, Args&&... args);
 
 bool validate_disjoint(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b);
 bool validate_equal(shared_dfa_ptr, shared_dfa_ptr);

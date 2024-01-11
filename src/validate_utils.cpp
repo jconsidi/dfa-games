@@ -6,6 +6,23 @@
 
 #include "DFAUtil.h"
 
+template <class... Args>
+shared_dfa_ptr load_helper(const Game& game, const std::format_string<Args...>& name_format, Args&&... args)
+{
+  std::string name = std::format(name_format, std::forward<Args>(args)...);
+  std::cout << "LOADING " << name << std::endl;
+
+  shared_dfa_ptr output = game.load_by_name(name);
+  if(!output)
+    {
+      std::cerr << "LOADING FAILED FOR " << name << std::endl;
+    }
+  return output;
+}
+
+template shared_dfa_ptr load_helper(const Game& game, const std::format_string<int&>&, int&);
+template shared_dfa_ptr load_helper(const Game& game, const std::format_string<int&, int&, int&>&, int&, int&, int&);
+
 bool validate_disjoint(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
   return DFAUtil::get_intersection(dfa_a, dfa_b)->is_constant(0);

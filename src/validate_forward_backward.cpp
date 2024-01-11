@@ -14,20 +14,6 @@ static std::format_string<int&> positions_format("forward,ply={:03d}");
 static std::format_string<int&, int&, int&> winning_format("forward_backward,forward_ply_max={:03d},backward_ply_max={:03d},ply={:03d},winning");
 static std::format_string<int&, int&, int&> losing_format("forward_backward,forward_ply_max={:03d},backward_ply_max={:03d},ply={:03d},losing");
 
-template <class... Args>
-shared_dfa_ptr load_helper(const Game& game, const std::format_string<Args...>& name_format, Args&&... args)
-{
-  std::string name = std::format(name_format, std::forward<Args>(args)...);
-  std::cout << "LOADING " << name << std::endl;
-
-  shared_dfa_ptr output = game.load_by_name(name);
-  if(!output)
-    {
-      std::cerr << "LOADING FAILED FOR " << name << std::endl;
-    }
-  return output;
-}
-
 int main(int argc, char **argv)
 {
   if(argc < 2)
