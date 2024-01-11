@@ -52,9 +52,11 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
 {
   std::cout << " CHECKING EXAMPLES" << std::endl;
 
+  shared_dfa_ptr new_losing = DFAUtil::get_difference(curr_losing, base_losing);
+
   int losing_examples = 0;
-  for(auto iter = curr_losing->cbegin();
-	  (iter < curr_losing->cend()) && (losing_examples < max_examples);
+  for(auto iter = new_losing->cbegin();
+	  (iter < new_losing->cend()) && (losing_examples < max_examples);
 	  ++iter, ++losing_examples)
     {
       DFAString position(*iter);
@@ -66,12 +68,7 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
 	  std::cerr << game.position_to_string(position) << std::endl;
 	  return false;
 	}
-
-      if(base_losing->contains(position))
-	{
-	  continue;
-	}
-      else if(result < 0)
+      if(result < 0)
 	{
 	  std::cerr << "LOST EXAMPLE MISSED BY BASE CASE" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
