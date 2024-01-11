@@ -105,9 +105,8 @@ std::string Game::get_name() const
 
 std::string Game::get_name_losing(int side_to_move, int ply_max) const
 {
-  std::ostringstream dfa_name_builder;
-  dfa_name_builder << "ply_max=" << std::setfill('0') << std::setw(3) << ply_max << ",side=" << side_to_move << ",losing";
-  return dfa_name_builder.str();
+  return std::format("backward,ply_max={:03d},side={:d},losing",
+		     ply_max, side_to_move);
 }
 
 std::string Game::get_name_lost(int side_to_move) const
@@ -117,9 +116,8 @@ std::string Game::get_name_lost(int side_to_move) const
 
 std::string Game::get_name_winning(int side_to_move, int ply_max) const
 {
-  std::ostringstream dfa_name_builder;
-  dfa_name_builder << "ply_max=" << std::setfill('0') << std::setw(3) << ply_max << ",side=" << side_to_move << ",winning";
-  return dfa_name_builder.str();
+  return std::format("backward,ply_max={:03d},side={:d},winning",
+		     ply_max, side_to_move);
 }
 
 std::string Game::get_name_won(int side_to_move) const
