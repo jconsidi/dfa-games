@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: solve_forward_backward test_forward GAME_NAME [FORWARD_PLY]\n";
+      std::cerr << "usage: solve_forward_backward test_forward GAME_NAME [FORWARD_PLY] [BACKWARD_PLY]\n";
       return 1;
     }
 
@@ -34,7 +34,7 @@ int main(int argc, char **argv)
   Game *game = get_game(game_name);
 
   int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 10;
-  int backward_ply_max = 0;
+  int backward_ply_max = (argc >= 4) ? atoi(argv[3]) : 0;
 
   auto initial_positions = game->get_positions_initial();
   assert(initial_positions->size() == 1);
@@ -71,10 +71,10 @@ int main(int argc, char **argv)
 
       winning_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "winning"), [&]()
       {
-	shared_dfa_ptr won = game->get_positions_won(side_to_move);
+	shared_dfa_ptr backward_winning = game->get_positions_winning(side_to_move, backward_ply_max);
 	shared_dfa_ptr will_win = game->get_moves_backward(side_to_move, losing_by_ply[ply + 1]);
 
-	return DFAUtil::get_intersection(DFAUtil::get_union(won, will_win),
+	return DFAUtil::get_intersection(DFAUtil::get_union(backward_winning, will_win),
 					 positions);
       });
       double winning_size = winning_by_ply[ply]->size();
@@ -95,13 +95,13 @@ int main(int argc, char **argv)
 	  }
 #endif
 
-	shared_dfa_ptr lost = game->get_positions_lost(side_to_move);
+	shared_dfa_ptr backward_losing = game->get_positions_losing(side_to_move, backward_ply_max);
 
 	shared_dfa_ptr could_lose = game->get_moves_backward(side_to_move, winning_by_ply[ply + 1]);
 	shared_dfa_ptr wont_lose = game->get_moves_backward(side_to_move, DFAUtil::get_inverse(winning_by_ply[ply + 1]));
 	shared_dfa_ptr will_lose = DFAUtil::get_difference(could_lose, wont_lose);
 
-	return DFAUtil::get_intersection(DFAUtil::get_union(lost, will_lose),
+	return DFAUtil::get_intersection(DFAUtil::get_union(backward_losing, will_lose),
 					 positions);
       });
       double losing_size = losing_by_ply[ply]->size();
