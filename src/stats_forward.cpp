@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   std::string game_name(argv[1]);
   Game *game = get_game(game_name);
 
-  int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 10;
+  int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 1000;
 
   std::cout << "ply\treachable_states\treachable_positions" << std::endl;
   for(int ply = 0; ply <= forward_ply_max; ++ply)
@@ -31,6 +31,10 @@ int main(int argc, char **argv)
       }
 
       std::cout << ply << "\t" << forward_dfa->states() << "\t" << forward_dfa->size() << std::endl;
+      if(forward_dfa->size() == 0)
+	{
+	  break;
+	}
     }
 
   return 0;
