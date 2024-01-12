@@ -373,6 +373,11 @@ shared_dfa_ptr DFAUtil::get_difference(shared_dfa_ptr left_in, shared_dfa_ptr ri
 {
   Profile profile("get_difference");
 
+  if((left_in == right_in) || (left_in->get_hash() == right_in->get_hash()))
+    {
+      return get_reject(left_in->get_shape());
+    }
+
   std::string difference_name = "difference_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
 
   return load_or_build(left_in->get_shape(), difference_name, [&]()
