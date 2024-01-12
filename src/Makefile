@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_chess_database build_forward build_forward_backward divide generate_moves print random random_uci stats test_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal
+TARGETS=build_chess_database build_forward build_forward_backward divide generate_moves print random random_uci stats stats_forward_backward test_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal
 
 all : $(TARGETS)
 
@@ -75,6 +75,9 @@ random_uci : random_uci.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 stats : stats.o test_utils.o dfagames.a
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+stats_forward_backward : stats_forward_backward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 test_backward : test_backward.o test_utils.o dfagames.a

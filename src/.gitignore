@@ -8,6 +8,7 @@ random
 random_uci
 scratch
 stats
+stats_forward_backward
 test_backward
 test_breakthrough_game
 test_bitset
