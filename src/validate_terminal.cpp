@@ -20,6 +20,13 @@ bool validate_side_to_move(const Game& game, int side_to_move, int max_examples)
   shared_dfa_ptr won = game.get_positions_won(side_to_move);
   shared_dfa_ptr lost = game.get_positions_lost(side_to_move);
 
+  std::cout << "CHECK won/lost defined" << std::endl;
+  if(won->is_constant(0) && lost->is_constant(0))
+    {
+      std::cerr << "CHECK won/lost defined failed : both are empty" << std::endl;
+      return false;
+    }
+
   std::cout << "CHECK won/lost disjoint" << std::endl;
   if(!validate_disjoint(won, lost))
     {
