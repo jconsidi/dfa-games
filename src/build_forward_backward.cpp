@@ -71,7 +71,11 @@ int main(int argc, char **argv)
 
       winning_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "winning"), [&]()
       {
-	shared_dfa_ptr backward_winning = game->get_positions_winning(side_to_move, backward_ply_max);
+	shared_dfa_ptr backward_winning =
+	  (ply == forward_ply_max)
+	  ? game->get_positions_winning(side_to_move, backward_ply_max)
+	  : game->get_positions_won(side_to_move);
+
 	shared_dfa_ptr will_win = game->get_moves_backward(side_to_move, losing_by_ply[ply + 1]);
 
 	return DFAUtil::get_intersection(DFAUtil::get_union(backward_winning, will_win),
@@ -95,7 +99,10 @@ int main(int argc, char **argv)
 	  }
 #endif
 
-	shared_dfa_ptr backward_losing = game->get_positions_losing(side_to_move, backward_ply_max);
+	shared_dfa_ptr backward_losing =
+	  (ply == forward_ply_max)
+	  ? game->get_positions_losing(side_to_move, backward_ply_max)
+	  : game->get_positions_lost(side_to_move);
 
 	shared_dfa_ptr could_lose = game->get_moves_backward(side_to_move, winning_by_ply[ply + 1]);
 	shared_dfa_ptr wont_lose = game->get_moves_backward(side_to_move, DFAUtil::get_inverse(winning_by_ply[ply + 1]));
