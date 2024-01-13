@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM gcc:13.2.0
 
 # environment
 
