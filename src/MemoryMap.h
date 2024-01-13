@@ -3,8 +3,7 @@
 #ifndef MEMORY_MAP_H
 #define MEMORY_MAP_H
 
-#include <ctype.h>
-
+#include <cstdint>
 #include <string>
 
 template<class T>

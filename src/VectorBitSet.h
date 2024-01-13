@@ -3,8 +3,7 @@
 #ifndef VECTOR_BIT_SET_HPP
 #define VECTOR_BIT_SET_HPP
 
-#include <ctype.h>
-
+#include <cstdint>
 #include <string>
 
 #include "MemoryMap.h"

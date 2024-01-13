@@ -3,8 +3,7 @@
 #ifndef COMPACT_BIT_SET_HPP
 #define COMPACT_BIT_SET_HPP
 
-#include <ctype.h>
-
+#include <cstdint>
 #include <string>
 
 #include "VectorBitSet.h"

@@ -3,7 +3,7 @@
 #ifndef PERFT_TEST_CASES
 #define PERFT_TEST_CASES
 
-#include <ctype.h>
+#include <cstdint>
 #include <string>
 #include <tuple>
 #include <vector>

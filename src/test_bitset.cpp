@@ -1,8 +1,7 @@
 // test_bitset.cpp
 
-#include <ctype.h>
-
 #include <cassert>
+#include <cstdint>
 #include <iostream>
 #include <vector>
 

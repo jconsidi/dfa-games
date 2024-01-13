@@ -3,9 +3,8 @@
 #ifndef DFA_H
 #define DFA_H
 
-#include <ctype.h>
-
 #include <cassert>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
