@@ -3,6 +3,7 @@
 #include "Flashsort.h"
 
 #include <cassert>
+#include <vector>
 
 #include "Profile.h"
 
