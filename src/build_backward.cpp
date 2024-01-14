@@ -1,4 +1,4 @@
-// test_backward.cpp
+// build_backward.cpp
 
 #include <iostream>
 #include <map>
@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: test_backward GAME_NAME [PLY_MAX]\n";
+      std::cerr << "usage: build_backward GAME_NAME [PLY_MAX]\n";
       return 1;
     }
 

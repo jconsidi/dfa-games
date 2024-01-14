@@ -1,3 +1,4 @@
+build_backward
 build_chess_database
 build_forward
 build_forward_backward
@@ -10,7 +11,6 @@ scratch
 stats
 stats_forward
 stats_forward_backward
-test_backward
 test_breakthrough_game
 test_bitset
 test_change_dfa
