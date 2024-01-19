@@ -47,19 +47,19 @@ int main(int argc, char **argv)
       shared_dfa_ptr winning = load_result(ply, "winning");
       if(!winning)
 	{
-	  return 1;
+	  continue;
 	}
 
       shared_dfa_ptr losing = load_result(ply, "losing");
       if(!losing)
 	{
-	  return 1;
+	  continue;
 	}
 
       shared_dfa_ptr unknown = load_result(ply, "unknown");
       if(!unknown)
 	{
-	  return 1;
+	  continue;
 	}
 
       std::cout << ply << "\t" << reachable->states() << "\t" << reachable->size() << "\t" << winning->states() << "\t" << winning->size() << "\t" << losing->states() << "\t" << losing->size() << "\t" << unknown->states() << "\t" << unknown->size() << std::endl;
