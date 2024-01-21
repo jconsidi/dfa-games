@@ -2,12 +2,14 @@
 
 #include "NormalNimGame.h"
 
+#include <format>
 #include <vector>
 
 #include "DFAUtil.h"
 
-NormalNimGame::NormalNimGame(const dfa_shape_t& shape_in)
-  : NormalPlayGame("normalnim_" + std::to_string(shape_in.size()), shape_in)
+NormalNimGame::NormalNimGame(int num_heaps, int heap_max)
+  : NormalPlayGame(std::format("normalnim_{:d}x{:d}", num_heaps, heap_max),
+		   dfa_shape_t(num_heaps, heap_max + 1))
 {
 }
 

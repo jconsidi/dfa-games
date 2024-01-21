@@ -21,10 +21,10 @@ void populate_solved_games()
   solved_games.try_emplace("breakthrough_3x7", 55, -1);
   solved_games.try_emplace("breakthrough_5x5", 51, -1);
   solved_games.try_emplace("breakthrough_6x5", 61, -1); /* Saffidine 2011 */
-  solved_games.try_emplace("normalnim_1", 16, 1);
-  solved_games.try_emplace("normalnim_2", 32, -1);
-  solved_games.try_emplace("normalnim_3", 48, 1);
-  solved_games.try_emplace("normalnim_4", 64, -1);
+  solved_games.try_emplace("normalnim_1x16", 16, 1);
+  solved_games.try_emplace("normalnim_2x16", 32, -1);
+  solved_games.try_emplace("normalnim_3x16", 48, 1);
+  solved_games.try_emplace("normalnim_4x16", 64, -1);
   solved_games.try_emplace("othello_4x4", 12, -1);
   solved_games.try_emplace("othello_6x6", 32, -1); /* Feinstein 1993 */
   solved_games.try_emplace("othello_8x8", 62, 0); /* Takizawa 2023 */

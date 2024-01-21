@@ -86,13 +86,14 @@ Game *get_game(std::string game_name)
 #endif
   else if(game_name.starts_with("normalnim_"))
     {
-      int heaps = 0;
-      if(std::sscanf(game_name.c_str(), "normalnim_%d", &heaps) != 1)
+      int num_heaps = 0;
+      int heap_max = 0;
+      if(std::sscanf(game_name.c_str(), "normalnim_%dx%d", &num_heaps, &heap_max) != 2)
 	{
 	  throw std::logic_error("get_name() failed parsing normalnim game name");
 	}
 
-      output = new NormalNimGame(dfa_shape_t(heaps, 16));
+      output = new NormalNimGame(num_heaps, heap_max);
     }
   else if(game_name.starts_with("othello_"))
     {

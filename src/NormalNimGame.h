@@ -4,7 +4,6 @@
 #define NORMAL_NIM_GAME_H
 
 #include "NormalPlayGame.h"
-#include "NormalNimDFAParams.h"
 
 class NormalNimGame
   : public NormalPlayGame
@@ -15,7 +14,7 @@ private:
 
 public:
 
-  NormalNimGame(const dfa_shape_t&);
+  NormalNimGame(int, int);
 
   virtual DFAString get_position_initial() const;
 

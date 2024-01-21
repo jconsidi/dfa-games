@@ -7,24 +7,22 @@
 #include "NormalNimGame.h"
 #include "test_utils.h"
 
-int test(const dfa_shape_t& shape)
+int test(int num_heaps)
 {
-  int n = shape.size();
-  std::cout << "TESTING " << n << std::endl;
+  std::cout << "TESTING " << num_heaps << std::endl;
 
-  NormalNimGame nim(shape);
+  int heap_max = 15;
+
+  NormalNimGame nim(num_heaps, heap_max);
+  dfa_shape_t shape = nim.get_shape();
 
   // calculate maximum number of moves
 
-  int max_moves = 0;
-  for(int layer = 0; layer < n; ++layer)
-    {
-      max_moves += shape[layer];
-    }
+  int max_moves = num_heaps * heap_max;
 
   // run generic tests
 
-  test_backward(nim, max_moves, n % 2);
+  test_backward(nim, max_moves, num_heaps % 2);
 
   // run analytical tests
 
@@ -38,7 +36,7 @@ int test(const dfa_shape_t& shape)
   assert(positions_combined->is_constant(true));
 
   size_t shape_product = 1;
-  for(int layer = 0; layer < n; ++layer)
+  for(int layer = 0; layer < num_heaps; ++layer)
     {
       shape_product *= shape[layer];
     }
@@ -47,7 +45,7 @@ int test(const dfa_shape_t& shape)
     {
       size_t temp = i;
       std::vector<int> position_characters;
-      for(int layer = 0; layer < n; ++layer)
+      for(int layer = 0; layer < num_heaps; ++layer)
 	{
 	  position_characters.push_back(temp % shape[layer]);
 	  temp /= shape[layer];
@@ -55,7 +53,7 @@ int test(const dfa_shape_t& shape)
       DFAString position = DFAString(shape, position_characters);
 
       int characters_xored = 0;
-      for(int layer = 0; layer < n; ++layer)
+      for(int layer = 0; layer < num_heaps; ++layer)
 	{
 	  characters_xored ^= position_characters[layer];
 	}
@@ -78,10 +76,10 @@ int test(const dfa_shape_t& shape)
 
 int main()
 {
-  test(dfa_shape_t({NORMALNIM1_DFA_SHAPE}));
-  test(dfa_shape_t({NORMALNIM2_DFA_SHAPE}));
-  test(dfa_shape_t({NORMALNIM3_DFA_SHAPE}));
-  test(dfa_shape_t({NORMALNIM4_DFA_SHAPE}));
+  test(1);
+  test(2);
+  test(3);
+  test(4);
 
   return 0;
 }
