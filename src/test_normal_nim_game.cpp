@@ -150,6 +150,11 @@ int main()
 	{
 	  test(num_heaps, heap_max);
 	}
+
+      test(num_heaps, 7);
+      test(num_heaps, 8);
+      test(num_heaps, 15);
+      test(num_heaps, 16);
     }
 
   return 0;
