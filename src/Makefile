@@ -25,12 +25,15 @@ depend :
 	makedepend -Y -f - -- $(CXXFLAGS) -- *.cpp > .depend 2> /dev/null
 
 test : all
-	./test_perft
 	./test_bitset
 	./test_sort_unique
 	./test_dfa
 	./test_change_dfa
 	./test_tictactoe_game
+	./test_chess_game
+
+test_chess : all
+	./test_perft
 	./test_chess_game
 
 # see PerftTestCases.cpp for origins of each position
