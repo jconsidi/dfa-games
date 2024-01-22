@@ -7,11 +7,78 @@
 #include "NormalNimGame.h"
 #include "test_utils.h"
 
-int test(int num_heaps)
+void test_states(const NormalNimGame& game, shared_dfa_ptr results_dfa)
 {
-  std::cout << "TESTING " << num_heaps << std::endl;
+  dfa_shape_t shape = game.get_shape();
 
-  int heap_max = 15;
+  if(shape.size() == 0)
+    {
+      // degenerate case
+      return;
+    }
+
+  // sanity check shape.
+  for(int layer = 0; layer < shape.size(); ++layer)
+    {
+      // each heap can be non-empty
+      assert(shape[layer] > 0);
+
+      // max heap size is shared
+      assert(shape[layer] == shape[0]);
+    }
+
+  // confirm layer sizes
+
+  std::vector<dfa_state_t> non_constant_layer_sizes;
+  for(int layer = 0; layer < shape.size(); ++layer)
+    {
+      // filter out constants
+      assert(results_dfa->get_layer_size(layer) >= 2);
+      non_constant_layer_sizes.push_back(results_dfa->get_layer_size(layer) - 2);
+    }
+
+  // heap sizes
+
+  dfa_state_t heap_max = shape[0] - 1;
+  int lg_heap_max = 0;
+  while(dfa_state_t(1) << (lg_heap_max + 1) <= heap_max)
+    {
+      ++lg_heap_max;
+    }
+  assert(dfa_state_t(1) << lg_heap_max <= heap_max);
+
+  // layer 0
+  assert(non_constant_layer_sizes[0] == 1);
+  if(shape.size() == 1)
+    {
+      return;
+    }
+
+  // layer 1
+  assert(non_constant_layer_sizes[1] == heap_max + 1);
+  if(shape.size() == 2)
+    {
+      return;
+    }
+
+  // layers 2 to last-1
+
+  for(int layer = 2; layer < shape.size() - 1; ++layer)
+    {
+      // shared limits. need to rewrite this check if this changes.
+      assert(shape[layer] == shape[0]);
+
+      assert(non_constant_layer_sizes[layer] == dfa_state_t(1) << (lg_heap_max + 1));
+    }
+
+  // layer last
+  // limited again by what can values can XOR to zero.
+  assert(non_constant_layer_sizes[shape.size() - 1] == heap_max + 1);
+}
+
+void test(int num_heaps, int heap_max)
+{
+  std::cout << "TESTING " << num_heaps << "x" << heap_max << std::endl;
 
   NormalNimGame nim(num_heaps, heap_max);
   dfa_shape_t shape = nim.get_shape();
@@ -69,17 +136,21 @@ int test(int num_heaps)
 	}
     }
 
-  // done
+  // confirm state analysis
 
-  return 0;
+  test_states(nim, positions_losing);
+  test_states(nim, positions_winning);
 }
 
 int main()
 {
-  test(1);
-  test(2);
-  test(3);
-  test(4);
+  for(int num_heaps = 1; num_heaps <= 4; ++num_heaps)
+    {
+      for(int heap_max = 1; heap_max <= 4; ++heap_max)
+	{
+	  test(num_heaps, heap_max);
+	}
+    }
 
   return 0;
 }
