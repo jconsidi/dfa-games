@@ -917,6 +917,60 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       sync_if_big<dfa_state_t>(curr_pairs_permutation);
 
+      profile.tic("backward states identification");
+
+      MemoryMap<dfa_state_t> curr_pairs_sorted_to_new("scratch/binarydfa/pairs_sorted_to_new", curr_layer_count);
+
+      auto check_constant = [&](dfa_state_t curr_pair_rank)
+      {
+	dfa_state_t possible_constant = curr_transitions[curr_pair_rank * curr_layer_shape];
+	if(possible_constant >= 2)
+	  {
+	    return false;
+	  }
+
+	for(int j = 1; j < curr_layer_shape; ++j)
+	  {
+	    if(curr_transitions[curr_pair_rank * curr_layer_shape + j] != possible_constant)
+	      {
+		return false;
+	      }
+	  }
+
+	return true;
+      };
+
+      auto curr_pairs_permutation_begin = curr_pairs_permutation.begin();
+      auto check_new = [&](const dfa_state_t& curr_pair_rank)
+      {
+	if(check_constant(curr_pair_rank))
+	  {
+	    return dfa_state_t(0);
+	  }
+
+	if(&curr_pair_rank <= curr_pairs_permutation_begin)
+	  {
+	    // first and non-constant is always a new state
+	    // TODO : change range to not require this
+	    return dfa_state_t(1);
+	  }
+
+	if(compare_pair(*(&curr_pair_rank - 1), curr_pair_rank))
+	  {
+	    return dfa_state_t(1);
+	  }
+
+	return dfa_state_t(0);
+      };
+
+      TRY_PARALLEL_6(std::transform_inclusive_scan,
+		     curr_pairs_permutation.begin(),
+		     curr_pairs_permutation.end(),
+		     curr_pairs_sorted_to_new.begin(),
+		     [](dfa_state_t previous, dfa_state_t delta) {return previous + delta;},
+		     check_new,
+		     1); // first new state will be 2
+
       profile.tic("backward states");
 
       MemoryMap<dfa_state_t> curr_pair_rank_to_output = memory_map_helper<dfa_state_t>(layer % 2, "pair_rank_to_output", curr_layer_count);
@@ -964,6 +1018,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       auto set_output_helper = [&](size_t curr_pairs_sorted_index)
       {
 	dfa_state_t curr_rank = curr_pairs_permutation[curr_pairs_sorted_index];
+	if(!check_constant(curr_rank))
+	  {
+	    assert(curr_pairs_sorted_to_new[curr_pairs_sorted_index] == curr_logical);
+	  }
 	curr_pair_rank_to_output[curr_rank] = curr_logical;
       };
 
