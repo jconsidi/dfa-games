@@ -32,6 +32,10 @@ int main(int argc, char **argv)
     {
       shared_dfa_ptr positions = game->get_positions_forward(ply);
       std::cout << positions->size() << " positions after " << ply << " ply." << std::endl;
+      if(positions->size() == 0)
+	{
+	  break;
+	}
     }
 
   return 0;
