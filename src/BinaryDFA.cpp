@@ -971,7 +971,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 		     check_new,
 		     1); // first new state will be 2
 
-      profile.tic("backward states");
+      profile.tic("backward states save");
 
       MemoryMap<dfa_state_t> curr_pair_rank_to_output = memory_map_helper<dfa_state_t>(layer % 2, "pair_rank_to_output", curr_layer_count);
 
@@ -1015,27 +1015,30 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	assert(new_state == curr_logical);
       };
 
-      auto set_output_helper = [&](size_t curr_pairs_sorted_index)
-      {
-	dfa_state_t curr_rank = curr_pairs_permutation[curr_pairs_sorted_index];
-	if(!check_constant(curr_rank))
-	  {
-	    assert(curr_pairs_sorted_to_new[curr_pairs_sorted_index] == curr_logical);
-	  }
-	curr_pair_rank_to_output[curr_rank] = curr_logical;
-      };
-
       add_state_helper(0);
-      set_output_helper(0);
-
       for(size_t k = 1; k < curr_layer_count; ++k)
 	{
 	  if(compare_pair(curr_pairs_permutation[k-1], curr_pairs_permutation[k]))
 	    {
 	      add_state_helper(k);
 	    }
-	  set_output_helper(k);
 	}
+
+      profile.tic("backward states to pairs");
+
+      auto set_output_helper = [&](const dfa_state_t& curr_pair_rank)
+      {
+        size_t curr_pairs_permutation_index = &curr_pair_rank - curr_pairs_permutation_begin;
+        curr_pair_rank_to_output[curr_pair_rank] =
+	  check_constant(curr_pair_rank)
+	  ? curr_transitions[curr_pair_rank * curr_layer_shape]
+	  : curr_pairs_sorted_to_new[curr_pairs_permutation_index];
+      };
+
+      TRY_PARALLEL_3(std::for_each,
+		     curr_pairs_permutation.begin(),
+		     curr_pairs_permutation.end(),
+		     set_output_helper);
 
       assert(curr_pair_rank_to_output.size() == curr_layer_count);
 
