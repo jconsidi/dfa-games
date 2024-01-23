@@ -21,7 +21,7 @@ BreakthroughGame::BreakthroughGame(int width_in, int height_in)
     width(width_in),
     height(height_in)
 {
-  assert(width >= 2);
+  assert(width >= 1);
   assert(height >= 4);
 }
 
