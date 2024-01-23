@@ -4,6 +4,7 @@
 #define PARALLEL_H
 
 #ifdef __cpp_lib_parallel_algorithm
+#include <execution>
 #define TRY_PARALLEL_2(f, a, b) f(std::execution::par_unseq, a, b)
 #define TRY_PARALLEL_3(f, a, b, c) f(std::execution::par_unseq, a, b, c)
 #define TRY_PARALLEL_4(f, a, b, c, d) f(std::execution::par_unseq, a, b, c, d)
