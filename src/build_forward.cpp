@@ -16,7 +16,7 @@ int main(int argc, char **argv)
   std::string game_name(argv[1]);
   Game *game = get_game(game_name);
 
-  int ply_max = (argc >= 3) ? atoi(argv[2]) : 2;
+  int ply_max = (argc >= 3) ? atoi(argv[2]) : 100;
 
   auto initial_positions = game->get_positions_initial();
   assert(initial_positions->size() == 1);
