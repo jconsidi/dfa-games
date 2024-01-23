@@ -9,12 +9,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 #include <string>
 
 #include "DFA.h"
 #include "Profile.h"
+#include "parallel.h"
 
 static int next_dfa_id = 0;
 
@@ -265,6 +267,22 @@ dfa_state_t DFA::add_state_by_reference(int layer, const DFATransitionsReference
     }
 
   return this->add_state(layer, temp_states);
+}
+
+void DFA::copy_layer(int layer, const DFA& dfa_in)
+{
+  assert(dfa_in.ready());
+
+  set_layer_size(layer, dfa_in.get_layer_size(layer));
+  assert(layer_transitions[layer].size() == dfa_in.layer_transitions[layer].size());
+
+  // make sure the source layer is mapped
+  dfa_in.layer_transitions[layer].mmap();
+
+  TRY_PARALLEL_3(std::copy,
+                 dfa_in.layer_transitions[layer].begin(),
+                 dfa_in.layer_transitions[layer].end(),
+                 layer_transitions[layer].begin());
 }
 
 void DFA::set_initial_state(dfa_state_t initial_state_in)
