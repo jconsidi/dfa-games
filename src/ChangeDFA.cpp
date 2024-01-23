@@ -3,10 +3,12 @@
 #include "ChangeDFA.h"
 
 #include <functional>
+#include <ranges>
 
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "VectorBitSet.h"
+#include "parallel.h"
 
 ChangeDFA::ChangeDFA(const DFA& dfa_in,
 		     const change_vector& changes_in)
@@ -62,8 +64,6 @@ void ChangeDFA::build_one_pass(const DFA& dfa_in, const change_vector& changes_i
 
       change_optional layer_change = changes_in[layer];
 
-      DFATransitionsStaging transitions_temp(layer_shape, 0);
-
       if(layer_change.has_value())
 	{
 	  int before_character = std::get<0>(*layer_change);
@@ -75,26 +75,31 @@ void ChangeDFA::build_one_pass(const DFA& dfa_in, const change_vector& changes_i
 	  assert(0 <= after_character);
 	  assert(after_character < layer_shape);
 
-	  // transitions_temp is all zeros, and will repeatedly
-	  // rewrite the same "after" transition.
+	  set_layer_size(layer, layer_size);
 
-	  for(dfa_state_t state_in = 2; state_in < layer_size; ++state_in)
-	    {
-	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
-	      transitions_temp[after_character] = transitions_in[before_character];
-	      dfa_state_t state_out = this->add_state(layer, transitions_temp);
-	      assert(state_out == state_in);
-	    }
+	  const int transitions_temp_size = 100;
+	  assert(layer_shape <= transitions_temp_size);
+
+	  auto rewrite_transitions = [&](dfa_state_t state_in)
+	  {
+	    // creating fresh array to avoid sharing issues from parallelism.
+	    dfa_state_t transitions_temp[transitions_temp_size] = {0};
+
+	    DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
+	    transitions_temp[after_character] = transitions_in[before_character];
+	    set_state_transitions(layer, state_in, transitions_temp);
+	  };
+
+	  std::ranges::iota_view state_range(dfa_state_t(2), layer_size);
+
+	  TRY_PARALLEL_3(std::for_each,
+			 state_range.begin(), state_range.end(),
+			 rewrite_transitions);
 	}
       else
 	{
 	  // copy all transitions for each state
-	  for(dfa_state_t state_in = 2; state_in < layer_size; ++state_in)
-	    {
-	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
-	      dfa_state_t state_out = this->add_state_by_reference(layer, transitions_in);
-	      assert(state_out == state_in);
-	    }
+	  copy_layer(layer, dfa_in);
 	}
       assert(this->get_layer_size(layer) == layer_size);
     }
