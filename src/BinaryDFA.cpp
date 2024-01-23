@@ -919,7 +919,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward states identification");
 
-      MemoryMap<dfa_state_t> curr_pairs_sorted_to_new("scratch/binarydfa/pairs_sorted_to_new", curr_layer_count);
+      MemoryMap<dfa_state_t> curr_pairs_permutation_to_output("scratch/binarydfa/pairs_permutation_to_output", curr_layer_count);
 
       auto check_constant = [&](dfa_state_t curr_pair_rank)
       {
@@ -966,7 +966,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       TRY_PARALLEL_6(std::transform_inclusive_scan,
 		     curr_pairs_permutation.begin(),
 		     curr_pairs_permutation.end(),
-		     curr_pairs_sorted_to_new.begin(),
+		     curr_pairs_permutation_to_output.begin(),
 		     [](dfa_state_t previous, dfa_state_t delta) {return previous + delta;},
 		     check_new,
 		     1); // first new state will be 2
@@ -1032,7 +1032,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
         curr_pair_rank_to_output[curr_pair_rank] =
 	  check_constant(curr_pair_rank)
 	  ? curr_transitions[curr_pair_rank * curr_layer_shape]
-	  : curr_pairs_sorted_to_new[curr_pairs_permutation_index];
+	  : curr_pairs_permutation_to_output[curr_pairs_permutation_index];
       };
 
       TRY_PARALLEL_3(std::for_each,
