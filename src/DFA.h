@@ -100,6 +100,8 @@ class DFA
   dfa_state_t add_state_by_reference(int, const DFATransitionsReference&);
 
   virtual void set_initial_state(dfa_state_t);
+  void set_layer_size(int, dfa_state_t);
+  void set_state_transitions(int, dfa_state_t, const dfa_state_t *);
 
  public:
 
