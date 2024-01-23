@@ -89,8 +89,6 @@ class DFA
 
   mutable DFALinearBound *linear_bound = 0;
 
-  void finalize();
-
  protected:
 
   DFA(const dfa_shape_t&);

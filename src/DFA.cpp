@@ -274,7 +274,17 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
   assert(initial_state_in < get_layer_size(0));
   initial_state = initial_state_in;
 
-  finalize();
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      int layer_shape = get_layer_shape(layer);
+      size_t expected_transitions_size = size_t(layer_sizes[layer]) * size_t(layer_shape);
+      if(layer_transitions[layer].size() != expected_transitions_size)
+	{
+	  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], expected_transitions_size);
+	}
+    }
+
+  assert(ready());
 }
 
 void DFA::set_layer_size(int layer, dfa_state_t layer_size_in)
@@ -389,21 +399,6 @@ bool DFA::contains(const DFAString& string_in) const
     }
 
   return current_state != 0;
-}
-
-void DFA::finalize()
-{
-  assert(ready());
-
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      int layer_shape = get_layer_shape(layer);
-      size_t expected_transitions_size = size_t(layer_sizes[layer]) * size_t(layer_shape);
-      if(layer_transitions[layer].size() != expected_transitions_size)
-	{
-	  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], expected_transitions_size);
-	}
-    }
 }
 
 std::string DFA::get_hash() const
