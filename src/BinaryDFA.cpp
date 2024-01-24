@@ -1075,19 +1075,42 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 		     curr_pairs_permutation_to_output.end(),
 		     write_state);
 
+      profile.tic("backward invert");
+
+      // invert permutation so we can write pair_rank_to_output in order
+
+      MemoryMap<dfa_state_t> curr_pairs_permutation_inverse("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count);
+      // contents are indexes into curr_pairs_permutation
+      std::iota(curr_pairs_permutation_inverse.begin(),
+		curr_pairs_permutation_inverse.end(),
+		0);
+      // sort so curr_pairs_permutation[curr_pairs_permutation_inverse[i]] = i
+
+      TRY_PARALLEL_3(std::sort,
+		     curr_pairs_permutation_inverse.begin(),
+		     curr_pairs_permutation_inverse.end(),
+		     [&](int a, int b) {
+		       return curr_pairs_permutation[a] < curr_pairs_permutation[b];
+		     });
+
+      for(dfa_state_t i : {size_t(0), curr_layer_count - 1})
+	{
+	  assert(curr_pairs_permutation[curr_pairs_permutation_inverse[i]] == i);
+	}
+
       profile.tic("backward output");
 
       MemoryMap<dfa_state_t> curr_pair_rank_to_output = memory_map_helper<dfa_state_t>(layer % 2, "pair_rank_to_output", curr_layer_count);
 
-      auto set_output_helper = [&](const dfa_state_t& curr_pair_rank)
+      auto set_output_helper = [&](dfa_state_t curr_pairs_permutation_index)
       {
-        size_t curr_pairs_permutation_index = &curr_pair_rank - curr_pairs_permutation_begin;
-        curr_pair_rank_to_output[curr_pair_rank] = curr_pairs_permutation_to_output[curr_pairs_permutation_index];
+	return curr_pairs_permutation_to_output[curr_pairs_permutation_index];
       };
 
-      TRY_PARALLEL_3(std::for_each,
-		     curr_pairs_permutation.begin(),
-		     curr_pairs_permutation.end(),
+      TRY_PARALLEL_4(std::transform,
+		     curr_pairs_permutation_inverse.begin(),
+		     curr_pairs_permutation_inverse.end(),
+		     curr_pair_rank_to_output.begin(),
 		     set_output_helper);
 
       assert(curr_pair_rank_to_output.size() == curr_layer_count);
