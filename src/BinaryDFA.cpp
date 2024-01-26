@@ -722,9 +722,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       sync_if_big<size_t>(next_pairs);
 
+#ifdef PARANOIA
       profile.tic("forward next pairs paranoia");
 
       assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
+#endif
 
       profile.tic("forward stats");
 
