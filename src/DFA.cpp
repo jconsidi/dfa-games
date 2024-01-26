@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <ranges>
 #include <sstream>
 #include <string>
 
@@ -471,6 +472,7 @@ const DFALinearBound& DFA::get_linear_bound() const
 
       for(int layer = 0; layer < ndim; ++layer)
 	{
+	  size_t layer_size = get_layer_size(layer);
 	  int layer_shape = get_layer_shape(layer);
 	  if(reached_accept_all)
 	    {
@@ -483,7 +485,65 @@ const DFALinearBound& DFA::get_linear_bound() const
 	  std::vector<bool>& curr_bounds = bounds[layer];
 	  const MemoryMap<dfa_state_t>& curr_transitions = layer_transitions[layer];
 
-	  size_t num_transitions = get_layer_size(layer) * layer_shape;
+	  // narrow shape case
+
+	  if(layer_shape <= 32)
+	    {
+	      auto get_local = [&](dfa_state_t state_id)
+		{
+		  bool local_accept_all = false;
+		  uint32_t local_bounds = 0;
+
+		  size_t offset = state_id * layer_shape;
+		  for(size_t i = 0; i < layer_shape; ++i)
+		    {
+		      if(curr_transitions[offset + i] == 1)
+			{
+			  local_accept_all = true;
+			}
+		      if(curr_transitions[offset + i])
+			{
+			  local_bounds |= 1 << i;
+			}
+		    }
+
+		  return std::pair<bool, uint32_t>(local_accept_all, local_bounds);
+		};
+
+	      auto reduce_local = [](std::pair<bool, uint32_t> a, std::pair<bool, uint32_t> b)
+	      {
+		return std::pair<bool, uint32_t>(std::get<0>(a) || std::get<0>(b),
+						 std::get<1>(a) | std::get<1>(b));
+	      };
+
+	      std::ranges::iota_view state_view(size_t(2), layer_size);
+
+	      std::pair<bool, uint32_t> combined_bounds =
+		TRY_PARALLEL_5(std::transform_reduce,
+			       state_view.begin(),
+			       state_view.end(),
+			       (std::pair<bool, uint32_t>(false, 0)),
+			       reduce_local,
+			       get_local);
+
+	      if(std::get<0>(combined_bounds))
+		{
+		  reached_accept_all = true;
+		}
+	      for(int i = 0; i < 32; ++i)
+		{
+		  if(std::get<1>(combined_bounds) & (1 << i))
+		    {
+		      curr_bounds[i] = true;
+		    }
+		}
+
+	      continue;
+	    }
+
+	  // general shape case
+
+	  size_t num_transitions = layer_size * layer_shape;
 	  for(size_t i = 2 * layer_shape; i < num_transitions; ++i)
 	    {
 	      dfa_state_t t = curr_transitions[i];
