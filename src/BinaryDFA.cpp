@@ -221,6 +221,18 @@ void BinaryDFA::build_linear(const DFA& left_in,
     {
       VectorBitSetIndex next_index(right_reachable[layer+1]);
 
+      // materialize because VectorBitSetIterator does not satisfy
+      // std::random_access_iterator.
+      MemoryMap<dfa_state_t> curr_reachable(right_reachable[layer].count());
+      dfa_state_t curr_reachable_i = 0;
+      for(auto iter = right_reachable[layer].begin();
+	  iter < right_reachable[layer].end();
+	  ++iter, ++curr_reachable_i)
+	{
+	  curr_reachable[curr_reachable_i] = dfa_state_t(*iter);
+	}
+      //VectorBitSetIndex curr_index(right_reachable[layer]);
+
       int layer_shape = this->get_layer_shape(layer);
 
       std::function<dfa_state_t(dfa_state_t)> get_next_changed = [&](dfa_state_t next_state_in)
@@ -229,23 +241,49 @@ void BinaryDFA::build_linear(const DFA& left_in,
 	return changed_states[layer+1][next_index.rank(next_state_in)];
       };
 
-      DFATransitionsStaging transitions_temp(layer_shape, 0);
+      const int transitions_temp_size = 100;
+      assert(layer_shape <= transitions_temp_size);
 
-      dfa_state_t state_out = 0;
+      // loose allocation. may waste some states.
+      set_layer_size(layer, 2 + right_reachable[layer].count());
+
       // rewrite all transitions for each state
-      for(dfa_state_t state_in : right_reachable[layer])
-	{
-	  DFATransitionsReference transitions_in = right_in.get_transitions(layer, state_in);
-	  for(int i = 0; i < layer_shape; ++i)
-	    {
-	      if(left_filters[layer][i])
-		{
-		  transitions_temp[i] = get_next_changed(transitions_in[i]);
-		}
-	    }
-	  changed_states[layer][state_out++] = this->add_state(layer, transitions_temp);
-	}
-      assert(state_out == changed_states[layer].size());
+      TRY_PARALLEL_3(std::for_each, curr_reachable.begin(), curr_reachable.end(), [&](const dfa_state_t& state_in)
+	//TRY_PARALLEL_3(std::for_each, right_reachable[layer].begin(), right_reachable[layer].end(), [&](dfa_state_t state_in)
+      {
+	// creating fresh array to avoid sharing issues from parallelism.
+	dfa_state_t transitions_temp[transitions_temp_size] = {0};
+	dfa_state_t transitions_max = 0;
+
+	dfa_state_t reachable_rank = &state_in - curr_reachable.begin();
+	//dfa_state_t reachable_rank = curr_index.rank(state_in);
+
+	DFATransitionsReference transitions_in = right_in.get_transitions(layer, state_in);
+	for(int i = 0; i < layer_shape; ++i)
+	  {
+	    if(left_filters[layer][i])
+	      {
+		transitions_temp[i] = get_next_changed(transitions_in[i]);
+		transitions_max = std::max(transitions_max, transitions_temp[i]);
+	      }
+	  }
+
+	if(transitions_max == 0)
+	  {
+	    // reject state
+	    changed_states[layer][reachable_rank] = 0;
+	    return;
+	  }
+	if((transitions_max == 1) && (*std::min_element(transitions_temp, transitions_temp + layer_shape) == 1))
+	  {
+	    // accept state
+	    changed_states[layer][reachable_rank] = 1;
+	    return;
+	  }
+
+	set_state_transitions(layer, 2 + reachable_rank, transitions_temp);
+	changed_states[layer][reachable_rank] = 2 + reachable_rank;
+      });
 
       changed_states.pop_back();
       assert(changed_states.size() == layer + 1);
