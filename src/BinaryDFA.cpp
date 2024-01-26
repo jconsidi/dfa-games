@@ -120,6 +120,8 @@ void BinaryDFA::build_linear(const DFA& left_in,
 
   // identify left states used
 
+  profile.tic("linear states");
+
   std::vector<dfa_state_t> left_states = {left_in.get_initial_state()};
   std::vector<std::vector<bool>> left_filters;
   for(int layer = 0; layer < get_shape_size(); ++layer)
@@ -149,6 +151,8 @@ void BinaryDFA::build_linear(const DFA& left_in,
   ////////////////////////////////////////////////////////////
   // forward pass finding right reachable states /////////////
   ////////////////////////////////////////////////////////////
+
+  profile.tic("reachable");
 
   std::vector<VectorBitSet> right_reachable;
 
@@ -195,6 +199,8 @@ void BinaryDFA::build_linear(const DFA& left_in,
   ////////////////////////////////////////////////////////////
   // backward pass rewriting states //////////////////////////
   ////////////////////////////////////////////////////////////
+
+  profile.tic("states");
 
   std::vector<MemoryMap<dfa_state_t>> changed_states;
   for(int layer = 0; layer < get_shape_size(); ++layer)
