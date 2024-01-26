@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   std::string game_name(argv[1]);
   Game *game = get_game(game_name);
 
-  int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 10;
+  int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 100;
   int backward_ply_max = (argc >= 4) ? atoi(argv[3]) : 0;
 
   auto initial_positions = game->get_positions_initial();
@@ -65,6 +65,10 @@ int main(int argc, char **argv)
       if(positions->is_constant(false))
 	{
 	  complete_expected = true;
+
+	  assert(ply == forward_ply_max);
+	  --forward_ply_max;
+	  continue;
 	}
       double positions_size = positions->size();
       std::cout << "PLY " << ply << " POSITIONS " << positions_size << std::endl;
