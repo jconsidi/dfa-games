@@ -3,20 +3,19 @@
 #include "BreakthroughGame.h"
 
 #include <cassert>
+#include <format>
 #include <sstream>
 #include <string>
 
 #include "DFAUtil.h"
-
-#define CALCULATE_LAYER(r, c) (r * width + c)
 
 static dfa_shape_t get_breakthrough_shape(int width, int height)
 {
   return dfa_shape_t(width * height, 3);
 }
 
-BreakthroughGame::BreakthroughGame(int width_in, int height_in)
-  : NormalPlayGame("breakthrough_" + std::to_string(width_in) + "x" + std::to_string(height_in),
+BreakthroughBase::BreakthroughBase(std::string name_in, int width_in, int height_in)
+  : NormalPlayGame(name_in,
 		   get_breakthrough_shape(width_in, height_in)),
     width(width_in),
     height(height_in)
@@ -25,7 +24,7 @@ BreakthroughGame::BreakthroughGame(int width_in, int height_in)
   assert(height >= 4);
 }
 
-MoveGraph BreakthroughGame::build_move_graph(int side_to_move) const
+MoveGraph BreakthroughBase::build_move_graph(int side_to_move) const
 {
   // setup graph and nodes
 
@@ -35,9 +34,16 @@ MoveGraph BreakthroughGame::build_move_graph(int side_to_move) const
 
   std::vector<shared_dfa_ptr> not_done_conditions;
   // side not to move did not get to last row
-  not_done_conditions.push_back((side_to_move == 0) ?
-				DFAUtil::get_count_character(get_shape(), 2, 0, 0, 0, width - 1) :
-				DFAUtil::get_count_character(get_shape(), 1, 0, 0, width * (height - 1), width * height - 1));
+  for(int col = 0; col < width; ++col)
+    {
+      int row = (side_to_move == 0) ? 0 : height - 1;
+      int layer = calculate_layer(row, col);
+
+      not_done_conditions.push_back(DFAUtil::get_count_character(get_shape(),
+								 2 - side_to_move,
+								 0, 0,
+								 layer, layer));
+    }
 
   shared_dfa_ptr not_done = DFAUtil::get_intersection_vector(get_shape(), not_done_conditions);
 
@@ -63,7 +69,7 @@ MoveGraph BreakthroughGame::build_move_graph(int side_to_move) const
       for(int col = 0; col < width; ++col)
       {
 	change_vector move_changes(width * height);
-	move_changes[CALCULATE_LAYER(row, col)] = change_type(1 + side_to_move, 0);
+	move_changes[calculate_layer(row, col)] = change_type(1 + side_to_move, 0);
 	move_graph.add_node(get_from_node(row, col), move_changes);
       }
     }
@@ -73,11 +79,11 @@ MoveGraph BreakthroughGame::build_move_graph(int side_to_move) const
       for(int col = 0; col < width; ++col)
       {
 	change_vector push_changes(width * height);
-	push_changes[CALCULATE_LAYER(row, col)] = change_type(0, 1 + side_to_move);
+	push_changes[calculate_layer(row, col)] = change_type(0, 1 + side_to_move);
 	move_graph.add_node(get_push_node(row, col), push_changes);
 
 	change_vector capture_changes(width * height);
-	capture_changes[CALCULATE_LAYER(row, col)] = change_type(2 - side_to_move, 1 + side_to_move);
+	capture_changes[calculate_layer(row, col)] = change_type(2 - side_to_move, 1 + side_to_move);
 	move_graph.add_node(get_capture_node(row, col), capture_changes);
       }
     }
@@ -132,7 +138,7 @@ MoveGraph BreakthroughGame::build_move_graph(int side_to_move) const
   return move_graph;
 }
 
-DFAString BreakthroughGame::get_position_initial() const
+DFAString BreakthroughBase::get_position_initial() const
 {
   std::vector<int> initial_characters(width * height, 0);
 
@@ -140,7 +146,7 @@ DFAString BreakthroughGame::get_position_initial() const
     {
       for(int column = 0; column < width; ++column)
 	{
-	  initial_characters.at(row * width + column) = 1;
+	  initial_characters.at(calculate_layer(row, column)) = 1;
 	}
     }
 
@@ -148,14 +154,14 @@ DFAString BreakthroughGame::get_position_initial() const
     {
       for(int column = 0; column < width; ++column)
 	{
-	  initial_characters.at(row * width + column) = 2;
+	  initial_characters.at(calculate_layer(row, column)) = 2;
 	}
     }
 
   return DFAString(get_shape(), initial_characters);
 }
 
-std::string BreakthroughGame::position_to_string(const DFAString& string_in) const
+std::string BreakthroughBase::position_to_string(const DFAString& string_in) const
 {
   std::ostringstream output;
 
@@ -163,7 +169,7 @@ std::string BreakthroughGame::position_to_string(const DFAString& string_in) con
     {
       for(int column = 0; column < width; ++column)
 	{
-	  switch(string_in[row * width + column])
+	  switch(string_in[calculate_layer(row, column)])
 	    {
 	    case 0:
 	      output << ".";
@@ -184,7 +190,7 @@ std::string BreakthroughGame::position_to_string(const DFAString& string_in) con
   return output.str();
 }
 
-std::vector<DFAString> BreakthroughGame::validate_moves(int side_to_move, DFAString position) const
+std::vector<DFAString> BreakthroughBase::validate_moves(int side_to_move, DFAString position) const
 {
   auto shape = get_shape();
 
@@ -198,8 +204,9 @@ std::vector<DFAString> BreakthroughGame::validate_moves(int side_to_move, DFAStr
   // check if other side won
   if(side_to_move == 0)
     {
-      for(int layer = 0; layer < width; ++layer)
+      for(int column = 0; column < width; ++column)
 	{
+	  int layer = calculate_layer(0, column);
 	  if(position[layer] == hostile_char)
 	    {
 	      return output;
@@ -208,8 +215,9 @@ std::vector<DFAString> BreakthroughGame::validate_moves(int side_to_move, DFAStr
     }
   else
     {
-      for(int layer = shape.size() - width; layer < shape.size(); ++layer)
+      for(int column = 0; column < width; ++column)
 	{
+	  int layer = calculate_layer(height - 1, column);
 	  if(position[layer] == hostile_char)
 	    {
 	      return output;
@@ -219,59 +227,61 @@ std::vector<DFAString> BreakthroughGame::validate_moves(int side_to_move, DFAStr
 
   // move generation
 
-  for(int layer_from = 0; layer_from < shape.size(); ++layer_from)
+  for(int row_from = 0; row_from < height; ++row_from)
     {
-      if(position[layer_from] == friendly_char)
+      for(int col_from = 0; col_from < width; ++col_from)
 	{
-	  int row_from = layer_from / width;
-	  int col_from = layer_from % width;
+	  int layer_from = calculate_layer(row_from, col_from);
 
-	  int row_to = row_from + row_delta;
-	  if((row_to < 0) || (height <= row_to))
+	  if(position[layer_from] == friendly_char)
 	    {
-	      continue;
-	    }
-
-	  for(int col_delta = -1; col_delta <= 1; ++col_delta)
-	    {
-	      int col_to = col_from + col_delta;
-	      if((col_to < 0) || (width <= col_to))
+	      int row_to = row_from + row_delta;
+	      if((row_to < 0) || (height <= row_to))
 		{
 		  continue;
 		}
 
-	      int layer_to = row_to * width + col_to;
-	      if(position[layer_to] == friendly_char)
+	      for(int col_delta = -1; col_delta <= 1; ++col_delta)
 		{
-		  // cannot capture own pieces
-		  continue;
-		}
-	      if((col_delta == 0) && (position[layer_to] == hostile_char))
-		{
-		  // cannot capture forward
-		  continue;
-		}
+		  int col_to = col_from + col_delta;
+		  if((col_to < 0) || (width <= col_to))
+		    {
+		      continue;
+		    }
 
-	      std::vector<int> position_new;
-	      for(int layer = 0; layer < shape.size(); ++layer)
-		{
-		  if(layer == layer_from)
+		  int layer_to = calculate_layer(row_to, col_to);
+		  if(position[layer_to] == friendly_char)
 		    {
-		      // from square now empty
-		      position_new.push_back(0);
+		      // cannot capture own pieces
+		      continue;
 		    }
-		  else if(layer == layer_to)
+		  if((col_delta == 0) && (position[layer_to] == hostile_char))
 		    {
-		      // to square now taken
-		      position_new.push_back(friendly_char);
+		      // cannot capture forward
+		      continue;
 		    }
-		  else
-		    {
-		      position_new.push_back(position[layer]);
-		    }
-		}
 
-	      output.emplace_back(shape, position_new);
+		  std::vector<int> position_new;
+		  for(int layer = 0; layer < shape.size(); ++layer)
+		    {
+		      if(layer == layer_from)
+			{
+			  // from square now empty
+			  position_new.push_back(0);
+			}
+		      else if(layer == layer_to)
+			{
+			  // to square now taken
+			  position_new.push_back(friendly_char);
+			}
+		      else
+			{
+			  position_new.push_back(position[layer]);
+			}
+		    }
+
+		  output.emplace_back(shape, position_new);
+		}
 	    }
 	}
     }
@@ -279,4 +289,28 @@ std::vector<DFAString> BreakthroughGame::validate_moves(int side_to_move, DFAStr
   // done
 
   return output;
+}
+
+BreakthroughColumnWiseGame::BreakthroughColumnWiseGame(int width_in, int height_in)
+  : BreakthroughBase(std::format("breakthroughcw_{:d}x{:d}", width_in, height_in),
+		     width_in,
+		     height_in)
+{
+}
+
+int BreakthroughColumnWiseGame::calculate_layer(int row, int column) const
+{
+  return column * height + row;
+}
+
+BreakthroughRowWiseGame::BreakthroughRowWiseGame(int width_in, int height_in)
+  : BreakthroughBase(std::format("breakthrough_{:d}x{:d}", width_in, height_in),
+		     width_in,
+		     height_in)
+{
+}
+
+int BreakthroughRowWiseGame::calculate_layer(int row, int column) const
+{
+  return row * width + column;
 }

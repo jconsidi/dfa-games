@@ -5,17 +5,19 @@
 
 #include "NormalPlayGame.h"
 
-class BreakthroughGame
-: public NormalPlayGame
+class BreakthroughBase
+  : public NormalPlayGame
 {
- private:
+protected:
 
   int width;
   int height;
 
- public:
+  BreakthroughBase(std::string, int, int);
 
-  BreakthroughGame(int, int);
+  virtual int calculate_layer(int row, int column) const = 0;
+
+public:
 
   virtual MoveGraph build_move_graph(int) const;
   virtual DFAString get_position_initial() const;
@@ -25,5 +27,31 @@ class BreakthroughGame
 
   virtual std::vector<DFAString> validate_moves(int, DFAString) const;
 };
+
+class BreakthroughColumnWiseGame
+  : public BreakthroughBase
+{
+protected:
+
+  virtual int calculate_layer(int row, int column) const;
+
+public:
+
+    BreakthroughColumnWiseGame(int, int);
+};
+
+class BreakthroughRowWiseGame
+  : public BreakthroughBase
+{
+protected:
+
+  virtual int calculate_layer(int row, int column) const;
+
+public:
+
+  BreakthroughRowWiseGame(int, int);
+};
+
+typedef BreakthroughRowWiseGame BreakthroughGame;
 
 #endif
