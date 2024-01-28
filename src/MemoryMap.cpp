@@ -239,7 +239,7 @@ void MemoryMap<T>::mmap(int fildes) const
 
   if(_length >> 30)
     {
-      std::cout << "mmap length = " << (_length >> 30) << "GB" << std::endl;
+      std::cerr << "mmap length = " << (_length >> 30) << "GB" << std::endl;
     }
 
   int prot = PROT_READ;
