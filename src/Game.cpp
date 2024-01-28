@@ -82,6 +82,10 @@ shared_dfa_ptr Game::get_moves_backward(int side_to_move, shared_dfa_ptr positio
 {
   Profile profile("get_moves_backward");
 
+  assert(0 <= side_to_move);
+  assert(side_to_move < 2);
+  assert(positions_in);
+
   build_move_graphs(side_to_move);
 
   std::string name_prefix = std::format("{:s},backward,side_to_move={:d}", name, side_to_move);
@@ -91,6 +95,10 @@ shared_dfa_ptr Game::get_moves_backward(int side_to_move, shared_dfa_ptr positio
 shared_dfa_ptr Game::get_moves_forward(int side_to_move, shared_dfa_ptr positions_in) const
 {
   Profile profile("get_moves_forward");
+
+  assert(0 <= side_to_move);
+  assert(side_to_move < 2);
+  assert(positions_in);
 
   build_move_graphs(side_to_move);
 

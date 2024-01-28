@@ -153,6 +153,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
   Profile profile("get_moves");
 
   assert(node_names.size() >= 2);
+  assert(positions_in);
 
   std::vector<std::string> output_names;
   for(int node_index = 0; node_index < node_names.size(); ++node_index)
