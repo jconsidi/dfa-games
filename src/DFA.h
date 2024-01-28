@@ -127,6 +127,7 @@ class DFA
   bool is_constant(bool) const;
   bool is_linear() const;
 
+  void mmap() const;
   void munmap() const;
 
   static std::optional<std::string> parse_hash(std::string);

@@ -343,6 +343,8 @@ std::string DFA::calculate_hash() const
 
   assert(ready());
 
+  mmap();
+
   unsigned char hash_output[SHA256_DIGEST_LENGTH];
   static const EVP_MD *hash_implementation = EVP_sha256();
   static EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
@@ -469,6 +471,8 @@ const DFALinearBound& DFA::get_linear_bound() const
 
       std::vector<std::vector<bool>> bounds;
       bool reached_accept_all = initial_state == 1;
+
+      mmap();
 
       for(int layer = 0; layer < ndim; ++layer)
 	{
@@ -609,6 +613,8 @@ bool DFA::is_linear() const
       return true;
     }
 
+  mmap();
+
   dfa_state_t curr_accept_state = initial_state;
   for(int layer = 0; layer < ndim; ++layer)
     {
@@ -645,6 +651,14 @@ bool DFA::is_linear() const
     }
 
   return true;
+}
+
+void DFA::mmap() const
+{
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      layer_transitions[layer].mmap();
+    }
 }
 
 void DFA::munmap() const
@@ -793,6 +807,8 @@ double DFA::size() const
 
   if(size_cache[0] == 0.0)
     {
+      mmap();
+
       std::vector<double> previous_counts({0, 1}); // reject, accept
       for(int layer = ndim - 1; layer >= 0; --layer)
 	{
