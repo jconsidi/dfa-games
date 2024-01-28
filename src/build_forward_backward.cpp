@@ -50,8 +50,10 @@ int main(int argc, char **argv)
   std::vector<shared_dfa_ptr> winning_by_ply(forward_ply_max + 2, 0);
   std::vector<shared_dfa_ptr> unknown_by_ply(forward_ply_max + 2, 0);
 
-  losing_by_ply[forward_ply_max + 1] = DFAUtil::get_reject(game->get_shape());
-  winning_by_ply[forward_ply_max + 1] = DFAUtil::get_reject(game->get_shape());
+  shared_dfa_ptr reject = DFAUtil::get_reject(game->get_shape());;
+
+  losing_by_ply[forward_ply_max + 1] = reject;
+  winning_by_ply[forward_ply_max + 1] = reject;
   unknown_by_ply[forward_ply_max + 1] = DFAUtil::get_accept(game->get_shape());
 
   bool complete_expected = false;
@@ -62,14 +64,26 @@ int main(int argc, char **argv)
       int side_to_move = ply % 2;
 
       shared_dfa_ptr positions = game->get_positions_forward(ply);
+      assert(positions);
       if(positions->is_constant(false))
 	{
 	  complete_expected = true;
 
 	  assert(ply == forward_ply_max);
+
+	  // no positions, so trivial solution
+	  losing_by_ply[forward_ply_max] = reject;
+	  winning_by_ply[forward_ply_max] = reject;
+	  unknown_by_ply[forward_ply_max] = reject;
+
 	  --forward_ply_max;
 	  continue;
 	}
+
+      assert(losing_by_ply[ply + 1]);
+      assert(winning_by_ply[ply + 1]);
+      assert(unknown_by_ply[ply + 1]);
+
       double positions_size = positions->size();
       std::cout << "PLY " << ply << " POSITIONS " << positions_size << std::endl;
 
