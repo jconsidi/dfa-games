@@ -16,6 +16,8 @@ ChangeDFA::ChangeDFA(const DFA& dfa_in,
 {
   assert(changes_in.size() == dfa_in.get_shape_size());
 
+  dfa_in.mmap();
+
   const DFALinearBound& linear_bound_in = dfa_in.get_linear_bound();
   bool pre_condition_holds = true;
   for(int layer = 0; layer < get_shape_size(); ++layer)

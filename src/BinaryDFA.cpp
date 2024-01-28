@@ -58,6 +58,9 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
       return;
     }
 
+  left_in.mmap();
+  right_in.mmap();
+
   // constant sink cases
   for(int i = 0; i < 2; ++i)
     {

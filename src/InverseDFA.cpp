@@ -7,6 +7,8 @@ InverseDFA::InverseDFA(const DFA& dfa_in)
 {
   int ndim = get_shape_size();
 
+  dfa_in.mmap();
+
   if(dfa_in.get_initial_state() < 2)
     {
       // accept all or reject all input

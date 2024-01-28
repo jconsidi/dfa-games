@@ -142,7 +142,7 @@ template<class T>
 T& MemoryMap<T>::operator[](size_t i)
 {
   assert(i < _size);
-  this->mmap();
+  assert(_mapped);
   return ((T *) _mapped)[i];
 }
 
@@ -150,7 +150,7 @@ template<class T>
 const T& MemoryMap<T>::operator[](size_t i) const
 {
   assert(i < _size);
-  this->mmap();
+  assert(_mapped);
   return ((T *) _mapped)[i];
 }
 
