@@ -374,6 +374,8 @@ DFAIterator DFA::cbegin() const
       return cend();
     }
 
+  mmap();
+
   std::vector<int> characters;
 
   dfa_state_t current_state = initial_state;
