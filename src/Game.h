@@ -53,6 +53,7 @@ public:
   std::string get_name() const;
   std::string get_name_losing(int, int) const;
   std::string get_name_lost(int) const;
+  std::string get_name_unknown(int, int) const;
   std::string get_name_winning(int, int) const;
   std::string get_name_won(int) const;
 
@@ -63,6 +64,7 @@ public:
   virtual shared_dfa_ptr get_positions_losing(int, int) const; // side to move loses in at most given ply
   shared_dfa_ptr get_positions_lost(int) const; // side to move has lost, no moves available
   shared_dfa_ptr get_positions_reachable(int, int) const;
+  shared_dfa_ptr get_positions_unknown(int, int) const; // side to move does not have win or loss within given ply
   virtual shared_dfa_ptr get_positions_winning(int, int) const; // side to move wins in at most given ply
   shared_dfa_ptr get_positions_won(int) const; // side to move has won, no moves available
 

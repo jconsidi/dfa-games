@@ -122,6 +122,12 @@ std::string Game::get_name_lost(int side_to_move) const
   return "lost,side_to_move=" + std::to_string(side_to_move);
 }
 
+std::string Game::get_name_unknown(int side_to_move, int ply_max) const
+{
+  return std::format("backward,ply_max={:03d},side={:d},unknown",
+		     ply_max, side_to_move);
+}
+
 std::string Game::get_name_winning(int side_to_move, int ply_max) const
 {
   return std::format("backward,ply_max={:03d},side={:d},winning",
@@ -215,6 +221,34 @@ shared_dfa_ptr Game::get_positions_reachable(int side_to_move, int ply) const
 						      ply - 1);
     return get_moves_forward(1 - side_to_move,
 			     previous);
+  });
+}
+
+shared_dfa_ptr Game::get_positions_unknown(int side_to_move, int ply_max) const
+{
+  assert(ply_max >= 0);
+
+  return this->load_or_build(get_name_unknown(side_to_move, ply_max), [&]()
+  {
+    shared_dfa_ptr losing = this->get_positions_losing(side_to_move, ply_max);
+    shared_dfa_ptr winning = this->get_positions_winning(side_to_move, ply_max);
+
+    shared_dfa_ptr decided = DFAUtil::get_union(losing, winning);
+    shared_dfa_ptr output = DFAUtil::get_inverse(decided);
+
+    shared_dfa_ptr check_decided = DFAUtil::get_intersection(decided, output);
+    assert(check_decided->is_constant(0));
+
+    shared_dfa_ptr check_winning_subset = DFAUtil::get_difference(winning, decided);
+    assert(check_winning_subset->is_constant(0));
+
+    shared_dfa_ptr check_winning = DFAUtil::get_intersection(winning, output);
+    assert(check_winning->is_constant(0));
+
+    shared_dfa_ptr check_losing = DFAUtil::get_intersection(losing, output);
+    assert(check_losing->is_constant(0));
+
+    return output;
   });
 }
 
