@@ -1045,51 +1045,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  curr_pairs_permutation_to_output[curr_pairs_sorted_index] = 0;
 	}
 
-      profile.tic("backward states accept");
-
-      auto before_accept = [&](const dfa_state_t& curr_pair_rank)
-      {
-	for(int i = 0; i < curr_layer_shape; ++i)
-	  {
-	    dfa_state_t next_state = curr_transitions[curr_pair_rank * curr_layer_shape + i];
-	    if(next_state < 1)
-	      {
-		return true;
-	      }
-	    if(1 < next_state)
-	      {
-		return false;
-	      }
-	  }
-
-	return false;
-      };
-
-      for(auto maybe_accept_state =
-	    std::partition_point(curr_pairs_permutation.begin(),
-				 curr_pairs_permutation.end(),
-				 before_accept);
-	  maybe_accept_state < curr_pairs_permutation.end();
-	  ++maybe_accept_state)
-	{
-	  dfa_state_t curr_pair_rank = *maybe_accept_state;
-	  if(!check_constant(curr_pair_rank))
-	    {
-	      break;
-	    }
-
-	  // reject state must come before accept state, so this must
-	  // be an accept state.
-
-	  for(int i = 0; i < curr_layer_shape; ++i)
-	    {
-	      assert(curr_transitions[curr_pair_rank * curr_layer_shape + i] == 1);
-	    }
-
-	  size_t curr_pairs_sorted_index = maybe_accept_state - curr_pairs_permutation_begin;
-	  curr_pairs_permutation_to_output[curr_pairs_sorted_index] = 1;
-	}
-
       profile.tic("backward states resize");
 
       set_layer_size(layer, layer_size);
@@ -1151,8 +1106,15 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       MemoryMap<dfa_state_t> curr_pair_rank_to_output = memory_map_helper<dfa_state_t>(layer % 2, "pair_rank_to_output", curr_layer_count);
 
-      auto set_output_helper = [&](dfa_state_t curr_pairs_permutation_index)
+      auto curr_pairs_permutation_inverse_begin = curr_pairs_permutation_inverse.begin();
+      auto set_output_helper = [&](const dfa_state_t& curr_pairs_permutation_index)
       {
+	dfa_state_t curr_pair_rank = &curr_pairs_permutation_index - curr_pairs_permutation_inverse_begin;
+	if(check_constant(curr_pair_rank))
+	  {
+	    return curr_transitions[curr_pair_rank * curr_layer_shape];
+	  }
+
 	return curr_pairs_permutation_to_output[curr_pairs_permutation_index];
       };
 
