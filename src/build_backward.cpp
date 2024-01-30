@@ -24,14 +24,14 @@ int main(int argc, char **argv)
   std::cout << "INITIAL POSITION:" << std::endl;
   std::cout << game->position_to_string(initial_position) << std::endl;
 
-  shared_dfa_ptr test_positions;
-  if(ply_max % 2)
+  for(int ply = 0; ply <= ply_max; ++ply)
     {
-      test_positions = game->get_positions_winning(0, ply_max);
-    }
-  else
-    {
-      test_positions = game->get_positions_losing(0, ply_max);
+      for(int side_to_move = 0; side_to_move < 2; ++side_to_move)
+	{
+	  shared_dfa_ptr losing = game->get_positions_losing(side_to_move, ply);
+	  shared_dfa_ptr winning = game->get_positions_winning(side_to_move, ply);
+	  shared_dfa_ptr unknown = game->get_positions_unknown(side_to_move, ply);
+	}
     }
 
   return 0;
