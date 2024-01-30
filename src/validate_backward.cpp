@@ -15,8 +15,19 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
   std::cout << "PLY_MAX = " << ply_max << ", SIDE TO MOVE = " << side_to_move << std::endl;
   std::cout << "############################################################" << std::endl;
 
+  shared_dfa_ptr accept = DFAUtil::get_accept(game.get_shape());
+
   shared_dfa_ptr curr_losing = game.get_positions_losing(side_to_move, ply_max);
   shared_dfa_ptr curr_winning = game.get_positions_winning(side_to_move, ply_max);
+  shared_dfa_ptr curr_unknown = game.get_positions_unknown(side_to_move, ply_max);
+
+  std::cout << "CHECK PARTITION" << std::endl;
+
+  if(!validate_partition(accept, std::vector<shared_dfa_ptr>({curr_winning, curr_losing, curr_unknown})))
+    {
+      std::cerr << "PARTITION CHECK FAILED" << std::endl;
+      return 1;
+    }
 
   if(ply_max == 0)
     {
@@ -62,6 +73,15 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
 
   if(!validate_winning(game, side_to_move, curr_winning, next_losing, base_winning, max_examples))
     {
+      return false;
+    }
+
+  std::cout << "CHECK UNKNOWN" << std::endl;
+
+  shared_dfa_ptr base_unknown = game.get_positions_unknown(side_to_move, ply_max - 1);
+  if(!validate_subset(curr_unknown, base_unknown))
+    {
+      std::cerr << "UNKNOWN SUBSET CHECK FAILED" << std::endl;
       return false;
     }
 
