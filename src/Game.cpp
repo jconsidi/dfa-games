@@ -44,12 +44,67 @@ void Game::build_move_graphs(int side_to_move) const
   move_graphs_ready[side_to_move] = true;
 }
 
+shared_dfa_ptr Game::build_positions_losing(int side_to_move, int ply_max) const
+{
+  assert(ply_max >= 0);
+
+  shared_dfa_ptr lost = get_positions_lost(side_to_move);
+  if(ply_max <= 0)
+    {
+      return lost;
+    }
+
+  if(lost->is_constant(0))
+    {
+      // all losses will be in an odd number of ply
+      if(ply_max % 2 == 0)
+	{
+	  --ply_max;
+	}
+    }
+
+  // recursive case
+
+  shared_dfa_ptr opponent_winning_sooner = get_positions_winning(1 - side_to_move, ply_max - 1);
+  shared_dfa_ptr opponent_not_winning_sooner = DFAUtil::get_inverse(opponent_winning_sooner);
+  shared_dfa_ptr not_losing_soon = get_moves_backward(side_to_move, opponent_not_winning_sooner);
+  shared_dfa_ptr losing_soon = DFAUtil::get_difference(get_has_moves(side_to_move), not_losing_soon);
+  return DFAUtil::get_union(losing_soon, lost);
+}
+
 shared_dfa_ptr Game::build_positions_lost(int side_to_move) const
 {
   // default implementation. build_positions_lost or
   // build_positions_won should be overridden.
 
   return DFAUtil::get_reject(get_shape());
+}
+
+shared_dfa_ptr Game::build_positions_winning(int side_to_move, int ply_max) const
+{
+  assert(ply_max >= 0);
+
+  shared_dfa_ptr won = get_positions_won(side_to_move);
+  if(ply_max <= 0)
+    {
+      return won;
+    }
+
+  if(won->is_constant(0))
+    {
+      // all wins will be in an odd number of ply
+      if(ply_max % 2 == 0)
+	{
+	  --ply_max;
+	}
+    }
+
+  // recursive case
+
+  shared_dfa_ptr losing_sooner = this->get_positions_losing(1 - side_to_move, ply_max - 1);
+  shared_dfa_ptr winning_soon = this->get_moves_backward(side_to_move, losing_sooner);
+
+  return DFAUtil::get_union(won, winning_soon);
 }
 
 shared_dfa_ptr Game::build_positions_won(int side_to_move) const
@@ -167,30 +222,10 @@ shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const
 {
   assert(ply_max >= 0);
 
-  shared_dfa_ptr lost = get_positions_lost(side_to_move);
-  if(ply_max <= 0)
-    {
-      return lost;
-    }
-
-  if(lost->is_constant(0))
-    {
-      // all losses will be in an odd number of ply
-      if(ply_max % 2 == 0)
-	{
-	  --ply_max;
-	}
-    }
-
-  return load_or_build(get_name_losing(side_to_move, ply_max),
-		       [&]()
-		       {
-			 shared_dfa_ptr opponent_winning_sooner = get_positions_winning(1 - side_to_move, ply_max - 1);
-			 shared_dfa_ptr opponent_not_winning_sooner = DFAUtil::get_inverse(opponent_winning_sooner);
-			 shared_dfa_ptr not_losing_soon = get_moves_backward(side_to_move, opponent_not_winning_sooner);
-			 shared_dfa_ptr losing_soon = DFAUtil::get_difference(get_has_moves(side_to_move), not_losing_soon);
-			 return DFAUtil::get_union(losing_soon, lost);
-		       });
+  return load_or_build(get_name_losing(side_to_move, ply_max), [&]()
+  {
+    return build_positions_losing(side_to_move, ply_max);
+  });
 }
 
 shared_dfa_ptr Game::get_positions_lost(int side_to_move) const
@@ -256,29 +291,10 @@ shared_dfa_ptr Game::get_positions_winning(int side_to_move, int ply_max) const
 {
   assert(ply_max >= 0);
 
-  shared_dfa_ptr won = get_positions_won(side_to_move);
-  if(ply_max <= 0)
-    {
-      return won;
-    }
-
-  if(won->is_constant(0))
-    {
-      // all wins will be in an odd number of ply
-      if(ply_max % 2 == 0)
-	{
-	  --ply_max;
-	}
-    }
-
-  return this->load_or_build(get_name_winning(side_to_move, ply_max),
-			     [&]()
-			     {
-			       shared_dfa_ptr losing_sooner = this->get_positions_losing(1 - side_to_move, ply_max - 1);
-			       shared_dfa_ptr winning_soon = this->get_moves_backward(side_to_move, losing_sooner);
-
-			       return DFAUtil::get_union(won, winning_soon);
-			     });
+  return this->load_or_build(get_name_winning(side_to_move, ply_max), [&]()
+  {
+    return build_positions_winning(side_to_move, ply_max);
+  });
 }
 
 shared_dfa_ptr Game::get_positions_won(int side_to_move) const
