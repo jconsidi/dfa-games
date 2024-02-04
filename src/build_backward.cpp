@@ -26,12 +26,23 @@ int main(int argc, char **argv)
 
   for(int ply = 0; ply <= ply_max; ++ply)
     {
+      bool finished = true;
       for(int side_to_move = 0; side_to_move < 2; ++side_to_move)
 	{
 	  shared_dfa_ptr losing = game->get_positions_losing(side_to_move, ply);
 	  shared_dfa_ptr winning = game->get_positions_winning(side_to_move, ply);
 	  shared_dfa_ptr unknown = game->get_positions_unknown(side_to_move, ply);
+
+          if(!unknown->is_constant(0))
+            {
+              finished = false;
+            }
 	}
+
+      if(finished)
+        {
+          break;
+        }
     }
 
   return 0;
