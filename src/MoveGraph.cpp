@@ -211,7 +211,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 	      int to_node_index = std::get<2>(edge);
 	      assert(to_node_index == node_index);
 
-	      std::cout << " node " << from_node_index << "/" << node_names.size() << " (" << node_names[from_node_index] << "), incoming edge " << node_edge_index << "/" << node_inputs[node_index].size() << " (" << edge_name << ")" << std::endl;
+	      std::cout << " node " << node_index << "/" << node_names.size() << " (" << node_names[node_index] << "), incoming edge " << node_edge_index << "/" << node_inputs[node_index].size() << " (" << edge_name << ")" << std::endl;
 
 	      shared_dfa_ptr edge_positions = get_node_output(from_node_index);
 
