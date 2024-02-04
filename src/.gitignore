@@ -9,6 +9,7 @@ random
 random_uci
 scratch
 stats
+stats_backward
 stats_forward
 stats_forward_backward
 test_breakthrough_game
