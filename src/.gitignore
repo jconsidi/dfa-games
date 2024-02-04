@@ -8,6 +8,7 @@ print
 random
 random_uci
 scratch
+solve_backward
 stats
 stats_backward
 stats_forward
