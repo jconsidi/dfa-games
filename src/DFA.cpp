@@ -357,6 +357,7 @@ std::string DFA::calculate_hash() const
 
   EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
   EVP_DigestUpdate(hash_context, &initial_state, sizeof(initial_state));
+  EVP_DigestUpdate(hash_context, shape.data(), shape.size() * sizeof(shape[0]));
   EVP_DigestUpdate(hash_context, layer_sizes.data(), layer_sizes.size() * sizeof(layer_sizes[0]));
   for(int layer = 0; layer < ndim; ++layer)
     {
