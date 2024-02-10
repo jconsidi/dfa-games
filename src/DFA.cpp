@@ -318,6 +318,12 @@ void DFA::set_layer_size(int layer, dfa_state_t layer_size_in)
 
   layer_sizes[layer] = layer_size_in;
   layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], layer_size_in * get_layer_shape(layer));
+
+  // initialize all non-constant states to all zeros.
+  TRY_PARALLEL_3(std::for_each, layer_transitions[layer].begin() + 2 * get_layer_shape(layer), layer_transitions[layer].end(), [](dfa_state_t& transition)
+  {
+    transition = dfa_state_t(0);
+  });
 }
 
 void DFA::set_state_transitions(int layer, dfa_state_t state_in, const dfa_state_t *transitions_in)
