@@ -20,7 +20,6 @@
 #include "Profile.h"
 #include "VectorBitSet.h"
 #include "parallel.h"
-#include "sort.h"
 
 static const size_t SYNC_THRESHOLD_BYTES = 1ULL << 25;
 
@@ -899,9 +898,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       // make permutation of pairs sorted by transitions
 
-      sort<dfa_state_t>(curr_pairs_permutation.begin(),
-			curr_pairs_permutation.end(),
-			compare_pair);
+      TRY_PARALLEL_3(std::sort,
+                     curr_pairs_permutation.begin(),
+                     curr_pairs_permutation.end(),
+                     compare_pair);
 
       profile.tic("backward sort msync");
 
