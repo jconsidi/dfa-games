@@ -12,13 +12,30 @@ $\ = "\n";
 
 my $usage = "usage: $0 <delete ts min> <delete ts max>\n";
 
-my $delete_ts_min = $ARGV[0];
+my $delete_ts_min = $ARGV[0] || "2021-01-01";
 die($usage) unless $delete_ts_min;
 $delete_ts_min = str2time($delete_ts_min);
 
 my $delete_ts_max = $ARGV[1];
+if($delete_ts_max)
+{
+    $delete_ts_max = str2time($delete_ts_max);
+}
+else
+{
+    opendir(MOVE_NODES_DIR, "scratch/move_nodes") || die("error opening scratch/move_nodes : $!\n");
+    for my $save_link (readdir(MOVE_NODES_DIR))
+    {
+        my $save_link_full = "scratch/move_nodes/" . $save_link;
+        next unless -l $save_link_full;
+
+        my $mtime = lstat($save_link_full)->mtime;
+
+        $delete_ts_max = $mtime unless $delete_ts_max;
+        $delete_ts_max = $mtime if $mtime > $delete_ts_max;
+    }
+}
 die($usage) unless $delete_ts_max;
-$delete_ts_max = str2time($delete_ts_max);
 
 my %keep_hashes;
 
