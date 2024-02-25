@@ -4,6 +4,7 @@
 #define MEMORY_MAP_H
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 template<class T>
@@ -27,6 +28,7 @@ public:
   MemoryMap(size_t);
   MemoryMap(std::string);
   MemoryMap(std::string, size_t);
+  MemoryMap(std::string, size_t, std::function<T(size_t)>);
   MemoryMap(const MemoryMap&) = delete;
   MemoryMap(MemoryMap&&);
   ~MemoryMap();

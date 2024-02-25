@@ -9,6 +9,9 @@
 
 #include <cassert>
 #include <iostream>
+#include <ranges>
+
+#include "parallel.h"
 
 template<class T>
 MemoryMap<T>::MemoryMap(size_t size_in)
@@ -75,6 +78,65 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
   assert(_length / sizeof(T) == _size);
 
   int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  ftruncate(fildes);
+  this->mmap(fildes);
+
+  int close_ret = close(fildes);
+  if(close_ret != 0)
+    {
+      perror("constructor close");
+      throw std::runtime_error("constructor close failed");
+    }
+}
+
+template<class T>
+MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T(size_t)> populate_func)
+  : _filename(filename_in),
+    _flags(0),
+    _readonly(false),
+    _size(size_in),
+    _length(sizeof(T) * _size),
+    _mapped(0)
+{
+  assert(_length / sizeof(T) == _size);
+
+  const size_t chunk_bytes = size_t(1) << 13; // 8KB
+  static_assert(chunk_bytes % sizeof(T) == 0);
+  const size_t chunk_elements = chunk_bytes / sizeof(T);
+
+  int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+
+  std::vector<T> chunk_buffer(chunk_elements);
+  for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
+    {
+      size_t chunk_end = std::min(chunk_start + chunk_elements, _size);
+      std::ranges::iota_view index_range(chunk_start, chunk_end);
+
+      TRY_PARALLEL_4(std::transform,
+                     index_range.begin(),
+                     index_range.end(),
+                     chunk_buffer.begin(),
+                     populate_func);
+
+      const char *chunk_data = static_cast<const char *>(static_cast<void *>(chunk_buffer.data()));
+
+      int bytes_wanted = (chunk_end - chunk_start) * sizeof(T);
+      int bytes_written = 0;
+      while(bytes_written < bytes_wanted)
+        {
+          int ret = write(fildes, chunk_data + bytes_written, bytes_wanted - bytes_written);
+          if(ret < 0)
+            {
+              perror("write");
+              throw std::runtime_error("write() failed");
+            }
+          assert(ret > 0);
+          assert(ret <= bytes_wanted - bytes_written);
+
+          bytes_written += ret;
+        }
+    }
+
   ftruncate(fildes);
   this->mmap(fildes);
 
