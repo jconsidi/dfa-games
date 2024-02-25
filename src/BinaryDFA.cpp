@@ -1022,29 +1022,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       dfa_state_t layer_size = curr_pairs_permutation_to_output[curr_layer_count - 1] + 1;
 
-      profile.tic("backward states reject");
-
-      for(dfa_state_t curr_pairs_sorted_index = 0; curr_pairs_sorted_index < curr_layer_count; ++curr_pairs_sorted_index)
-	{
-	  dfa_state_t curr_pair_rank = curr_pairs_permutation[curr_pairs_sorted_index];
-
-	  bool is_reject = true;
-	  for(int i = 0; i < curr_layer_shape; ++i)
-	    {
-	      if(curr_transitions[curr_pair_rank * curr_layer_shape + i] != 0)
-		{
-		  is_reject = false;
-		}
-	    }
-
-	  if(!is_reject)
-	    {
-	      break;
-	    }
-
-	  curr_pairs_permutation_to_output[curr_pairs_sorted_index] = 0;
-	}
-
       profile.tic("backward states resize");
 
       set_layer_size(layer, layer_size);
