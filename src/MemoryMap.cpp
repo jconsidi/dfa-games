@@ -75,13 +75,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
   assert(_length / sizeof(T) == _size);
 
   int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-
-  if(ftruncate(fildes, _length))
-    {
-      perror("ftruncate");
-      throw std::runtime_error("ftruncate() failed");
-    }
-
+  ftruncate(fildes);
   this->mmap(fildes);
 
   int close_ret = close(fildes);
@@ -180,6 +174,16 @@ const T *MemoryMap<T>::end() const
 {
   assert(_mapped);
   return ((const T *) _mapped) + _size;
+}
+
+template <class T>
+void MemoryMap<T>::ftruncate(int fildes)
+{
+  if(::ftruncate(fildes, _length))
+    {
+      perror("ftruncate");
+      throw std::runtime_error("ftruncate() failed");
+    }
 }
 
 template<class T>

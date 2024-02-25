@@ -18,6 +18,7 @@ class MemoryMap
 
   mutable void *_mapped;
 
+  void ftruncate(int);
   void mmap(int) const;
   int open(int, int) const;
 
