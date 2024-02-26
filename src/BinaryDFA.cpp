@@ -436,7 +436,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     profile2.tic("right");
 
     right_in.get_transitions(layer, 0);
-    MemoryMap<dfa_state_t> transition_pairs_right("scratch/binarydfa/transition_pairs_right", transition_pairs_size, [&](size_t transition_index)
+
+    MemoryMap<size_t> curr_transition_pairs("scratch/binarydfa/transition_pairs", transition_pairs_size, [&](size_t transition_index)
     {
       size_t curr_i = transition_index / curr_layer_shape;
       size_t curr_j = transition_index % curr_layer_shape;
@@ -445,15 +446,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       size_t curr_right_state = curr_pair % curr_right_size;
 
       DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
-      return right_transitions.at(curr_j);
-    });
-
-    // merge left and right transitions into pairs
-    profile2.tic("pairs");
-
-    MemoryMap<size_t> curr_transition_pairs("scratch/binarydfa/transition_pairs", transition_pairs_size, [&](size_t transition_index)
-    {
-      return size_t(transition_pairs_left[transition_index]) * next_right_size + size_t(transition_pairs_right[transition_index]);
+      return size_t(transition_pairs_left[transition_index]) * next_right_size + size_t(right_transitions.at(curr_j));
     });
 
     // cleanup
