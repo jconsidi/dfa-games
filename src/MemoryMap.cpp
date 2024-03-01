@@ -100,7 +100,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
 {
   assert(_length / sizeof(T) == _size);
 
-  const size_t chunk_bytes = size_t(1) << 13; // 8KB
+  const size_t chunk_bytes = size_t(1) << 12; // 4KB
   static_assert(chunk_bytes % sizeof(T) == 0);
   const size_t chunk_elements = chunk_bytes / sizeof(T);
 
