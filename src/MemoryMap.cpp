@@ -397,3 +397,5 @@ template class MemoryMap<int>;
 template class MemoryMap<long long unsigned int>;
 template class MemoryMap<long unsigned int>;
 template class MemoryMap<unsigned int>;
+
+template class MemoryMap<BinaryDFATransitionsHashPlusIndex>;

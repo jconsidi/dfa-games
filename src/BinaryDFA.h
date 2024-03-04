@@ -3,6 +3,7 @@
 #ifndef BINARY_DFA_H
 #define BINARY_DFA_H
 
+#include <cstdint>
 #include <map>
 #include <utility>
 #include <vector>
@@ -19,5 +20,47 @@ public:
 
   BinaryDFA(const DFA&, const DFA&, const BinaryFunction&);
 };
+
+const int binary_dfa_hash_width = 32 / sizeof(dfa_state_t);
+struct BinaryDFATransitionsHashPlusIndex
+{
+  dfa_state_t data[binary_dfa_hash_width];
+
+  bool operator<(const BinaryDFATransitionsHashPlusIndex& b) const
+  {
+    for(int i = 0; i < binary_dfa_hash_width - 1; ++i)
+      {
+        if(this->data[i] < b.data[i])
+          {
+            return true;
+          }
+        if(this->data[i] > b.data[i])
+          {
+            return false;
+          }
+      }
+
+    return false;
+  };
+
+  bool operator==(const BinaryDFATransitionsHashPlusIndex& b) const
+  {
+    for(int i = 0; i < binary_dfa_hash_width - 1; ++i)
+      {
+        if(this->data[i] != b.data[i])
+          {
+            return false;
+          }
+      }
+
+    return true;
+  };
+
+  dfa_state_t get_pair_rank() const
+  {
+    return data[binary_dfa_hash_width - 1];
+  }
+};
+static_assert(sizeof(BinaryDFATransitionsHashPlusIndex) == 32);
 
 #endif
