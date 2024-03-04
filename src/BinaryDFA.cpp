@@ -484,10 +484,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
 
-      profile.tic("forward transition pairs sync");
-
-      sync_if_big<size_t>(curr_transition_pairs);
-
       // helper functions
 
       profile.tic("forward transition pairs filter sort unique");
