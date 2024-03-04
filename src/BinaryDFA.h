@@ -21,7 +21,8 @@ public:
   BinaryDFA(const DFA&, const DFA&, const BinaryFunction&);
 };
 
-const int binary_dfa_hash_width = 32 / sizeof(dfa_state_t);
+const int binary_dfa_hash_bytes = 16;
+const int binary_dfa_hash_width = binary_dfa_hash_bytes / sizeof(dfa_state_t);
 struct BinaryDFATransitionsHashPlusIndex
 {
   dfa_state_t data[binary_dfa_hash_width];
@@ -61,6 +62,6 @@ struct BinaryDFATransitionsHashPlusIndex
     return data[binary_dfa_hash_width - 1];
   }
 };
-static_assert(sizeof(BinaryDFATransitionsHashPlusIndex) == 32);
+static_assert(sizeof(BinaryDFATransitionsHashPlusIndex) == binary_dfa_hash_bytes);
 
 #endif
