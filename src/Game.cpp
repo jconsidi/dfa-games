@@ -44,6 +44,11 @@ void Game::build_move_graphs(int side_to_move) const
   move_graphs_ready[side_to_move] = true;
 }
 
+shared_dfa_ptr Game::build_positions_forward_bound(int) const
+{
+  return 0;
+}
+
 shared_dfa_ptr Game::build_positions_losing(int side_to_move, int ply_max) const
 {
   assert(ply_max >= 0);
@@ -240,6 +245,12 @@ shared_dfa_ptr Game::get_positions_forward(int ply) const
 			 shared_dfa_ptr previous = get_positions_forward(ply - 1);
 			 return get_moves_forward((ply - 1) % 2, previous);
 		       });
+}
+
+shared_dfa_ptr Game::get_positions_forward_bound(int ply) const
+{
+  // TODO : save this? should be light, and need to handle NULL case.
+  return build_positions_forward_bound(ply);
 }
 
 shared_dfa_ptr Game::get_positions_initial() const

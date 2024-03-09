@@ -39,6 +39,7 @@ protected:
 
   // move generation
 
+  virtual shared_dfa_ptr build_positions_forward_bound(int) const;
   virtual shared_dfa_ptr build_positions_losing(int, int) const;
   virtual shared_dfa_ptr build_positions_lost(int) const;
   virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
@@ -70,6 +71,7 @@ public:
   virtual DFAString get_position_initial() const = 0;
 
   shared_dfa_ptr get_positions_forward(int) const;
+  shared_dfa_ptr get_positions_forward_bound(int) const;
   shared_dfa_ptr get_positions_initial() const;
   shared_dfa_ptr get_positions_losing(int, int) const; // side to move loses in at most given ply
   shared_dfa_ptr get_positions_lost(int) const; // side to move has lost, no moves available
