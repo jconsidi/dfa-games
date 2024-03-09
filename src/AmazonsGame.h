@@ -17,6 +17,12 @@ private:
 
   virtual MoveGraph build_move_graph(int) const;
 
+protected:
+
+  // move generation
+
+  virtual shared_dfa_ptr build_positions_forward_bound(int) const;
+
 public:
 
   AmazonsGame(int, int);
