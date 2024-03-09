@@ -8,8 +8,6 @@
 #include <tuple>
 #include <vector>
 
-#include "ChangeDFA.h"
-#include "CountCharacterDFA.h"
 #include "DFA.h"
 #include "MoveGraph.h"
 
