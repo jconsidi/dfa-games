@@ -35,4 +35,5 @@ validate_backward
 validate_dfa
 validate_forward
 validate_forward_backward
+validate_forward_bound
 validate_terminal

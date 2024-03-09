@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_backward build_chess_database build_forward build_forward_backward divide generate_moves print random random_uci solve_backward stats stats_backward stats_forward stats_forward_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal
+TARGETS=build_backward build_chess_database build_forward build_forward_backward divide generate_moves print random random_uci solve_backward stats stats_backward stats_forward stats_forward_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_sort_unique test_tictactoe_game validate_backward validate_dfa validate_forward validate_forward_backward validate_forward_bound validate_terminal
 
 all : $(TARGETS)
 
@@ -156,6 +156,9 @@ validate_forward : validate_forward.o test_utils.o validate_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 validate_forward_backward : validate_forward_backward.o test_utils.o validate_utils.o dfagames.a
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+validate_forward_bound : validate_forward_bound.o test_utils.o validate_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 validate_terminal : validate_terminal.o test_utils.o validate_utils.o dfagames.a
