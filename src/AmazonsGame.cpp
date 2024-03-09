@@ -118,6 +118,21 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
   return move_graph;
 }
 
+shared_dfa_ptr AmazonsGame::build_positions_forward_bound(int ply) const
+{
+  if(ply > width * height)
+    {
+      return DFAUtil::get_reject(get_shape());
+    }
+
+  std::vector<shared_dfa_ptr> conditions;
+
+  // number of arrows shot
+  conditions.push_back(DFAUtil::get_count_character(get_shape(), 3, ply));
+
+  return DFAUtil::get_intersection_vector(get_shape(), conditions);
+}
+
 shared_dfa_ptr AmazonsGame::build_positions_reversed(shared_dfa_ptr positions_in) const
 {
   MoveGraph reverse_graph(get_shape());

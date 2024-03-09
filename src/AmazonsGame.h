@@ -18,6 +18,12 @@ private:
   virtual MoveGraph build_move_graph(int) const;
   virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 
+protected:
+
+  // move generation
+
+  virtual shared_dfa_ptr build_positions_forward_bound(int) const;
+
 public:
 
   AmazonsGame(int, int);
