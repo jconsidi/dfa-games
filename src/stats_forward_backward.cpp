@@ -1,4 +1,4 @@
-// solve_forward_backward.cpp
+// stats_forward_backward.cpp
 
 #include <format>
 #include <iostream>
@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: solve_forward_backward test_forward GAME_NAME [FORWARD_PLY] [BACKWARD_PLY]\n";
+      std::cerr << "usage: stats_forward_backward test_forward GAME_NAME [FORWARD_PLY] [BACKWARD_PLY]\n";
       return 1;
     }
 
