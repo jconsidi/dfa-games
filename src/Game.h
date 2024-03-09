@@ -34,16 +34,18 @@ protected:
   int get_shape_size() const {return shape.size();}
   void save(std::string, shared_dfa_ptr) const;
 
-public:
-
-  virtual ~Game();
-
   // move generation
 
   virtual shared_dfa_ptr build_positions_losing(int, int) const;
   virtual shared_dfa_ptr build_positions_lost(int) const;
   virtual shared_dfa_ptr build_positions_winning(int, int) const;
   virtual shared_dfa_ptr build_positions_won(int) const;
+
+public:
+
+  virtual ~Game();
+
+  // move generation
 
   shared_dfa_ptr get_has_moves(int) const;
 
