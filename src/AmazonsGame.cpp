@@ -51,7 +51,6 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 
   MoveGraph move_graph(get_shape());
   move_graph.add_node("begin");
-  move_graph.add_node("begin+1");
   for(int layer : layers)
     {
       move_graph.add_node(get_node_name("move from", layer), layer, 1 + side_to_move, 0);
@@ -64,28 +63,14 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
     {
       move_graph.add_node(get_node_name("shot at", layer), layer, 0, 3);
     }
-  move_graph.add_node("end-1");
   move_graph.add_node("end");
-
-  // pre and post legal conditions
-
-  shared_dfa_ptr accept = DFAUtil::get_accept(get_shape());
-
-  shared_dfa_ptr legal_condition = accept;
-
-  // begin - legal positions
-
-  move_graph.add_edge("begin legal",
-		      "begin",
-		      "begin+1",
-		      legal_condition);
 
   // pick queen to move
 
   for(int from_layer : layers)
     {
       move_graph.add_edge(get_node_name("move from", from_layer),
-			  "begin+1",
+			  "begin",
 			  get_node_name("move from", from_layer));
     }
 
@@ -123,15 +108,8 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
     {
       move_graph.add_edge(get_node_name("shot at", at_layer),
 			  get_node_name("shot at", at_layer),
-			  "end-1");
+			  "end");
     }
-
-  // end - legal positions
-
-  move_graph.add_edge("end legal",
-		      "end-1",
-		      "end",
-		      legal_condition);
 
   // done
 
