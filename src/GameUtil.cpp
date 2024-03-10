@@ -44,6 +44,14 @@ std::vector<std::pair<int, int>> GameUtil::get_between(int x_begin, int y_begin,
 const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil::get_queen_moves(int offset, int width, int height)
 {
   static std::vector<std::tuple<int, int, std::vector<int>>> output;
+  static int width_cache = 0;
+  static int height_cache = 0;
+
+  if(output.size())
+    {
+      assert(width == width_cache);
+      assert(height == height_cache);
+    }
 
   if(output.size() == 0)
     {
@@ -85,6 +93,9 @@ const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil::get_queen_m
 		}
 	    }
 	}
+
+      width_cache = width;
+      height_cache = height;
     }
 
   return output;
