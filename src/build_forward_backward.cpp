@@ -63,7 +63,11 @@ int main(int argc, char **argv)
 
       int side_to_move = ply % 2;
 
-      shared_dfa_ptr positions = game->get_positions_forward(ply);
+      shared_dfa_ptr positions = game->get_positions_forward_bound(ply);
+      if(!positions)
+        {
+          positions = game->get_positions_forward(ply);
+        }
       assert(positions);
       if(positions->is_constant(false))
 	{

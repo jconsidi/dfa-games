@@ -37,12 +37,16 @@ int main(int argc, char **argv)
   std::cout << "ply\treachable_states\treachable_positions\twinning_states\twinning_positions\tlosing_states\tlosing_positions\tunknown_states\tunknown_positions" << std::endl;
   for(int ply = 0; ply <= forward_ply_max; ++ply)
     {
-      std::string reachable_name = std::format("forward,ply={:03d}", ply);
-      shared_dfa_ptr reachable = load_helper(reachable_name);
+      shared_dfa_ptr reachable = game->get_positions_forward_bound(ply);
       if(!reachable)
-	{
-	  return 1;
-	}
+        {
+          std::string reachable_name = std::format("forward,ply={:03d}", ply);
+          reachable = load_helper(reachable_name);
+          if(!reachable)
+            {
+              return 1;
+            }
+        }
 
       shared_dfa_ptr winning = load_result(ply, "winning");
       if(!winning)
