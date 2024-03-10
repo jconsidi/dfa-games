@@ -126,6 +126,10 @@ shared_dfa_ptr AmazonsGame::build_positions_forward_bound(int ply) const
 
   std::vector<shared_dfa_ptr> conditions;
 
+  // side 0 / player 1 pieces
+  conditions.push_back(DFAUtil::get_count_character(get_shape(), 1, 4));
+  // side 1 / player 2 pieces
+  conditions.push_back(DFAUtil::get_count_character(get_shape(), 2, 4));
   // number of arrows shot
   conditions.push_back(DFAUtil::get_count_character(get_shape(), 3, ply));
 
