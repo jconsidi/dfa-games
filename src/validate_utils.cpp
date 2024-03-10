@@ -6,6 +6,17 @@
 
 #include "DFAUtil.h"
 
+static void print_example(const Game& game, shared_dfa_ptr positions)
+{
+  for(auto iter = positions->cbegin();
+          iter < positions->cend();
+      ++iter)
+    {
+      std::cerr << game.position_to_string(*iter) << std::endl;
+      break;
+    }
+}
+
 template <class... Args>
 shared_dfa_ptr load_helper(const Game& game, const std::format_string<Args...>& name_format, Args&&... args)
 {
@@ -29,7 +40,7 @@ bool validate_disjoint(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
   return DFAUtil::get_intersection(dfa_a, dfa_b)->is_constant(0);
 }
 
-bool validate_equal(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
+bool validate_equal(const Game& game, std::string name_a, shared_dfa_ptr dfa_a, std::string name_b, shared_dfa_ptr dfa_b)
 {
   if(dfa_a->get_shape() != dfa_b->get_shape())
     {
@@ -44,8 +55,26 @@ bool validate_equal(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 
   // hashes may be different if states are in a different order...
 
-  return (DFAUtil::get_difference(dfa_a, dfa_b)->is_constant(false) &&
-	  DFAUtil::get_difference(dfa_b, dfa_a)->is_constant(false));
+  shared_dfa_ptr dfa_a_minus_b = DFAUtil::get_difference(dfa_a, dfa_b);
+  if(!dfa_a_minus_b->is_constant(false))
+    {
+      auto size_a_minus_b = dfa_a_minus_b->size();
+      std::cerr << name_a << " HAS " << size_a_minus_b << " EXTRA POSITIONS" << std::endl;
+      print_example(game, dfa_a_minus_b);
+    }
+
+  shared_dfa_ptr dfa_b_minus_a = DFAUtil::get_difference(dfa_b, dfa_a);
+  if(!dfa_b_minus_a->is_constant(false))
+    {
+      auto size_b_minus_a = dfa_b_minus_a->size();
+      std::cerr << name_b << " HAS " << size_b_minus_a << " EXTRA POSITIONS" << std::endl;
+      print_example(game, dfa_b_minus_a);
+    }
+
+  return (dfa_a_minus_b->is_constant(false) &&
+          dfa_b_minus_a->is_constant(false));
+
+  return true;
 }
 
 bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_losing, shared_dfa_ptr next_winning, shared_dfa_ptr base_losing, int max_examples)
@@ -99,10 +128,10 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
   return true;
 }
 
-bool validate_partition(shared_dfa_ptr target, std::vector<shared_dfa_ptr> partition)
+bool validate_partition(const Game& game, shared_dfa_ptr target, std::vector<shared_dfa_ptr> partition)
 {
   shared_dfa_ptr union_check = DFAUtil::get_union_vector(target->get_shape(), partition);
-  if(!validate_equal(union_check, target))
+  if(!validate_equal(game, "UNION", union_check, "EXPECTED", target))
     {
       std::cerr << "PARTITION CHECK FAILED: UNION MISMATCH" << std::endl;
       return false;

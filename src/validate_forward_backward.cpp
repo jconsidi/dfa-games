@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
       std::cout << "PARTITION CHECK" << std::endl;
 
-      if(!validate_partition(positions, std::vector<shared_dfa_ptr>({winning, losing, unknown})))
+      if(!validate_partition(*game, positions, std::vector<shared_dfa_ptr>({winning, losing, unknown})))
 	{
 	  std::cerr << "PARTITION CHECK FAILED" << std::endl;
 	  return 1;

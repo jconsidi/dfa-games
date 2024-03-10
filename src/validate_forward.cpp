@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 	    ? DFAUtil::from_strings(shape, expected_samples)
 	    : DFAUtil::get_reject(shape);
 
-	  if(!validate_equal(positions, expected_u))
+	  if(!validate_equal(*game, "ACTUAL", positions, "EXPECTED", expected_u))
 	    {
 	      std::cerr << "POSITIONS DIFFERENCE AT PLY " << ply << std::endl;
 	      return 1;

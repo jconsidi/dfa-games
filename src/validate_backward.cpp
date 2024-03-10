@@ -23,7 +23,7 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
 
   std::cout << "CHECK PARTITION" << std::endl;
 
-  if(!validate_partition(accept, std::vector<shared_dfa_ptr>({curr_winning, curr_losing, curr_unknown})))
+  if(!validate_partition(game, accept, std::vector<shared_dfa_ptr>({curr_winning, curr_losing, curr_unknown})))
     {
       std::cerr << "PARTITION CHECK FAILED" << std::endl;
       return 1;
@@ -36,7 +36,7 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
       std::cout << "CHECK LOSING = LOST" << std::endl;
 
       shared_dfa_ptr lost = game.get_positions_lost(side_to_move);
-      if(!validate_equal(curr_losing, lost))
+      if(!validate_equal(game, "LOSING", curr_losing, "LOST", lost))
 	{
 	  std::cerr << "CHECK LOSING = LOST FAILED" << std::endl;
 	  return false;
@@ -45,7 +45,7 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
       std::cout << "CHECK WINNING = WON" << std::endl;
 
       shared_dfa_ptr won = game.get_positions_won(side_to_move);
-      if(!validate_equal(curr_winning, won))
+      if(!validate_equal(game, "WINNING", curr_winning, "WON", won))
 	{
 	  std::cerr << "CHECK WINNING = WON FAILED" << std::endl;
 	  return false;
