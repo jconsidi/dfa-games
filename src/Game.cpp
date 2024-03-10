@@ -250,6 +250,12 @@ shared_dfa_ptr Game::get_positions_forward(int ply) const
 shared_dfa_ptr Game::get_positions_forward_bound(int ply) const
 {
   // TODO : save this? should be light, and need to handle NULL case.
+
+  if(ply == 0)
+    {
+      return get_positions_initial();
+    }
+
   return build_positions_forward_bound(ply);
 }
 
