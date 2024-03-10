@@ -156,13 +156,3 @@ std::string TicTacToeGame::position_to_string(const DFAString& position_in) cons
 
   return builder.str();
 }
-
-std::vector<DFAString> TicTacToeGame::validate_moves(int, DFAString) const
-{
-  throw std::logic_error("not implemented");
-}
-
-int TicTacToeGame::validate_result(int, DFAString) const
-{
-  throw std::logic_error("not implemented");
-}

@@ -85,8 +85,8 @@ public:
 
   // validation
 
-  virtual std::vector<DFAString> validate_moves(int, DFAString) const = 0;
-  virtual int validate_result(int, DFAString) const = 0;
+  virtual std::vector<DFAString> validate_moves(int, DFAString) const;
+  virtual int validate_result(int, DFAString) const;
 };
 
 #endif

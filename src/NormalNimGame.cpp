@@ -80,8 +80,3 @@ std::string NormalNimGame::position_to_string(const DFAString& string_in) const
     }
   return output;
 }
-
-std::vector<DFAString> NormalNimGame::validate_moves(int, DFAString) const
-{
-  throw std::logic_error("not implemented");
-}
