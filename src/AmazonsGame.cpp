@@ -3,6 +3,7 @@
 #include "AmazonsGame.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <sstream>
 
 #include "DFAUtil.h"
@@ -200,7 +201,90 @@ std::string AmazonsGame::position_to_string(const DFAString& string_in) const
   return output.str();
 }
 
-std::vector<DFAString> AmazonsGame::validate_moves(int, DFAString) const
+std::vector<DFAString> AmazonsGame::validate_moves(int side_to_move, DFAString position) const
 {
-  throw std::logic_error("not implemented");
+  std::vector<DFAString> output;
+
+  std::vector<std::vector<std::tuple<int, std::vector<int>>>> queen_moves(get_shape().size());
+  for(auto queen_move : GameUtil::get_queen_moves(0, width, height))
+    {
+      int from_layer = std::get<0>(queen_move);
+      int to_layer = std::get<1>(queen_move);
+      const std::vector<int>& between = std::get<2>(queen_move);
+
+      queen_moves[from_layer].emplace_back(to_layer, between);
+    }
+
+  auto check_between = [&](const std::vector<int>& between_layers)
+  {
+    for(int layer : between_layers)
+      {
+        if(position[layer])
+          {
+            return false;
+          }
+      }
+
+    return true;
+  };
+
+  int layers = get_shape().size();
+  for(int from_layer = 0; from_layer < layers; ++from_layer)
+    {
+      if(position[from_layer] != 1 + side_to_move)
+        {
+          // from square not friendly piece
+          continue;
+        }
+
+      for(auto queen_move : queen_moves.at(from_layer))
+        {
+          int to_layer = std::get<0>(queen_move);
+          if(position[to_layer] != 0)
+            {
+              // to square not empty
+              continue;
+            }
+
+          if(!check_between(std::get<1>(queen_move)))
+            {
+              // not a queen move
+              continue;
+            }
+
+          for(auto queen_shot : queen_moves.at(to_layer))
+            {
+              int shot_layer = std::get<0>(queen_shot);
+              if((shot_layer != from_layer) && (position[shot_layer] != 0))
+                {
+                  continue;
+                }
+
+              std::vector<int> shot_between;
+              for(int shot_between_layer : std::get<1>(queen_shot))
+                {
+                  if(shot_between_layer != from_layer)
+                    {
+                      shot_between.push_back(shot_between_layer);
+                    }
+                }
+              if(!check_between(shot_between))
+                {
+                  continue;
+                }
+
+              std::vector<int> move(layers);
+              for(int i = 0; i < layers; ++i)
+                {
+                  move[i] = position[i];
+                }
+              move[from_layer] = 0;
+              move[to_layer] = 1 + side_to_move;
+              move[shot_layer] = 3;
+              output.emplace_back(get_shape(), move);
+            }
+        }
+    }
+
+  return output;
 }
