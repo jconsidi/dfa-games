@@ -39,7 +39,11 @@ int main(int argc, char **argv)
 
       int side_to_move = ply % 2;
 
-      shared_dfa_ptr positions = load_helper(*game, positions_format, ply);
+      shared_dfa_ptr positions = game->get_positions_forward_bound(ply);
+      if(!positions)
+        {
+          positions = load_helper(*game, positions_format, ply);
+        }
       if(!positions)
 	{
 	  return 1;
