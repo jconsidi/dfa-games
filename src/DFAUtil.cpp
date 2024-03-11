@@ -25,6 +25,8 @@
 #include "StringDFA.h"
 #include "UnionDFA.h"
 
+#define BINARY_SCORE_LINEAR_BOUND
+
 double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
   int ndim = dfa_a->get_shape_size();
@@ -51,22 +53,25 @@ double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 
 #ifdef BINARY_SCORE_LINEAR_BOUND
       // inference from linear bounds showing potential intersection
-      if(might_intersect)
-	{
-	  bool layer_shares_characters = false;
-	  for(int c = 0; c < layer_shape; ++c)
-	    {
-	      if(bound_a.check_bound(layer, c) &&
-		 bound_b.check_bound(layer, c))
-		{
-		  layer_shares_characters = true;
-		  break;
-		}
-	    }
-	  if(!layer_shares_characters)
-	    {
-	      might_intersect = false;
-	    }
+
+      int layer_shares_characters = 0;
+      for(int c = 0; c < layer_shape; ++c)
+        {
+          if(bound_a.check_bound(layer, c) &&
+             bound_b.check_bound(layer, c))
+            {
+              ++layer_shares_characters;
+            }
+        }
+
+      // modified fanout bound
+      layer_bounds.push_back(double(states_max.back()) * layer_shares_characters +
+                             double(dfa_a->get_layer_size(layer)) +
+                             double(dfa_b->get_layer_size(layer)));
+
+      if(!layer_shares_characters)
+        {
+          might_intersect = false;
 	}
       if(!might_intersect)
 	{
