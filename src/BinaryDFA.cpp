@@ -17,7 +17,6 @@
 #include <string>
 #include <unistd.h>
 
-#include "Flashsort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "VectorBitSet.h"
@@ -505,7 +504,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       {
 	if(unique_end > curr_transition_pairs.begin())
 	  {
-	    assert(*(unique_end - 1) < next_pair);
+	    assert(*(unique_end - 1) <= next_pair);
+            if(*(unique_end - 1) == next_pair)
+              {
+                --unique_end;
+              }
 	  }
       };
 
@@ -599,39 +602,26 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
 	  profile2.tic("partition");
 
-	  size_t target_buckets = 1024;
-	  size_t divisor = (value_width + target_buckets - 1) / target_buckets;
-	  assert(divisor > 0);
+          auto mid = begin + (end - begin + 1) / 2;
+          assert(begin < mid);
+          assert(mid < end);
 
-	  std::vector<size_t *> partition = flashsort_partition<size_t, size_t>(begin, end, [=](const size_t& v){return (v - value_min) / divisor;});
-	  assert(partition.at(0) == begin);
-	  assert(partition.back() == end);
-	  assert(partition.size() - 1 <= target_buckets);
-	  sync_if_big(range_bytes);
+          TRY_PARALLEL_3(std::nth_element,
+                         begin,
+                         mid,
+                         end);
+          auto value_mid = *mid;
+          assert(value_min <= value_mid);
+          assert(value_mid <= value_max);
 
-	  for(int i = partition.size() - 2; i >= 0; --i)
-	    {
-	      assert(partition[i] <= partition[i + 1]);
-	      if(partition[i] == partition[i + 1])
-		{
-		  continue;
-		}
-
-	      size_t partition_value_min = value_min + i * divisor;
-	      size_t partition_value_max = value_min + (i + 1) * divisor;
-
-#ifdef PARANOIA
-	      size_t partition_value_min_check = *std::min_element(partition[i], partition[i+1]);
-	      size_t partition_value_max_check = *std::max_element(partition[i], partition[i+1]);
-	      assert(partition_value_min <= partition_value_min_check);
-	      assert(partition_value_max_check < partition_value_max);
-#endif
-
-	      unique_queue.emplace_back(partition[i],
-					partition[i + 1],
-					partition_value_min,
-					partition_value_max);
-	    }
+          unique_queue.emplace_back(mid,
+                                    end,
+                                    value_mid,
+                                    value_max);
+          unique_queue.emplace_back(begin,
+                                    mid,
+                                    value_min,
+                                    value_mid);
 	}
 
       std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
