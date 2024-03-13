@@ -452,16 +452,28 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
     right_in.get_transitions(layer, 0);
 
-    MemoryMap<size_t> curr_transition_pairs("scratch/binarydfa/transition_pairs", transition_pairs_size, [&](size_t transition_index)
+    MemoryMap<size_t> curr_transition_pairs("scratch/binarydfa/transition_pairs", transition_pairs_size);
+    TRY_PARALLEL_3(std::for_each, chunk_indexes.begin(), chunk_indexes.end(), [&](size_t chunk_index)
     {
-      size_t curr_i = transition_index / curr_layer_shape;
-      size_t curr_j = transition_index % curr_layer_shape;
+      size_t curr_i_min = chunk_index * chunk_size;
+      size_t curr_i_max = std::min(curr_i_min + chunk_size,
+                                   curr_pairs.size());
 
-      size_t curr_pair = curr_pairs[curr_i];
-      size_t curr_right_state = curr_pair % curr_right_size;
+      for(size_t curr_i = curr_i_min;
+          curr_i < curr_i_max;
+          ++curr_i)
+        {
+          size_t curr_pair = curr_pairs[curr_i];
+          size_t curr_right_state = curr_pair % curr_right_size;
+          DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
 
-      DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
-      return size_t(transition_pairs_left[transition_index]) * next_right_size + size_t(right_transitions.at(curr_j));
+          for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
+            {
+              size_t transition_index = curr_i * curr_layer_shape + curr_j;
+
+              curr_transition_pairs[transition_index] = size_t(transition_pairs_left[transition_index]) * next_right_size + size_t(right_transitions.at(curr_j));
+            }
+        }
     });
 
     // cleanup
