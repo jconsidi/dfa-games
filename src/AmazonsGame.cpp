@@ -119,15 +119,22 @@ MoveGraph AmazonsGame::build_move_graph(int side_to_move) const
 
 shared_dfa_ptr AmazonsGame::build_positions_forward_bound(int ply) const
 {
-  if(ply > width * height)
+  if(ply > width * height - 8)
     {
       return DFAUtil::get_reject(get_shape());
     }
 
   std::vector<shared_dfa_ptr> conditions;
 
+  // number of blank spaces
+  int blank_count = width * height - 8 - ply;
+  if(blank_count < 0)
+    {
+      return DFAUtil::get_reject(get_shape());
+    }
+  conditions.push_back(DFAUtil::get_count_character(get_shape(), 0, blank_count));
   // number of arrows shot
-  conditions.push_back(DFAUtil::get_count_character(get_shape(), 3, ply));
+  // conditions.push_back(DFAUtil::get_count_character(get_shape(), 3, ply));
 
   return DFAUtil::get_intersection_vector(get_shape(), conditions);
 }
