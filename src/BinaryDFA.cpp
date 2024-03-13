@@ -420,17 +420,31 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     // read left transitions
     profile2.tic("left");
 
+    size_t chunk_size = 1024;
+    size_t chunks = (curr_pairs.size() + (chunk_size - 1)) / chunk_size;
+    std::ranges::iota_view chunk_indexes(size_t(0), chunks);
+
     left_in.get_transitions(layer, 0);
-    MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
+    MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size);
+    TRY_PARALLEL_3(std::for_each, chunk_indexes.begin(), chunk_indexes.end(), [&](size_t chunk_index)
     {
-      size_t curr_i = transition_index / curr_layer_shape;
-      size_t curr_j = transition_index % curr_layer_shape;
+      size_t curr_i_min = chunk_index * chunk_size;
+      size_t curr_i_max = std::min(curr_i_min + chunk_size,
+                                   curr_pairs.size());
 
-      size_t curr_pair = curr_pairs[curr_i];
-      size_t curr_left_state = curr_pair / curr_right_size;
+      for(size_t curr_i = curr_i_min;
+          curr_i < curr_i_max;
+          ++curr_i)
+        {
+          size_t curr_pair = curr_pairs[curr_i];
+          size_t curr_left_state = curr_pair / curr_right_size;
+          DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
 
-      DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
-      return left_transitions.at(curr_j);
+          for(int curr_j = 0; curr_j < curr_layer_shape; ++curr_j)
+            {
+              transition_pairs_left[curr_i * curr_layer_shape + curr_j] = left_transitions.at(curr_j);
+            }
+        }
     });
 
     // read right transitions
