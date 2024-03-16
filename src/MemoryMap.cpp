@@ -432,6 +432,25 @@ size_t MemoryMap<T>::size() const
   return _size;
 }
 
+template<class T>
+void MemoryMap<T>::truncate(size_t size_in)
+{
+  munmap();
+
+  _size = size_in;
+  _length = _size * sizeof(T);
+
+  int fildes = open(O_RDWR, 0);
+  ftruncate(fildes);
+
+  int close_ret = close(fildes);
+  if(close_ret != 0)
+    {
+      perror("constructor close");
+      throw std::runtime_error("constructor close failed");
+    }
+}
+
 // template instantiations
 
 #include "BinaryDFA.h"
