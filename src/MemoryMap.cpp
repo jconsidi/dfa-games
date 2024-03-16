@@ -385,6 +385,20 @@ int MemoryMap<T>::open(int flags, int mode) const
   return fildes;
 }
 
+template <class T>
+void MemoryMap<T>::rename(std::string filename_in)
+{
+  int ret = ::rename(_filename.c_str(), filename_in.c_str());
+  if(ret != 0)
+    {
+      std::cerr << "rename " << _filename << " to " << filename_in << " failed" << std::endl;
+      perror("rename");
+      throw std::runtime_error("rename() failed");
+    }
+
+  _filename = filename_in;
+}
+
 template<class T>
 size_t MemoryMap<T>::size() const
 {
