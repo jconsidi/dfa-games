@@ -45,6 +45,7 @@ public:
   void mmap() const;
   void msync();
   void munmap() const;
+  void rename(std::string);
   size_t size() const;
 };
 
