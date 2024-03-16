@@ -14,6 +14,27 @@
 #include "parallel.h"
 
 template<class T>
+void write_helper(int fildes, const T *buffer, size_t elements)
+{
+  const char *buffer_bytes = reinterpret_cast<const char *>(buffer);
+  int bytes_wanted = elements * sizeof(T);
+  int bytes_written = 0;
+  while(bytes_written < bytes_wanted)
+    {
+      int ret = write(fildes, buffer_bytes + bytes_written, bytes_wanted - bytes_written);
+      if(ret < 0)
+        {
+          perror("write");
+          throw std::runtime_error("write() failed");
+        }
+      assert(ret > 0);
+      assert(ret <= bytes_wanted - bytes_written);
+
+      bytes_written += ret;
+    }
+}
+
+template<class T>
 MemoryMap<T>::MemoryMap(size_t size_in)
   : _filename(),
     _flags(MAP_ANONYMOUS),
@@ -119,25 +140,31 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
                      chunk_buffer.begin(),
                      populate_func);
 
-      const char *chunk_data = static_cast<const char *>(static_cast<void *>(chunk_buffer.data()));
-
-      int bytes_wanted = (chunk_end - chunk_start) * sizeof(T);
-      int bytes_written = 0;
-      while(bytes_written < bytes_wanted)
-        {
-          int ret = write(fildes, chunk_data + bytes_written, bytes_wanted - bytes_written);
-          if(ret < 0)
-            {
-              perror("write");
-              throw std::runtime_error("write() failed");
-            }
-          assert(ret > 0);
-          assert(ret <= bytes_wanted - bytes_written);
-
-          bytes_written += ret;
-        }
+      write_helper(fildes, chunk_buffer.data(), chunk_end - chunk_start);
     }
 
+  ftruncate(fildes);
+  this->mmap(fildes);
+
+  int close_ret = close(fildes);
+  if(close_ret != 0)
+    {
+      perror("constructor close");
+      throw std::runtime_error("constructor close failed");
+    }
+}
+
+template<class T>
+MemoryMap<T>::MemoryMap(std::string filename_in, const std::vector<T>& buffer_in)
+  : _filename(filename_in),
+    _flags(0),
+    _readonly(false),
+    _size(buffer_in.size()),
+    _length(sizeof(T) * _size),
+    _mapped(0)
+{
+  int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  write_helper(fildes, buffer_in.data(), buffer_in.size());
   ftruncate(fildes);
   this->mmap(fildes);
 
