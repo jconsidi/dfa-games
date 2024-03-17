@@ -11,8 +11,16 @@
 #include "MemoryMap.h"
 
 template <class T>
-MemoryMap<T> merge(std::string output_filename, const std::vector<MemoryMap<T>>& inputs, bool filter_duplicates)
+MemoryMap<T> merge(std::string output_filename, std::vector<MemoryMap<T>>& inputs, bool filter_duplicates)
 {
+  assert(inputs.size() > 0);
+
+  if(inputs.size() == 1)
+    {
+      inputs[0].rename(output_filename);
+      return MemoryMap<T>(output_filename);
+    }
+
   std::cerr << "  merging " << inputs.size() << " inputs" << std::endl;
 
   typedef std::tuple<T, const MemoryMap<T> *, size_t> merge_entry;
@@ -32,19 +40,17 @@ MemoryMap<T> merge(std::string output_filename, const std::vector<MemoryMap<T>>&
   MemoryMap<T> output(output_filename, max_size);
   size_t output_index = 0;
 
-  size_t last_pair = 0; // can't match because it would have been filtered
+  T last_element = {0};
   while(merge_queue.size())
     {
       merge_entry merge_next = merge_queue.top();
       merge_queue.pop();
 
-      size_t merge_pair = std::get<0>(merge_next);
-      assert(merge_pair >= last_pair);
-
-      if((!filter_duplicates) || (merge_pair > last_pair))
+      T merge_element = std::get<0>(merge_next);
+      if((!filter_duplicates) || (output_index == 0) || (merge_element > last_element))
         {
-          output[output_index++] = merge_pair;
-          last_pair = merge_pair;
+          output[output_index++] = merge_element;
+          last_element = merge_element;
         }
 
       const MemoryMap<T> *merge_map = std::get<1>(merge_next);
@@ -55,13 +61,20 @@ MemoryMap<T> merge(std::string output_filename, const std::vector<MemoryMap<T>>&
         }
     }
 
-  output.truncate(output_index);
+  if(output.size() != output_index)
+    {
+      output.truncate(output_index);
+    }
+
   return output;
 }
 
 // template instantiations
 
-#define INSTANTIATE(T) template class MemoryMap<T> merge(std::string, const std::vector<MemoryMap<T>>&, bool);
+#include "BinaryDFA.h"
 
+#define INSTANTIATE(T) template class MemoryMap<T> merge(std::string, std::vector<MemoryMap<T>>&, bool);
+
+INSTANTIATE(BinaryDFATransitionsHashPlusIndex);
 INSTANTIATE(long long unsigned int);
 INSTANTIATE(long unsigned int);

@@ -521,21 +521,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
           break;
         }
 
-      if(next_pairs_temp.size() == 1)
-        {
-          profile.tic("forward next pairs rename");
+      profile.tic("forward next pairs merge");
 
-          next_pairs_temp.back().rename(next_pairs_name);
-          next_pairs_temp.pop_back();
-
-          pairs_by_layer.emplace_back(next_pairs_name);
-        }
-      else
-        {
-          profile.tic("forward next pairs merge");
-
-          pairs_by_layer.push_back(merge(next_pairs_name, next_pairs_temp, true));
-        }
+      pairs_by_layer.push_back(merge(next_pairs_name, next_pairs_temp, true));
       assert(pairs_by_layer.size() == layer + 2);
 
       MemoryMap<size_t>& next_pairs = pairs_by_layer.at(layer + 1);
@@ -732,9 +720,44 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
         return output;
       });
 
-      profile.tic("backward sort hash sort");
+      profile.tic("backward sort hash sort chunks");
 
-      TRY_PARALLEL_2(std::sort, curr_transitions_hashed.begin(), curr_transitions_hashed.end());
+      const size_t hash_buffer_bytes_max = 1 << 30;
+      static_assert(hash_buffer_bytes_max % sizeof(BinaryDFATransitionsHashPlusIndex) == 0);
+      size_t hash_buffer_elements_max = hash_buffer_bytes_max / sizeof(BinaryDFATransitionsHashPlusIndex);
+      size_t hash_buffer_capacity = std::min(hash_buffer_elements_max, curr_transitions_hashed.size());
+      std::vector<BinaryDFATransitionsHashPlusIndex> hash_buffer;
+      hash_buffer.reserve(hash_buffer_capacity);
+
+      std::vector<MemoryMap<BinaryDFATransitionsHashPlusIndex>> hash_files_temp;
+      size_t hash_files_capacity = (curr_transitions_hashed.size() + (hash_buffer_capacity - 1)) / hash_buffer_capacity;
+      hash_files_temp.reserve(hash_files_capacity);
+
+      for(size_t i = 0; i < hash_files_capacity; ++i)
+        {
+          size_t hash_offset_begin = i * hash_buffer_capacity;
+          size_t hash_offset_end = std::min(hash_offset_begin + hash_buffer_capacity,
+                                            curr_transitions_hashed.size());
+          hash_buffer.resize(hash_offset_end - hash_offset_begin);
+
+          TRY_PARALLEL_3(std::copy,
+                         curr_transitions_hashed.begin() + hash_offset_begin,
+                         curr_transitions_hashed.begin() + hash_offset_end,
+                         hash_buffer.begin());
+
+          TRY_PARALLEL_2(std::sort,
+                         hash_buffer.begin(),
+                         hash_buffer.end());
+
+          hash_files_temp.emplace_back(std::format("scratch/binarydfa/hash_temp_{:03d}", i), hash_buffer);
+        }
+
+      profile.tic("backward sort hash sort merge");
+
+      curr_transitions_hashed = merge(curr_transitions_hashed.filename(),
+                                      hash_files_temp,
+                                      false);
+      assert(curr_transitions_hashed.size() == curr_layer_count);
 
       profile.tic("backward sort hash check");
 
