@@ -44,6 +44,23 @@ struct BinaryDFATransitionsHashPlusIndex
     return false;
   };
 
+  bool operator>(const BinaryDFATransitionsHashPlusIndex& b) const
+  {
+    for(int i = 0; i < binary_dfa_hash_width - 1; ++i)
+      {
+        if(this->data[i] > b.data[i])
+          {
+            return true;
+          }
+        if(this->data[i] < b.data[i])
+          {
+            return false;
+          }
+      }
+
+    return false;
+  };
+
   bool operator==(const BinaryDFATransitionsHashPlusIndex& b) const
   {
     for(int i = 0; i < binary_dfa_hash_width - 1; ++i)
