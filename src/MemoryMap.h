@@ -42,6 +42,7 @@ public:
   const T *begin() const;
   T *end();
   const T *end() const;
+  std::string filename() const {return _filename;}
   size_t length() const;
   void mmap() const;
   void msync();
