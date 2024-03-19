@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "chess.h"
+#include "utils.h"
 #include "PerftTestCases.h"
 
 void test(std::string name, std::string fen, const std::vector<uint64_t>& expected_outputs)
