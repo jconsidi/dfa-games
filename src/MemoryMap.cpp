@@ -12,27 +12,7 @@
 #include <numeric>
 
 #include "parallel.h"
-
-template<class T>
-void write_helper(int fildes, const T *buffer, size_t elements)
-{
-  const char *buffer_bytes = reinterpret_cast<const char *>(buffer);
-  int bytes_wanted = elements * sizeof(T);
-  int bytes_written = 0;
-  while(bytes_written < bytes_wanted)
-    {
-      int ret = write(fildes, buffer_bytes + bytes_written, bytes_wanted - bytes_written);
-      if(ret < 0)
-        {
-          perror("write");
-          throw std::runtime_error("write() failed");
-        }
-      assert(ret > 0);
-      assert(ret <= bytes_wanted - bytes_written);
-
-      bytes_written += ret;
-    }
-}
+#include "utils.h"
 
 template<class T>
 MemoryMap<T>::MemoryMap(size_t size_in)
@@ -142,7 +122,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
                      chunk_buffer.begin(),
                      populate_func);
 
-      write_helper(fildes, chunk_buffer.data(), chunk_end - chunk_start);
+      write_buffer<T>(fildes, chunk_buffer.data(), chunk_end - chunk_start);
     }
 
   ftruncate(fildes);
@@ -166,7 +146,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, const std::vector<T>& buffer_in
     _mapped(0)
 {
   int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-  write_helper(fildes, buffer_in.data(), buffer_in.size());
+  write_buffer(fildes, buffer_in.data(), buffer_in.size());
   ftruncate(fildes);
   this->mmap(fildes);
 

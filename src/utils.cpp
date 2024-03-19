@@ -2,6 +2,7 @@
 
 #include <bit>
 #include <cassert>
+#include <unistd.h>
 
 #include "utils.h"
 
@@ -96,3 +97,37 @@ std::string uci_move(const Board& before, const Board& after)
 
   return mask_to_square(from) + mask_to_square(to) + promotion;
 }
+
+template<class T>
+void write_buffer(int fildes, const T *buffer, size_t elements)
+{
+  const char *buffer_bytes = reinterpret_cast<const char *>(buffer);
+  int bytes_wanted = elements * sizeof(T);
+  int bytes_written = 0;
+  while(bytes_written < bytes_wanted)
+    {
+      int ret = write(fildes, buffer_bytes + bytes_written, bytes_wanted - bytes_written);
+      if(ret < 0)
+        {
+          perror("write");
+          throw std::runtime_error("write() failed");
+        }
+      assert(ret > 0);
+      assert(ret <= bytes_wanted - bytes_written);
+
+      bytes_written += ret;
+    }
+}
+
+// template instantiations
+
+#include "BinaryDFA.h"
+
+#define INSTANTIATE(T) template void write_buffer(int fildes, const T *buffer, size_t elements);
+
+INSTANTIATE(BinaryDFATransitionsHashPlusIndex);
+INSTANTIATE(double);
+INSTANTIATE(int);
+INSTANTIATE(long long unsigned int);
+INSTANTIATE(long unsigned int);
+INSTANTIATE(unsigned int);
