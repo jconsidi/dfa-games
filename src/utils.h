@@ -9,4 +9,7 @@
 
 uint64_t perft(const Board& board, int depth);
 
+template<class T>
+void write_buffer(int fildes, const T *buffer, size_t elements);
+
 #endif
