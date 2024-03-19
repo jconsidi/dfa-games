@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "chess.h"
+#include "utils.h"
 
 // initial proof of concept UCI implementation
 

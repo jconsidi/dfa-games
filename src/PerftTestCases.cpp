@@ -2,7 +2,7 @@
 
 #include "PerftTestCases.h"
 
-#include "chess.h"
+#include "utils.h"
 
 const std::vector<PerftTestCase> perft_test_cases =
   {

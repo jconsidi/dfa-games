@@ -10,7 +10,7 @@
 #include "ChessGame.h"
 #include "DFAUtil.h"
 #include "PerftTestCases.h"
-#include "chess.h"
+#include "utils.h"
 
 Board get_example(int, shared_dfa_ptr);
 

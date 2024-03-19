@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <iostream>
 
-#include "chess.h"
+#include "utils.h"
 
 int main(int argc, char **argv)
 {

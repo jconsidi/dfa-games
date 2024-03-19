@@ -3,7 +3,7 @@
 #include <bit>
 #include <cassert>
 
-#include "chess.h"
+#include "utils.h"
 
 std::string mask_to_square(BoardMask mask)
 {

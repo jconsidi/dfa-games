@@ -1,4 +1,4 @@
-// chess.h
+// utils.h
 
 #ifndef CHESS_H
 #define CHESS_H
