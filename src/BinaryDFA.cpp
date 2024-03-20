@@ -228,14 +228,12 @@ void BinaryDFA::build_linear(const DFA& left_in,
 
       // rewrite all transitions for each state
       TRY_PARALLEL_3(std::for_each, curr_reachable.begin(), curr_reachable.end(), [&](const dfa_state_t& state_in)
-	//TRY_PARALLEL_3(std::for_each, right_reachable[layer].begin(), right_reachable[layer].end(), [&](dfa_state_t state_in)
       {
 	// creating fresh array to avoid sharing issues from parallelism.
 	dfa_state_t transitions_temp[transitions_temp_size] = {0};
 	dfa_state_t transitions_max = 0;
 
 	dfa_state_t reachable_rank = &state_in - curr_reachable.begin();
-	//dfa_state_t reachable_rank = curr_index.rank(state_in);
 
 	DFATransitionsReference transitions_in = right_in.get_transitions(layer, state_in);
 	for(int i = 0; i < layer_shape; ++i)
