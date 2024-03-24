@@ -565,6 +565,18 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("forward next pairs paranoia");
 
       assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
+
+      auto check_next_pairs = [&](size_t next_pair)
+      {
+        if(remove_func(next_pair))
+          {
+            return;
+          }
+
+        bool next_pair_found = std::binary_search(next_pairs.begin(), next_pairs.end(), next_pair);
+        assert(next_pair_found);
+      };
+      TRY_PARALLEL_3(std::for_each, curr_transition_pairs.begin(), curr_transition_pairs.end(), check_next_pairs);
 #endif
 
       profile.tic("forward stats");
