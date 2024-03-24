@@ -2,6 +2,7 @@
 
 #include "merge.h"
 
+#include <algorithm>
 #include <cassert>
 #include <fcntl.h>
 #include <iostream>
@@ -11,6 +12,7 @@
 #include <unistd.h>
 
 #include "MemoryMap.h"
+#include "parallel.h"
 #include "utils.h"
 
 template <class T>
@@ -18,15 +20,27 @@ MemoryMap<T> merge(std::string output_filename, std::vector<MemoryMap<T>>& input
 {
   assert(inputs.size() > 0);
 
+  // paranoid input check
+
+#ifdef PARANOIA
+  for(const MemoryMap<T>& input : inputs)
+    {
+      std::cerr << "  checking input" << std::endl;
+      assert(TRY_PARALLEL_2(std::is_sorted, input.begin(), input.end()));
+    }
+#endif
+
+  // singleton case
+
   if(inputs.size() == 1)
     {
       inputs[0].rename(output_filename);
       return MemoryMap<T>(output_filename);
     }
 
-  std::cerr << "  merging " << inputs.size() << " inputs" << std::endl;
-
   // setup priority queue
+
+  std::cerr << "  merging " << inputs.size() << " inputs" << std::endl;
 
   typedef std::tuple<T, const MemoryMap<T> *, size_t> merge_entry;
   auto merge_compare = [](const merge_entry& a, const merge_entry& b)
@@ -63,6 +77,12 @@ MemoryMap<T> merge(std::string output_filename, std::vector<MemoryMap<T>>& input
   size_t output_elements = 0;
   auto write_helper = [&]()
   {
+#ifdef PARANOIA
+    std::cerr << "  checking buffer" << std::endl;
+    assert(TRY_PARALLEL_2(std::is_sorted, output_buffer.begin(), output_buffer.end()));
+#endif
+
+    std::cerr << "  writing buffer size " << output_buffer.size() << std::endl;
     write_buffer(fildes, output_buffer.data(), output_buffer.size());
     output_elements += output_buffer.size();
   };
@@ -77,6 +97,10 @@ MemoryMap<T> merge(std::string output_filename, std::vector<MemoryMap<T>>& input
       merge_queue.pop();
 
       T merge_element = std::get<0>(merge_next);
+      if(last_element_set)
+        {
+          assert(!(merge_element < last_element));
+        }
       if((!filter_duplicates) || (!last_element_set) || (merge_element > last_element))
         {
           output_buffer.push_back(merge_element);
@@ -110,7 +134,13 @@ MemoryMap<T> merge(std::string output_filename, std::vector<MemoryMap<T>>& input
     }
 
   // implicit truncate
-  return MemoryMap<T>(output_filename, output_elements);
+  MemoryMap<T> output(output_filename, output_elements);
+
+#ifdef PARANOIA
+  assert(TRY_PARALLEL_2(std::is_sorted, output.begin(), output.end()));
+#endif
+
+  return output;
 }
 
 // template instantiations
