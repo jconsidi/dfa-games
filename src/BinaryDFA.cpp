@@ -22,6 +22,39 @@
 #include "merge.h"
 #include "parallel.h"
 
+size_t search_index(const MemoryMap<size_t>& next_pairs_index, size_t next_pair, size_t offset_min, size_t offset_max)
+{
+  assert(offset_min <= offset_max);
+  assert(offset_max < next_pairs_index.size());
+
+#ifdef PARANOIA
+  assert(next_pairs_index[offset_min] <= next_pair);
+  assert(next_pair <= next_pairs_index[offset_max]);
+#endif
+
+  while(offset_min < offset_max)
+    {
+      size_t offset_mid = offset_min + (offset_max - offset_min + 1) / 2;
+      if(next_pairs_index[offset_mid] <= next_pair)
+        {
+          offset_min = offset_mid;
+        }
+      else
+        {
+          offset_max = offset_mid - 1;
+        }
+    }
+
+#ifdef PARANOIA
+  assert(next_pairs_index[offset_min] <= next_pair);
+  if(offset_min + 1 < next_pairs_index.size())
+    {
+      assert(next_pair < next_pairs_index[offset_min + 1]);
+    }
+#endif
+  return offset_min;
+}
+
 BinaryDFA::BinaryDFA(const DFA& left_in,
 		     const DFA& right_in,
 		     const BinaryFunction& leaf_func)
@@ -603,27 +636,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  assert(next_pairs_index.size() < next_pairs_index.capacity());
 	  add_next_pairs_index(next_pairs_index.back());
 	}
-
-      auto search_index = [&](const MemoryMap<size_t>& next_pairs_index, size_t next_pair, size_t offset_min, size_t offset_max)
-      {
-	assert(offset_min <= offset_max);
-	assert(offset_max < next_pairs_index.size());
-
-	while(offset_min < offset_max)
-	  {
-	    size_t offset_mid = offset_min + (offset_max - offset_min + 1) / 2;
-	    if(next_pairs_index[offset_mid] <= next_pair)
-	      {
-		offset_min = offset_mid;
-	      }
-	    else
-	      {
-		offset_max = offset_mid - 1;
-	      }
-	  }
-
-	return offset_min;
-      };
 
       profile.tic("backward transitions input");
 
