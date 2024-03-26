@@ -90,7 +90,7 @@ MemoryMap<T> merge(std::string output_filename, std::vector<MemoryMap<T>>& input
 
   // merge inputs and write to file
 
-  T last_element = {0};
+  T last_element = {};
   bool last_element_set = false;
   while(merge_queue.size())
     {
@@ -202,5 +202,6 @@ void merge_sort(MemoryMap<T>& data)
 #define INSTANTIATE(T) template void merge_sort(MemoryMap<T>& data);
 
 INSTANTIATE(BinaryDFATransitionsHashPlusIndex);
+INSTANTIATE(dfa_state_pair);
 INSTANTIATE(long long unsigned int);
 INSTANTIATE(long unsigned int);

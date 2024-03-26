@@ -433,6 +433,7 @@ void MemoryMap<T>::truncate(size_t size_in)
 
 #include "BinaryDFA.h"
 
+template class MemoryMap<dfa_state_pair>;
 template class MemoryMap<double>;
 template class MemoryMap<int>;
 template class MemoryMap<long long unsigned int>;

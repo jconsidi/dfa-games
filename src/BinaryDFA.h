@@ -81,4 +81,7 @@ struct BinaryDFATransitionsHashPlusIndex
 };
 static_assert(sizeof(BinaryDFATransitionsHashPlusIndex) == binary_dfa_hash_bytes);
 
+typedef std::pair<dfa_state_t, dfa_state_t> dfa_state_pair;
+static_assert(sizeof(dfa_state_pair) == 2 * sizeof(dfa_state_t));
+
 #endif

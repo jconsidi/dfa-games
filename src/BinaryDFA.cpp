@@ -869,39 +869,36 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 		     curr_pairs_permutation_to_output.end(),
 		     write_state);
 
-      profile.tic("backward invert");
+      profile.tic("backward invert init");
 
       // invert permutation so we can write pair_rank_to_output in order
 
-      MemoryMap<dfa_state_t> curr_pairs_permutation_inverse("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count);
-      // contents are indexes into curr_pairs_permutation
-      std::iota(curr_pairs_permutation_inverse.begin(),
-		curr_pairs_permutation_inverse.end(),
-		0);
-      // sort so curr_pairs_permutation[curr_pairs_permutation_inverse[i]] = i
+      MemoryMap<dfa_state_pair> curr_pairs_permutation_inverse("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count, [&](size_t i)
+      {
+        return dfa_state_pair(curr_pairs_permutation[i], i);
+      });
 
-      TRY_PARALLEL_3(std::sort,
-		     curr_pairs_permutation_inverse.begin(),
-		     curr_pairs_permutation_inverse.end(),
-		     [&](int a, int b) {
-		       return curr_pairs_permutation[a] < curr_pairs_permutation[b];
-		     });
+      profile.tic("backward invert sort");
+
+      merge_sort(curr_pairs_permutation_inverse);
+
+      profile.tic("backward invert check");
 
       for(dfa_state_t i : {size_t(0), curr_layer_count - 1})
 	{
-	  assert(curr_pairs_permutation[curr_pairs_permutation_inverse[i]] == i);
+	  assert(curr_pairs_permutation[std::get<1>(curr_pairs_permutation_inverse[i])] == i);
 	}
 
       profile.tic("backward output");
 
       MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer % 2) + "-pair_rank_to_output", curr_layer_count, [&](size_t curr_pair_rank)
       {
-        dfa_state_t curr_pairs_permutation_index = curr_pairs_permutation_inverse[curr_pair_rank];
 	if(check_constant(curr_pair_rank))
 	  {
 	    return curr_transitions[curr_pair_rank * curr_layer_shape];
 	  }
 
+        dfa_state_t curr_pairs_permutation_index = std::get<1>(curr_pairs_permutation_inverse[curr_pair_rank]);
 	return curr_pairs_permutation_to_output[curr_pairs_permutation_index];
       });
 
