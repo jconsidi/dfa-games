@@ -875,7 +875,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       MemoryMap<dfa_state_pair> curr_pairs_permutation_inverse("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count, [&](size_t i)
       {
-        return dfa_state_pair(curr_pairs_permutation[i], i);
+        return dfa_state_pair(curr_pairs_permutation[i], curr_pairs_permutation_to_output[i]);
       });
 
       profile.tic("backward invert sort");
@@ -886,7 +886,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       for(dfa_state_t i : {size_t(0), curr_layer_count - 1})
 	{
-	  assert(curr_pairs_permutation[std::get<1>(curr_pairs_permutation_inverse[i])] == i);
+          assert(std::get<0>(curr_pairs_permutation_inverse[i]) == i);
 	}
 
       profile.tic("backward output");
@@ -898,8 +898,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	    return curr_transitions[curr_pair_rank * curr_layer_shape];
 	  }
 
-        dfa_state_t curr_pairs_permutation_index = std::get<1>(curr_pairs_permutation_inverse[curr_pair_rank]);
-	return curr_pairs_permutation_to_output[curr_pairs_permutation_index];
+        return std::get<1>(curr_pairs_permutation_inverse[curr_pair_rank]);
       });
 
       std::swap(next_pair_rank_to_output, curr_pair_rank_to_output);
