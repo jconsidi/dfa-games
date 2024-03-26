@@ -13,4 +13,7 @@
 template <class T>
 MemoryMap<T> merge(std::string, std::vector<MemoryMap<T>>&, bool);
 
+template <class T>
+void merge_sort(MemoryMap<T>&);
+
 #endif

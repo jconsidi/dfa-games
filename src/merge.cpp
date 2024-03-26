@@ -13,6 +13,7 @@
 
 #include "MemoryMap.h"
 #include "parallel.h"
+#include "profile.h"
 #include "utils.h"
 
 template <class T>
@@ -143,11 +144,62 @@ MemoryMap<T> merge(std::string output_filename, std::vector<MemoryMap<T>>& input
   return output;
 }
 
+template <class T>
+void merge_sort(MemoryMap<T>& data)
+{
+  Profile profile("merge_sort");
+
+  size_t data_size = data.size();
+
+  profile.tic("init");
+
+  const size_t buffer_bytes_max = 1 << 30;
+  static_assert(buffer_bytes_max % sizeof(T) == 0);
+  size_t buffer_elements_max = buffer_bytes_max / sizeof(T);
+  size_t buffer_capacity = std::min(buffer_elements_max, data.size());
+  std::vector<T> buffer;
+  buffer.reserve(buffer_capacity);
+
+  std::vector<MemoryMap<T>> files_temp;
+  size_t files_capacity = (data.size() + (buffer_capacity - 1)) / buffer_capacity;
+  files_temp.reserve(files_capacity);
+
+  for(size_t i = 0; i < files_capacity; ++i)
+    {
+      profile.tic("chunk");
+
+      size_t offset_begin = i * buffer_capacity;
+      size_t offset_end = std::min(offset_begin + buffer_capacity,
+                                   data.size());
+      buffer.resize(offset_end - offset_begin);
+
+      TRY_PARALLEL_3(std::copy,
+                     data.begin() + offset_begin,
+                     data.begin() + offset_end,
+                     buffer.begin());
+
+      TRY_PARALLEL_2(std::sort,
+                     buffer.begin(),
+                     buffer.end());
+
+      files_temp.emplace_back(std::format("scratch/binarydfa/temp_{:03d}", i), buffer);
+    }
+
+  data.munmap();
+
+  profile.tic("merge");
+
+  data = merge(data.filename(),
+               files_temp,
+               false);
+  assert(data.size() == data_size);
+}
+
 // template instantiations
 
 #include "BinaryDFA.h"
 
-#define INSTANTIATE(T) template class MemoryMap<T> merge(std::string, std::vector<MemoryMap<T>>&, bool);
+#define INSTANTIATE(T) template void merge_sort(MemoryMap<T>& data);
 
 INSTANTIATE(BinaryDFATransitionsHashPlusIndex);
 INSTANTIATE(long long unsigned int);
