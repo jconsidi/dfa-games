@@ -742,7 +742,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
         return output;
       });
 
-      profile.tic("backward sort hash sort chunks");
+      profile.tic("backward sort hash sort");
 
       merge_sort<BinaryDFATransitionsHashPlusIndex>(curr_transitions_hashed);
 
