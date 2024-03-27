@@ -9,8 +9,9 @@
 
 #include <cassert>
 #include <iostream>
-#include <ranges>
+#include <numeric>
 
+#include "Profile.h"
 #include "parallel.h"
 #include "utils.h"
 
@@ -99,6 +100,9 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
     _length(sizeof(T) * _size),
     _mapped(0)
 {
+  Profile profile("MemoryMap via populate_func");
+  profile.tic("init");
+
   assert(_length / sizeof(T) == _size);
 
   const size_t chunk_bytes_max = size_t(1) << 30; // 1GB
@@ -109,23 +113,34 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
   int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
   std::vector<T> chunk_buffer(chunk_elements);
+  std::vector<size_t> chunk_iota(chunk_elements);
+
   for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
     {
       size_t chunk_end = std::min(chunk_start + chunk_elements, _size);
-      std::ranges::iota_view index_range(chunk_start, chunk_end);
 
+      profile.tic("chunk index");
+      chunk_iota.resize(chunk_end - chunk_start);
+      std::iota(chunk_iota.begin(), chunk_iota.end(), chunk_start);
+
+      profile.tic("chunk populate");
       TRY_PARALLEL_4(std::transform,
-                     index_range.begin(),
-                     index_range.end(),
+                     chunk_iota.begin(),
+                     chunk_iota.end(),
                      chunk_buffer.begin(),
                      populate_func);
 
+      profile.tic("chunk write");
       write_buffer<T>(fildes, chunk_buffer.data(), chunk_end - chunk_start);
     }
 
+  profile.tic("truncate");
   ftruncate(fildes);
+
+  profile.tic("mmap");
   this->mmap(fildes);
 
+  profile.tic("close");
   int close_ret = close(fildes);
   if(close_ret != 0)
     {
