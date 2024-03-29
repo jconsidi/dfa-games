@@ -2,9 +2,15 @@
 
 #include <bit>
 #include <cassert>
+#include <format>
 #include <unistd.h>
 
 #include "utils.h"
+
+std::string get_temp_filename(size_t i)
+{
+  return std::format("scratch/binarydfa/temp_{:03d}", i);
+}
 
 std::string mask_to_square(BoardMask mask)
 {

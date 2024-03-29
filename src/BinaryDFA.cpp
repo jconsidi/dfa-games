@@ -21,6 +21,7 @@
 #include "VectorBitSet.h"
 #include "merge.h"
 #include "parallel.h"
+#include "utils.h"
 
 size_t search_index(const MemoryMap<size_t>& next_pairs_index, size_t next_pair, size_t offset_min, size_t offset_max)
 {
@@ -541,7 +542,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
           assert(working_end <= working_block.end());
           working_block.resize(working_end - working_begin);
 
-          next_pairs_temp.emplace_back(std::format("scratch/binarydfa/temp_{:03d}", next_pairs_temp.size()), working_block);
+          next_pairs_temp.emplace_back(get_temp_filename(next_pairs_temp.size()), working_block);
         }
 
       std::string next_pairs_name = std::format("scratch/binarydfa/layer={:02d}-pairs", layer+1);

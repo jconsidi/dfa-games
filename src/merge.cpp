@@ -182,7 +182,7 @@ void merge_sort(MemoryMap<T>& data)
                      buffer.begin(),
                      buffer.end());
 
-      files_temp.emplace_back(std::format("scratch/binarydfa/temp_{:03d}", i), buffer);
+      files_temp.emplace_back(get_temp_filename(i), buffer);
     }
 
   data.munmap();

@@ -7,6 +7,8 @@
 
 // utility functions
 
+std::string get_temp_filename(size_t);
+
 uint64_t perft(const Board& board, int depth);
 
 template<class T>
