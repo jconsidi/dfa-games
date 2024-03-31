@@ -704,7 +704,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward transitions hash");
 
-      MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed("scratch/binarydfa/transitions_hashed", curr_layer_count, [&](size_t i)
+      const MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed = build_merge_sort<BinaryDFATransitionsHashPlusIndex>("scratch/binarydfa/transitions_hashed", curr_layer_count, [&](size_t i)
       {
         BinaryDFATransitionsHashPlusIndex output;
         if(curr_layer_shape + 1 <= binary_dfa_hash_width)
@@ -742,10 +742,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
         return output;
       });
-
-      profile.tic("backward sort hash sort");
-
-      merge_sort<BinaryDFATransitionsHashPlusIndex>(curr_transitions_hashed);
 
       profile.tic("backward sort hash check");
 
@@ -870,18 +866,14 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 		     curr_pairs_permutation_to_output.end(),
 		     write_state);
 
-      profile.tic("backward invert init");
+      profile.tic("backward invert");
 
       // invert permutation so we can write pair_rank_to_output in order
 
-      MemoryMap<dfa_state_pair> curr_pairs_permutation_inverse("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count, [&](size_t i)
+      const MemoryMap<dfa_state_pair> curr_pairs_permutation_inverse = build_merge_sort<dfa_state_pair>("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count, [&](size_t i)
       {
         return dfa_state_pair(curr_pairs_permutation[i], curr_pairs_permutation_to_output[i]);
       });
-
-      profile.tic("backward invert sort");
-
-      merge_sort(curr_pairs_permutation_inverse);
 
       profile.tic("backward invert check");
 

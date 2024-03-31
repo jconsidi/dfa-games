@@ -6,6 +6,7 @@
 #include <cassert>
 #include <fcntl.h>
 #include <iostream>
+#include <numeric>
 #include <queue>
 #include <string>
 #include <vector>
@@ -304,38 +305,47 @@ MemoryMap<T> merge(std::string output_filename, std::vector<MemoryMap<T>>& input
 }
 
 template <class T>
-void merge_sort(MemoryMap<T>& data)
+MemoryMap<T> build_merge_sort(std::string filename_in, size_t size_in, std::function<T(size_t)> populate_func)
 {
-  Profile profile("merge_sort");
-
-  size_t data_size = data.size();
+  Profile profile("build_merge_sort");
 
   profile.tic("init");
 
   const size_t buffer_bytes_max = 1 << 30;
   static_assert(buffer_bytes_max % sizeof(T) == 0);
   size_t buffer_elements_max = buffer_bytes_max / sizeof(T);
-  size_t buffer_capacity = std::min(buffer_elements_max, data.size());
+  size_t buffer_capacity = std::min(buffer_elements_max, size_in);
   std::vector<T> buffer;
   buffer.reserve(buffer_capacity);
 
+  profile.tic("iota");
+  std::vector<size_t> iota(buffer_capacity);
+  std::iota(iota.begin(), iota.end(), 0);
+
   std::vector<MemoryMap<T>> files_temp;
-  size_t files_capacity = (data.size() + (buffer_capacity - 1)) / buffer_capacity;
+  size_t files_capacity = (size_in + (buffer_capacity - 1)) / buffer_capacity;
   files_temp.reserve(files_capacity);
 
   for(size_t i = 0; i < files_capacity; ++i)
     {
-      profile.tic("chunk");
+      profile.tic("chunk resize");
 
       size_t offset_begin = i * buffer_capacity;
-      size_t offset_end = std::min(offset_begin + buffer_capacity,
-                                   data.size());
+      size_t offset_end = std::min(offset_begin + buffer_capacity, size_in);
       buffer.resize(offset_end - offset_begin);
 
-      TRY_PARALLEL_3(std::copy,
-                     data.begin() + offset_begin,
-                     data.begin() + offset_end,
-                     buffer.begin());
+      profile.tic("chunk populate");
+
+      TRY_PARALLEL_4(std::transform,
+                     iota.begin(),
+                     iota.begin() + (offset_end - offset_begin),
+                     buffer.begin(),
+                     [&](size_t index)
+                     {
+                       return populate_func(offset_begin + index);
+                     });
+
+      profile.tic("chunk sort");
 
       TRY_PARALLEL_2(std::sort,
                      buffer.begin(),
@@ -344,21 +354,20 @@ void merge_sort(MemoryMap<T>& data)
       files_temp.emplace_back(get_temp_filename(i), buffer);
     }
 
-  data.munmap();
-
   profile.tic("merge");
 
-  data = merge(data.filename(),
-               files_temp,
-               false);
-  assert(data.size() == data_size);
+  MemoryMap<T> output = merge(filename_in, files_temp, false);
+  assert(output.size() == size_in);
+
+  profile.tic("done");
+  return output;
 }
 
 // template instantiations
 
 #include "BinaryDFA.h"
 
-#define INSTANTIATE(T) template void merge_sort(MemoryMap<T>& data);
+#define INSTANTIATE(T) template MemoryMap<T> build_merge_sort(std::string, size_t, std::function<T(size_t)>);
 
 INSTANTIATE(BinaryDFATransitionsHashPlusIndex);
 INSTANTIATE(dfa_state_pair);
