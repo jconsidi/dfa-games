@@ -432,7 +432,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     profile2.tic("left");
 
     left_in.get_transitions(layer, 0);
-    MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
+    const MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
     {
       size_t curr_i = transition_index / curr_layer_shape;
       size_t curr_j = transition_index % curr_layer_shape;
@@ -490,7 +490,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("forward transition pairs");
 
-      MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
+      const MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
 
       std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
 
@@ -558,7 +558,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       pairs_by_layer.push_back(merge(next_pairs_name, next_pairs_temp, true));
       assert(pairs_by_layer.size() == layer + 2);
 
-      MemoryMap<size_t>& next_pairs = pairs_by_layer.at(layer + 1);
+      const MemoryMap<size_t>& next_pairs = pairs_by_layer.at(layer + 1);
       assert(next_pairs.size() > 0);
       std::cout << "pair count = " << next_pairs.size() << " (post sort unique)" << std::endl;
 
@@ -652,11 +652,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward transitions input");
 
-      MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
+      const MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
 
       profile.tic("backward transitions populate");
 
-      MemoryMap<dfa_state_t> curr_transitions("scratch/binarydfa/transitions", curr_layer_count * curr_layer_shape, [&](size_t next_pair_index)
+      const MemoryMap<dfa_state_t> curr_transitions("scratch/binarydfa/transitions", curr_layer_count * curr_layer_shape, [&](size_t next_pair_index)
       {
         size_t next_pair = curr_transition_pairs[next_pair_index];
 
@@ -769,7 +769,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("backward sort permutation");
 
       assert(curr_layer_count <= size_t(UINT32_MAX));
-      MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count, [&](size_t i)
+      const MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count, [&](size_t i)
       {
         return curr_transitions_hashed[i].get_pair_rank();
       });
