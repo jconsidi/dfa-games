@@ -113,22 +113,25 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
   int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
   std::vector<T> chunk_buffer(chunk_elements);
+
+  profile.tic("chunk iota");
   std::vector<size_t> chunk_iota(chunk_elements);
+  std::iota(chunk_iota.begin(), chunk_iota.end(), 0);
 
   for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
     {
       size_t chunk_end = std::min(chunk_start + chunk_elements, _size);
-
-      profile.tic("chunk index");
-      chunk_iota.resize(chunk_end - chunk_start);
-      std::iota(chunk_iota.begin(), chunk_iota.end(), chunk_start);
+      size_t chunk_size = chunk_end - chunk_start;
 
       profile.tic("chunk populate");
       TRY_PARALLEL_4(std::transform,
                      chunk_iota.begin(),
-                     chunk_iota.end(),
+                     chunk_iota.begin() + chunk_size,
                      chunk_buffer.begin(),
-                     populate_func);
+                     [&](size_t i)
+                     {
+                       return populate_func(chunk_start + i);
+                     });
 
       profile.tic("chunk write");
       write_buffer<T>(fildes, chunk_buffer.data(), chunk_end - chunk_start);
