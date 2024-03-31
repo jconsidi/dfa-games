@@ -444,6 +444,18 @@ void MemoryMap<T>::truncate(size_t size_in)
     }
 }
 
+template <class T>
+void MemoryMap<T>::unlink()
+{
+  munmap();
+
+  if(::unlink(_filename.c_str()))
+    {
+      perror("unlink");
+      throw std::runtime_error("unlink() failed");
+    }
+}
+
 // template instantiations
 
 #include "BinaryDFA.h"
