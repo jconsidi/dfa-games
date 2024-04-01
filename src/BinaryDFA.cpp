@@ -899,7 +899,8 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       // shrink state
 
-      profile.tic("backward munmap");
+      profile.tic("backward unlink");
+      pairs_by_layer.back().unlink();
       pairs_by_layer.pop_back();
 
       // cleanup in destructors
