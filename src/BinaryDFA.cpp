@@ -432,7 +432,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     profile2.tic("left");
 
     left_in.get_transitions(layer, 0);
-    const MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
+    MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
     {
       size_t curr_i = transition_index / curr_layer_shape;
       size_t curr_j = transition_index % curr_layer_shape;
@@ -462,6 +462,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     });
 
     // cleanup
+
+    profile2.tic("left unlink");
+
+    transition_pairs_left.unlink();
 
     profile2.tic("curr pairs munmap");
 
@@ -652,7 +656,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward transitions input");
 
-      const MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
+      MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
 
       profile.tic("backward transitions populate");
 
@@ -702,9 +706,13 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	  }
       });
 
+      profile.tic("backward transitions input unlink");
+
+      curr_transition_pairs.unlink();
+
       profile.tic("backward transitions hash");
 
-      const MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed = build_merge_sort<BinaryDFATransitionsHashPlusIndex>("scratch/binarydfa/transitions_hashed", curr_layer_count, [&](size_t i)
+      MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed = build_merge_sort<BinaryDFATransitionsHashPlusIndex>("scratch/binarydfa/transitions_hashed", curr_layer_count, [&](size_t i)
       {
         BinaryDFATransitionsHashPlusIndex output;
         if(curr_layer_shape + 1 <= binary_dfa_hash_width)
@@ -769,7 +777,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("backward sort permutation");
 
       assert(curr_layer_count <= size_t(UINT32_MAX));
-      const MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count, [&](size_t i)
+      MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count, [&](size_t i)
       {
         return curr_transitions_hashed[i].get_pair_rank();
       });
@@ -830,9 +838,13 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 		     check_new,
 		     1); // first new state will be 2
 
-      dfa_state_t layer_size = curr_pairs_permutation_to_output[curr_layer_count - 1] + 1;
+      profile.tic("backward hash unlink");
+
+      curr_transitions_hashed.unlink();
 
       profile.tic("backward states resize");
+
+      dfa_state_t layer_size = curr_pairs_permutation_to_output[curr_layer_count - 1] + 1;
 
       set_layer_size(layer, layer_size);
 
@@ -870,7 +882,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       // invert permutation so we can write pair_rank_to_output in order
 
-      const MemoryMap<dfa_state_pair> curr_pairs_permutation_inverse = build_merge_sort<dfa_state_pair>("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count, [&](size_t i)
+      MemoryMap<dfa_state_pair> curr_pairs_permutation_inverse = build_merge_sort<dfa_state_pair>("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count, [&](size_t i)
       {
         return dfa_state_pair(curr_pairs_permutation[i], curr_pairs_permutation_to_output[i]);
       });
@@ -881,6 +893,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	{
           assert(std::get<0>(curr_pairs_permutation_inverse[i]) == i);
 	}
+
+      profile.tic("backward permutation unlink");
+
+      curr_pairs_permutation.unlink();
+      curr_pairs_permutation_to_output.unlink();
 
       profile.tic("backward output");
 
@@ -900,6 +917,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       // shrink state
 
       profile.tic("backward unlink");
+
+      curr_pairs_permutation_inverse.unlink();
+
       pairs_by_layer.back().unlink();
       pairs_by_layer.pop_back();
 
