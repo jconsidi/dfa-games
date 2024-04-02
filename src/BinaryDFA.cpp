@@ -846,37 +846,27 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       dfa_state_t layer_size = curr_pairs_permutation_to_output[curr_layer_count - 1] + 1;
 
-      set_layer_size(layer, layer_size);
-
       profile.tic("backward states write");
 
       auto curr_pairs_permutation_to_output_begin = curr_pairs_permutation_to_output.begin();
+      auto curr_pairs_permutation_to_output_end = curr_pairs_permutation_to_output.end();
+      auto curr_transitions_begin = curr_transitions.begin();
 
-      auto write_state = [&](const dfa_state_t& output_state)
+      auto populate_transitions = [&](dfa_state_t new_state_id, dfa_state_t *transitions_out)
       {
-	if(output_state < 2)
-	  {
-	    return;
-	  }
+        assert(new_state_id < layer_size);
+        auto iter = std::lower_bound(curr_pairs_permutation_to_output_begin,
+                                     curr_pairs_permutation_to_output_end,
+                                     new_state_id);
+        assert(iter < curr_pairs_permutation_to_output_end);
+        assert(*iter == new_state_id);
 
-	dfa_state_t curr_pairs_permutation_index = &output_state - curr_pairs_permutation_to_output_begin;
-	if(curr_pairs_permutation_index > 0)
-	  {
-	    if(*(&output_state - 1) == output_state)
-	      {
-		// not the first with this output state
-		return;
-	      }
-	  }
-
+	dfa_state_t curr_pairs_permutation_index = iter - curr_pairs_permutation_to_output_begin;
 	dfa_state_t curr_pair_rank = curr_pairs_permutation[curr_pairs_permutation_index];
-	set_state_transitions(layer, output_state, &(curr_transitions[curr_pair_rank * curr_layer_shape]));
+        std::copy_n(curr_transitions_begin + curr_pair_rank * curr_layer_shape, curr_layer_shape, transitions_out);
       };
 
-      TRY_PARALLEL_3(std::for_each,
-		     curr_pairs_permutation_to_output.begin(),
-		     curr_pairs_permutation_to_output.end(),
-		     write_state);
+      build_layer(layer, layer_size, populate_transitions);
 
       profile.tic("backward invert");
 
