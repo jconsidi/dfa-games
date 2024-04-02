@@ -297,7 +297,7 @@ void DFA::build_layer(int layer, dfa_state_t layer_size_in, std::function<void(d
 
   // write file in chunks
 
-  const size_t chunk_bytes_max = size_t(1) << 10; // 1GB
+  const size_t chunk_bytes_max = size_t(1) << 30; // 1GB
   const size_t chunk_transitions_max = chunk_bytes_max / sizeof(dfa_state_t);
   const dfa_state_t chunk_states_max = dfa_state_t(chunk_transitions_max / size_t(layer_shape));
   const dfa_state_t chunk_states = std::min(layer_size_in, chunk_states_max);
