@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <stdio.h>
@@ -19,6 +20,7 @@
 #include "DFA.h"
 #include "Profile.h"
 #include "parallel.h"
+#include "utils.h"
 
 static int next_dfa_id = 0;
 
@@ -269,6 +271,86 @@ dfa_state_t DFA::add_state_by_reference(int layer, const DFATransitionsReference
     }
 
   return this->add_state(layer, temp_states);
+}
+
+void DFA::build_layer(int layer, dfa_state_t layer_size_in, std::function<void(dfa_state_t, dfa_state_t *)> populate_func)
+{
+  assert(initial_state == ~dfa_state_t(0));
+  assert(0 <= layer);
+  assert(layer < ndim);
+
+  assert(layer_sizes[layer] == 2);
+  assert(2 <= layer_size_in);
+  assert(layer_size_in < ~dfa_state_t(0));
+
+  int layer_shape = get_layer_shape(layer);
+
+  // close memory map and open file directly
+
+  layer_transitions[layer].munmap();
+
+  int fildes = open(layer_transitions[layer].filename().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+  if(fildes == -1)
+    {
+      throw std::runtime_error("open() failed");
+    }
+
+  // write file in chunks
+
+  const size_t chunk_bytes_max = size_t(1) << 10; // 1GB
+  const size_t chunk_transitions_max = chunk_bytes_max / sizeof(dfa_state_t);
+  const dfa_state_t chunk_states_max = dfa_state_t(chunk_transitions_max / size_t(layer_shape));
+  const dfa_state_t chunk_states = std::min(layer_size_in, chunk_states_max);
+  assert(chunk_states >= 2);
+
+  std::vector<dfa_state_t> chunk_buffer;
+  chunk_buffer.reserve(chunk_states * layer_shape);
+
+  std::vector<dfa_state_t> chunk_iota(chunk_states);
+  std::iota(chunk_iota.begin(), chunk_iota.end(), 0);
+
+  for(dfa_state_t chunk_start = 0; chunk_start < layer_size_in; chunk_start += chunk_states)
+    {
+      dfa_state_t chunk_end = std::min(chunk_start + chunk_states, layer_size_in);
+      dfa_state_t chunk_size = chunk_end - chunk_start;
+      chunk_buffer.resize(chunk_size * layer_shape);
+
+      auto populate_buffer = [&](dfa_state_t i)
+      {
+        dfa_state_t state_id = chunk_start + i;
+        populate_func(state_id, chunk_buffer.data() + i * layer_shape);
+      };
+
+      if(chunk_start == 0)
+        {
+          // constant state handling
+          std::fill_n(chunk_buffer.begin(), layer_shape, 0);
+          std::fill_n(chunk_buffer.begin() + layer_shape, layer_shape, 1);
+
+          TRY_PARALLEL_3(std::for_each,
+                         chunk_iota.begin() + 2,
+                         chunk_iota.begin() + chunk_size,
+                         populate_buffer);
+        }
+      else
+        {
+          TRY_PARALLEL_3(std::for_each,
+                         chunk_iota.begin(),
+                         chunk_iota.begin() + chunk_size,
+                         populate_buffer);
+        }
+
+      write_buffer(fildes, chunk_buffer.data(), chunk_buffer.size());
+    }
+
+   if(close(fildes))
+    {
+      perror("close");
+      throw std::runtime_error("close() failed");
+    }
+
+  layer_sizes[layer] = layer_size_in;
+  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], layer_size_in * get_layer_shape(layer));
 }
 
 void DFA::copy_layer(int layer, const DFA& dfa_in)
