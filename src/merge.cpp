@@ -32,7 +32,7 @@ MemoryMap<T> merge_pair(std::string output_filename, const MemoryMap<T>& input_a
 
   // setup buffer
 
-  const size_t output_buffer_bytes_max = size_t(1) << 30;
+  const size_t output_buffer_bytes_max = size_t(4) << 30; // 4GB
   static_assert(output_buffer_bytes_max % sizeof(T) == 0);
   const size_t output_buffer_elements_max = output_buffer_bytes_max / sizeof(T);
   const size_t output_buffer_capacity = std::min(output_buffer_elements_max, input_a.size() + input_b.size());
@@ -311,7 +311,7 @@ MemoryMap<T> build_merge_sort(std::string filename_in, size_t size_in, std::func
 
   profile.tic("init");
 
-  const size_t buffer_bytes_max = 1 << 30;
+  const size_t buffer_bytes_max = size_t(4) << 30; // 4GB
   static_assert(buffer_bytes_max % sizeof(T) == 0);
   size_t buffer_elements_max = buffer_bytes_max / sizeof(T);
   size_t buffer_capacity = std::min(buffer_elements_max, size_in);
