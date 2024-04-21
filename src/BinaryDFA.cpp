@@ -421,6 +421,10 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     size_t curr_left_size = left_in.get_layer_size(layer);
     size_t curr_right_size = right_in.get_layer_size(layer);
     assert(curr_pairs[curr_pairs.size() - 1] < curr_left_size * curr_right_size);
+
+#ifdef PARANOIA
+    size_t next_left_size = left_in.get_layer_size(layer + 1);
+#endif
     size_t next_right_size = right_in.get_layer_size(layer + 1);
 
     size_t transition_pairs_size = curr_pairs.size() * curr_layer_shape;
@@ -444,6 +448,13 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       return left_transitions.at(curr_j);
     });
 
+#ifdef PARANOIA
+    profile2.tic("left paranoia");
+
+    auto left_max = TRY_PARALLEL_2(std::max_element, transition_pairs_left.begin(), transition_pairs_left.end());
+    assert(*left_max < next_left_size);
+#endif
+
     // read right transitions
     profile2.tic("right");
 
@@ -458,7 +469,15 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       size_t curr_right_state = curr_pair % curr_right_size;
 
       DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
-      return size_t(transition_pairs_left[transition_index]) * next_right_size + size_t(right_transitions.at(curr_j));
+#ifdef PARANOIA
+      assert(right_transitions.at(curr_j) < next_right_size);
+#endif
+
+      size_t output = size_t(transition_pairs_left[transition_index]) * next_right_size + size_t(right_transitions.at(curr_j));
+#ifdef PARANOIA
+      assert(output < next_left_size * next_right_size);
+#endif
+      return output;
     });
 
     // cleanup
@@ -470,6 +489,13 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
     profile2.tic("curr pairs munmap");
 
     curr_pairs.munmap();
+
+#ifdef PARANOIA
+    profile2.tic("paranoia");
+
+    auto pairs_max = TRY_PARALLEL_2(std::max_element, curr_transition_pairs.begin(), curr_transition_pairs.end());
+    assert(*pairs_max < next_right_size * next_left_size);
+#endif
 
     // done
     profile2.tic("done");
@@ -540,6 +566,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
               continue;
             }
 
+#ifdef PARANOIA
+          auto working_max = TRY_PARALLEL_2(std::max_element, working_begin, working_end);
+          assert(*working_max < next_right_size * next_left_size);
+#endif
+
           TRY_PARALLEL_2(std::sort, working_begin, working_end);
           working_end = TRY_PARALLEL_2(std::unique, working_begin, working_end);
           assert(working_begin < working_end);
@@ -547,6 +578,11 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
           working_block.resize(working_end - working_begin);
 
           next_pairs_temp.emplace_back(get_temp_filename(next_pairs_temp.size()), working_block);
+
+#ifdef PARANOIA
+          auto temp_max = TRY_PARALLEL_2(std::max_element, next_pairs_temp.back().begin(), next_pairs_temp.back().end());
+          assert(*temp_max < next_right_size * next_left_size);
+#endif
         }
 
       std::string next_pairs_name = std::format("scratch/binarydfa/layer={:02d}-pairs", layer+1);
@@ -570,6 +606,9 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
       profile.tic("forward next pairs paranoia");
 
       assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
+
+      auto next_pairs_max = TRY_PARALLEL_2(std::max_element, next_pairs.begin(), next_pairs.end());
+      assert(*next_pairs_max < next_right_size * next_left_size);
 
       auto check_next_pairs = [&](size_t next_pair)
       {
