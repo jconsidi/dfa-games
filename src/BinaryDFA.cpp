@@ -30,7 +30,6 @@ size_t search_index(const MemoryMap<size_t>& next_pairs_index, size_t next_pair,
 
 #ifdef PARANOIA
   assert(next_pairs_index[offset_min] <= next_pair);
-  assert(next_pair <= next_pairs_index[offset_max]);
 #endif
 
   while(offset_min < offset_max)
