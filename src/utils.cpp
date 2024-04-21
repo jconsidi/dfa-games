@@ -2,6 +2,7 @@
 
 #include <bit>
 #include <cassert>
+#include <climits>
 #include <format>
 #include <unistd.h>
 
@@ -108,11 +109,14 @@ template<class T>
 void write_buffer(int fildes, const T *buffer, size_t elements)
 {
   const char *buffer_bytes = reinterpret_cast<const char *>(buffer);
-  int bytes_wanted = elements * sizeof(T);
-  int bytes_written = 0;
+  size_t bytes_wanted = elements * sizeof(T);
+  size_t bytes_written = 0;
   while(bytes_written < bytes_wanted)
     {
-      int ret = write(fildes, buffer_bytes + bytes_written, bytes_wanted - bytes_written);
+      // write man page says nbyte parameter limited to INT_MAX
+      size_t bytes_next = std::min(bytes_wanted - bytes_written, size_t(INT_MAX));
+
+      ssize_t ret = write(fildes, buffer_bytes + bytes_written, bytes_next);
       if(ret < 0)
         {
           perror("write");
@@ -123,6 +127,8 @@ void write_buffer(int fildes, const T *buffer, size_t elements)
 
       bytes_written += ret;
     }
+
+  assert(bytes_written == bytes_wanted);
 }
 
 // template instantiations
