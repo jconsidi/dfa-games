@@ -32,27 +32,26 @@ size_t search_index(const MemoryMap<size_t>& next_pairs_index, size_t next_pair,
   assert(next_pairs_index[offset_min] <= next_pair);
 #endif
 
-  while(offset_min < offset_max)
-    {
-      size_t offset_mid = offset_min + (offset_max - offset_min + 1) / 2;
-      if(next_pairs_index[offset_mid] <= next_pair)
-        {
-          offset_min = offset_mid;
-        }
-      else
-        {
-          offset_max = offset_mid - 1;
-        }
-    }
+  auto begin = next_pairs_index.begin();
+  auto end = next_pairs_index.end();
 
-#ifdef PARANOIA
-  assert(next_pairs_index[offset_min] <= next_pair);
-  if(offset_min + 1 < next_pairs_index.size())
+  auto lb = std::lower_bound(begin + offset_min,
+                             begin + (offset_max + 1),
+                             next_pair);
+
+  if(lb == end)
     {
-      assert(next_pair < next_pairs_index[offset_min + 1]);
+      return next_pairs_index.size() - 1;
     }
-#endif
-  return offset_min;
+  else if(*lb == next_pair)
+    {
+      return lb - begin;
+    }
+  else
+    {
+      assert(begin < lb);
+      return (lb - begin) - 1;
+    }
 }
 
 BinaryDFA::BinaryDFA(const DFA& left_in,
