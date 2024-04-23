@@ -4,9 +4,24 @@
 #include <cassert>
 #include <climits>
 #include <format>
+#include <numeric>
 #include <unistd.h>
 
 #include "utils.h"
+
+const std::vector<size_t>& get_iota(size_t elements_in)
+{
+  static std::vector<size_t> chunk_iota = {};
+
+ size_t elements_old = chunk_iota.size();
+  if(elements_old < elements_in)
+    {
+      chunk_iota.resize(elements_in);
+      std::iota(chunk_iota.begin() + elements_old, chunk_iota.end(), elements_old);
+    }
+
+  return chunk_iota;
+}
 
 std::string get_temp_filename(size_t i)
 {

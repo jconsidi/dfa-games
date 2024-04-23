@@ -9,7 +9,6 @@
 
 #include <cassert>
 #include <iostream>
-#include <numeric>
 
 #include "Profile.h"
 #include "parallel.h"
@@ -115,8 +114,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
   std::vector<T> chunk_buffer(chunk_elements);
 
   profile.tic("chunk iota");
-  std::vector<size_t> chunk_iota(chunk_elements);
-  std::iota(chunk_iota.begin(), chunk_iota.end(), 0);
+  const std::vector<size_t>& chunk_iota = get_iota(chunk_elements);
 
   for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
     {

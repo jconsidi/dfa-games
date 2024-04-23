@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
+#include <ranges>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -12,8 +13,6 @@
 
 #include <algorithm>
 #include <iomanip>
-#include <numeric>
-#include <ranges>
 #include <sstream>
 #include <string>
 
@@ -306,8 +305,7 @@ void DFA::build_layer(int layer, dfa_state_t layer_size_in, std::function<void(d
   std::vector<dfa_state_t> chunk_buffer;
   chunk_buffer.reserve(chunk_states * layer_shape);
 
-  std::vector<dfa_state_t> chunk_iota(chunk_states);
-  std::iota(chunk_iota.begin(), chunk_iota.end(), 0);
+  const std::vector<size_t>& chunk_iota = get_iota(chunk_states);
 
   for(dfa_state_t chunk_start = 0; chunk_start < layer_size_in; chunk_start += chunk_states)
     {

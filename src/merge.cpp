@@ -6,7 +6,6 @@
 #include <cassert>
 #include <fcntl.h>
 #include <iostream>
-#include <numeric>
 #include <queue>
 #include <string>
 #include <vector>
@@ -319,8 +318,7 @@ MemoryMap<T> build_merge_sort(std::string filename_in, size_t size_in, std::func
   buffer.reserve(buffer_capacity);
 
   profile.tic("iota");
-  std::vector<size_t> iota(buffer_capacity);
-  std::iota(iota.begin(), iota.end(), 0);
+  const std::vector<size_t>& iota = get_iota(buffer_capacity);
 
   std::vector<MemoryMap<T>> files_temp;
   size_t files_capacity = (size_in + (buffer_capacity - 1)) / buffer_capacity;
