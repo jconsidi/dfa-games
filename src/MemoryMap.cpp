@@ -92,6 +92,27 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in)
 
 template<class T>
 MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T(size_t)> populate_func)
+  : MemoryMap(filename_in,
+              size_in,
+              [&](size_t chunk_start, size_t chunk_end, std::vector<T>& chunk_buffer)
+              {
+                size_t chunk_size = chunk_end - chunk_start;
+                const std::vector<size_t>& chunk_iota = get_iota(chunk_size);
+
+                TRY_PARALLEL_4(std::transform,
+                               chunk_iota.begin(),
+                               chunk_iota.begin() + chunk_size,
+                               chunk_buffer.begin(),
+                               [&](size_t i)
+                               {
+                                 return populate_func(chunk_start + i);
+                               });
+              })
+{
+}
+
+template<class T>
+MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<void(size_t, size_t, std::vector<T>&)> populate_chunk)
   : _filename(filename_in),
     _flags(0),
     _readonly(false),
@@ -99,7 +120,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
     _length(sizeof(T) * _size),
     _mapped(0)
 {
-  Profile profile("MemoryMap via populate_func");
+  Profile profile("MemoryMap via populate_chunk");
   profile.tic("init");
 
   assert(_length / sizeof(T) == _size);
@@ -113,23 +134,12 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
 
   std::vector<T> chunk_buffer(chunk_elements);
 
-  profile.tic("chunk iota");
-  const std::vector<size_t>& chunk_iota = get_iota(chunk_elements);
-
   for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
     {
       size_t chunk_end = std::min(chunk_start + chunk_elements, _size);
-      size_t chunk_size = chunk_end - chunk_start;
 
       profile.tic("chunk populate");
-      TRY_PARALLEL_4(std::transform,
-                     chunk_iota.begin(),
-                     chunk_iota.begin() + chunk_size,
-                     chunk_buffer.begin(),
-                     [&](size_t i)
-                     {
-                       return populate_func(chunk_start + i);
-                     });
+      populate_chunk(chunk_start, chunk_end, chunk_buffer);
 
       profile.tic("chunk write");
       write_buffer<T>(fildes, chunk_buffer.data(), chunk_end - chunk_start);
