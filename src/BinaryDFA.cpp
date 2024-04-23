@@ -821,8 +821,6 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward states identification");
 
-      MemoryMap<dfa_state_t> curr_pairs_permutation_to_output("scratch/binarydfa/pairs_permutation_to_output", curr_layer_count);
-
       auto check_constant = [&](dfa_state_t curr_pair_rank)
       {
 	dfa_state_t possible_constant = curr_transitions[curr_pair_rank * curr_layer_shape];
@@ -867,13 +865,22 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 	return dfa_state_t(0);
       };
 
-      TRY_PARALLEL_6(std::transform_inclusive_scan,
-                     curr_transitions_hashed.begin(),
-                     curr_transitions_hashed.end(),
-		     curr_pairs_permutation_to_output.begin(),
-		     [](dfa_state_t previous, dfa_state_t delta) {return previous + delta;},
-		     check_new,
-		     1); // first new state will be 2
+      dfa_state_t last_state = 1; // first new state will be 2
+      auto populate_permutation_to_output = [&](size_t chunk_start, size_t chunk_end, std::vector<dfa_state_t>& chunk_buffer)
+      {
+        TRY_PARALLEL_6(std::transform_inclusive_scan,
+                       curr_transitions_hashed.begin() + chunk_start,
+                       curr_transitions_hashed.begin() + chunk_end,
+                       chunk_buffer.begin(),
+                       [](dfa_state_t previous, dfa_state_t delta) {return previous + delta;},
+                       check_new,
+                       last_state);
+        last_state = chunk_buffer.back();
+      };
+
+      MemoryMap<dfa_state_t> curr_pairs_permutation_to_output("scratch/binarydfa/pairs_permutation_to_output",
+                                                              curr_layer_count,
+                                                              populate_permutation_to_output);
 
       profile.tic("backward hash unlink");
 
