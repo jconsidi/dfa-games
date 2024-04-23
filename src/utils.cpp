@@ -9,11 +9,15 @@
 
 #include "utils.h"
 
+#include "Profile.h"
+
 const std::vector<size_t>& get_iota(size_t elements_in)
 {
+  Profile profile("get_iota");
+
   static std::vector<size_t> chunk_iota = {};
 
- size_t elements_old = chunk_iota.size();
+  size_t elements_old = chunk_iota.size();
   if(elements_old < elements_in)
     {
       chunk_iota.resize(elements_in);
