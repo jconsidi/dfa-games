@@ -12,7 +12,7 @@
 bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_examples)
 {
   std::cout << "############################################################" << std::endl;
-  std::cout << "PLY_MAX = " << ply_max << ", SIDE TO MOVE = " << side_to_move << std::endl;
+  std::cout << "# PLY_MAX = " << ply_max << ", SIDE TO MOVE = " << side_to_move << std::endl;
   std::cout << "############################################################" << std::endl;
 
   shared_dfa_ptr accept = DFAUtil::get_accept(game.get_shape());
@@ -21,11 +21,11 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
   shared_dfa_ptr curr_winning = game.get_positions_winning(side_to_move, ply_max);
   shared_dfa_ptr curr_unknown = game.get_positions_unknown(side_to_move, ply_max);
 
-  std::cout << "CHECK PARTITION" << std::endl;
+  std::cout << "# CHECK PARTITION" << std::endl;
 
   if(!validate_partition(game, accept, std::vector<shared_dfa_ptr>({curr_winning, curr_losing, curr_unknown})))
     {
-      std::cerr << "PARTITION CHECK FAILED" << std::endl;
+      std::cerr << "# PARTITION CHECK FAILED" << std::endl;
       return false;
     }
 
@@ -33,21 +33,21 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
     {
       // base case - confirm match to lost/won definitions
 
-      std::cout << "CHECK LOSING = LOST" << std::endl;
+      std::cout << "# CHECK LOSING = LOST" << std::endl;
 
       shared_dfa_ptr lost = game.get_positions_lost(side_to_move);
       if(!validate_equal(game, "LOSING", curr_losing, "LOST", lost))
 	{
-	  std::cerr << "CHECK LOSING = LOST FAILED" << std::endl;
+	  std::cerr << "# CHECK LOSING = LOST FAILED" << std::endl;
 	  return false;
 	}
 
-      std::cout << "CHECK WINNING = WON" << std::endl;
+      std::cout << "# CHECK WINNING = WON" << std::endl;
 
       shared_dfa_ptr won = game.get_positions_won(side_to_move);
       if(!validate_equal(game, "WINNING", curr_winning, "WON", won))
 	{
-	  std::cerr << "CHECK WINNING = WON FAILED" << std::endl;
+	  std::cerr << "# CHECK WINNING = WON FAILED" << std::endl;
 	  return false;
 	}
 
@@ -56,7 +56,7 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
 
   // recursive cases
 
-  std::cout << "CHECK LOSING" << std::endl;
+  std::cout << "# CHECK LOSING" << std::endl;
 
   shared_dfa_ptr next_winning = game.get_positions_winning(1 - side_to_move, ply_max - 1);
   shared_dfa_ptr base_losing = game.get_positions_losing(side_to_move, ply_max - 1);
@@ -66,7 +66,7 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
       return false;
     }
 
-  std::cout << "CHECK WINNING" << std::endl;
+  std::cout << "# CHECK WINNING" << std::endl;
 
   shared_dfa_ptr next_losing = game.get_positions_losing(1 - side_to_move, ply_max - 1);
   shared_dfa_ptr base_winning = game.get_positions_winning(side_to_move, ply_max - 1);
@@ -76,12 +76,12 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
       return false;
     }
 
-  std::cout << "CHECK UNKNOWN" << std::endl;
+  std::cout << "# CHECK UNKNOWN" << std::endl;
 
   shared_dfa_ptr base_unknown = game.get_positions_unknown(side_to_move, ply_max - 1);
   if(!validate_subset(curr_unknown, base_unknown))
     {
-      std::cerr << "UNKNOWN SUBSET CHECK FAILED" << std::endl;
+      std::cerr << "# UNKNOWN SUBSET CHECK FAILED" << std::endl;
       return false;
     }
 
