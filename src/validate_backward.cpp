@@ -26,7 +26,7 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
   if(!validate_partition(game, accept, std::vector<shared_dfa_ptr>({curr_winning, curr_losing, curr_unknown})))
     {
       std::cerr << "PARTITION CHECK FAILED" << std::endl;
-      return 1;
+      return false;
     }
 
   if(ply_max == 0)
