@@ -554,8 +554,12 @@ shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
 {
   Profile profile("get_inverse");
 
-  // TODO : short-circuit logic for constants?
-  return shared_dfa_ptr(new InverseDFA(*dfa_in));
+  std::string inverse_name = "inverse_cache/" + dfa_in->get_hash();
+
+  return load_or_build(dfa_in->get_shape(), inverse_name, [&]()
+  {
+    return shared_dfa_ptr(new InverseDFA(*dfa_in));
+  });
 }
 
 shared_dfa_ptr DFAUtil::get_reject(const dfa_shape_t& shape_in)
