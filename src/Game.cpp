@@ -271,6 +271,7 @@ shared_dfa_ptr Game::get_positions_unknown(int side_to_move, int ply_max) const
     shared_dfa_ptr decided = DFAUtil::get_union(losing, winning);
     shared_dfa_ptr output = DFAUtil::get_inverse(decided);
 
+#ifdef PARANOIA
     shared_dfa_ptr check_decided = DFAUtil::get_intersection(decided, output);
     assert(check_decided->is_constant(0));
 
@@ -282,6 +283,7 @@ shared_dfa_ptr Game::get_positions_unknown(int side_to_move, int ply_max) const
 
     shared_dfa_ptr check_losing = DFAUtil::get_intersection(losing, output);
     assert(check_losing->is_constant(0));
+#endif
 
     return output;
   });
