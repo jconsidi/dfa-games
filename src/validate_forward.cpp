@@ -24,7 +24,7 @@ int main(int argc, char **argv)
   dfa_shape_t shape = game->get_shape();
 
   DFAString initial_position = game->get_position_initial();
-  std::cout << "INITIAL POSITION" << std::endl;
+  std::cout << "# INITIAL POSITION" << std::endl;
   std::cout << game->position_to_string(initial_position) << std::endl;
 
   bool expected_complete = true;
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   for(int ply = 0; ply <= ply_max; ++ply)
     {
       std::cout << "############################################################" << std::endl;
-      std::cout << "PLY " << ply << std::endl;
+      std::cout << "# PLY " << ply << std::endl;
       std::cout << "############################################################" << std::endl;
 
       shared_dfa_ptr positions = game->get_positions_forward(ply);
@@ -43,13 +43,13 @@ int main(int argc, char **argv)
 	  assert(positions->size() == 1);
 	}
 
-      std::cout << "CHECKING INCLUSION" << std::endl;
+      std::cout << "# CHECKING INCLUSION" << std::endl;
 
       for(const DFAString& expected_sample : expected_samples)
 	{
 	  if(!positions->contains(expected_sample))
 	    {
-	      std::cerr << "MISSING POSITION AT PLY " << ply << std::endl;
+	      std::cerr << "# MISSING POSITION AT PLY " << ply << std::endl;
 	      std::cerr << game->position_to_string(expected_sample) << std::endl;
 	      return 1;
 	    }
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
       if(expected_complete)
 	{
-	  std::cout << "CHECKING EQUALITY" << std::endl;
+	  std::cout << "# CHECKING EQUALITY" << std::endl;
 
 	  shared_dfa_ptr expected_u =
 	    (expected_samples.size() > 0)
@@ -69,19 +69,19 @@ int main(int argc, char **argv)
 
 	  if(!validate_equal(*game, "ACTUAL", positions, "EXPECTED", expected_u))
 	    {
-	      std::cerr << "POSITIONS DIFFERENCE AT PLY " << ply << std::endl;
+	      std::cerr << "# POSITIONS DIFFERENCE AT PLY " << ply << std::endl;
 	      return 1;
 	    }
 	}
       else
 	{
-	  std::cout << "SKIPPING EQUALITY (incomplete samples)" << std::endl;
+	  std::cout << "# SKIPPING EQUALITY (incomplete samples)" << std::endl;
 	}
 
       // use lexicographically first positions to get a (non-random)
       // sample of positions expected after next ply.
 
-      std::cout << "CHECKING FIRST " << max_examples << " POSITIONS" << std::endl;
+      std::cout << "# CHECKING FIRST " << max_examples << " POSITIONS" << std::endl;
 
       int side_to_move = ply % 2;
 
@@ -101,9 +101,9 @@ int main(int argc, char **argv)
 	  // should not have both moves and a final result
 	  if((moves.size() > 0) && (result != 0))
 	    {
-	      std::cerr << "CONFLICT" << std::endl;
+	      std::cerr << "# CONFLICT" << std::endl;
 	      std::cerr << game->position_to_string(position) << std::endl;
-	      std::cerr << "position has " << moves.size() << " moves and final result " << result << std::endl;
+	      std::cerr << "# position has " << moves.size() << " moves and final result " << result << std::endl;
 	      return 1;
 	    }
 

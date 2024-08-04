@@ -34,7 +34,7 @@ int main(int argc, char **argv)
   for(int ply = forward_ply_max; ply >= 0; --ply)
     {
       std::cout << "############################################################" << std::endl;
-      std::cout << "PLY " << ply << std::endl;
+      std::cout << "# PLY " << ply << std::endl;
       std::cout << "############################################################" << std::endl;
 
       int side_to_move = ply % 2;
@@ -64,37 +64,37 @@ int main(int argc, char **argv)
 	  return 1;
 	}
 
-      std::cout << "PARTITION CHECK" << std::endl;
+      std::cout << "# PARTITION CHECK" << std::endl;
 
       if(!validate_partition(*game, positions, std::vector<shared_dfa_ptr>({winning, losing, unknown})))
 	{
-	  std::cerr << "PARTITION CHECK FAILED" << std::endl;
+	  std::cerr << "# PARTITION CHECK FAILED" << std::endl;
 	  return 1;
 	}
 
-      std::cout << "BACKWARD WINNING CHECK" << std::endl;
+      std::cout << "# BACKWARD WINNING CHECK" << std::endl;
 
       shared_dfa_ptr backward_winning = game->get_positions_winning(side_to_move, backward_ply_max);
 
       shared_dfa_ptr backward_winning_positions = DFAUtil::get_intersection(backward_winning, positions);
       if(!validate_subset(backward_winning_positions, winning))
 	{
-	  std::cerr << "BACKWARD WINNING CHECK FAILED" << std::endl;
+	  std::cerr << "# BACKWARD WINNING CHECK FAILED" << std::endl;
 	  return 1;
 	}
 
-      std::cout << "BACKWARD LOSING CHECK" << std::endl;
+      std::cout << "# BACKWARD LOSING CHECK" << std::endl;
 
       shared_dfa_ptr backward_losing = game->get_positions_losing(side_to_move, backward_ply_max);
 
       shared_dfa_ptr backward_losing_positions = DFAUtil::get_intersection(backward_losing, positions);
       if(!validate_subset(backward_losing_positions, losing))
 	{
-	  std::cerr << "BACKWARD LOSING CHECK FAILED" << std::endl;
+	  std::cerr << "# BACKWARD LOSING CHECK FAILED" << std::endl;
 	  return 1;
 	}
 
-      std::cout << "WINNING CHECK" << std::endl;
+      std::cout << "# WINNING CHECK" << std::endl;
 
       int next_ply = ply + 1;
       shared_dfa_ptr next_losing =
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 	  return 1;
 	}
 
-      std::cout << "LOSING CHECK" << std::endl;
+      std::cout << "# LOSING CHECK" << std::endl;
 
       shared_dfa_ptr next_winning =
 	(ply < forward_ply_max)

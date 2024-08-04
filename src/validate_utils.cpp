@@ -21,12 +21,12 @@ template <class... Args>
 shared_dfa_ptr load_helper(const Game& game, const std::format_string<Args...>& name_format, Args&&... args)
 {
   std::string name = std::format(name_format, std::forward<Args>(args)...);
-  std::cout << "LOADING " << name << std::endl;
+  std::cout << "# LOADING " << name << std::endl;
 
   shared_dfa_ptr output = game.load_by_name(name);
   if(!output)
     {
-      std::cerr << "LOADING FAILED FOR " << name << std::endl;
+      std::cerr << "# LOADING FAILED FOR " << name << std::endl;
     }
   return output;
 }
@@ -59,7 +59,7 @@ bool validate_equal(const Game& game, std::string name_a, shared_dfa_ptr dfa_a, 
   if(!dfa_a_minus_b->is_constant(false))
     {
       auto size_a_minus_b = dfa_a_minus_b->size();
-      std::cerr << name_a << " HAS " << size_a_minus_b << " EXTRA POSITIONS" << std::endl;
+      std::cerr << "# " << name_a << " HAS " << size_a_minus_b << " EXTRA POSITIONS" << std::endl;
       print_example(game, dfa_a_minus_b);
     }
 
@@ -67,7 +67,7 @@ bool validate_equal(const Game& game, std::string name_a, shared_dfa_ptr dfa_a, 
   if(!dfa_b_minus_a->is_constant(false))
     {
       auto size_b_minus_a = dfa_b_minus_a->size();
-      std::cerr << name_b << " HAS " << size_b_minus_a << " EXTRA POSITIONS" << std::endl;
+      std::cerr << "# " << name_b << " HAS " << size_b_minus_a << " EXTRA POSITIONS" << std::endl;
       print_example(game, dfa_b_minus_a);
     }
 
@@ -79,7 +79,7 @@ bool validate_equal(const Game& game, std::string name_a, shared_dfa_ptr dfa_a, 
 
 bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_losing, shared_dfa_ptr next_winning, shared_dfa_ptr base_losing, int max_examples)
 {
-  std::cout << " CHECKING EXAMPLES" << std::endl;
+  std::cout << "# CHECKING EXAMPLES" << std::endl;
 
   shared_dfa_ptr new_losing = DFAUtil::get_difference(curr_losing, base_losing);
 
@@ -93,7 +93,7 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
       int result = game.validate_result(side_to_move, position);
       if(result > 0)
 	{
-	  std::cerr << "LOSING EXAMPLE ACTUALLY WON" << std::endl;
+	  std::cerr << "# LOSING EXAMPLE ACTUALLY WON" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
 	  return false;
 	}
@@ -116,14 +116,14 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
 	{
 	  if(!next_winning->contains(move))
 	    {
-	      std::cerr << "LOSING EXAMPLE WITHOUT FORCED LOSS" << std::endl;
+	      std::cerr << "# LOSING EXAMPLE WITHOUT FORCED LOSS" << std::endl;
 	      std::cerr << game.position_to_string(position) << std::endl;
 	      return false;
 	    }
 	}
     }
 
-  std::cout << "checked " << losing_examples << " losing examples." << std::endl;
+  std::cout << "# checked " << losing_examples << " losing examples." << std::endl;
 
   return true;
 }
@@ -133,7 +133,7 @@ bool validate_partition(const Game& game, shared_dfa_ptr target, std::vector<sha
   shared_dfa_ptr union_check = DFAUtil::get_union_vector(target->get_shape(), partition);
   if(!validate_equal(game, "UNION", union_check, "EXPECTED", target))
     {
-      std::cerr << "PARTITION CHECK FAILED: UNION MISMATCH" << std::endl;
+      std::cerr << "# PARTITION CHECK FAILED: UNION MISMATCH" << std::endl;
       return false;
     }
 
@@ -143,7 +143,7 @@ bool validate_partition(const Game& game, shared_dfa_ptr target, std::vector<sha
 	{
 	  if(!validate_disjoint(partition[i], partition[j]))
 	    {
-	      std::cerr << "PARTITION CHECK FAILED: PARTITIONS " << i << "+" << j << " ARE NOT DISJOINT" << std::endl;
+	      std::cerr << "# PARTITION CHECK FAILED: PARTITIONS " << i << "+" << j << " ARE NOT DISJOINT" << std::endl;
 	      return false;
 	    }
 	}
@@ -159,7 +159,7 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
       // verify these are terminal positions according to the DFA move
       // generator.
 
-      std::cout << " CHECK NO MOVES (bulk)" << std::endl;
+      std::cout << "#  CHECK NO MOVES (bulk)" << std::endl;
 
       shared_dfa_ptr moves = game.get_moves_forward(side_to_move, positions);
       if(!moves->is_constant(0))
@@ -170,7 +170,7 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
 	}
     }
 
-  std::cout << " CHECK EXAMPLES" << std::endl;
+  std::cout << "#  CHECK EXAMPLES" << std::endl;
 
   int result_examples = 0;
   for(auto iter = positions->cbegin();
@@ -191,12 +191,12 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
 
 	  if(result_mismatch)
 	    {
-	      std::cerr << "RESULT MISMATCH: expected " << result_expected << ", actual " << result_actual << std::endl;
+	      std::cerr << "# RESULT MISMATCH: expected " << result_expected << ", actual " << result_actual << std::endl;
 	    }
 
 	  if(moves_mismatch)
 	    {
-	      std::cerr << "MOVES MISMATCH: expected " << 0 << ", actual " << moves.size() << std::endl;
+	      std::cerr << "# MOVES MISMATCH: expected " << 0 << ", actual " << moves.size() << std::endl;
 	    }
 
 	  std::cerr << std::endl;
@@ -205,7 +205,7 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
 	}
     }
 
-  std::cout << "checked " << result_examples << " examples" << std::endl;
+  std::cout << "# checked " << result_examples << " examples" << std::endl;
 
   return true;
 }
@@ -218,7 +218,7 @@ bool validate_subset(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 
 bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_winning, shared_dfa_ptr next_losing, shared_dfa_ptr base_winning, int max_examples)
 {
-  std::cout << " CHECK EXAMPLES" << std::endl;
+  std::cout << "#  CHECK EXAMPLES" << std::endl;
 
   shared_dfa_ptr new_winning = DFAUtil::get_difference(curr_winning, base_winning);
 
@@ -232,13 +232,13 @@ bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_wi
       int result = game.validate_result(side_to_move, position);
       if(result < 0)
 	{
-	  std::cerr << "WINNING EXAMPLE ACTUALLY LOST" << std::endl;
+	  std::cerr << "# WINNING EXAMPLE ACTUALLY LOST" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
 	  return false;
 	}
       if(result > 0)
 	{
-	  std::cerr << "WON EXAMPLE MISSED BY BASE CASE" << std::endl;
+	  std::cerr << "# WON EXAMPLE MISSED BY BASE CASE" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
 	  return false;
 	}
@@ -246,7 +246,7 @@ bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_wi
       std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
       if(moves.size() == 0)
 	{
-	  std::cerr << "NOT WON EXAMPLE WITHOUT MOVES" << std::endl;
+	  std::cerr << "# NOT WON EXAMPLE WITHOUT MOVES" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
 	  return false;
 	}
@@ -263,13 +263,13 @@ bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_wi
 
       if(!found_win)
 	{
-	  std::cerr << "WINNING EXAMPLE WITHOUT WINNING MOVE" << std::endl;
+	  std::cerr << "# WINNING EXAMPLE WITHOUT WINNING MOVE" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
 	  return false;
 	}
     }
 
-  std::cout << "checked " << winning_examples << " winning examples." << std::endl;
+  std::cout << "# checked " << winning_examples << " winning examples." << std::endl;
 
   return true;
 }
