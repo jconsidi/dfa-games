@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: validate_forward_backward test_forward GAME_NAME [FORWARD_PLY] [BACKWARD_PLY] [MAX_EXAMPLES]\n";
+      std::cerr << "usage: validate_forward_backward GAME_NAME [FORWARD_PLY] [BACKWARD_PLY] [MAX_EXAMPLES]\n";
       return 1;
     }
 
