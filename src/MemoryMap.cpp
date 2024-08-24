@@ -10,6 +10,7 @@
 #include <cassert>
 #include <iostream>
 #include <ranges>
+#include <numeric>
 
 #include "parallel.h"
 

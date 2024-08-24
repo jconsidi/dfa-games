@@ -9,6 +9,7 @@
 #include <execution>
 #include <iostream>
 #include <memory>
+#include <numeric>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <queue>

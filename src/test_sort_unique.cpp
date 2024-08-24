@@ -1,5 +1,6 @@
 // test_sort_unique.cpp
 
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <vector>
