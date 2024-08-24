@@ -14,7 +14,7 @@ bool validate_side_to_move(const Game& game, int side_to_move, int max_examples)
   std::cout << "############################################################" << std::endl;
   std::cout << "# SIDE TO MOVE: " << side_to_move << std::endl;
   std::cout << "############################################################" << std::endl;
-  
+
   dfa_shape_t shape = game.get_shape();
 
   shared_dfa_ptr won = game.get_positions_won(side_to_move);
@@ -92,6 +92,6 @@ int main(int argc, char **argv)
 	  return 1;
 	}
     }
-  
+
   return 0;
 }

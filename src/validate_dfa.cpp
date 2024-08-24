@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 
   shared_dfa_ptr dfa = get_dfa(game_name, hash_or_name);
 
-  std::string hash_saved = dfa->get_hash();  
+  std::string hash_saved = dfa->get_hash();
   std::cout << "HASH SAVED = " << hash_saved << std::endl;
 
   std::string hash_check = dfa->calculate_hash();
