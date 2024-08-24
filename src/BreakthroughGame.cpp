@@ -161,6 +161,56 @@ DFAString BreakthroughBase::get_position_initial() const
   return DFAString(get_shape(), initial_characters);
 }
 
+shared_dfa_ptr BreakthroughBase::build_positions_reversed(shared_dfa_ptr positions_in) const
+{
+  MoveGraph reverse_graph(get_shape());
+
+  reverse_graph.add_node("begin");
+  std::string previous_join = "begin";
+
+  auto change_character = [](int c)
+  {
+    if(c == 0)
+      {
+        return 0;
+      }
+
+    return 3 - c;
+  };
+
+  for(int layer_from = 0; layer_from * 2 < get_shape().size(); ++layer_from)
+    {
+      int layer_to = get_shape().size() - 1 - layer_from;
+
+      std::vector<std::string> current_changes;
+      for(int c_from = 0; c_from < 3; ++c_from)
+        {
+          for(int c_to = 0; c_to < 3; ++c_to)
+            {
+              std::string node_name = std::format("layers={:d}/{:d},characters={:d}/{:d}", layer_from, layer_to, c_from, c_to);
+              change_vector node_changes(width * height);
+              node_changes[layer_from] = change_type(c_from, change_character(c_to));
+              node_changes[layer_to] = change_type(c_to, change_character(c_from));
+
+              reverse_graph.add_node(node_name, node_changes);
+              current_changes.push_back(node_name);
+            }
+        }
+
+      std::string next_join = std::format("layers={:d}/{:d} done", layer_from, layer_to);
+      reverse_graph.add_node(next_join);
+      for(std::string node_name : current_changes)
+        {
+          reverse_graph.add_edge(previous_join, node_name);
+          reverse_graph.add_edge(node_name, next_join);
+        }
+      previous_join = next_join;
+    }
+
+  std::string name_prefix = std::format("{:s},reversed", get_name());
+  return reverse_graph.get_moves(name_prefix, positions_in);
+}
+
 std::string BreakthroughBase::position_to_string(const DFAString& string_in) const
 {
   std::ostringstream output;

@@ -15,6 +15,7 @@ protected:
 
   BreakthroughBase(std::string, int, int);
 
+  virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
   virtual int calculate_layer(int row, int column) const = 0;
 
 public:
