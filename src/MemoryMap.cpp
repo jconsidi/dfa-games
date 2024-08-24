@@ -9,7 +9,6 @@
 
 #include <cassert>
 #include <iostream>
-#include <ranges>
 #include <numeric>
 
 #include "parallel.h"
@@ -112,7 +111,9 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
   for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
     {
       size_t chunk_end = std::min(chunk_start + chunk_elements, _size);
-      std::ranges::iota_view index_range(chunk_start, chunk_end);
+
+      std::vector<size_t> index_range(chunk_end - chunk_start);
+      std::iota(index_range.begin(), index_range.end(), chunk_start);
 
       TRY_PARALLEL_4(std::transform,
                      index_range.begin(),
