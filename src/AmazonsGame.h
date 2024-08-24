@@ -16,6 +16,7 @@ private:
   int height;
 
   virtual MoveGraph build_move_graph(int) const;
+  virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 
 public:
 
