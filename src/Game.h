@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "DFA.h"
@@ -21,6 +22,8 @@ private:
   mutable MoveGraph move_graphs_forward[2] = {dfa_shape_t(), dfa_shape_t()};
   mutable MoveGraph move_graphs_backward[2] = {dfa_shape_t(), dfa_shape_t()};
   mutable bool move_graphs_ready[2] = {false, false};
+
+  mutable std::optional<bool> reverse_implemented;
 
   virtual MoveGraph build_move_graph(int) const = 0;
   void build_move_graphs(int) const;
@@ -38,6 +41,7 @@ protected:
 
   virtual shared_dfa_ptr build_positions_losing(int, int) const;
   virtual shared_dfa_ptr build_positions_lost(int) const;
+  virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
   virtual shared_dfa_ptr build_positions_winning(int, int) const;
   virtual shared_dfa_ptr build_positions_won(int) const;
 
@@ -46,6 +50,8 @@ public:
   virtual ~Game();
 
   // move generation
+
+  bool can_reverse() const;
 
   shared_dfa_ptr get_has_moves(int) const;
 

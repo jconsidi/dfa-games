@@ -80,6 +80,12 @@ shared_dfa_ptr Game::build_positions_lost(int side_to_move) const
   return DFAUtil::get_reject(get_shape());
 }
 
+shared_dfa_ptr Game::build_positions_reversed(shared_dfa_ptr positions_in) const
+{
+  // default no reverse support
+  return shared_dfa_ptr(0);
+}
+
 shared_dfa_ptr Game::build_positions_winning(int side_to_move, int ply_max) const
 {
   assert(ply_max >= 0);
@@ -113,6 +119,23 @@ shared_dfa_ptr Game::build_positions_won(int side_to_move) const
   // build_positions_won should be overridden.
 
   return DFAUtil::get_reject(get_shape());
+}
+
+bool Game::can_reverse() const
+{
+  if(!reverse_implemented.has_value())
+    {
+      shared_dfa_ptr reject_reversed = build_positions_reversed(DFAUtil::get_reject(get_shape()));
+      if(reject_reversed)
+        {
+          assert(reject_reversed->is_constant(0));
+        }
+
+      reverse_implemented = bool(reject_reversed);
+    }
+
+  assert(reverse_implemented.has_value());
+  return *reverse_implemented;
 }
 
 shared_dfa_ptr Game::get_has_moves(int side_to_move) const
@@ -224,6 +247,15 @@ shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const
 
   return load_or_build(get_name_losing(side_to_move, ply_max), [&]()
   {
+    if(this->can_reverse())
+      {
+        shared_dfa_ptr output_reversed = this->load_by_name(get_name_losing(1 - side_to_move, ply_max));
+        if(output_reversed)
+          {
+            return build_positions_reversed(output_reversed);
+          }
+      }
+
     return build_positions_losing(side_to_move, ply_max);
   });
 }
@@ -265,6 +297,15 @@ shared_dfa_ptr Game::get_positions_unknown(int side_to_move, int ply_max) const
 
   return this->load_or_build(get_name_unknown(side_to_move, ply_max), [&]()
   {
+    if(this->can_reverse())
+      {
+        shared_dfa_ptr output_reversed = this->load_by_name(get_name_unknown(1 - side_to_move, ply_max));
+        if(output_reversed)
+          {
+            return build_positions_reversed(output_reversed);
+          }
+      }
+
     shared_dfa_ptr losing = this->get_positions_losing(side_to_move, ply_max);
     shared_dfa_ptr winning = this->get_positions_winning(side_to_move, ply_max);
 
@@ -295,6 +336,15 @@ shared_dfa_ptr Game::get_positions_winning(int side_to_move, int ply_max) const
 
   return this->load_or_build(get_name_winning(side_to_move, ply_max), [&]()
   {
+    if(this->can_reverse())
+      {
+        shared_dfa_ptr output_reversed = this->load_by_name(get_name_winning(1 - side_to_move, ply_max));
+        if(output_reversed)
+          {
+            return build_positions_reversed(output_reversed);
+          }
+      }
+
     return build_positions_winning(side_to_move, ply_max);
   });
 }
