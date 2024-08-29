@@ -452,6 +452,11 @@ void MemoryMap<T>::unlink()
 {
   munmap();
 
+  if(_flags & MAP_ANONYMOUS)
+    {
+      return;
+    }
+
   if(::unlink(_filename.c_str()))
     {
       perror("unlink");
