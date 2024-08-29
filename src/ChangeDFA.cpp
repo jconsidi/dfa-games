@@ -77,26 +77,18 @@ void ChangeDFA::build_one_pass(const DFA& dfa_in, const change_vector& changes_i
 	  assert(0 <= after_character);
 	  assert(after_character < layer_shape);
 
-	  set_layer_size(layer, layer_size);
+          build_layer(layer, layer_size, [&](dfa_state_t state_in, dfa_state_t *transitions_out)
+          {
+            // set all transitions to reject
+            for(int i = 0; i < layer_shape; ++i)
+              {
+                transitions_out[i] = 0;
+              }
 
-	  const int transitions_temp_size = 100;
-	  assert(layer_shape <= transitions_temp_size);
-
-	  auto rewrite_transitions = [&](dfa_state_t state_in)
-	  {
-	    // creating fresh array to avoid sharing issues from parallelism.
-	    dfa_state_t transitions_temp[transitions_temp_size] = {0};
-
+            // then fix after value
 	    DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
-	    transitions_temp[after_character] = transitions_in[before_character];
-	    set_state_transitions(layer, state_in, transitions_temp);
-	  };
-
-	  std::ranges::iota_view state_range(dfa_state_t(2), layer_size);
-
-	  TRY_PARALLEL_3(std::for_each,
-			 state_range.begin(), state_range.end(),
-			 rewrite_transitions);
+            transitions_out[after_character] = transitions_in[before_character];
+          });
 	}
       else
 	{
