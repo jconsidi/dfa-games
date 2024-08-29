@@ -357,7 +357,15 @@ void DFA::copy_layer(int layer, const DFA& dfa_in)
 {
   assert(dfa_in.ready());
 
-  set_layer_size(layer, dfa_in.get_layer_size(layer));
+  assert(initial_state == ~dfa_state_t(0));
+  assert(0 <= layer);
+  assert(layer < ndim);
+
+  assert(layer_sizes[layer] == 2);
+  assert(dfa_in.get_layer_size(layer) >= 2);
+
+  layer_sizes[layer] = dfa_in.get_layer_size(layer);
+  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], layer_sizes[layer] * get_layer_shape(layer));
   assert(layer_transitions[layer].size() == dfa_in.layer_transitions[layer].size());
 
   // make sure the source layer is mapped
@@ -387,43 +395,6 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
     }
 
   assert(ready());
-}
-
-void DFA::set_layer_size(int layer, dfa_state_t layer_size_in)
-{
-  assert(initial_state == ~dfa_state_t(0));
-  assert(0 <= layer);
-  assert(layer < ndim);
-
-  assert(layer_sizes[layer] == 2);
-  assert(2 <= layer_size_in);
-  assert(layer_size_in < ~dfa_state_t(0));
-
-  layer_sizes[layer] = layer_size_in;
-  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], layer_size_in * get_layer_shape(layer));
-
-  // initialize all non-constant states to all zeros.
-  TRY_PARALLEL_3(std::for_each, layer_transitions[layer].begin() + 2 * get_layer_shape(layer), layer_transitions[layer].end(), [](dfa_state_t& transition)
-  {
-    transition = dfa_state_t(0);
-  });
-}
-
-void DFA::set_state_transitions(int layer, dfa_state_t state_in, const dfa_state_t *transitions_in)
-{
-  assert(initial_state == ~dfa_state_t(0));
-  assert(0 <= layer);
-  assert(layer < ndim);
-
-  assert(2 <= state_in);
-  assert(state_in < layer_sizes[layer]);
-
-  int layer_shape = get_layer_shape(layer);
-  dfa_state_t *transitions = layer_transitions[layer].begin() + state_in * layer_shape;
-  for(int i = 0; i < layer_shape; ++i)
-    {
-      *transitions++ = *transitions_in++;
-    }
 }
 
 std::string DFA::calculate_hash() const

@@ -100,8 +100,6 @@ class DFA
   void build_layer(int, dfa_state_t, std::function<void(dfa_state_t, dfa_state_t *)>);
   void copy_layer(int, const DFA&);
   virtual void set_initial_state(dfa_state_t);
-  void set_layer_size(int, dfa_state_t);
-  void set_state_transitions(int, dfa_state_t, const dfa_state_t *);
 
  public:
 
