@@ -305,69 +305,8 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
   // identify cases where leaf_func allows full evaluation without
   // going to leaves...
 
-  dfa_state_t left_sink = ~dfa_state_t(0);
-  if(leaf_func.has_left_sink(0))
-    {
-      left_sink = 0;
-    }
-  else if(leaf_func.has_left_sink(1))
-    {
-      left_sink = 1;
-    }
-  dfa_state_t right_sink = ~dfa_state_t(0);
-  if(leaf_func.has_right_sink(0))
-    {
-      right_sink = 0;
-    }
-  else if(leaf_func.has_right_sink(1))
-    {
-      right_sink = 1;
-    }
-
-  // apply shortcircuit logic to previously detected cases
-  std::function<dfa_state_t(dfa_state_t, dfa_state_t)> shortcircuit_func = [&](dfa_state_t left_in, dfa_state_t right_in) -> dfa_state_t
-  {
-    if((left_in < 2) && (right_in < 2))
-      {
-	// constant inputs
-	return this->leaf_func(left_in, right_in);
-      }
-
-    if(left_in == left_sink)
-      {
-	return left_in;
-      }
-
-    if(right_in == right_sink)
-      {
-	return right_in;
-      }
-
-    // do not use this function unless shortcircuit evaluation
-    assert(0);
-  };
-
-  // decide whether shortcircuit evaluation applies and we can filter
-  // out these pairs from further evaluation.
-  std::function<bool(dfa_state_t, dfa_state_t)> filter_func = [=](dfa_state_t left_in, dfa_state_t right_in)
-  {
-    if((left_in < 2) && (right_in < 2))
-      {
-	return true;
-      }
-
-    if(left_in == left_sink)
-      {
-	return true;
-      }
-
-    if(right_in == right_sink)
-      {
-	return true;
-      }
-
-    return false;
-  };
+  auto shortcircuit_func = get_shortcircuit_func();
+  auto filter_func = get_filter_func();
 
   dfa_state_t initial_left = left_in.get_initial_state();
   dfa_state_t initial_right = right_in.get_initial_state();
@@ -1030,4 +969,65 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 
   assert(this->ready());
   profile.tic("final cleanup");
+}
+
+std::function<bool(dfa_state_t, dfa_state_t)> BinaryDFA::get_filter_func() const
+{
+  // decide whether shortcircuit evaluation applies and we can filter
+  // out these pairs from further evaluation.
+
+  dfa_state_t left_sink = leaf_func.get_left_sink();
+  dfa_state_t right_sink = leaf_func.get_right_sink();
+
+  return [=](dfa_state_t left_in, dfa_state_t right_in)
+  {
+    if((left_in < 2) && (right_in < 2))
+      {
+	return true;
+      }
+
+    if(left_in == left_sink)
+      {
+	return true;
+      }
+
+    if(right_in == right_sink)
+      {
+	return true;
+      }
+
+    return false;
+  };
+}
+
+std::function<dfa_state_t(dfa_state_t, dfa_state_t)> BinaryDFA::get_shortcircuit_func() const
+{
+  // apply shortcircuit logic to previously detected cases
+
+  auto leaf_func_copy = leaf_func;
+
+  dfa_state_t left_sink = leaf_func.get_left_sink();
+  dfa_state_t right_sink = leaf_func.get_right_sink();
+
+  return [=](dfa_state_t left_in, dfa_state_t right_in) -> dfa_state_t
+  {
+    if((left_in < 2) && (right_in < 2))
+      {
+	// constant inputs
+	return leaf_func_copy(left_in, right_in);
+      }
+
+    if(left_in == left_sink)
+      {
+	return left_in;
+      }
+
+    if(right_in == right_sink)
+      {
+	return right_in;
+      }
+
+    // do not use this function unless shortcircuit evaluation
+    assert(0);
+  };
 }

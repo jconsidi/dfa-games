@@ -4,6 +4,7 @@
 #define BINARY_DFA_H
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <utility>
 #include <vector>
@@ -17,6 +18,9 @@ class BinaryDFA : public DFA
 
   void build_linear(const DFA&, const DFA&);
   void build_quadratic(const DFA&, const DFA&);
+
+  std::function<bool(dfa_state_t, dfa_state_t)> get_filter_func() const;
+  std::function<dfa_state_t(dfa_state_t, dfa_state_t)> get_shortcircuit_func() const;
 
 public:
 
