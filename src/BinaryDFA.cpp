@@ -1000,7 +1000,7 @@ void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
 
       profile.tic("backward output");
 
-      MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer % 2) + "-pair_rank_to_output", curr_layer_count, [&](size_t curr_pair_rank)
+      MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count, [&](size_t curr_pair_rank)
       {
         dfa_state_t curr_pairs_permutation_index = curr_pairs_permutation_inverse[curr_pair_rank];
 	if(check_constant(curr_pair_rank))
