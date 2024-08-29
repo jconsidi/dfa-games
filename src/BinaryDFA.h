@@ -13,8 +13,10 @@
 
 class BinaryDFA : public DFA
 {
-  void build_linear(const DFA&, const DFA&, const BinaryFunction&);
-  void build_quadratic(const DFA&, const DFA&, const BinaryFunction&);
+  BinaryFunction leaf_func;
+
+  void build_linear(const DFA&, const DFA&);
+  void build_quadratic(const DFA&, const DFA&);
 
 public:
 

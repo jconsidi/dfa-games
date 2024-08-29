@@ -47,8 +47,9 @@ static void sync_if_big(MemoryMap<T>& memory_map)
 
 BinaryDFA::BinaryDFA(const DFA& left_in,
 		     const DFA& right_in,
-		     const BinaryFunction& leaf_func)
-  : DFA(left_in.get_shape())
+		     const BinaryFunction& leaf_func_in)
+  : DFA(left_in.get_shape()),
+    leaf_func(leaf_func_in)
 {
   assert(left_in.get_shape() == right_in.get_shape());
 
@@ -84,7 +85,7 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
      leaf_func.has_left_sink(0))
     {
       // left side is linear DFA
-      build_linear(left_in, right_in, leaf_func);
+      build_linear(left_in, right_in);
       return;
     }
   else if(right_in.is_linear() &&
@@ -92,12 +93,12 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
 	  leaf_func.has_right_sink(0))
     {
       // right side is linear DFA and confirmed commutative property
-      build_linear(right_in, left_in, leaf_func);
+      build_linear(right_in, left_in);
       return;
     }
 
   // quadratic default
-  build_quadratic(left_in, right_in, leaf_func);
+  build_quadratic(left_in, right_in);
 }
 
 static std::string binary_build_file_prefix(int layer)
@@ -108,8 +109,7 @@ static std::string binary_build_file_prefix(int layer)
 }
 
 void BinaryDFA::build_linear(const DFA& left_in,
-			     const DFA& right_in,
-			     const BinaryFunction& leaf_func)
+			     const DFA& right_in)
 {
   Profile profile("build_linear");
 
@@ -298,8 +298,7 @@ static MemoryMap<T> memory_map_helper(int layer, std::string suffix, size_t size
 }
 
 void BinaryDFA::build_quadratic(const DFA& left_in,
-                                const DFA& right_in,
-                                const BinaryFunction& leaf_func)
+                                const DFA& right_in)
 {
   Profile profile("build_quadratic");
 
@@ -326,12 +325,12 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
     }
 
   // apply shortcircuit logic to previously detected cases
-  std::function<dfa_state_t(dfa_state_t, dfa_state_t)> shortcircuit_func = [=](dfa_state_t left_in, dfa_state_t right_in) -> dfa_state_t
+  std::function<dfa_state_t(dfa_state_t, dfa_state_t)> shortcircuit_func = [&](dfa_state_t left_in, dfa_state_t right_in) -> dfa_state_t
   {
     if((left_in < 2) && (right_in < 2))
       {
 	// constant inputs
-	return leaf_func(left_in, right_in);
+	return this->leaf_func(left_in, right_in);
       }
 
     if(left_in == left_sink)
