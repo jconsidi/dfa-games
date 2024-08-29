@@ -97,7 +97,7 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
     }
 
   // quadratic default
-  build_quadratic_mmap(left_in, right_in, leaf_func);
+  build_quadratic(left_in, right_in, leaf_func);
 }
 
 static std::string binary_build_file_prefix(int layer)
@@ -297,11 +297,11 @@ static MemoryMap<T> memory_map_helper(int layer, std::string suffix, size_t size
   return MemoryMap<T>(binary_build_file_prefix(layer) + "-" + suffix, size_in);
 }
 
-void BinaryDFA::build_quadratic_mmap(const DFA& left_in,
-				     const DFA& right_in,
-				     const BinaryFunction& leaf_func)
+void BinaryDFA::build_quadratic(const DFA& left_in,
+                                const DFA& right_in,
+                                const BinaryFunction& leaf_func)
 {
-  Profile profile("build_quadratic_mmap");
+  Profile profile("build_quadratic");
 
   // identify cases where leaf_func allows full evaluation without
   // going to leaves...

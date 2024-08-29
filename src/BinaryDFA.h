@@ -14,7 +14,7 @@
 class BinaryDFA : public DFA
 {
   void build_linear(const DFA&, const DFA&, const BinaryFunction&);
-  void build_quadratic_mmap(const DFA&, const DFA&, const BinaryFunction&);
+  void build_quadratic(const DFA&, const DFA&, const BinaryFunction&);
 
 public:
 
