@@ -330,71 +330,6 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 
   // transitions helper
 
-  std::function<MemoryMap<size_t>(int)> build_transition_pairs = [&](int layer)
-  {
-    Profile profile2("build_transition_pairs");
-
-    profile2.tic("init");
-
-    int curr_layer_shape = this->get_layer_shape(layer);
-    const MemoryMap<size_t>& curr_pairs = pairs_by_layer.at(layer);
-    assert(curr_pairs.size() > 0);
-    curr_pairs.mmap();
-
-    size_t curr_left_size = left_in.get_layer_size(layer);
-    size_t curr_right_size = right_in.get_layer_size(layer);
-    assert(curr_pairs[curr_pairs.size() - 1] < curr_left_size * curr_right_size);
-    size_t next_right_size = right_in.get_layer_size(layer + 1);
-
-    size_t transition_pairs_size = curr_pairs.size() * curr_layer_shape;
-
-    // make sure inputs are memory mapped before going parallel
-    curr_pairs.mmap();
-
-    // read left transitions
-    profile2.tic("left");
-
-    left_in.get_transitions(layer, 0);
-    MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
-    {
-      size_t curr_i = transition_index / curr_layer_shape;
-      size_t curr_j = transition_index % curr_layer_shape;
-
-      size_t curr_pair = curr_pairs[curr_i];
-      size_t curr_left_state = curr_pair / curr_right_size;
-
-      DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
-      return left_transitions.at(curr_j);
-    });
-
-    // read right transitions
-    profile2.tic("right");
-
-    right_in.get_transitions(layer, 0);
-
-    MemoryMap<size_t> curr_transition_pairs("scratch/binarydfa/transition_pairs", transition_pairs_size, [&](size_t transition_index)
-    {
-      size_t curr_i = transition_index / curr_layer_shape;
-      size_t curr_j = transition_index % curr_layer_shape;
-
-      size_t curr_pair = curr_pairs[curr_i];
-      size_t curr_right_state = curr_pair % curr_right_size;
-
-      DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
-      return size_t(transition_pairs_left[transition_index]) * next_right_size + size_t(right_transitions.at(curr_j));
-    });
-
-    // cleanup
-
-    profile2.tic("curr pairs munmap");
-
-    curr_pairs.munmap();
-
-    // done
-    profile2.tic("done");
-    return curr_transition_pairs;
-  };
-
   // forward pass
 
   for(int layer = 0; layer < get_shape_size(); ++layer)
@@ -413,7 +348,7 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 
       profile.tic("forward transition pairs");
 
-      MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
+      MemoryMap<size_t> curr_transition_pairs = build_quadratic_transition_pairs(left_in, right_in, layer);
 
       std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
 
@@ -642,327 +577,12 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 
   for(int layer = pairs_by_layer.size() - 2; layer >= 0; --layer)
     {
-      profile.set_prefix("layer=" + std::to_string(layer));
-      profile.tic("backward init");
-
-      assert(pairs_by_layer.size() == layer + 2);
-
-      int curr_layer_shape = this->get_layer_shape(layer);
-      const MemoryMap<size_t>& curr_pairs = pairs_by_layer.at(layer);
-      size_t curr_layer_count = curr_pairs.size();
-
-      size_t next_left_size = left_in.get_layer_size(layer + 1);
-      size_t next_right_size = right_in.get_layer_size(layer + 1);
-
-      profile.tic("backward next pair mmap");
-
-      const MemoryMap<size_t>& next_pairs = pairs_by_layer.at(layer+1);
-      next_pairs.mmap();
-      size_t next_layer_count = next_pairs.size();
-
-      profile.tic("backward next pair index");
-
-      // index entries have first pair of 4KB block (64 bit pair)
-      std::vector<MemoryMap<size_t>> next_pairs_index;
-      next_pairs_index.reserve(3);
-      auto add_next_pairs_index = [&](const MemoryMap<size_t>& previous_pairs)
-      {
-	std::string index_name = "scratch/binarydfa/next_pairs_index-" + std::to_string(next_pairs_index.size());
-	size_t index_length = (previous_pairs.size() + 511) / 512;
-	next_pairs_index.emplace_back(index_name, index_length, [&](size_t i)
-        {
-          return previous_pairs[i * 512];
-        });
-      };
-      add_next_pairs_index(next_pairs);
-      assert(next_pairs_index.size() == 1);
-
-      // add more indexes until under 1MB
-      while(next_pairs_index.back().length() > 1ULL << 20)
-	{
-	  assert(next_pairs_index.size() < next_pairs_index.capacity());
-	  add_next_pairs_index(next_pairs_index.back());
-	}
-
-      auto search_index = [&](const MemoryMap<size_t>& next_pairs_index, size_t next_pair, size_t offset_min, size_t offset_max)
-      {
-	assert(offset_min <= offset_max);
-	assert(offset_max < next_pairs_index.size());
-
-	while(offset_min < offset_max)
-	  {
-	    size_t offset_mid = offset_min + (offset_max - offset_min + 1) / 2;
-	    if(next_pairs_index[offset_mid] <= next_pair)
-	      {
-		offset_min = offset_mid;
-	      }
-	    else
-	      {
-		offset_max = offset_mid - 1;
-	      }
-	  }
-
-	return offset_min;
-      };
-
-      profile.tic("backward transitions input");
-
-      MemoryMap<size_t> curr_transition_pairs = build_transition_pairs(layer);
-
-      profile.tic("backward transitions populate");
-
-      MemoryMap<dfa_state_t> curr_transitions("scratch/binarydfa/transitions", curr_layer_count * curr_layer_shape, [&](size_t next_pair_index)
-      {
-        size_t next_pair = curr_transition_pairs[next_pair_index];
-
-	dfa_state_t next_left_state = next_pair / next_right_size;
-	assert(next_left_state < next_left_size);
-	dfa_state_t next_right_state = next_pair % next_right_size;
-
-	if(filter_func(next_left_state, next_right_state))
-	  {
-	    return shortcircuit_func(next_left_state, next_right_state);
-	  }
-	else
-	  {
-	    size_t offset_min = 0;
-	    size_t offset_max = next_pairs_index.back().size() - 1;
-
-	    for(int index_index = next_pairs_index.size() - 1; index_index > 0; --index_index)
-	      {
-		// compute index range in next index
-		offset_min = search_index(next_pairs_index.at(index_index),
-					  next_pair,
-					  offset_min,
-					  offset_max) * 512;
-
-		offset_max = std::min(offset_min + 511,
-				      next_pairs_index[index_index - 1].size() - 1);
-	      }
-
-	    offset_min = search_index(next_pairs_index.at(0),
-				      next_pair,
-				      offset_min,
-				      offset_max) * 512;
-	    offset_max = std::min(offset_min + 511,
-				  next_layer_count - 1);
-
-	    size_t next_rank_min = search_index(next_pairs,
-						next_pair,
-						offset_min,
-						offset_max);
-	    assert(next_pairs[next_rank_min] == next_pair);
-
-	    return next_pair_rank_to_output[next_rank_min];
-	  }
-      });
-
-      profile.tic("backward transitions hash");
-
-      MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed("scratch/binarydfa/transitions_hashed", curr_layer_count, [&](size_t i)
-      {
-        BinaryDFATransitionsHashPlusIndex output;
-        if(curr_layer_shape + 1 <= binary_dfa_hash_width)
-          {
-            // copy transitions
-            for(int j = 0; j < curr_layer_shape; ++j)
-              {
-                output.data[j] = curr_transitions[i * curr_layer_shape + j];
-              }
-            // and zero pad the rest of the hash space
-            for(int j = curr_layer_shape; j < binary_dfa_hash_width - 1; ++j)
-              {
-                output.data[j] = 0;
-              }
-          }
-        else
-          {
-            // transitions don't fit, so hash them
-
-            unsigned char hash_output[SHA256_DIGEST_LENGTH];
-            static const EVP_MD *hash_implementation = EVP_sha256();
-            EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
-
-            EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
-            EVP_DigestUpdate(hash_context, &(curr_transitions[i * curr_layer_shape]), curr_layer_shape * sizeof(dfa_state_t));
-            EVP_DigestFinal_ex(hash_context, hash_output, 0);
-
-            for(int j = 0; j < binary_dfa_hash_width - 1; ++j)
-              {
-                output.data[j] = reinterpret_cast<dfa_state_t *>(hash_output)[j];
-              }
-          }
-
-        output.data[binary_dfa_hash_width - 1] = i;
-
-        return output;
-      });
-
-      profile.tic("backward sort hash sort");
-
-      TRY_PARALLEL_2(std::sort, curr_transitions_hashed.begin(), curr_transitions_hashed.end());
-
-      profile.tic("backward sort hash check");
-
-      auto hash_collision = TRY_PARALLEL_3(std::adjacent_find, curr_transitions_hashed.begin(), curr_transitions_hashed.end(), [&](const BinaryDFATransitionsHashPlusIndex& a, const BinaryDFATransitionsHashPlusIndex& b)
-      {
-        // return true if hashes match but transitions do not
-
-        if(a < b)
-          {
-            return false;
-          }
-
-        size_t curr_pair_index_a = a.get_pair_rank();
-        size_t curr_pair_index_b = b.get_pair_rank();
-
-        return ::memcmp(&(curr_transitions[curr_pair_index_a * curr_layer_shape]),
-                        &(curr_transitions[curr_pair_index_b * curr_layer_shape]),
-                        sizeof(dfa_state_t) * curr_layer_shape) != 0;
-      });
-      // confirm no mismatch found
-      assert(hash_collision == curr_transitions_hashed.end());
-
-      // make permutation of pairs sorted by transitions
-
-      profile.tic("backward sort permutation");
-
-      assert(curr_layer_count <= size_t(UINT32_MAX));
-      MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count, [&](size_t i)
-      {
-        return curr_transitions_hashed[i].get_pair_rank();
-      });
-
-      profile.tic("backward states identification");
-
-      MemoryMap<dfa_state_t> curr_pairs_permutation_to_output("scratch/binarydfa/pairs_permutation_to_output", curr_layer_count);
-
-      auto check_constant = [&](dfa_state_t curr_pair_rank)
-      {
-	dfa_state_t possible_constant = curr_transitions[curr_pair_rank * curr_layer_shape];
-	if(possible_constant >= 2)
-	  {
-	    return false;
-	  }
-
-	for(int j = 1; j < curr_layer_shape; ++j)
-	  {
-	    if(curr_transitions[curr_pair_rank * curr_layer_shape + j] != possible_constant)
-	      {
-		return false;
-	      }
-	  }
-
-	return true;
-      };
-
-      auto curr_transitions_hashed_begin = curr_transitions_hashed.begin();
-      auto check_new = [&](const BinaryDFATransitionsHashPlusIndex& curr_pair_hashed)
-      {
-        dfa_state_t curr_pair_rank = curr_pair_hashed.get_pair_rank();
-	if(check_constant(curr_pair_rank))
-	  {
-	    return dfa_state_t(0);
-	  }
-
-	if(&curr_pair_hashed <= curr_transitions_hashed_begin)
-	  {
-	    // first and non-constant is always a new state
-	    // TODO : change range to not require this
-	    return dfa_state_t(1);
-	  }
-
-	if((&curr_pair_hashed)[-1] < curr_pair_hashed)
-	  {
-            // different transitions from predecessor
-	    return dfa_state_t(1);
-	  }
-
-	return dfa_state_t(0);
-      };
-
-      TRY_PARALLEL_6(std::transform_inclusive_scan,
-                     curr_transitions_hashed.begin(),
-                     curr_transitions_hashed.end(),
-		     curr_pairs_permutation_to_output.begin(),
-		     [](dfa_state_t previous, dfa_state_t delta) {return previous + delta;},
-		     check_new,
-		     1); // first new state will be 2
-
-      dfa_state_t layer_size = curr_pairs_permutation_to_output[curr_layer_count - 1] + 1;
-
-      profile.tic("backward states write");
-
-      auto curr_pairs_permutation_to_output_begin = curr_pairs_permutation_to_output.begin();
-      auto curr_pairs_permutation_to_output_end = curr_pairs_permutation_to_output.end();
-      auto curr_transitions_begin = curr_transitions.begin();
-
-      auto populate_transitions = [&](dfa_state_t new_state_id, dfa_state_t *transitions_out)
-      {
-        assert(new_state_id < layer_size);
-        auto iter = std::lower_bound(curr_pairs_permutation_to_output_begin,
-                                     curr_pairs_permutation_to_output_end,
-                                     new_state_id);
-        assert(iter < curr_pairs_permutation_to_output_end);
-        assert(*iter == new_state_id);
-
-	dfa_state_t curr_pairs_permutation_index = iter - curr_pairs_permutation_to_output_begin;
-	dfa_state_t curr_pair_rank = curr_pairs_permutation[curr_pairs_permutation_index];
-        std::copy_n(curr_transitions_begin + curr_pair_rank * curr_layer_shape, curr_layer_shape, transitions_out);
-      };
-
-      build_layer(layer, layer_size, populate_transitions);
-
-      profile.tic("backward invert");
-
-      // invert permutation so we can write pair_rank_to_output in order
-
-      MemoryMap<dfa_state_t> curr_pairs_permutation_inverse("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count);
-      // contents are indexes into curr_pairs_permutation
-      std::iota(curr_pairs_permutation_inverse.begin(),
-		curr_pairs_permutation_inverse.end(),
-		0);
-      // sort so curr_pairs_permutation[curr_pairs_permutation_inverse[i]] = i
-
-      TRY_PARALLEL_3(std::sort,
-		     curr_pairs_permutation_inverse.begin(),
-		     curr_pairs_permutation_inverse.end(),
-		     [&](int a, int b) {
-		       return curr_pairs_permutation[a] < curr_pairs_permutation[b];
-		     });
-
-      for(dfa_state_t i : {size_t(0), curr_layer_count - 1})
-	{
-	  assert(curr_pairs_permutation[curr_pairs_permutation_inverse[i]] == i);
-	}
-
-      profile.tic("backward output");
-
-      MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count, [&](size_t curr_pair_rank)
-      {
-        dfa_state_t curr_pairs_permutation_index = curr_pairs_permutation_inverse[curr_pair_rank];
-	if(check_constant(curr_pair_rank))
-	  {
-	    return curr_transitions[curr_pair_rank * curr_layer_shape];
-	  }
-
-	return curr_pairs_permutation_to_output[curr_pairs_permutation_index];
-      });
-
-      std::swap(next_pair_rank_to_output, curr_pair_rank_to_output);
-      assert(next_pair_rank_to_output.size() > 0);
-
-      // shrink state
-
-      profile.tic("backward munmap");
-      pairs_by_layer.pop_back();
-
-      // cleanup in destructors
-      profile.tic("backward cleanup");
+      next_pair_rank_to_output = build_quadratic_backward_layer(left_in,
+                                                                right_in,
+                                                                layer,
+                                                                next_pair_rank_to_output);
     }
   profile.set_prefix("");
-
-  assert(pairs_by_layer.size() == 1);
 
   assert(next_pair_rank_to_output.size() == 1);
   this->set_initial_state(next_pair_rank_to_output[0]);
@@ -970,6 +590,405 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
   assert(this->ready());
   profile.tic("final cleanup");
 }
+
+MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
+                                                                 const DFA& right_in,
+                                                                 int layer,
+                                                                 const MemoryMap<dfa_state_t>& next_pair_rank_to_output)
+{
+  Profile profile("build_quadratic_backward_layer");
+
+  profile.set_prefix("layer=" + std::to_string(layer));
+  profile.tic("backward init");
+
+  int curr_layer_shape = this->get_layer_shape(layer);
+  const MemoryMap<size_t> curr_pairs = build_quadratic_read_pairs(layer);
+  size_t curr_layer_count = curr_pairs.size();
+
+  size_t next_left_size = left_in.get_layer_size(layer + 1);
+  size_t next_right_size = right_in.get_layer_size(layer + 1);
+
+  profile.tic("backward next pair mmap");
+
+  const MemoryMap<size_t> next_pairs = build_quadratic_read_pairs(layer + 1);
+  size_t next_layer_count = next_pairs.size();
+
+  profile.tic("backward next pair index");
+
+  // index entries have first pair of 4KB block (64 bit pair)
+  std::vector<MemoryMap<size_t>> next_pairs_index;
+  next_pairs_index.reserve(3);
+  auto add_next_pairs_index = [&](const MemoryMap<size_t>& previous_pairs)
+  {
+    std::string index_name = "scratch/binarydfa/next_pairs_index-" + std::to_string(next_pairs_index.size());
+    size_t index_length = (previous_pairs.size() + 511) / 512;
+    next_pairs_index.emplace_back(index_name, index_length, [&](size_t i)
+    {
+      return previous_pairs[i * 512];
+    });
+  };
+  add_next_pairs_index(next_pairs);
+  assert(next_pairs_index.size() == 1);
+
+  // add more indexes until under 1MB
+  while(next_pairs_index.back().length() > 1ULL << 20)
+    {
+      assert(next_pairs_index.size() < next_pairs_index.capacity());
+      add_next_pairs_index(next_pairs_index.back());
+    }
+
+  auto search_index = [&](const MemoryMap<size_t>& next_pairs_index, size_t next_pair, size_t offset_min, size_t offset_max)
+  {
+    assert(offset_min <= offset_max);
+    assert(offset_max < next_pairs_index.size());
+
+    while(offset_min < offset_max)
+      {
+        size_t offset_mid = offset_min + (offset_max - offset_min + 1) / 2;
+        if(next_pairs_index[offset_mid] <= next_pair)
+          {
+            offset_min = offset_mid;
+          }
+        else
+          {
+            offset_max = offset_mid - 1;
+          }
+      }
+
+    return offset_min;
+  };
+
+  profile.tic("backward transitions input");
+
+  MemoryMap<size_t> curr_transition_pairs = build_quadratic_transition_pairs(left_in, right_in, layer);
+
+  profile.tic("backward transitions populate");
+
+  auto filter_func = get_filter_func();
+  auto shortcircuit_func = get_shortcircuit_func();
+
+  MemoryMap<dfa_state_t> curr_transitions("scratch/binarydfa/transitions", curr_layer_count * curr_layer_shape, [&](size_t next_pair_index)
+  {
+    size_t next_pair = curr_transition_pairs[next_pair_index];
+
+    dfa_state_t next_left_state = next_pair / next_right_size;
+    assert(next_left_state < next_left_size);
+    dfa_state_t next_right_state = next_pair % next_right_size;
+
+    if(filter_func(next_left_state, next_right_state))
+      {
+        return shortcircuit_func(next_left_state, next_right_state);
+      }
+    else
+      {
+        size_t offset_min = 0;
+        size_t offset_max = next_pairs_index.back().size() - 1;
+
+        for(int index_index = next_pairs_index.size() - 1; index_index > 0; --index_index)
+          {
+            // compute index range in next index
+            offset_min = search_index(next_pairs_index.at(index_index),
+                                      next_pair,
+                                      offset_min,
+                                      offset_max) * 512;
+
+            offset_max = std::min(offset_min + 511,
+                                  next_pairs_index[index_index - 1].size() - 1);
+          }
+
+        offset_min = search_index(next_pairs_index.at(0),
+                                  next_pair,
+                                  offset_min,
+                                  offset_max) * 512;
+        offset_max = std::min(offset_min + 511,
+                              next_layer_count - 1);
+
+        size_t next_rank_min = search_index(next_pairs,
+                                            next_pair,
+                                            offset_min,
+                                            offset_max);
+        assert(next_pairs[next_rank_min] == next_pair);
+
+        return next_pair_rank_to_output[next_rank_min];
+      }
+  });
+
+  profile.tic("backward transitions hash");
+
+  MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed("scratch/binarydfa/transitions_hashed", curr_layer_count, [&](size_t i)
+  {
+    BinaryDFATransitionsHashPlusIndex output;
+    if(curr_layer_shape + 1 <= binary_dfa_hash_width)
+      {
+        // copy transitions
+        for(int j = 0; j < curr_layer_shape; ++j)
+          {
+            output.data[j] = curr_transitions[i * curr_layer_shape + j];
+          }
+        // and zero pad the rest of the hash space
+        for(int j = curr_layer_shape; j < binary_dfa_hash_width - 1; ++j)
+          {
+            output.data[j] = 0;
+          }
+      }
+    else
+      {
+        // transitions don't fit, so hash them
+
+        unsigned char hash_output[SHA256_DIGEST_LENGTH];
+        static const EVP_MD *hash_implementation = EVP_sha256();
+        EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+
+        EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
+        EVP_DigestUpdate(hash_context, &(curr_transitions[i * curr_layer_shape]), curr_layer_shape * sizeof(dfa_state_t));
+        EVP_DigestFinal_ex(hash_context, hash_output, 0);
+
+        for(int j = 0; j < binary_dfa_hash_width - 1; ++j)
+          {
+            output.data[j] = reinterpret_cast<dfa_state_t *>(hash_output)[j];
+          }
+      }
+
+    output.data[binary_dfa_hash_width - 1] = i;
+
+    return output;
+  });
+
+  profile.tic("backward sort hash sort");
+
+  TRY_PARALLEL_2(std::sort, curr_transitions_hashed.begin(), curr_transitions_hashed.end());
+
+  profile.tic("backward sort hash check");
+
+  auto hash_collision = TRY_PARALLEL_3(std::adjacent_find, curr_transitions_hashed.begin(), curr_transitions_hashed.end(), [&](const BinaryDFATransitionsHashPlusIndex& a, const BinaryDFATransitionsHashPlusIndex& b)
+  {
+    // return true if hashes match but transitions do not
+
+    if(a < b)
+      {
+        return false;
+      }
+
+    size_t curr_pair_index_a = a.get_pair_rank();
+    size_t curr_pair_index_b = b.get_pair_rank();
+
+    return ::memcmp(&(curr_transitions[curr_pair_index_a * curr_layer_shape]),
+                    &(curr_transitions[curr_pair_index_b * curr_layer_shape]),
+                    sizeof(dfa_state_t) * curr_layer_shape) != 0;
+  });
+  // confirm no mismatch found
+  assert(hash_collision == curr_transitions_hashed.end());
+
+  // make permutation of pairs sorted by transitions
+
+  profile.tic("backward sort permutation");
+
+  assert(curr_layer_count <= size_t(UINT32_MAX));
+  MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count, [&](size_t i)
+  {
+    return curr_transitions_hashed[i].get_pair_rank();
+  });
+
+  profile.tic("backward states identification");
+
+  MemoryMap<dfa_state_t> curr_pairs_permutation_to_output("scratch/binarydfa/pairs_permutation_to_output", curr_layer_count);
+
+  auto check_constant = [&](dfa_state_t curr_pair_rank)
+  {
+    dfa_state_t possible_constant = curr_transitions[curr_pair_rank * curr_layer_shape];
+    if(possible_constant >= 2)
+      {
+        return false;
+      }
+
+    for(int j = 1; j < curr_layer_shape; ++j)
+      {
+        if(curr_transitions[curr_pair_rank * curr_layer_shape + j] != possible_constant)
+          {
+            return false;
+          }
+      }
+
+    return true;
+  };
+
+  auto curr_transitions_hashed_begin = curr_transitions_hashed.begin();
+  auto check_new = [&](const BinaryDFATransitionsHashPlusIndex& curr_pair_hashed)
+  {
+    dfa_state_t curr_pair_rank = curr_pair_hashed.get_pair_rank();
+    if(check_constant(curr_pair_rank))
+      {
+        return dfa_state_t(0);
+      }
+
+    if(&curr_pair_hashed <= curr_transitions_hashed_begin)
+      {
+        // first and non-constant is always a new state
+        // TODO : change range to not require this
+        return dfa_state_t(1);
+      }
+
+    if((&curr_pair_hashed)[-1] < curr_pair_hashed)
+      {
+        // different transitions from predecessor
+        return dfa_state_t(1);
+      }
+
+    return dfa_state_t(0);
+  };
+
+  TRY_PARALLEL_6(std::transform_inclusive_scan,
+                 curr_transitions_hashed.begin(),
+                 curr_transitions_hashed.end(),
+                 curr_pairs_permutation_to_output.begin(),
+                 [](dfa_state_t previous, dfa_state_t delta) {return previous + delta;},
+                 check_new,
+                 1); // first new state will be 2
+
+  dfa_state_t layer_size = curr_pairs_permutation_to_output[curr_layer_count - 1] + 1;
+
+  profile.tic("backward states write");
+
+  auto curr_pairs_permutation_to_output_begin = curr_pairs_permutation_to_output.begin();
+  auto curr_pairs_permutation_to_output_end = curr_pairs_permutation_to_output.end();
+  auto curr_transitions_begin = curr_transitions.begin();
+
+  auto populate_transitions = [&](dfa_state_t new_state_id, dfa_state_t *transitions_out)
+  {
+    assert(new_state_id < layer_size);
+    auto iter = std::lower_bound(curr_pairs_permutation_to_output_begin,
+                                 curr_pairs_permutation_to_output_end,
+                                 new_state_id);
+    assert(iter < curr_pairs_permutation_to_output_end);
+    assert(*iter == new_state_id);
+
+    dfa_state_t curr_pairs_permutation_index = iter - curr_pairs_permutation_to_output_begin;
+    dfa_state_t curr_pair_rank = curr_pairs_permutation[curr_pairs_permutation_index];
+    std::copy_n(curr_transitions_begin + curr_pair_rank * curr_layer_shape, curr_layer_shape, transitions_out);
+  };
+
+  build_layer(layer, layer_size, populate_transitions);
+
+  profile.tic("backward invert");
+
+  // invert permutation so we can write pair_rank_to_output in order
+
+  MemoryMap<dfa_state_t> curr_pairs_permutation_inverse("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count);
+  // contents are indexes into curr_pairs_permutation
+  std::iota(curr_pairs_permutation_inverse.begin(),
+            curr_pairs_permutation_inverse.end(),
+            0);
+  // sort so curr_pairs_permutation[curr_pairs_permutation_inverse[i]] = i
+
+  TRY_PARALLEL_3(std::sort,
+                 curr_pairs_permutation_inverse.begin(),
+                 curr_pairs_permutation_inverse.end(),
+                 [&](int a, int b) {
+                   return curr_pairs_permutation[a] < curr_pairs_permutation[b];
+                 });
+
+  for(dfa_state_t i : {size_t(0), curr_layer_count - 1})
+    {
+      assert(curr_pairs_permutation[curr_pairs_permutation_inverse[i]] == i);
+    }
+
+  profile.tic("backward output");
+
+  MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count, [&](size_t curr_pair_rank)
+  {
+    dfa_state_t curr_pairs_permutation_index = curr_pairs_permutation_inverse[curr_pair_rank];
+    if(check_constant(curr_pair_rank))
+      {
+        return curr_transitions[curr_pair_rank * curr_layer_shape];
+      }
+
+    return curr_pairs_permutation_to_output[curr_pairs_permutation_index];
+  });
+
+  assert(curr_pair_rank_to_output.size() > 0);
+
+  // shrink state
+
+  profile.tic("backward munmap");
+
+  // cleanup in destructors
+  profile.tic("backward cleanup");
+
+  // done
+
+  return curr_pair_rank_to_output;
+}
+
+MemoryMap<size_t> BinaryDFA::build_quadratic_read_pairs(int layer)
+{
+  return MemoryMap<size_t>(binary_build_file_prefix(layer) + "-pairs");
+}
+
+MemoryMap<size_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& left_in,
+                                                              const DFA& right_in,
+                                                              int layer)
+{
+  Profile profile2("build_quadratic_transition_pairs");
+
+  profile2.tic("init");
+
+  int curr_layer_shape = this->get_layer_shape(layer);
+  const MemoryMap<size_t> curr_pairs = build_quadratic_read_pairs(layer);
+  assert(curr_pairs.size() > 0);
+
+  size_t curr_left_size = left_in.get_layer_size(layer);
+  size_t curr_right_size = right_in.get_layer_size(layer);
+  assert(curr_pairs[curr_pairs.size() - 1] < curr_left_size * curr_right_size);
+  size_t next_right_size = right_in.get_layer_size(layer + 1);
+
+  size_t transition_pairs_size = curr_pairs.size() * curr_layer_shape;
+
+  // make sure inputs are memory mapped before going parallel
+  curr_pairs.mmap();
+
+  // read left transitions
+  profile2.tic("left");
+
+  left_in.get_transitions(layer, 0);
+  MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
+  {
+    size_t curr_i = transition_index / curr_layer_shape;
+    size_t curr_j = transition_index % curr_layer_shape;
+
+    size_t curr_pair = curr_pairs[curr_i];
+    size_t curr_left_state = curr_pair / curr_right_size;
+
+    DFATransitionsReference left_transitions = left_in.get_transitions(layer, curr_left_state);
+    return left_transitions.at(curr_j);
+  });
+
+  // read right transitions
+  profile2.tic("right");
+
+  right_in.get_transitions(layer, 0);
+
+  MemoryMap<size_t> curr_transition_pairs("scratch/binarydfa/transition_pairs", transition_pairs_size, [&](size_t transition_index)
+  {
+    size_t curr_i = transition_index / curr_layer_shape;
+    size_t curr_j = transition_index % curr_layer_shape;
+
+    size_t curr_pair = curr_pairs[curr_i];
+    size_t curr_right_state = curr_pair % curr_right_size;
+
+    DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
+    return size_t(transition_pairs_left[transition_index]) * next_right_size + size_t(right_transitions.at(curr_j));
+  });
+
+  // cleanup
+
+  profile2.tic("curr pairs munmap");
+
+  curr_pairs.munmap();
+
+  // done
+  profile2.tic("done");
+  return curr_transition_pairs;
+};
 
 std::function<bool(dfa_state_t, dfa_state_t)> BinaryDFA::get_filter_func() const
 {
