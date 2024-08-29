@@ -242,29 +242,27 @@ void BinaryDFA::build_linear(const DFA& left_in,
 	return changed_states[layer+1][next_index.rank(next_state_in)];
       };
 
-      const int transitions_temp_size = 100;
-      assert(layer_shape <= transitions_temp_size);
-
-      // loose allocation. may waste some states.
-      set_layer_size(layer, 2 + right_reachable[layer].count());
-
       // rewrite all transitions for each state
-      TRY_PARALLEL_3(std::for_each, curr_reachable.begin(), curr_reachable.end(), [&](const dfa_state_t& state_in)
+      build_layer(layer, 2 + right_reachable[layer].count(), [&](dfa_state_t new_state_id, dfa_state_t *transitions_out)
       {
-	// creating fresh array to avoid sharing issues from parallelism.
-	dfa_state_t transitions_temp[transitions_temp_size] = {0};
-	dfa_state_t transitions_max = 0;
+        assert(new_state_id >= 2);
+        dfa_state_t reachable_rank = new_state_id - 2;
+        dfa_state_t state_in = curr_reachable[reachable_rank];
 
-	dfa_state_t reachable_rank = &state_in - curr_reachable.begin();
+	dfa_state_t transitions_max = 0;
 
 	DFATransitionsReference transitions_in = right_in.get_transitions(layer, state_in);
 	for(int i = 0; i < layer_shape; ++i)
 	  {
 	    if(left_filters[layer][i])
 	      {
-		transitions_temp[i] = get_next_changed(transitions_in[i]);
-		transitions_max = std::max(transitions_max, transitions_temp[i]);
+		transitions_out[i] = get_next_changed(transitions_in[i]);
+		transitions_max = std::max(transitions_max, transitions_out[i]);
 	      }
+            else
+              {
+                transitions_out[i] = 0;
+              }
 	  }
 
 	if(transitions_max == 0)
@@ -273,15 +271,14 @@ void BinaryDFA::build_linear(const DFA& left_in,
 	    changed_states[layer][reachable_rank] = 0;
 	    return;
 	  }
-	if((transitions_max == 1) && (*std::min_element(transitions_temp, transitions_temp + layer_shape) == 1))
+	if((transitions_max == 1) && (*std::min_element(transitions_out, transitions_out + layer_shape) == 1))
 	  {
 	    // accept state
 	    changed_states[layer][reachable_rank] = 1;
 	    return;
 	  }
 
-	set_state_transitions(layer, 2 + reachable_rank, transitions_temp);
-	changed_states[layer][reachable_rank] = 2 + reachable_rank;
+        changed_states[layer][reachable_rank] = 2 + reachable_rank;
       });
 
       changed_states.pop_back();
