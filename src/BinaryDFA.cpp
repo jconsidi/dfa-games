@@ -565,30 +565,37 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
   assert(pairs_by_layer.size() > 0);
   assert(pairs_by_layer.back().size() == 0);
 
-  // apply leaf function
+  // backward pass
 
   profile.set_prefix("");
-  profile.tic("leaves");
+  profile.tic("backward");
 
+  build_quadratic_backward(left_in, right_in, pairs_by_layer.size() - 1);
+
+  assert(this->ready());
+  profile.tic("final cleanup");
+}
+
+void BinaryDFA::build_quadratic_backward(const DFA& left_in,
+                                         const DFA& right_in,
+                                         int backward_layers)
+{
   // initially empty since shortcircuiting will happen by last layer.
+
   MemoryMap<dfa_state_t> next_pair_rank_to_output(1); // dummy initialization
 
   // backward pass
 
-  for(int layer = pairs_by_layer.size() - 2; layer >= 0; --layer)
+  for(int layer = backward_layers - 1; layer >= 0; --layer)
     {
       next_pair_rank_to_output = build_quadratic_backward_layer(left_in,
                                                                 right_in,
                                                                 layer,
                                                                 next_pair_rank_to_output);
     }
-  profile.set_prefix("");
 
   assert(next_pair_rank_to_output.size() == 1);
   this->set_initial_state(next_pair_rank_to_output[0]);
-
-  assert(this->ready());
-  profile.tic("final cleanup");
 }
 
 MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,

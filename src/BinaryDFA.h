@@ -19,6 +19,7 @@ class BinaryDFA : public DFA
   void build_linear(const DFA&, const DFA&);
 
   void build_quadratic(const DFA&, const DFA&);
+  void build_quadratic_backward(const DFA&, const DFA&, int);
   MemoryMap<dfa_state_t> build_quadratic_backward_layer(const DFA&, const DFA&, int, const MemoryMap<dfa_state_t>&);
   MemoryMap<size_t> build_quadratic_read_pairs(int layer);
   MemoryMap<size_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer);
