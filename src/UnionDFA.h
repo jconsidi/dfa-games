@@ -5,6 +5,8 @@
 
 #include "BinaryDFA.h"
 
+extern const BinaryFunction union_function;
+
 class UnionDFA : public BinaryDFA
 {
  public:
