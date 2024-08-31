@@ -593,14 +593,19 @@ void BinaryDFA::build_quadratic_backward(const DFA& left_in,
 
   for(int layer = backward_layers - 1; layer >= 0; --layer)
     {
-      next_pair_rank_to_output = build_quadratic_backward_layer(left_in,
-                                                                right_in,
-                                                                layer,
-                                                                next_pair_rank_to_output);
+      MemoryMap<dfa_state_t> curr_pair_rank_to_output =
+        build_quadratic_backward_layer(left_in,
+                                       right_in,
+                                       layer,
+                                       next_pair_rank_to_output);
+
+      next_pair_rank_to_output.unlink();
+      std::swap(curr_pair_rank_to_output, next_pair_rank_to_output);
     }
 
   assert(next_pair_rank_to_output.size() == 1);
   this->set_initial_state(next_pair_rank_to_output[0]);
+  next_pair_rank_to_output.unlink();
 }
 
 MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
@@ -724,6 +729,18 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
         return next_pair_rank_to_output[next_rank_min];
       }
   });
+
+  profile.tic("unlink transition_pairs");
+
+  curr_transition_pairs.unlink();
+
+  profile.tic("unlink next_pairs_index");
+
+  while(next_pairs_index.size())
+    {
+      next_pairs_index.back().unlink();
+      next_pairs_index.pop_back();
+    }
 
   profile.tic("backward transitions hash");
 
@@ -859,6 +876,10 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   dfa_state_t layer_size = curr_pairs_permutation_to_output[curr_layer_count - 1] + 1;
 
+  profile.tic("unlink transitions_hashed");
+
+  curr_transitions_hashed.unlink();
+
   profile.tic("backward states write");
 
   auto curr_pairs_permutation_to_output_begin = curr_pairs_permutation_to_output.begin();
@@ -904,6 +925,10 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
       assert(curr_pairs_permutation[curr_pairs_permutation_inverse[i]] == i);
     }
 
+  profile.tic("unlink pairs_permutation");
+
+  curr_pairs_permutation.unlink();
+
   profile.tic("backward output");
 
   MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count, [&](size_t curr_pair_rank)
@@ -921,7 +946,17 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   // shrink state
 
-  profile.tic("backward munmap");
+  profile.tic("unlink transitions");
+
+  curr_transitions.unlink();
+
+  profile.tic("unlink pairs_permutation_inverse");
+
+  curr_pairs_permutation_inverse.unlink();
+
+  profile.tic("unlink pairs_permutation_to_output");
+
+  curr_pairs_permutation_to_output.unlink();
 
   // cleanup in destructors
   profile.tic("backward cleanup");
@@ -992,6 +1027,10 @@ MemoryMap<size_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& left_in
   });
 
   // cleanup
+
+  profile2.tic("left unlink");
+
+  transition_pairs_left.unlink();
 
   profile2.tic("curr pairs munmap");
 
