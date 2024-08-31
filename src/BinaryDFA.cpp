@@ -45,11 +45,16 @@ static void sync_if_big(MemoryMap<T>& memory_map)
     }
 }
 
+BinaryDFA::BinaryDFA(const dfa_shape_t& shape_in, const BinaryFunction& leaf_func_in)
+  : DFA(shape_in),
+    leaf_func(leaf_func_in)
+{
+}
+
 BinaryDFA::BinaryDFA(const DFA& left_in,
 		     const DFA& right_in,
 		     const BinaryFunction& leaf_func_in)
-  : DFA(left_in.get_shape()),
-    leaf_func(leaf_func_in)
+  : BinaryDFA(left_in.get_shape(), leaf_func_in)
 {
   assert(left_in.get_shape() == right_in.get_shape());
 
