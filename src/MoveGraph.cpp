@@ -2,6 +2,7 @@
 
 #include "MoveGraph.h"
 
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -307,7 +308,7 @@ int MoveGraph::get_node_index(std::string node_name_in) const
   auto search = node_names_to_indexes.find(node_name_in);
   if(search == node_names_to_indexes.end())
     {
-      throw std::logic_error("get_node_index() node not found");
+      throw std::logic_error("get_node_index() node not found - " + node_name_in);
     }
 
   return search->second;
@@ -322,21 +323,53 @@ MoveGraph MoveGraph::optimize() const
 {
   MoveGraph output(shape);
 
-  // TEMPORARY: identity mapping for nodes
-  for(int i = 0; i < node_names.size(); ++i)
-    {
-      output.add_node(node_names.at(i),
-                      node_changes.at(i),
-                      node_pre_conditions.at(i),
-                      node_post_conditions.at(i));
-    }
+  std::vector<bool> node_added(node_names.size(), false);
+
+  // add nodes with a depth first search
+  std::function<void(int)> traverse = [&](int old_node_index)
+  {
+    if(node_added.at(old_node_index))
+      {
+        return;
+      }
+
+    for(auto from_edge : node_inputs.at(old_node_index))
+      {
+        traverse(std::get<0>(from_edge));
+      }
+
+    output.add_node(node_names.at(old_node_index),
+                    node_changes.at(old_node_index),
+                    node_pre_conditions.at(old_node_index),
+                    node_post_conditions.at(old_node_index));
+
+    node_added.at(old_node_index) = true;
+  };
+  // make sure input node stays first.
+  // unreachable nodes can show up first if not forced.
+  traverse(0);
+  assert(output.node_names[0] == node_names[0]);
+  // traverse from output
+  traverse(node_names.size() - 1);
 
   // add edges to output
 
   for(int i = 0; i < node_names.size(); ++i)
     {
+      if(!node_added[i])
+        {
+          // this node cannot reach end
+          continue;
+        }
+
       for(const move_edge& old_edge : node_edges.at(i))
         {
+          if(!node_added[std::get<2>(old_edge)])
+            {
+              // end of this edge cannot reach end
+              continue;
+            }
+
           // edge conditions are copied as is, so node conditions will
           // be duplicated. however, those will be automatically
           // deduped in get_intersection_vector.
