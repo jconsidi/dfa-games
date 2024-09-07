@@ -338,7 +338,7 @@ MoveGraph MoveGraph::optimize() const
       for(const move_edge& old_edge : node_edges.at(i))
         {
           // edge conditions are copied as is, so node conditions will
-          // be duplicaged. however, those will be automatically
+          // be duplicated. however, those will be automatically
           // deduped in get_intersection_vector.
           output.add_edge(std::get<0>(old_edge),
                           node_names.at(i),
