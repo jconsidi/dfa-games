@@ -160,7 +160,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
     {
       std::ostringstream output_name_builder;
       output_name_builder << "move_nodes/" << name_prefix << "," << positions_in->get_hash();
-      output_name_builder << ",node=" << std::setfill('0') << std::setw(4) << node_index;
+      output_name_builder << ",node=" << node_names[node_index];
 
       output_names.push_back(output_name_builder.str());
     }
