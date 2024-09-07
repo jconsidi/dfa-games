@@ -187,7 +187,7 @@ shared_dfa_ptr BreakthroughBase::build_positions_reversed(shared_dfa_ptr positio
         {
           for(int c_to = 0; c_to < 3; ++c_to)
             {
-              std::string node_name = std::format("layers={:d}/{:d},characters={:d}/{:d}", layer_from, layer_to, c_from, c_to);
+              std::string node_name = std::format("layers={:d}_{:d},characters={:d}_{:d}", layer_from, layer_to, c_from, c_to);
               change_vector node_changes(width * height);
               node_changes[layer_from] = change_type(c_from, change_character(c_to));
               node_changes[layer_to] = change_type(c_to, change_character(c_from));
@@ -197,7 +197,7 @@ shared_dfa_ptr BreakthroughBase::build_positions_reversed(shared_dfa_ptr positio
             }
         }
 
-      std::string next_join = std::format("layers={:d}/{:d} done", layer_from, layer_to);
+      std::string next_join = std::format("layers={:d}_{:d},done", layer_from, layer_to);
       reverse_graph.add_node(next_join);
       for(std::string node_name : current_changes)
         {
