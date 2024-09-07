@@ -329,7 +329,36 @@ const move_edge_condition_vector& MoveGraph::get_node_pre_conditions(std::string
 
 MoveGraph MoveGraph::optimize() const
 {
-  return *this;
+  MoveGraph output(shape);
+
+  // TEMPORARY: identity mapping for nodes
+  for(int i = 0; i < node_names.size(); ++i)
+    {
+      output.add_node(node_names.at(i),
+                      node_changes.at(i),
+                      node_pre_conditions.at(i),
+                      node_post_conditions.at(i));
+    }
+
+  // add edges to output
+
+  for(int i = 0; i < node_names.size(); ++i)
+    {
+      for(const move_edge& old_edge : node_edges.at(i))
+        {
+          // edge conditions are copied as is, so node conditions will
+          // be duplicaged. however, those will be automatically
+          // deduped in get_intersection_vector.
+          output.add_edge(std::get<0>(old_edge),
+                          node_names.at(i),
+                          node_names.at(std::get<2>(old_edge)),
+                          std::get<1>(old_edge));
+        }
+    }
+
+  // done
+
+  return output;
 }
 
 MoveGraph MoveGraph::reverse() const
