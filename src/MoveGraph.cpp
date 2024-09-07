@@ -70,6 +70,7 @@ void MoveGraph::add_edge(std::string edge_name_in,
   add_conditions(node_pre_conditions[to_node_index]);
 
   node_edges.at(from_node_index).emplace_back(edge_name_in, conditions, to_node_index);
+  node_inputs.at(to_node_index).emplace_back(from_node_index, node_edges.at(from_node_index).back());
 }
 
 void MoveGraph::add_edge(std::string edge_name_in,
@@ -132,6 +133,7 @@ void MoveGraph::add_node(std::string node_name_in,
     }
 
   node_edges.emplace_back();
+  node_inputs.emplace_back();
 
   assert(node_names_to_indexes.size() == node_names.size());
   assert(node_changes.size() == node_names.size());
@@ -163,17 +165,6 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
       output_name_builder << ",node=" << node_names[node_index];
 
       output_names.push_back(output_name_builder.str());
-    }
-
-  // invert edges for faster lookups
-  std::vector<std::vector<std::pair<int, move_edge>>> node_inputs(node_names.size());
-  for(int from_node_index = 0; from_node_index < node_edges.size(); ++from_node_index)
-    {
-      for(const move_edge& edge : node_edges[from_node_index])
-	{
-	  int to_node_index = std::get<2>(edge);
-	  node_inputs.at(to_node_index).emplace_back(from_node_index, edge);
-	}
     }
 
   std::function<shared_dfa_ptr(int)> get_node_output = [&](int node_index)

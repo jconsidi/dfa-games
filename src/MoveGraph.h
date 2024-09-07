@@ -31,6 +31,7 @@ class MoveGraph
   std::vector<std::vector<shared_dfa_ptr>> node_post_conditions;
 
   std::vector<std::vector<move_edge>> node_edges;
+  std::vector<std::vector<std::pair<int, move_edge>>> node_inputs;
 
   std::set<std::string> edge_names;
 
