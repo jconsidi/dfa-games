@@ -30,7 +30,7 @@ class MoveGraph
   std::vector<std::vector<shared_dfa_ptr>> node_pre_conditions;
   std::vector<std::vector<shared_dfa_ptr>> node_post_conditions;
 
-  mutable std::vector<std::vector<move_edge>> node_edges; // mutable to sort
+  std::vector<std::vector<move_edge>> node_edges;
 
   std::set<std::string> edge_names;
 
