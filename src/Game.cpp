@@ -39,8 +39,8 @@ void Game::build_move_graphs(int side_to_move) const
       return;
     }
 
-  move_graphs_forward[side_to_move] = build_move_graph(side_to_move);
-  move_graphs_backward[side_to_move] = move_graphs_forward[side_to_move].reverse();
+  move_graphs_forward[side_to_move] = build_move_graph(side_to_move).optimize();
+  move_graphs_backward[side_to_move] = move_graphs_forward[side_to_move].reverse().optimize();
   move_graphs_ready[side_to_move] = true;
 }
 

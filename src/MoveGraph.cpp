@@ -327,6 +327,11 @@ const move_edge_condition_vector& MoveGraph::get_node_pre_conditions(std::string
   return node_pre_conditions[get_node_index(node_name_in)];
 }
 
+MoveGraph MoveGraph::optimize() const
+{
+  return *this;
+}
+
 MoveGraph MoveGraph::reverse() const
 {
   MoveGraph output(shape);

@@ -53,6 +53,7 @@ class MoveGraph
   shared_dfa_ptr get_moves(std::string name_prefix, shared_dfa_ptr) const;
   const move_edge_condition_vector& get_node_pre_conditions(std::string) const;
 
+  MoveGraph optimize() const;
   MoveGraph reverse() const;
 };
 
