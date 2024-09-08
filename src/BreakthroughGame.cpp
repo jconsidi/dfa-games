@@ -66,26 +66,31 @@ MoveGraph BreakthroughBase::build_move_graph(int side_to_move) const
 
   for(int row = 0; row < height; ++row)
     {
+      std::string from_row_name = "from " + std::to_string(row) + ",x";
+      move_graph.add_node(from_row_name);
+      move_graph.add_edge("begin+1", from_row_name);
+
       for(int col = 0; col < width; ++col)
-      {
-	change_vector move_changes(width * height);
-	move_changes[calculate_layer(row, col)] = change_type(1 + side_to_move, 0);
-	move_graph.add_node(get_from_node(row, col), move_changes);
-      }
+        {
+          change_vector move_changes(width * height);
+          move_changes[calculate_layer(row, col)] = change_type(1 + side_to_move, 0);
+          move_graph.add_node(get_from_node(row, col), move_changes);
+          move_graph.add_edge(from_row_name, get_from_node(row, col));
+        }
     }
 
   for(int row = 0; row < height; ++row)
     {
       for(int col = 0; col < width; ++col)
-      {
-	change_vector push_changes(width * height);
-	push_changes[calculate_layer(row, col)] = change_type(0, 1 + side_to_move);
-	move_graph.add_node(get_push_node(row, col), push_changes);
+        {
+          change_vector push_changes(width * height);
+          push_changes[calculate_layer(row, col)] = change_type(0, 1 + side_to_move);
+          move_graph.add_node(get_push_node(row, col), push_changes);
 
-	change_vector capture_changes(width * height);
-	capture_changes[calculate_layer(row, col)] = change_type(2 - side_to_move, 1 + side_to_move);
-	move_graph.add_node(get_capture_node(row, col), capture_changes);
-      }
+          change_vector capture_changes(width * height);
+          capture_changes[calculate_layer(row, col)] = change_type(2 - side_to_move, 1 + side_to_move);
+          move_graph.add_node(get_capture_node(row, col), capture_changes);
+        }
     }
 
   // end nodes
@@ -107,7 +112,6 @@ MoveGraph BreakthroughBase::build_move_graph(int side_to_move) const
       for(int from_column = 0; from_column < width; ++from_column)
 	{
 	  std::string from_node = get_from_node(from_row, from_column);
-	  move_graph.add_edge("begin+1", from_node);
 
 	  move_graph.add_edge(from_node, get_push_node(to_row, from_column));
 
@@ -127,10 +131,10 @@ MoveGraph BreakthroughBase::build_move_graph(int side_to_move) const
   for(int row = 0; row < height; ++row)
     {
       for(int col = 0; col < width; ++col)
-      {
-	move_graph.add_edge(get_push_node(row, col), "end-1");
-	move_graph.add_edge(get_capture_node(row, col), "end-1");
-      }
+        {
+          move_graph.add_edge(get_push_node(row, col), "end-1");
+          move_graph.add_edge(get_capture_node(row, col), "end-1");
+        }
     }
 
   // done
