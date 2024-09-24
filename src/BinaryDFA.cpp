@@ -564,15 +564,15 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 	  break;
 	}
 
+      profile.tic("forward sync");
+
+      sync();
+
       profile.tic("forward cleanup");
     }
 
   assert(pairs_by_layer.size() > 0);
   assert(pairs_by_layer.back().size() == 0);
-
-  profile.tic("forward sync");
-
-  sync();
 
   // backward pass
 
