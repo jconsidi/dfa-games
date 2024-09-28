@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     }
 
   UnionRestartDFA union_dfa(*left, *right);
-  std::string union_name = "union_cache/" + left->get_hash() + "_" + right->get_hash() + "_restart";
+  std::string union_name = "union_cache/" + left->get_hash() + "_" + right->get_hash();
   union_dfa.save(union_name);
 
   return 0;
