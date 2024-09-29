@@ -874,7 +874,12 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
                  curr_transitions_hashed.begin(),
                  curr_transitions_hashed.end(),
                  curr_pairs_permutation_to_output.begin(),
-                 [](dfa_state_t previous, dfa_state_t delta) {return previous + delta;},
+                 [](dfa_state_t previous, dfa_state_t delta) {
+                   dfa_state_t output = previous + delta;
+                   // check for overflow
+                   assert(output >= previous);
+                   return output;
+                 },
                  check_new,
                  1); // first new state will be 2
 
