@@ -847,7 +847,7 @@ void DFA::save_by_hash() const
       // switch layer memory maps to the new file names so they do not
       // break on munmap. has an implied flush.
       layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer]);
-      assert(layer_transitions[layer].size() == layer_sizes[layer] * shape[layer]);
+      assert(layer_transitions[layer].size() == size_t(layer_sizes[layer]) * size_t(shape[layer]));
     }
 
   temporary = false;
