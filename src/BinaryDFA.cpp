@@ -925,7 +925,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
   TRY_PARALLEL_3(std::sort,
                  curr_pairs_permutation_inverse.begin(),
                  curr_pairs_permutation_inverse.end(),
-                 [&](int a, int b) {
+                 [&](dfa_state_t a, dfa_state_t b) {
                    return curr_pairs_permutation[a] < curr_pairs_permutation[b];
                  });
 
