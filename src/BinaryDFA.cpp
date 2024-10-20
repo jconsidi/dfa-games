@@ -548,6 +548,10 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
       assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
 #endif
 
+      profile.tic("forward sync");
+
+      next_pairs.msync();
+
       profile.tic("forward stats");
 
       if(next_pairs.size() >= 100000)
@@ -563,10 +567,6 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 	  // all pairs in next layer were filtered. no need to continue.
 	  break;
 	}
-
-      profile.tic("forward sync");
-
-      sync();
 
       profile.tic("forward cleanup");
     }
