@@ -616,17 +616,24 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
     }
 
   std::string union_name = "union_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
-  return load_or_build(left_in->get_shape(),
-		       union_name,
-		       [&]()
-		       {
-			 if((left_in->states() >= 1024) || (right_in->states() >= 1024))
-			   {
-			     std::cout << "UNION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
-			   }
+  shared_dfa_ptr output =
+    load_or_build(left_in->get_shape(),
+                  union_name,
+                  [&]()
+                  {
+                    if((left_in->states() >= 1024) || (right_in->states() >= 1024))
+                      {
+                        std::cout << "UNION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
+                      }
 
-			 return shared_dfa_ptr(new UnionDFA(*left_in, *right_in));
-		       });
+                    return shared_dfa_ptr(new UnionDFA(*left_in, *right_in));
+                  });
+
+  // paranoid checks
+  assert(output->size() >= left_in->size());
+  assert(output->size() >= right_in->size());
+
+  return output;
 }
 
 shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std::vector<shared_dfa_ptr>& dfas_in)
