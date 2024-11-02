@@ -877,19 +877,22 @@ double DFA::size() const
 	{
 	  int layer_shape = this->get_layer_shape(layer);
 
-	  std::vector<double> current_counts;
 	  dfa_state_t layer_size = get_layer_size(layer);
-	  for(dfa_state_t state_index = 0; state_index < layer_size; ++state_index)
-	    {
-	      DFATransitionsReference transitions = this->get_transitions(layer, state_index);
+	  std::vector<double> current_counts(layer_size);
+          const double *current_counts_first = &current_counts.at(0);
+          TRY_PARALLEL_3(std::for_each, current_counts.begin(), current_counts.end(), [&](double& state_count_out)
+          {
+            dfa_state_t state_index = &state_count_out - current_counts_first;
+            DFATransitionsReference transitions = this->get_transitions(layer, state_index);
 
-	      double state_count = 0;
-	      for(int i = 0; i < layer_shape; ++i)
-		{
-		  state_count += previous_counts.at(transitions[i]);
-		}
-	      current_counts.push_back(state_count);
-	    }
+            double state_count = 0;
+            for(int i = 0; i < layer_shape; ++i)
+              {
+                state_count += previous_counts.at(transitions[i]);
+              }
+
+            state_count_out = state_count;
+          });
 
 	  previous_counts = current_counts;
 	}
