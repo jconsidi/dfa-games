@@ -894,7 +894,7 @@ double DFA::size() const
             state_count_out = state_count;
           });
 
-	  previous_counts = current_counts;
+          std::swap(current_counts, previous_counts);
 	}
 
       size_cache[0] = previous_counts.at(initial_state);
