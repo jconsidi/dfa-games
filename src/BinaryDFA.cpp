@@ -828,7 +828,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   auto check_constant = [&](dfa_state_t curr_pair_rank)
   {
-    dfa_state_t possible_constant = curr_transitions[curr_pair_rank * curr_layer_shape];
+    dfa_state_t possible_constant = curr_transitions[size_t(curr_pair_rank) * curr_layer_shape];
     if(possible_constant >= 2)
       {
         return false;
@@ -836,7 +836,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
     for(int j = 1; j < curr_layer_shape; ++j)
       {
-        if(curr_transitions[curr_pair_rank * curr_layer_shape + j] != possible_constant)
+        if(curr_transitions[size_t(curr_pair_rank) * curr_layer_shape + j] != possible_constant)
           {
             return false;
           }
@@ -906,7 +906,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
     dfa_state_t curr_pairs_permutation_index = iter - curr_pairs_permutation_to_output_begin;
     dfa_state_t curr_pair_rank = curr_pairs_permutation[curr_pairs_permutation_index];
-    std::copy_n(curr_transitions_begin + curr_pair_rank * curr_layer_shape, curr_layer_shape, transitions_out);
+    std::copy_n(curr_transitions_begin + size_t(curr_pair_rank) * curr_layer_shape, curr_layer_shape, transitions_out);
   };
 
   build_layer(layer, layer_size, populate_transitions);
@@ -945,7 +945,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
     dfa_state_t curr_pairs_permutation_index = curr_pairs_permutation_inverse[curr_pair_rank];
     if(check_constant(curr_pair_rank))
       {
-        return curr_transitions[curr_pair_rank * curr_layer_shape];
+        return curr_transitions[size_t(curr_pair_rank) * curr_layer_shape];
       }
 
     return curr_pairs_permutation_to_output[curr_pairs_permutation_index];
