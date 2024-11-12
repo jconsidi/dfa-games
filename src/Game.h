@@ -55,6 +55,8 @@ public:
 
   shared_dfa_ptr get_has_moves(int) const;
 
+  const MoveGraph& get_move_graph_forward(int) const;
+
   shared_dfa_ptr get_moves_backward(int, shared_dfa_ptr) const;
   shared_dfa_ptr get_moves_forward(int, shared_dfa_ptr) const;
 

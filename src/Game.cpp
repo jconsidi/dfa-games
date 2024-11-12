@@ -156,6 +156,12 @@ shared_dfa_ptr Game::get_has_moves(int side_to_move) const
   return this->singleton_has_moves[side_to_move];
 }
 
+const MoveGraph& Game::get_move_graph_forward(int side_to_move) const
+{
+  build_move_graphs(side_to_move);
+  return move_graphs_forward[side_to_move];
+}
+
 shared_dfa_ptr Game::get_moves_backward(int side_to_move, shared_dfa_ptr positions_in) const
 {
   Profile profile("get_moves_backward");
