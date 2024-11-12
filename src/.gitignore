@@ -4,6 +4,7 @@ build_forward
 build_forward_backward
 divide
 generate_moves
+move_graph_stats
 print
 random
 random_uci
