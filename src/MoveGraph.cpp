@@ -443,3 +443,8 @@ static change_vector reverse_changes(const change_vector& changes_in)
 
   return changes_out;
 }
+
+size_t MoveGraph::size() const
+{
+  return node_names.size();
+}

@@ -56,6 +56,7 @@ class MoveGraph
 
   MoveGraph optimize() const;
   MoveGraph reverse() const;
+  size_t size() const;
 };
 
 #endif
