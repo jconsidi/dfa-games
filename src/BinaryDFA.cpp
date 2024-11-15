@@ -625,6 +625,8 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
   int curr_layer_shape = this->get_layer_shape(layer);
   const MemoryMap<size_t> curr_pairs = build_quadratic_read_pairs(layer);
   size_t curr_layer_count = curr_pairs.size();
+  // not long term necessary, but guarantees that final DFA will fit within current limit.
+  assert(curr_layer_count <= DFA_STATE_MAX);
 
   size_t next_left_size = left_in.get_layer_size(layer + 1);
   size_t next_right_size = right_in.get_layer_size(layer + 1);
@@ -816,7 +818,6 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   profile.tic("backward sort permutation");
 
-  assert(curr_layer_count <= size_t(UINT32_MAX));
   MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count, [&](size_t i)
   {
     return curr_transitions_hashed[i].get_pair_rank();

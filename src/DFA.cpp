@@ -220,7 +220,7 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
 
   // add new state
 
-  assert(layer_sizes[layer] < UINT32_MAX);
+  assert(layer_sizes[layer] < DFA_STATE_MAX);
 
   size_t current_offset = size_t(layer_sizes[layer]) * size_t(layer_shape);
   size_t next_offset = current_offset + size_t(layer_shape);
@@ -230,7 +230,7 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
   if(next_offset > current_size)
     {
       size_t next_size = current_size * 2;
-      assert(next_size <= size_t(UINT32_MAX));
+      assert(next_size <= size_t(DFA_STATE_MAX));
       current_transitions = MemoryMap<dfa_state_t>(layer_file_names[layer], next_size);
     }
 
