@@ -394,48 +394,44 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 
       std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
 
-      profile.tic("forward transitions msync");
+      // the following truncate and rename to the next pairs file are
+      // to make the next pairs updates atomic and make restarts
+      // easier.
 
-      sync_if_big<dfa_state_pair_t>(curr_transition_pairs);
+      profile.tic("forward transitions munmap");
 
-      profile.tic("forward next pairs count");
+      // this munmap is implied by the truncate, but separating to
+      // track the timing.
+      curr_transition_pairs.munmap();
 
-      size_t next_pairs_count = unique_end - curr_transition_pairs.begin();
+      profile.tic("forward transitions truncate");
+
+      size_t next_pairs_count = working_end - working_begin;
+      curr_transition_pairs.truncate(next_pairs_count);
+
+      profile.tic("forward next pairs rename");
+
+      std::string next_pairs_name = memory_map_name(layer + 1, "pairs");
+
+      // atomic swap into place
+      curr_transition_pairs.rename(next_pairs_name);
 
       profile.tic("forward next pairs mmap");
 
-      pairs_by_layer.emplace_back(memory_map_helper<dfa_state_pair_t>(layer + 1, "pairs", next_pairs_count));
+      pairs_by_layer.emplace_back(next_pairs_name);
       MemoryMap<dfa_state_pair_t>& next_pairs = pairs_by_layer.at(layer + 1);
+      assert(next_pairs.size() == next_pairs_count);
 
       if(next_pairs_count == 0)
         {
           break;
         }
 
-      profile.tic("forward next pairs populate");
-
-      auto copy_end = std::copy(
-#ifdef __cpp_lib_parallel_algorithm
-                                std::execution::par_unseq,
-#endif
-                                curr_transition_pairs.begin(),
-                                unique_end,
-                                next_pairs.begin());
-      assert(copy_end == next_pairs.end());
-
-      profile.tic("forward next pairs msync");
-
-      sync_if_big<dfa_state_pair_t>(next_pairs);
-
 #ifdef PARANOIA
       profile.tic("forward next pairs paranoia");
 
       assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
 #endif
-
-      profile.tic("forward sync");
-
-      next_pairs.msync();
 
       profile.tic("forward stats");
 
