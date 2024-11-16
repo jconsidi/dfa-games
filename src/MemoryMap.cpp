@@ -417,6 +417,8 @@ int MemoryMap<T>::open(int flags, int mode) const
 template <class T>
 void MemoryMap<T>::rename(std::string filename_in)
 {
+  munmap();
+
   int ret = ::rename(_filename.c_str(), filename_in.c_str());
   if(ret != 0)
     {
