@@ -286,10 +286,15 @@ void BinaryDFA::build_linear(const DFA& left_in,
   this->set_initial_state(changed_states[0][0]);
 }
 
+static std::string memory_map_name(int layer, std::string suffix)
+{
+  return binary_build_file_prefix(layer) + "-" + suffix;
+}
+
 template<class T>
 static MemoryMap<T> memory_map_helper(int layer, std::string suffix, size_t size_in)
 {
-  return MemoryMap<T>(binary_build_file_prefix(layer) + "-" + suffix, size_in);
+  return MemoryMap<T>(memory_map_name(layer, suffix), size_in);
 }
 
 void BinaryDFA::build_quadratic(const DFA& left_in,
@@ -858,7 +863,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
 MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_read_pairs(int layer)
 {
-  return MemoryMap<dfa_state_pair_t>(binary_build_file_prefix(layer) + "-pairs");
+  return MemoryMap<dfa_state_pair_t>(memory_map_name(layer, "pairs"));
 }
 
 MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& left_in,
