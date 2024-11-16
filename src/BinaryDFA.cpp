@@ -42,8 +42,8 @@ BinaryDFA::BinaryDFA(const dfa_shape_t& shape_in, const BinaryFunction& leaf_fun
 }
 
 BinaryDFA::BinaryDFA(const DFA& left_in,
-		     const DFA& right_in,
-		     const BinaryFunction& leaf_func_in)
+                     const DFA& right_in,
+                     const BinaryFunction& leaf_func_in)
   : BinaryDFA(left_in.get_shape(), leaf_func_in)
 {
   assert(left_in.get_shape() == right_in.get_shape());
@@ -52,7 +52,7 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
   if((left_in.get_initial_state() < 2) && (right_in.get_initial_state() < 2))
     {
       this->set_initial_state(leaf_func(left_in.get_initial_state(),
-					right_in.get_initial_state()));
+                                        right_in.get_initial_state()));
       return;
     }
 
@@ -63,16 +63,16 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
   for(int i = 0; i < 2; ++i)
     {
       if(left_in.is_constant(i) && leaf_func.has_left_sink(i))
-	{
-	  this->set_initial_state(i);
-	  return;
-	}
+        {
+          this->set_initial_state(i);
+          return;
+        }
 
       if(right_in.is_constant(i) && leaf_func.has_right_sink(i))
-	{
-	  this->set_initial_state(i);
-	  return;
-	}
+        {
+          this->set_initial_state(i);
+          return;
+        }
     }
 
   // linear cases
@@ -84,8 +84,8 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
       return;
     }
   else if(right_in.is_linear() &&
-	  leaf_func.is_commutative() &&
-	  leaf_func.has_right_sink(0))
+          leaf_func.is_commutative() &&
+          leaf_func.has_right_sink(0))
     {
       // right side is linear DFA and confirmed commutative property
       build_linear(right_in, left_in);
@@ -104,7 +104,7 @@ static std::string binary_build_file_prefix(int layer)
 }
 
 void BinaryDFA::build_linear(const DFA& left_in,
-			     const DFA& right_in)
+                             const DFA& right_in)
 {
   Profile profile("build_linear");
 
@@ -133,14 +133,14 @@ void BinaryDFA::build_linear(const DFA& left_in,
 
       dfa_state_t next_left_state = 0;
       for(int i = 0; i < layer_shape; ++i)
-	{
-	  dfa_state_t left_temp = left_transitions[i];
-	  if(left_temp != 0)
-	    {
-	      next_left_state = left_temp;
-	      left_filters[layer][i] = true;
-	    }
-	}
+        {
+          dfa_state_t left_temp = left_transitions[i];
+          if(left_temp != 0)
+            {
+              next_left_state = left_temp;
+              left_filters[layer][i] = true;
+            }
+        }
       assert(next_left_state);
       left_states.push_back(next_left_state);
     }
@@ -170,16 +170,16 @@ void BinaryDFA::build_linear(const DFA& left_in,
       VectorBitSet& next_reachable = right_reachable.back();
 
       for(dfa_state_t curr_state: std::as_const(right_reachable[layer]))
-	{
-	  DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_state);
-	  for(int i = 0; i < layer_shape; ++i)
-	    {
-	      if(left_filters[layer][i])
-		{
-		  next_reachable.add(right_transitions[i]);
-		}
-	    }
-	}
+        {
+          DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_state);
+          for(int i = 0; i < layer_shape; ++i)
+            {
+              if(left_filters[layer][i])
+                {
+                  next_reachable.add(right_transitions[i]);
+                }
+            }
+        }
     }
   assert(right_reachable.size() == get_shape_size());
 
@@ -223,18 +223,18 @@ void BinaryDFA::build_linear(const DFA& left_in,
       MemoryMap<dfa_state_t> curr_reachable(right_reachable[layer].count());
       dfa_state_t curr_reachable_i = 0;
       for(auto iter = right_reachable[layer].begin();
-	  iter < right_reachable[layer].end();
-	  ++iter, ++curr_reachable_i)
-	{
-	  curr_reachable[curr_reachable_i] = dfa_state_t(*iter);
-	}
+          iter < right_reachable[layer].end();
+          ++iter, ++curr_reachable_i)
+        {
+          curr_reachable[curr_reachable_i] = dfa_state_t(*iter);
+        }
 
       int layer_shape = this->get_layer_shape(layer);
 
       std::function<dfa_state_t(dfa_state_t)> get_next_changed = [&](dfa_state_t next_state_in)
       {
-	assert(right_reachable[layer+1].check(next_state_in));
-	return changed_states[layer+1][next_index.rank(next_state_in)];
+        assert(right_reachable[layer+1].check(next_state_in));
+        return changed_states[layer+1][next_index.rank(next_state_in)];
       };
 
       // rewrite all transitions for each state
@@ -244,34 +244,34 @@ void BinaryDFA::build_linear(const DFA& left_in,
         dfa_state_t reachable_rank = new_state_id - 2;
         dfa_state_t state_in = curr_reachable[reachable_rank];
 
-	dfa_state_t transitions_max = 0;
+        dfa_state_t transitions_max = 0;
 
-	DFATransitionsReference transitions_in = right_in.get_transitions(layer, state_in);
-	for(int i = 0; i < layer_shape; ++i)
-	  {
-	    if(left_filters[layer][i])
-	      {
-		transitions_out[i] = get_next_changed(transitions_in[i]);
-		transitions_max = std::max(transitions_max, transitions_out[i]);
-	      }
+        DFATransitionsReference transitions_in = right_in.get_transitions(layer, state_in);
+        for(int i = 0; i < layer_shape; ++i)
+          {
+            if(left_filters[layer][i])
+              {
+                transitions_out[i] = get_next_changed(transitions_in[i]);
+                transitions_max = std::max(transitions_max, transitions_out[i]);
+              }
             else
               {
                 transitions_out[i] = 0;
               }
-	  }
+          }
 
-	if(transitions_max == 0)
-	  {
-	    // reject state
-	    changed_states[layer][reachable_rank] = 0;
-	    return;
-	  }
-	if((transitions_max == 1) && (*std::min_element(transitions_out, transitions_out + layer_shape) == 1))
-	  {
-	    // accept state
-	    changed_states[layer][reachable_rank] = 1;
-	    return;
-	  }
+        if(transitions_max == 0)
+          {
+            // reject state
+            changed_states[layer][reachable_rank] = 0;
+            return;
+          }
+        if((transitions_max == 1) && (*std::min_element(transitions_out, transitions_out + layer_shape) == 1))
+          {
+            // accept state
+            changed_states[layer][reachable_rank] = 1;
+            return;
+          }
 
         changed_states[layer][reachable_rank] = 2 + reachable_rank;
       });
@@ -403,9 +403,9 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
       MemoryMap<dfa_state_pair_t>& next_pairs = pairs_by_layer.at(layer + 1);
 
       if(next_pairs_count == 0)
-	{
-	  break;
-	}
+        {
+          break;
+        }
 
       profile.tic("forward next pairs populate");
 
@@ -435,18 +435,18 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
       profile.tic("forward stats");
 
       if(next_pairs.size() >= 100000)
-	{
-	  // stats compared to full quadratic blow up
-	  size_t bits_set = next_pairs.size();
-	  size_t bits_total = next_left_size * next_right_size;
-	  std::cout << "bits set = " << bits_set << " / " << bits_total << " ~ " << (double(bits_set) / double(bits_total)) << std::endl;
-	}
+        {
+          // stats compared to full quadratic blow up
+          size_t bits_set = next_pairs.size();
+          size_t bits_total = next_left_size * next_right_size;
+          std::cout << "bits set = " << bits_set << " / " << bits_total << " ~ " << (double(bits_set) / double(bits_total)) << std::endl;
+        }
 
       if(next_pairs.size() == 0)
-	{
-	  // all pairs in next layer were filtered. no need to continue.
-	  break;
-	}
+        {
+          // all pairs in next layer were filtered. no need to continue.
+          break;
+        }
 
       profile.tic("forward cleanup");
     }
@@ -862,8 +862,8 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_read_pairs(int layer)
 }
 
 MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& left_in,
-                                                              const DFA& right_in,
-                                                              int layer)
+                                                                        const DFA& right_in,
+                                                                        int layer)
 {
   Profile profile2("build_quadratic_transition_pairs");
 
@@ -943,17 +943,17 @@ std::function<bool(dfa_state_t, dfa_state_t)> BinaryDFA::get_filter_func() const
   {
     if((left_in < 2) && (right_in < 2))
       {
-	return true;
+        return true;
       }
 
     if(left_in == left_sink)
       {
-	return true;
+        return true;
       }
 
     if(right_in == right_sink)
       {
-	return true;
+        return true;
       }
 
     return false;
@@ -973,18 +973,18 @@ std::function<dfa_state_t(dfa_state_t, dfa_state_t)> BinaryDFA::get_shortcircuit
   {
     if((left_in < 2) && (right_in < 2))
       {
-	// constant inputs
-	return leaf_func_copy(left_in, right_in);
+        // constant inputs
+        return leaf_func_copy(left_in, right_in);
       }
 
     if(left_in == left_sink)
       {
-	return left_in;
+        return left_in;
       }
 
     if(right_in == right_sink)
       {
-	return right_in;
+        return right_in;
       }
 
     // do not use this function unless shortcircuit evaluation
