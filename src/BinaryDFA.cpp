@@ -26,16 +26,6 @@
 
 static const size_t SYNC_THRESHOLD_BYTES = 1ULL << 25;
 
-static void sync_if_big(size_t length)
-{
-  // sync to disk if more than 32MB
-
-  if(length >= SYNC_THRESHOLD_BYTES)
-    {
-      sync();
-    }
-}
-
 template<class T>
 static void sync_if_big(MemoryMap<T>& memory_map)
 {
@@ -359,7 +349,7 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 
       // helper functions
 
-      profile.tic("forward transition pairs filter sort unique");
+      profile.tic("forward transition pairs filter");
 
       auto remove_func = [&](size_t next_pair)
       {
@@ -369,143 +359,33 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
         return filter_func(next_left_state, next_right_state);
       };
 
-      const size_t working_block_max_elements = size_t(1) << 27;
-      std::vector<size_t> working_block(std::min(working_block_max_elements, curr_transition_pairs.size()));
+      auto working_begin = curr_transition_pairs.begin();
+      auto working_end = curr_transition_pairs.end();
 
-      size_t *unique_end = curr_transition_pairs.begin();
+      working_end = TRY_PARALLEL_3(std::remove_if,
+                                   working_begin,
+                                   working_end,
+                                   remove_func);
 
-      auto check_next_pair = [&](size_t next_pair)
-      {
-	if(unique_end > curr_transition_pairs.begin())
-	  {
-	    assert(*(unique_end - 1) < next_pair);
-	  }
-      };
+      profile.tic("forward transition pairs pre-unique");
 
-      std::vector<std::tuple<size_t *, size_t *, size_t, size_t>> unique_queue;
-      unique_queue.emplace_back(curr_transition_pairs.begin(),
-				curr_transition_pairs.end(),
-				0,
-				next_left_size * next_right_size);
-      while(unique_queue.size())
-	{
-	  Profile profile2("unique");
-	  profile2.tic("init");
+      working_end = TRY_PARALLEL_2(std::unique,
+                                   working_begin,
+                                   working_end);
 
-	  auto unique_todo = unique_queue.back();
-	  unique_queue.pop_back();
+      profile.tic("forward transition pairs sort");
 
-	  // moving [begin, end) which has values in [value_min, value_max)
-	  // to [unique_end, ...) after filtering, sorting, and deduping.
-	  size_t *begin = std::get<0>(unique_todo);
-	  size_t *end = std::get<1>(unique_todo);
-	  size_t value_min = std::get<2>(unique_todo);
-	  size_t value_max = std::get<3>(unique_todo);
+      TRY_PARALLEL_2(std::sort,
+                     working_begin,
+                     working_end);
 
-	  assert(unique_end <= begin);
-	  assert(begin <= end);
-	  assert(value_min < value_max);
-	  check_next_pair(value_min);
+      profile.tic("forward transition pairs post-unique");
 
-	  // constant syncs to ward off the OOM killer
-          size_t range_elements = (end - begin);
-	  size_t range_bytes = range_elements * sizeof(size_t);
-	  sync_if_big(range_bytes);
+      working_end = TRY_PARALLEL_2(std::unique,
+                                   working_begin,
+                                   working_end);
 
-	  if(begin == end)
-	    {
-	      // empty range
-	      continue;
-	    }
-
-          size_t value_width = value_max - value_min;
-          if(value_width <= 1024)
-            {
-              // small range of values remaining, so go with count
-              // sort approach and make a bitmap of which ones are
-              // present.
-
-              profile2.tic("count");
-
-              std::vector<bool> values_present(value_width, false);
-              for(size_t *v_iter = begin; v_iter < end; ++v_iter)
-                {
-                  assert(value_min <= *v_iter);
-                  assert(*v_iter < value_max);
-                  values_present.at(*v_iter - value_min) = true;
-                }
-
-              for(size_t v = value_min; v < value_max; ++v)
-                {
-                  if(values_present.at(v - value_min) && !remove_func(v))
-                    {
-                      *unique_end++ = v;
-                    }
-                }
-
-              continue;
-            }
-
-          if(range_elements <= working_block.size())
-            {
-              // "small" range, so just handle directly
-              profile2.tic("base");
-
-              // filtered copy from memory map
-              auto working_begin = working_block.begin();
-              auto working_end = TRY_PARALLEL_4(std::remove_copy_if, begin, end, working_begin, remove_func);
-              assert(working_end <= working_block.end());
-              if(working_end == working_begin)
-                {
-                  // everything was filtered
-                  continue;
-                }
-
-	      TRY_PARALLEL_2(std::sort, working_begin, working_end);
-              check_next_pair(*working_begin);
-
-	      unique_end = TRY_PARALLEL_3(std::unique_copy, working_begin, working_end, unique_end);
-              continue;
-            }
-
-	  // use flashsort permutation to partition by value
-
-	  profile2.tic("partition");
-
-	  size_t target_buckets = 1024;
-	  size_t divisor = (value_width + target_buckets - 1) / target_buckets;
-	  assert(divisor > 0);
-
-	  std::vector<size_t *> partition = flashsort_partition<size_t, size_t>(begin, end, [=](const size_t& v){return (v - value_min) / divisor;});
-	  assert(partition.at(0) == begin);
-	  assert(partition.back() == end);
-	  assert(partition.size() - 1 <= target_buckets);
-	  sync_if_big(range_bytes);
-
-	  for(int i = partition.size() - 2; i >= 0; --i)
-	    {
-	      assert(partition[i] <= partition[i + 1]);
-	      if(partition[i] == partition[i + 1])
-		{
-		  continue;
-		}
-
-	      size_t partition_value_min = value_min + i * divisor;
-	      size_t partition_value_max = value_min + (i + 1) * divisor;
-
-#ifdef PARANOIA
-	      size_t partition_value_min_check = *std::min_element(partition[i], partition[i+1]);
-	      size_t partition_value_max_check = *std::max_element(partition[i], partition[i+1]);
-	      assert(partition_value_min <= partition_value_min_check);
-	      assert(partition_value_max_check < partition_value_max);
-#endif
-
-	      unique_queue.emplace_back(partition[i],
-					partition[i + 1],
-					partition_value_min,
-					partition_value_max);
-	    }
-	}
+      auto unique_end = working_end;
 
       std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
 
