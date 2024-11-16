@@ -138,3 +138,4 @@ INSTANTIATE(int);
 INSTANTIATE(long long unsigned int);
 INSTANTIATE(long unsigned int);
 INSTANTIATE(unsigned int);
+INSTANTIATE(dfa_state_pair_t);
