@@ -116,7 +116,7 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
 
   profile.tic("chunk iota");
   std::vector<size_t> chunk_iota(chunk_elements);
-  std::iota(chunk_iota.begin(), chunk_iota.end(), 0);
+  std::iota(chunk_iota.begin(), chunk_iota.end(), size_t(0));
 
   for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
     {
