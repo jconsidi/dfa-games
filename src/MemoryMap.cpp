@@ -480,4 +480,5 @@ template class MemoryMap<long long unsigned int>;
 template class MemoryMap<long unsigned int>;
 template class MemoryMap<unsigned int>;
 
+template class MemoryMap<dfa_state_pair_t>;
 template class MemoryMap<BinaryDFATransitionsHashPlusIndex>;

@@ -12,6 +12,87 @@
 #include "BinaryFunction.h"
 #include "DFA.h"
 
+class dfa_state_pair_t
+{
+  dfa_state_t left;
+  dfa_state_t right;
+
+public:
+
+  dfa_state_pair_t()
+    : left(0),
+      right(0)
+  {
+  }
+
+  dfa_state_pair_t(dfa_state_t left_in, dfa_state_t right_in)
+    : left(left_in),
+      right(right_in)
+  {
+  }
+
+  dfa_state_pair_t(const dfa_state_pair_t& pair_in)
+    : left(pair_in.left),
+      right(pair_in.right)
+  {
+  }
+
+  dfa_state_pair_t(dfa_state_pair_t&& pair_in)
+    : left(pair_in.left),
+      right(pair_in.right)
+  {
+  }
+
+  bool operator<(const dfa_state_pair_t& right_in) const
+  {
+    return ((left < right_in.left) ||
+            ((left == right_in.left) && (right < right_in.right)));
+  }
+
+  bool operator<=(const dfa_state_pair_t& right_in) const
+  {
+    return ((left < right_in.left) ||
+            ((left == right_in.left) && (right <= right_in.right)));
+  }
+
+  dfa_state_pair_t& operator=(const dfa_state_pair_t& pair_in)
+  {
+    left = pair_in.left;
+    right = pair_in.right;
+    return *this;
+  }
+
+  dfa_state_pair_t& operator=(dfa_state_pair_t&& pair_in)
+  {
+    left = pair_in.left;
+    right = pair_in.right;
+    return *this;
+  }
+
+  bool operator==(const dfa_state_pair_t& right_in) const
+  {
+    return ((left == right_in.left) &&
+            (right == right_in.right));
+  }
+
+  void check(size_t left_size, size_t right_size) const
+  {
+    assert(left < left_size);
+    assert(right < right_size);
+  }
+
+  dfa_state_t get_left_state() const
+  {
+    return left;
+  }
+
+  dfa_state_t get_right_state() const
+  {
+    return right;
+  }
+};
+static_assert(sizeof(dfa_state_pair_t) == 8);
+
 class BinaryDFA : public DFA
 {
   BinaryFunction leaf_func;
@@ -19,8 +100,8 @@ class BinaryDFA : public DFA
   void build_linear(const DFA&, const DFA&);
 
   void build_quadratic(const DFA&, const DFA&);
-  MemoryMap<size_t> build_quadratic_read_pairs(int layer);
-  MemoryMap<size_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer);
+  MemoryMap<dfa_state_pair_t> build_quadratic_read_pairs(int layer);
+  MemoryMap<dfa_state_pair_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer);
 
   std::function<bool(dfa_state_t, dfa_state_t)> get_filter_func() const;
   std::function<dfa_state_t(dfa_state_t, dfa_state_t)> get_shortcircuit_func() const;
