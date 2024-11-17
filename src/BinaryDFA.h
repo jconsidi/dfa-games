@@ -112,6 +112,8 @@ protected:
 
   void build_quadratic_backward(const DFA&, const DFA&, int);
   MemoryMap<dfa_state_t> build_quadratic_backward_layer(const DFA&, const DFA&, int, const MemoryMap<dfa_state_t>&);
+  int build_quadratic_forward(const DFA&, const DFA&);
+  MemoryMap<dfa_state_pair_t> build_quadratic_forward_layer(const DFA&, const DFA& right_in, int layer);
 
 public:
 

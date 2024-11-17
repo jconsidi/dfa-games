@@ -316,150 +316,17 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
       return;
     }
 
-  // all reachable pairs of left/right states, represented as a size_t
-  // instead of a pair of dfa_state_t's.
-
-  std::vector<MemoryMap<dfa_state_pair_t>> pairs_by_layer;
-  pairs_by_layer.reserve(get_shape_size() + 1);
-
-  // manual setup of initial layer
-
-  pairs_by_layer.push_back(memory_map_helper<dfa_state_pair_t>(0, "pairs", 1));
-  pairs_by_layer[0][0] = dfa_state_pair_t(initial_left, initial_right);
-
-  // transitions helper
-
   // forward pass
 
-  for(int layer = 0; layer < get_shape_size(); ++layer)
-    {
-      profile.set_prefix("layer=" + std::to_string(layer));
-      profile.tic("forward init");
+  profile.tic("forward");
 
-      // get size of current layer and next layer.
-      //
-      // using size_t for product calculations...
-
-      size_t next_left_size = left_in.get_layer_size(layer + 1);
-      size_t next_right_size = right_in.get_layer_size(layer + 1);
-
-      assert(pairs_by_layer.size() == layer + 1);
-
-      profile.tic("forward transition pairs");
-
-      MemoryMap<dfa_state_pair_t> curr_transition_pairs = build_quadratic_transition_pairs(left_in, right_in, layer);
-
-      std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
-
-      // helper functions
-
-      profile.tic("forward transition pairs filter");
-
-      auto remove_func = [&](dfa_state_pair_t next_pair)
-      {
-        dfa_state_t next_left_state = next_pair.get_left_state();
-        dfa_state_t next_right_state = next_pair.get_right_state();
-
-        return filter_func(next_left_state, next_right_state);
-      };
-
-      auto working_begin = curr_transition_pairs.begin();
-      auto working_end = curr_transition_pairs.end();
-
-      working_end = TRY_PARALLEL_3(std::remove_if,
-                                   working_begin,
-                                   working_end,
-                                   remove_func);
-
-      profile.tic("forward transition pairs pre-unique");
-
-      working_end = TRY_PARALLEL_2(std::unique,
-                                   working_begin,
-                                   working_end);
-
-      profile.tic("forward transition pairs sort");
-
-      TRY_PARALLEL_2(std::sort,
-                     working_begin,
-                     working_end);
-
-      profile.tic("forward transition pairs post-unique");
-
-      working_end = TRY_PARALLEL_2(std::unique,
-                                   working_begin,
-                                   working_end);
-
-      auto unique_end = working_end;
-
-      std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
-
-      // the following truncate and rename to the next pairs file are
-      // to make the next pairs updates atomic and make restarts
-      // easier.
-
-      profile.tic("forward transitions munmap");
-
-      // this munmap is implied by the truncate, but separating to
-      // track the timing.
-      curr_transition_pairs.munmap();
-
-      profile.tic("forward transitions truncate");
-
-      size_t next_pairs_count = working_end - working_begin;
-      curr_transition_pairs.truncate(next_pairs_count);
-
-      profile.tic("forward next pairs rename");
-
-      std::string next_pairs_name = memory_map_name(layer + 1, "pairs");
-
-      // atomic swap into place
-      curr_transition_pairs.rename(next_pairs_name);
-
-      profile.tic("forward next pairs mmap");
-
-      pairs_by_layer.emplace_back(next_pairs_name);
-      MemoryMap<dfa_state_pair_t>& next_pairs = pairs_by_layer.at(layer + 1);
-      assert(next_pairs.size() == next_pairs_count);
-
-      if(next_pairs_count == 0)
-        {
-          break;
-        }
-
-#ifdef PARANOIA
-      profile.tic("forward next pairs paranoia");
-
-      assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
-#endif
-
-      profile.tic("forward stats");
-
-      if(next_pairs.size() >= 100000)
-        {
-          // stats compared to full quadratic blow up
-          size_t bits_set = next_pairs.size();
-          size_t bits_total = next_left_size * next_right_size;
-          std::cout << "bits set = " << bits_set << " / " << bits_total << " ~ " << (double(bits_set) / double(bits_total)) << std::endl;
-        }
-
-      if(next_pairs.size() == 0)
-        {
-          // all pairs in next layer were filtered. no need to continue.
-          break;
-        }
-
-      profile.tic("forward cleanup");
-    }
-
-  assert(pairs_by_layer.size() > 0);
-  assert(pairs_by_layer.back().size() == 0);
+  int num_layers_used = build_quadratic_forward(left_in, right_in);
 
   // backward pass
 
-  profile.set_prefix("");
   profile.tic("backward");
 
-  build_quadratic_backward(left_in, right_in, pairs_by_layer.size() - 1);
+  build_quadratic_backward(left_in, right_in, num_layers_used);
 
   assert(this->ready());
   profile.tic("final cleanup");
@@ -855,6 +722,146 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
   // done
 
   return curr_pair_rank_to_output;
+}
+
+int BinaryDFA::build_quadratic_forward(const DFA& left_in, const DFA& right_in)
+{
+  Profile profile("build_quadratic_forward");
+
+  // manual setup of initial layer
+
+  dfa_state_t initial_left = left_in.get_initial_state();
+  dfa_state_t initial_right = right_in.get_initial_state();
+
+  MemoryMap<dfa_state_pair_t> initial_pairs = memory_map_helper<dfa_state_pair_t>(0, "pairs", 1);
+  initial_pairs[0] = dfa_state_pair_t(initial_left, initial_right);
+
+  // forward pass
+
+  for(int layer = 0; layer < get_shape_size(); ++layer)
+    {
+      profile.tic("forward layer=" + std::to_string(layer));
+
+      MemoryMap<dfa_state_pair_t> next_pairs = build_quadratic_forward_layer(left_in, right_in, layer);
+      if(next_pairs.size() == 0)
+        {
+          // current layer had pairs. next one did not.
+          return layer + 1;
+        }
+
+#ifdef PARANOIA
+      profile.tic("forward next pairs paranoia");
+
+      assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
+#endif
+
+      profile.tic("forward cleanup");
+    }
+
+  assert(false);
+  return 0;
+}
+
+MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
+                                                                     const DFA& right_in,
+                                                                     int layer)
+{
+  Profile profile("build_quadratic_forward_layer");
+  profile.set_prefix("layer=" + std::to_string(layer));
+
+  profile.tic("init");
+
+  // get size of current layer and next layer.
+  //
+  // using size_t for product calculations...
+
+  size_t next_left_size = left_in.get_layer_size(layer + 1);
+  size_t next_right_size = right_in.get_layer_size(layer + 1);
+
+  profile.tic("transitions");
+
+  MemoryMap<dfa_state_pair_t> curr_transition_pairs = build_quadratic_transition_pairs(left_in, right_in, layer);
+
+  std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
+
+  // helper functions
+
+  profile.tic("filter");
+
+  auto filter_func = get_filter_func();
+
+  auto remove_func = [&](dfa_state_pair_t next_pair)
+  {
+    dfa_state_t next_left_state = next_pair.get_left_state();
+    dfa_state_t next_right_state = next_pair.get_right_state();
+
+    return filter_func(next_left_state, next_right_state);
+  };
+
+  auto working_begin = curr_transition_pairs.begin();
+  auto working_end = curr_transition_pairs.end();
+
+  working_end = TRY_PARALLEL_3(std::remove_if,
+                               working_begin,
+                               working_end,
+                               remove_func);
+
+  profile.tic("pre-unique");
+
+  working_end = TRY_PARALLEL_2(std::unique,
+                               working_begin,
+                               working_end);
+
+  profile.tic("sort");
+
+  TRY_PARALLEL_2(std::sort,
+                 working_begin,
+                 working_end);
+
+  profile.tic("post-unique");
+
+  working_end = TRY_PARALLEL_2(std::unique,
+                               working_begin,
+                               working_end);
+
+  auto unique_end = working_end;
+
+  std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
+
+  // the following truncate and rename to the next pairs file are to
+  // make the next pairs updates atomic and make restarts easier.
+
+  profile.tic("munmap");
+
+  // this munmap is implied by the truncate, but separating to track
+  // the timing.
+  curr_transition_pairs.munmap();
+
+  profile.tic("truncate");
+
+  size_t next_pairs_count = working_end - working_begin;
+  curr_transition_pairs.truncate(next_pairs_count);
+
+  profile.tic("forward stats");
+
+  if(next_pairs_count >= 100000)
+    {
+      // stats compared to full quadratic blow up
+      size_t bits_set = next_pairs_count;
+      size_t bits_total = next_left_size * next_right_size;
+      std::cout << "bits set = " << bits_set << " / " << bits_total << " ~ " << (double(bits_set) / double(bits_total)) << std::endl;
+    }
+
+  profile.tic("rename");
+
+  std::string next_pairs_name = memory_map_name(layer + 1, "pairs");
+
+  // atomic swap into place
+  curr_transition_pairs.rename(next_pairs_name);
+
+  profile.tic("done");
+
+  return curr_transition_pairs;
 }
 
 MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_read_pairs(int layer)
