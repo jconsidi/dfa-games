@@ -48,6 +48,8 @@ MinimizeDFA::MinimizeDFA(const DFA& dfa_in)
 MemoryMap<dfa_state_t> MinimizeDFA::minimize_layer(const DFA& dfa_in, int layer, const MemoryMap<dfa_state_t>& next_state_to_output)
 {
   Profile profile("minimize_layer");
+  profile.set_prefix("layer=" + std::to_string(layer));
+  profile.tic("init");
 
   assert(next_state_to_output.size() == dfa_in.get_layer_size(layer + 1));
 
