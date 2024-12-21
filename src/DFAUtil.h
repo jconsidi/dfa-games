@@ -28,6 +28,7 @@ public:
   static shared_dfa_ptr get_intersection(shared_dfa_ptr, shared_dfa_ptr);
   static shared_dfa_ptr get_intersection_vector(const dfa_shape_t&, const std::vector<shared_dfa_ptr>&);
   static shared_dfa_ptr get_inverse(shared_dfa_ptr);
+  static shared_dfa_ptr get_minimized(shared_dfa_ptr);
   static shared_dfa_ptr get_reject(const dfa_shape_t&);
   static shared_dfa_ptr get_union(shared_dfa_ptr, shared_dfa_ptr);
   static shared_dfa_ptr get_union_vector(const dfa_shape_t&, const std::vector<shared_dfa_ptr>&);

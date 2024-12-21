@@ -475,6 +475,7 @@ void MemoryMap<T>::unlink()
 // template instantiations
 
 #include "BinaryDFA.h"
+#include "MinimizeDFA.h"
 
 template class MemoryMap<double>;
 template class MemoryMap<int>;
@@ -483,4 +484,4 @@ template class MemoryMap<long unsigned int>;
 template class MemoryMap<unsigned int>;
 
 template class MemoryMap<dfa_state_pair_t>;
-template class MemoryMap<BinaryDFATransitionsHashPlusIndex>;
+template class MemoryMap<MinimizeDFATransitionsHashPlusIndex>;

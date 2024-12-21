@@ -49,6 +49,7 @@ public:
 
   dfa_state_t at(int c) const {assert(c < layer_shape); return layer_transitions[offset + c];}
   int get_layer_shape() const {return layer_shape;}
+  const dfa_state_t *data() const {return &layer_transitions[offset];}
 };
 
 class DFAIterator;

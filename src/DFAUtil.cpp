@@ -20,6 +20,7 @@
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
+#include "MinimizeDFA.h"
 #include "Profile.h"
 #include "RejectDFA.h"
 #include "StringDFA.h"
@@ -400,7 +401,7 @@ shared_dfa_ptr DFAUtil::get_difference(shared_dfa_ptr left_in, shared_dfa_ptr ri
 	return left_in;
       }
 
-    return _singleton_if_constant(shared_dfa_ptr(new DifferenceDFA(*left_in, *right_in)));
+    return _singleton_if_constant(get_minimized(shared_dfa_ptr(new DifferenceDFA(*left_in, *right_in))));
   });
 }
 
@@ -506,7 +507,16 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 	std::cout << "INTERSECTION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
       }
 
-    return shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in));
+
+    shared_dfa_ptr initial =
+      load_or_build(left_in->get_shape(),
+                    intersection_name + "_initial",
+                    [&]()
+                    {
+                      return shared_dfa_ptr(new IntersectionDFA(*left_in, *right_in));
+                    });
+
+    return get_minimized(initial);
   });
 }
 
@@ -559,6 +569,23 @@ shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
   return load_or_build(dfa_in->get_shape(), inverse_name, [&]()
   {
     return shared_dfa_ptr(new InverseDFA(*dfa_in));
+  });
+}
+
+shared_dfa_ptr DFAUtil::get_minimized(shared_dfa_ptr dfa_in)
+{
+  std::string minimized_name = "minimize_cache/" + dfa_in->get_hash();
+
+  return load_or_build(dfa_in->get_shape(), minimized_name, [&]()
+  {
+    shared_dfa_ptr output(new MinimizeDFA(*dfa_in));
+
+    if(dfa_in->states() >= 1024)
+      {
+        std::cerr << "get_minimized shrank " << dfa_in->states() << " states to " << output->states() << " states." << std::endl;
+      }
+
+    return output;
   });
 }
 
@@ -626,7 +653,15 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
                         std::cout << "UNION " << left_in->get_hash() << " " << right_in->get_hash() << std::endl;
                       }
 
-                    return shared_dfa_ptr(new UnionDFA(*left_in, *right_in));
+                    shared_dfa_ptr initial =
+                      load_or_build(left_in->get_shape(),
+                                    union_name + "_initial",
+                                    [&]()
+                                    {
+                                      return shared_dfa_ptr(new UnionDFA(*left_in, *right_in));
+                                    });
+
+                    return get_minimized(initial);
                   });
 
   // paranoid checks

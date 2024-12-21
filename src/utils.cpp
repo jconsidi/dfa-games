@@ -129,10 +129,11 @@ void write_buffer(int fildes, const T *buffer, size_t elements)
 // template instantiations
 
 #include "BinaryDFA.h"
+#include "MinimizeDFA.h"
 
 #define INSTANTIATE(T) template void write_buffer(int fildes, const T *buffer, size_t elements);
 
-INSTANTIATE(BinaryDFATransitionsHashPlusIndex);
+INSTANTIATE(MinimizeDFATransitionsHashPlusIndex);
 INSTANTIATE(double);
 INSTANTIATE(int);
 INSTANTIATE(long long unsigned int);
