@@ -38,5 +38,8 @@ int main(int argc, char **argv)
   std::string union_name = "union_cache/" + left->get_hash() + "_" + right->get_hash();
   union_dfa.save(union_name);
 
+  std::string restart_name = "union_cache/" + left->get_hash() + "_" + right->get_hash() + "_restart";
+  union_dfa.save(restart_name);
+
   return 0;
 }
