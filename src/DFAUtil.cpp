@@ -615,6 +615,13 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
       std::swap(left_in, right_in);
     }
 
+  auto check_output = [&](shared_dfa_ptr dfa_out)
+  {
+    // paranoid checks
+    assert(dfa_out->size() >= left_in->size());
+    assert(dfa_out->size() >= right_in->size());
+  };
+
   std::string union_name = "union_cache/" + left_in->get_hash() + "_" + right_in->get_hash();
   shared_dfa_ptr output =
     load_or_build(left_in->get_shape(),
@@ -630,8 +637,7 @@ shared_dfa_ptr DFAUtil::get_union(shared_dfa_ptr left_in, shared_dfa_ptr right_i
                   });
 
   // paranoid checks
-  assert(output->size() >= left_in->size());
-  assert(output->size() >= right_in->size());
+  check_output(output);
 
   return output;
 }
