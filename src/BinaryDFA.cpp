@@ -726,7 +726,8 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
 int BinaryDFA::build_quadratic_forward(const DFA& left_in, const DFA& right_in)
 {
-  Profile profile("build_quadratic_forward");
+  // this is the normal entry point for the forward pass.
+  // it handles the special initialization of layer zero.
 
   // manual setup of initial layer
 
@@ -736,9 +737,22 @@ int BinaryDFA::build_quadratic_forward(const DFA& left_in, const DFA& right_in)
   MemoryMap<dfa_state_pair_t> initial_pairs = memory_map_helper<dfa_state_pair_t>(0, "pairs", 1);
   initial_pairs[0] = dfa_state_pair_t(initial_left, initial_right);
 
+  return build_quadratic_forward(left_in, right_in, 0);
+}
+
+int BinaryDFA::build_quadratic_forward(const DFA& left_in, const DFA& right_in, int layer_min)
+{
+  // this does the bulk of the work in the forward pass, and supports
+  // restarts. it assumes that at least layer zero was previously
+  // built.
+
+  Profile profile("build_quadratic_forward");
+
+  assert(layer_min >= 0);
+
   // forward pass
 
-  for(int layer = 0; layer < get_shape_size(); ++layer)
+  for(int layer = layer_min; layer < get_shape_size(); ++layer)
     {
       profile.tic("forward layer=" + std::to_string(layer));
 
