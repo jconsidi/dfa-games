@@ -772,8 +772,8 @@ int BinaryDFA::build_quadratic_forward(const DFA& left_in, const DFA& right_in, 
       profile.tic("forward cleanup");
     }
 
-  assert(false);
-  return 0;
+  assert(layer_min == get_shape_size());
+  return layer_min;
 }
 
 MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
