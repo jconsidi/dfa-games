@@ -514,39 +514,9 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
     return true;
   };
 
-  auto curr_pairs_begin = curr_pairs.begin();
-  auto check_new = [&](const dfa_state_pair_t& curr_pair)
-  {
-    dfa_state_t curr_pair_rank = &curr_pair - curr_pairs_begin;
-    if(check_constant(curr_pair_rank))
-      {
-        return dfa_state_t(0);
-      }
-
-    return dfa_state_t(1);
-  };
-
-  MemoryMap<dfa_state_t> curr_pair_rank_to_new_states("scratch/binarydfa/pair_rank_to_new_states", curr_layer_count);
-
-  TRY_PARALLEL_6(std::transform_inclusive_scan,
-                 curr_pairs.begin(),
-                 curr_pairs.end(),
-                 curr_pair_rank_to_new_states.begin(),
-                 [](dfa_state_t previous, dfa_state_t delta) {
-                   dfa_state_t output = previous + delta;
-                   // check for overflow
-                   assert(output >= previous);
-                   return output;
-                 },
-                 check_new,
-                 1); // first new state will be 2
-
-  dfa_state_t layer_size = curr_pair_rank_to_new_states[curr_layer_count - 1] + 1;
+  size_t layer_size = 2 + curr_layer_count;
 
   profile.tic("backward states write");
-
-  auto curr_pair_rank_to_new_states_begin = curr_pair_rank_to_new_states.begin();
-  auto curr_pair_rank_to_new_states_end = curr_pair_rank_to_new_states.end();
 
   auto curr_transitions_begin = curr_transitions.begin();
 
@@ -555,11 +525,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
     assert(2 <= new_state_id);
     assert(new_state_id < layer_size);
 
-    auto iter = std::lower_bound(curr_pair_rank_to_new_states_begin,
-                                 curr_pair_rank_to_new_states_end,
-                                 new_state_id);
-    assert(*iter == new_state_id);
-    dfa_state_t curr_pair_rank = iter - curr_pair_rank_to_new_states_begin;
+    dfa_state_t curr_pair_rank = new_state_id - 2;
 
     std::copy_n(curr_transitions_begin + size_t(curr_pair_rank) * curr_layer_shape, curr_layer_shape, transitions_out);
   };
@@ -575,16 +541,13 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
         return curr_transitions[size_t(curr_pair_rank) * curr_layer_shape];
       }
 
-    return curr_pair_rank_to_new_states[curr_pair_rank];
+    assert(size_t(curr_pair_rank) + 2 <= DFA_STATE_MAX);
+    return dfa_state_t(curr_pair_rank + 2);
   });
 
   assert(curr_pair_rank_to_output.size() > 0);
 
   // shrink state
-
-  profile.tic("unlink pair_rank_to_new_states");
-
-  curr_pair_rank_to_new_states.unlink();
 
   profile.tic("unlink transitions");
 
