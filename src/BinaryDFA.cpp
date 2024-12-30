@@ -378,52 +378,6 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
   profile.tic("backward next pair mmap");
 
   const MemoryMap<dfa_state_pair_t> next_pairs = build_quadratic_read_pairs(layer + 1);
-  size_t next_layer_count = next_pairs.size();
-
-  profile.tic("backward next pair index");
-
-  // index entries have first pair of 4KB block (64 bit pair)
-  std::vector<MemoryMap<dfa_state_pair_t>> next_pairs_index;
-  next_pairs_index.reserve(3);
-  auto add_next_pairs_index = [&](const MemoryMap<dfa_state_pair_t>& previous_pairs)
-  {
-    std::string index_name = "scratch/binarydfa/next_pairs_index-" + std::to_string(next_pairs_index.size());
-    size_t index_length = (previous_pairs.size() + 511) / 512;
-    next_pairs_index.emplace_back(index_name, index_length, [&](size_t i)
-    {
-      return previous_pairs[i * 512];
-    });
-  };
-  add_next_pairs_index(next_pairs);
-  assert(next_pairs_index.size() == 1);
-
-  // add more indexes until under 1MB
-  while(next_pairs_index.back().length() > 1ULL << 20)
-    {
-      assert(next_pairs_index.size() < next_pairs_index.capacity());
-      add_next_pairs_index(next_pairs_index.back());
-    }
-
-  auto search_index = [&](const MemoryMap<dfa_state_pair_t>& next_pairs_index, dfa_state_pair_t next_pair, size_t offset_min, size_t offset_max)
-  {
-    assert(offset_min <= offset_max);
-    assert(offset_max < next_pairs_index.size());
-
-    while(offset_min < offset_max)
-      {
-        size_t offset_mid = offset_min + (offset_max - offset_min + 1) / 2;
-        if(next_pairs_index[offset_mid] <= next_pair)
-          {
-            offset_min = offset_mid;
-          }
-        else
-          {
-            offset_max = offset_mid - 1;
-          }
-      }
-
-    return offset_min;
-  };
 
   profile.tic("backward transitions input");
 
@@ -449,49 +403,21 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
       }
     else
       {
-        size_t offset_min = 0;
-        size_t offset_max = next_pairs_index.back().size() - 1;
+        auto next_pair_pointer = std::lower_bound(next_pairs.begin(),
+                                                  next_pairs.end(),
+                                                  next_pair);
+        assert(next_pair_pointer < next_pairs.end());
+        assert(*next_pair_pointer == next_pair);
+        size_t next_pair_rank = next_pair_pointer - next_pairs.begin();
+        assert(next_pairs[next_pair_rank] == next_pair);
 
-        for(int index_index = next_pairs_index.size() - 1; index_index > 0; --index_index)
-          {
-            // compute index range in next index
-            offset_min = search_index(next_pairs_index.at(index_index),
-                                      next_pair,
-                                      offset_min,
-                                      offset_max) * 512;
-
-            offset_max = std::min(offset_min + 511,
-                                  next_pairs_index[index_index - 1].size() - 1);
-          }
-
-        offset_min = search_index(next_pairs_index.at(0),
-                                  next_pair,
-                                  offset_min,
-                                  offset_max) * 512;
-        offset_max = std::min(offset_min + 511,
-                              next_layer_count - 1);
-
-        size_t next_rank_min = search_index(next_pairs,
-                                            next_pair,
-                                            offset_min,
-                                            offset_max);
-        assert(next_pairs[next_rank_min] == next_pair);
-
-        return next_pair_rank_to_output[next_rank_min];
+        return next_pair_rank_to_output[next_pair_rank];
       }
   });
 
   profile.tic("unlink transition_pairs");
 
   curr_transition_pairs.unlink();
-
-  profile.tic("unlink next_pairs_index");
-
-  while(next_pairs_index.size())
-    {
-      next_pairs_index.back().unlink();
-      next_pairs_index.pop_back();
-    }
 
   profile.tic("backward states identification");
 
