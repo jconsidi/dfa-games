@@ -27,7 +27,8 @@ public:
 
   MemoryMap(size_t);
   MemoryMap(std::string);
-  MemoryMap(std::string, size_t);
+  explicit MemoryMap(std::string, bool);
+  explicit MemoryMap(std::string, size_t);
   MemoryMap(std::string, size_t, std::function<T(size_t)>);
   MemoryMap(std::string, const std::vector<T>&);
   MemoryMap(const MemoryMap&) = delete;

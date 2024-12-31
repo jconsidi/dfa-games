@@ -109,7 +109,7 @@ DFA::DFA(const dfa_shape_t& shape_in)
     layer_file_names(get_layer_file_names(shape_in.size(), directory)),
     layer_sizes(),
     layer_transitions(),
-    size_cache(directory + "/size_cache", 1),
+    size_cache(directory + "/size_cache", size_t(1)),
     temporary(true)
 {
   assert(ndim > 0);
@@ -123,7 +123,7 @@ DFA::DFA(const dfa_shape_t& shape_in)
       layer_sizes.push_back(2);
       // TODO: make sure initial layer size is big enough for giant
       // layer shapes
-      layer_transitions.emplace_back(layer_file_names.at(layer), 1024);
+      layer_transitions.emplace_back(layer_file_names.at(layer), size_t(1024));
 
       int layer_shape = get_layer_shape(layer);
       for(dfa_state_t state = 0; state < 2; ++state)
@@ -151,7 +151,7 @@ DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
     layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
     layer_transitions(),
-    size_cache(directory + "/size_cache", 1),
+    size_cache(directory + "/size_cache", size_t(1)),
     temporary(false)
 {
   assert(shape.size() == ndim);
@@ -343,14 +343,22 @@ void DFA::build_layer(int layer, dfa_state_t layer_size_in, std::function<void(d
       write_buffer(fildes, chunk_buffer.data(), chunk_buffer.size());
     }
 
-   if(close(fildes))
+  if(ftruncate(fildes, size_t(layer_size_in) * size_t(get_layer_shape(layer)) * sizeof(dfa_state_t)))
+    {
+      perror("ftruncate");
+      throw std::runtime_error("ftruncate() failed");
+    }
+
+    if(close(fildes))
     {
       perror("close");
       throw std::runtime_error("close() failed");
     }
 
   layer_sizes[layer] = layer_size_in;
-  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], layer_size_in * get_layer_shape(layer));
+  // open layer transitions for read only
+  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], true);
+  assert(layer_transitions[layer].size() == size_t(layer_size_in) * size_t(get_layer_shape(layer)));
 }
 
 void DFA::copy_layer(int layer, const DFA& dfa_in)
@@ -365,7 +373,7 @@ void DFA::copy_layer(int layer, const DFA& dfa_in)
   assert(dfa_in.get_layer_size(layer) >= 2);
 
   layer_sizes[layer] = dfa_in.get_layer_size(layer);
-  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], layer_sizes[layer] * get_layer_shape(layer));
+  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], size_t(layer_sizes[layer]) * size_t(get_layer_shape(layer)));
   assert(layer_transitions[layer].size() == dfa_in.layer_transitions[layer].size());
 
   // make sure the source layer is mapped
@@ -824,7 +832,7 @@ void DFA::save_by_hash() const
   size_cache.msync();
 
   // write initial state to disk
-  MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state", 1);
+  MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state", size_t(1));
   initial_state_mmap[0] = initial_state;
   initial_state_mmap.msync();
 

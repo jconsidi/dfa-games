@@ -34,9 +34,15 @@ MemoryMap<T>::MemoryMap(size_t size_in)
 
 template<class T>
 MemoryMap<T>::MemoryMap(std::string filename_in)
+  : MemoryMap(filename_in, true)
+{
+}
+
+template<class T>
+MemoryMap<T>::MemoryMap(std::string filename_in, bool readonly_in)
   : _filename(filename_in),
     _flags(0),
-    _readonly(true),
+    _readonly(readonly_in),
     _size(0),
     _length(0),
     _mapped(0)
