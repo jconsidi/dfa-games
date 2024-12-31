@@ -25,7 +25,7 @@ class MemoryMap
 
 public:
 
-  MemoryMap(size_t);
+  explicit MemoryMap(size_t);
   MemoryMap(std::string);
   explicit MemoryMap(std::string, bool);
   explicit MemoryMap(std::string, size_t);
