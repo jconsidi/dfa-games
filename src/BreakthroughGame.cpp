@@ -187,14 +187,30 @@ shared_dfa_ptr BreakthroughBase::build_positions_reversed(shared_dfa_ptr positio
       int layer_to = get_shape().size() - 1 - layer_from;
 
       std::vector<std::string> current_changes;
-      for(int c_from = 0; c_from < 3; ++c_from)
+
+      if(layer_from < layer_to)
         {
-          for(int c_to = 0; c_to < 3; ++c_to)
+          for(int c_from = 0; c_from < 3; ++c_from)
             {
-              std::string node_name = std::format("layers={:d}_{:d},characters={:d}_{:d}", layer_from, layer_to, c_from, c_to);
+              for(int c_to = 0; c_to < 3; ++c_to)
+                {
+                  std::string node_name = std::format("layers={:d}_{:d},characters={:d}_{:d}", layer_from, layer_to, c_from, c_to);
+                  change_vector node_changes(width * height);
+                  node_changes[layer_from] = change_type(c_from, change_character(c_to));
+                  node_changes[layer_to] = change_type(c_to, change_character(c_from));
+
+                  reverse_graph.add_node(node_name, node_changes);
+                  current_changes.push_back(node_name);
+                }
+            }
+        }
+      else
+        {
+          for(int c_from = 0; c_from < 3; ++c_from)
+            {
+              std::string node_name = std::format("layers={:d},characters={:d}", layer_from, c_from);
               change_vector node_changes(width * height);
-              node_changes[layer_from] = change_type(c_from, change_character(c_to));
-              node_changes[layer_to] = change_type(c_to, change_character(c_from));
+              node_changes[layer_from] = change_type(c_from, change_character(c_from));
 
               reverse_graph.add_node(node_name, node_changes);
               current_changes.push_back(node_name);
