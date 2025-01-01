@@ -574,6 +574,12 @@ shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
 
 shared_dfa_ptr DFAUtil::get_minimized(shared_dfa_ptr dfa_in)
 {
+  if(dfa_in->states() >= 1 << 30)
+    {
+      // refuse to minimize really big DFAs
+      return dfa_in;
+    }
+
   std::string minimized_name = "minimize_cache/" + dfa_in->get_hash();
 
   return load_or_build(dfa_in->get_shape(), minimized_name, [&]()
