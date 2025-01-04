@@ -2,7 +2,7 @@
 
 CXX=g++
 
-CXXFLAGS_SHARED=-Wall -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g
+CXXFLAGS_SHARED=-Wall -Wextra -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g
 LDFLAGS_SHARED=-L/usr/local/opt/openssl/lib -lcrypto
 
 ifeq ($(CXX), g++)

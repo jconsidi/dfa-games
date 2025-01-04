@@ -72,7 +72,7 @@ shared_dfa_ptr Game::build_positions_losing(int side_to_move, int ply_max) const
   return DFAUtil::get_union(losing_soon, lost);
 }
 
-shared_dfa_ptr Game::build_positions_lost(int side_to_move) const
+shared_dfa_ptr Game::build_positions_lost(int /* side_to_move */) const
 {
   // default implementation. build_positions_lost or
   // build_positions_won should be overridden.
@@ -80,7 +80,7 @@ shared_dfa_ptr Game::build_positions_lost(int side_to_move) const
   return DFAUtil::get_reject(get_shape());
 }
 
-shared_dfa_ptr Game::build_positions_reversed(shared_dfa_ptr positions_in) const
+shared_dfa_ptr Game::build_positions_reversed(shared_dfa_ptr /* positions_in */) const
 {
   // default no reverse support
   return shared_dfa_ptr(0);
@@ -113,7 +113,7 @@ shared_dfa_ptr Game::build_positions_winning(int side_to_move, int ply_max) cons
   return DFAUtil::get_union(won, winning_soon);
 }
 
-shared_dfa_ptr Game::build_positions_won(int side_to_move) const
+shared_dfa_ptr Game::build_positions_won(int /* side_to_move */) const
 {
   // default implementation. build_positions_lost or
   // build_positions_won should be overridden.

@@ -20,7 +20,7 @@ FixedDFA::FixedDFA(const dfa_shape_t& shape_in, int fixed_square, int fixed_char
   int next_state_id = fixed_state_id;
   for(int layer = fixed_square - 1; layer >= 0; --layer)
     {
-      next_state_id = this->add_state_by_function(layer, [=](int i){return next_state_id;});
+      next_state_id = this->add_state_by_function(layer, [=](int){return next_state_id;});
     }
 
   // done
