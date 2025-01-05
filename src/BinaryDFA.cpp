@@ -824,11 +824,15 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& 
                                working_end,
                                remove_func);
 
+  std::cout << "pair count = " << (working_end - working_begin) << " (filtered)" << std::endl;
+
   profile.tic("pre-unique");
 
   working_end = TRY_PARALLEL_2(std::unique,
                                working_begin,
                                working_end);
+
+  std::cout << "pair count = " << (working_end - working_begin) << " (pre sort unique)" << std::endl;
 
   profile.tic("sort");
 
@@ -842,9 +846,7 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& 
                                working_begin,
                                working_end);
 
-  auto unique_end = working_end;
-
-  std::cout << "pair count = " << (unique_end - curr_transition_pairs.begin()) << " (post sort unique)" << std::endl;
+  std::cout << "pair count = " << (working_end - working_begin) << " (post sort unique)" << std::endl;
 
   // the following truncate and rename to the next pairs file are to
   // make the next pairs updates atomic and make restarts easier.
