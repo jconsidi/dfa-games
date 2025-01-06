@@ -265,7 +265,7 @@ std::vector<DFAString> AmazonsGame::validate_moves(int side_to_move, DFAString p
     return true;
   };
 
-  int layers = get_shape().size();
+  size_t layers = get_shape().size();
   for(int from_layer = 0; from_layer < layers; ++from_layer)
     {
       if(position[from_layer] != 1 + side_to_move)

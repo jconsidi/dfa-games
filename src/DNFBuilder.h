@@ -23,8 +23,8 @@ class DNFBuilder
   dfa_shape_t shape;
   std::vector<clause_type> clauses;
 
-  void compact(int);
-  void compact_last(int);
+  void compact(size_t);
+  void compact_last(size_t);
   void compact_longest();
 
  public:

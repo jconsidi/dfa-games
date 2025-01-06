@@ -35,12 +35,6 @@ void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
 
   // trivial cases
 
-  if(clauses.size() == 0)
-    {
-      clauses.push_back(clause_in);
-      return;
-    }
-
   if(clause_in.size() == 0)
     {
       // empty AND clause accepts all
@@ -50,14 +44,20 @@ void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
       assert(false);
     }
 
+  if(clauses.size() == 0)
+    {
+      clauses.push_back(clause_in);
+      return;
+    }
+
   // compact previous clauses to maintain invariants when new clause added
 
-  int current_clause_length = clause_in.size();
+  size_t current_clause_length = clause_in.size();
 
   if(clauses.size() > 0)
     {
       const clause_type& previous_clause = clauses.back();
-      int previous_clause_length = previous_clause.size();
+      size_t previous_clause_length = previous_clause.size();
 
       int shared_length = 0;
       while((shared_length < previous_clause_length) &&
@@ -67,7 +67,7 @@ void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
 	  ++shared_length;
 	}
 
-      if(shared_length < previous_clause_length - 1)
+      if(shared_length + 1 < previous_clause_length)
 	{
 	  // compact the previous clauses until they match for all but
 	  // the last DFA.
@@ -82,7 +82,7 @@ void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
   if(clauses.size() > 0)
     {
       const clause_type& previous_clause = clauses.back();
-      int previous_clause_length = previous_clause.size();
+      size_t previous_clause_length = previous_clause.size();
 
       assert(previous_clause_length <= current_clause_length);
 
@@ -102,7 +102,7 @@ void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
 
   if(CHECK_COMPACT_THRESHOLD(clauses))
     {
-      int compact_size = clause_in.size();
+      size_t compact_size = clause_in.size();
       assert(compact_size > 0);
       compact_longest();
       assert(clauses.back().size() == compact_size);
@@ -120,7 +120,7 @@ void DNFBuilder::add_clause(const typename DNFBuilder::clause_type& clause_in)
 #endif
 }
 
-void DNFBuilder::compact(int target_length)
+void DNFBuilder::compact(size_t target_length)
 {
   Profile profile("compact");
 
@@ -137,7 +137,7 @@ void DNFBuilder::compact(int target_length)
   // compact clauses at end until at most one is too long
   while((clauses.size() > 1) && (clauses.back().size() > target_length))
     {
-      int second_last_size = clauses[clauses.size() - 2].size();
+      size_t second_last_size = clauses[clauses.size() - 2].size();
       if(second_last_size <= target_length)
 	{
 	  // only last clause needs to be compacted
@@ -149,7 +149,7 @@ void DNFBuilder::compact(int target_length)
 	{
 	  compact_last(second_last_size);
 	}
-      int last_size = clauses.back().size();
+      size_t last_size = clauses.back().size();
       assert(last_size == second_last_size);
 
       // at least two clauses at the end with the same length and over
@@ -173,13 +173,13 @@ void DNFBuilder::compact(int target_length)
     }
 }
 
-void DNFBuilder::compact_last(int target_length)
+void DNFBuilder::compact_last(size_t target_length)
 {
   Profile profile("compact_last");
 
   assert(target_length >= 1);
 
-  int num_clauses = clauses.size();
+  size_t num_clauses = clauses.size();
   assert(num_clauses > 0);
   assert(clauses[num_clauses - 1].size() > target_length);
   if(num_clauses > 1)
@@ -216,7 +216,7 @@ void DNFBuilder::compact_longest()
 
   // compact clauses tied for longest together
 
-  int longest_size = clauses.back().size();
+  size_t longest_size = clauses.back().size();
   assert(longest_size > 0);
 
   std::vector<shared_dfa_ptr> compact_todo;

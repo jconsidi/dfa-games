@@ -11,7 +11,7 @@
 CountDFA::CountDFA(const dfa_shape_t& shape_in, int num_pieces)
   : DedupedDFA(shape_in)
 {
-  int ndim = shape_in.size();
+  int ndim = get_shape_size();
 
   // current layer states
 

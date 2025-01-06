@@ -29,7 +29,7 @@ void test_states(const NormalNimGame& game, shared_dfa_ptr results_dfa)
 
   // confirm layer sizes
 
-  std::vector<dfa_state_t> non_constant_layer_sizes;
+  std::vector<size_t> non_constant_layer_sizes;
   for(int layer = 0; layer < shape.size(); ++layer)
     {
       // filter out constants
@@ -114,7 +114,7 @@ void test(int num_heaps, int heap_max)
       std::vector<int> position_characters;
       for(int layer = 0; layer < num_heaps; ++layer)
 	{
-	  position_characters.push_back(temp % shape[layer]);
+	  position_characters.push_back(int(temp % shape[layer]));
 	  temp /= shape[layer];
 	}
       DFAString position = DFAString(shape, position_characters);

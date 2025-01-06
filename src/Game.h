@@ -34,7 +34,7 @@ protected:
 
   Game(std::string, const dfa_shape_t&);
 
-  int get_shape_size() const {return shape.size();}
+  int get_shape_size() const {return int(shape.size());}
   void save(std::string, shared_dfa_ptr) const;
 
   // move generation

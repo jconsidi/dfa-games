@@ -3,6 +3,7 @@
 #include "Board.h"
 
 #include <bit>
+#include <ctype.h>
 #include <iostream>
 
 #include "BetweenMasks.h"
@@ -769,7 +770,7 @@ std::string Board::to_string() const
 
       if(this->pieces_by_side[SIDE_WHITE] & mask)
 	{
-	  c = toupper(c);
+	  c = char(toupper(c));
 	}
 
       // output piece or blank square

@@ -36,20 +36,20 @@ void check_transition(int depth,
 {
   std::cout << log_prefix << "  depth " << depth << ": boards = " << after_boards.size() << ", dfa = " << after_actual->size() << std::endl;
 
-  if((after_boards.size() == after_actual->size()) && (after_boards.size() > 1024))
+  if((after_boards.size() == size_t(after_actual->size())) && (after_boards.size() > 1024))
     {
       // assume we are good and skip expensive checks
       return;
     }
 
   shared_dfa_ptr before_expected = boards_to_dfa(before_boards);
-  assert(before_expected->size() == before_boards.size());
-  assert(before_actual->size() == before_boards.size());
+  assert(size_t(before_expected->size()) == before_boards.size());
+  assert(size_t(before_actual->size()) == before_boards.size());
 
   // build expected DFA for comparison
 
   shared_dfa_ptr after_expected = boards_to_dfa(after_boards);
-  assert(after_expected->size() == after_boards.size());
+  assert(size_t(after_expected->size()) == after_boards.size());
 
   int side_to_move_after = depth % 2;
 
@@ -102,7 +102,7 @@ void check_transition(int depth,
   assert(extra_boards->size() == 0);
 
   // no differences found
-  assert(after_actual->size() == after_boards.size());
+  assert(size_t(after_actual->size()) == after_boards.size());
 }
 
 Board get_example(int side_to_move, shared_dfa_ptr positions_in)
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 	  const std::string& fen = std::get<1>(test_case);
 	  const std::vector<uint64_t>& expected_outputs = std::get<2>(test_case);
 
-	  test(name, fen, expected_outputs.size());
+	  test(name, fen, int(expected_outputs.size()));
 	}
     }
   catch(const std::logic_error& e)

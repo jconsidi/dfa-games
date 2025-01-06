@@ -220,7 +220,7 @@ std::string _shape_string(const dfa_shape_t& shape_in)
   std::ostringstream oss;
   oss << shape_in[0];
 
-  int ndim = shape_in.size();
+  int ndim = int(shape_in.size());
   for(int layer = 1; layer < ndim; ++layer)
     {
       oss << "/" << shape_in[layer];

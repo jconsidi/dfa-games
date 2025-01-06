@@ -169,7 +169,7 @@ void BinaryDFA::build_linear(const DFA& left_in,
       right_reachable.emplace_back(right_in.get_layer_size(layer+1));
       VectorBitSet& next_reachable = right_reachable.back();
 
-      for(dfa_state_t curr_state: std::as_const(right_reachable[layer]))
+      for(auto curr_state: std::as_const(right_reachable[layer]))
         {
           DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_state);
           for(int i = 0; i < layer_shape; ++i)
@@ -459,7 +459,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
         size_t offset_min = 0;
         size_t offset_max = next_pairs_index.back().size() - 1;
 
-        for(int index_index = next_pairs_index.size() - 1; index_index > 0; --index_index)
+        for(size_t index_index = next_pairs_index.size() - 1; index_index > 0; --index_index)
           {
             // compute index range in next index
             offset_min = search_index(next_pairs_index.at(index_index),
@@ -536,7 +536,8 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
           }
       }
 
-    output.data[binary_dfa_hash_width - 1] = i;
+    assert(i <= DFA_STATE_MAX);
+    output.data[binary_dfa_hash_width - 1] = dfa_state_t(i);
 
     return output;
   });
@@ -579,9 +580,9 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   MemoryMap<dfa_state_t> curr_pairs_permutation_to_output("scratch/binarydfa/pairs_permutation_to_output", curr_layer_count);
 
-  auto check_constant = [&](dfa_state_t curr_pair_rank)
+  auto check_constant = [&](size_t curr_pair_rank)
   {
-    dfa_state_t possible_constant = curr_transitions[size_t(curr_pair_rank) * curr_layer_shape];
+    dfa_state_t possible_constant = curr_transitions[curr_pair_rank * curr_layer_shape];
     if(possible_constant >= 2)
       {
         return false;
@@ -589,7 +590,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
     for(int j = 1; j < curr_layer_shape; ++j)
       {
-        if(curr_transitions[size_t(curr_pair_rank) * curr_layer_shape + j] != possible_constant)
+        if(curr_transitions[curr_pair_rank * curr_layer_shape + j] != possible_constant)
           {
             return false;
           }
@@ -657,7 +658,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
     assert(iter < curr_pairs_permutation_to_output_end);
     assert(*iter == new_state_id);
 
-    dfa_state_t curr_pairs_permutation_index = iter - curr_pairs_permutation_to_output_begin;
+    size_t curr_pairs_permutation_index = iter - curr_pairs_permutation_to_output_begin;
     dfa_state_t curr_pair_rank = curr_pairs_permutation[curr_pairs_permutation_index];
     std::copy_n(curr_transitions_begin + size_t(curr_pair_rank) * curr_layer_shape, curr_layer_shape, transitions_out);
   };
@@ -682,7 +683,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
                    return curr_pairs_permutation[a] < curr_pairs_permutation[b];
                  });
 
-  for(dfa_state_t i : {size_t(0), curr_layer_count - 1})
+  for(size_t i : {size_t(0), curr_layer_count - 1})
     {
       assert(curr_pairs_permutation[curr_pairs_permutation_inverse[i]] == i);
     }

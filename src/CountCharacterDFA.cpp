@@ -18,7 +18,7 @@ CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int 
 }
 
 CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min)
-  : CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min, shape_in.size() - 1)
+  : CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min, int(shape_in.size()) - 1)
 {
 }
 

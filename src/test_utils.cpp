@@ -183,7 +183,7 @@ void test_forward(const Game& game_in, const std::vector<size_t>& positions_expe
     {
       std::cout << game_in.position_to_string(*iter) << std::endl;
     }
-  assert(initial_positions->size() == positions_expected[0]);
+  assert(size_t(initial_positions->size()) == positions_expected[0]);
 
   std::cout << log_prefix << "get_moves_forward()" << std::endl;
 
@@ -194,7 +194,7 @@ void test_forward(const Game& game_in, const std::vector<size_t>& positions_expe
       current_positions = game_in.get_moves_forward(side_to_move, current_positions);
       std::cout << log_prefix << "depth " << (depth + 1) << ": " << current_positions->states() << " states, " << current_positions->size() << " positions" << std::endl;
 
-      assert(current_positions->size() == positions_expected.at(depth + 1));
+      assert(size_t(current_positions->size()) == positions_expected.at(depth + 1));
     }
 }
 

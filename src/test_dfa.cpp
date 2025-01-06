@@ -26,12 +26,12 @@ std::string get_parameter_string(const dfa_shape_t& shape)
   return builder.str();
 }
 
-void test_union_pair(std::string test_name, const DFA& left, const DFA& right, int expected_boards);
+void test_union_pair(std::string test_name, const DFA& left, const DFA& right, size_t expected_boards);
 
-void test_helper(std::string test_name, const DFA& test_dfa, int expected_boards)
+void test_helper(std::string test_name, const DFA& test_dfa, size_t expected_boards)
 {
-  int actual_boards = test_dfa.size();
-  if(actual_boards != expected_boards)
+  double actual_boards = test_dfa.size();
+  if(size_t(actual_boards) != expected_boards)
     {
       std::cerr << get_parameter_string(test_dfa.get_shape()) << " " << test_name << ": expected " << expected_boards << std::endl;
       std::cerr << get_parameter_string(test_dfa.get_shape()) << " " << test_name << ":   actual " << actual_boards << std::endl;
@@ -42,7 +42,7 @@ void test_helper(std::string test_name, const DFA& test_dfa, int expected_boards
   std::cout.flush();
 }
 
-void test_intersection_pair(std::string test_name, const DFA& left, const DFA& right, int expected_boards)
+void test_intersection_pair(std::string test_name, const DFA& left, const DFA& right, size_t expected_boards)
 {
   std::cout << "checking intersection pair " << test_name << std::endl;
   std::cout.flush();
@@ -51,34 +51,44 @@ void test_intersection_pair(std::string test_name, const DFA& left, const DFA& r
   test_helper("intersection pair " + test_name, test_dfa, expected_boards);
 }
 
+void test_intersection_pair(std::string test_name, const DFA& left, const DFA& right, double expected_boards)
+{
+  test_intersection_pair(test_name, left, right, size_t(expected_boards));
+}
+
 void test_inverse(std::string test_name, const DFA& dfa_in)
 {
   std::cout << "checking inverse " << test_name << std::endl;
   std::cout.flush();
 
-  int accept_all_boards = 1;
+  size_t accept_all_boards = 1;
   for(auto layer_shape : dfa_in.get_shape())
     {
       accept_all_boards *= layer_shape;
     }
-  int expected_boards = accept_all_boards - dfa_in.size();
+  size_t expected_boards = accept_all_boards - size_t(dfa_in.size());
 
   InverseDFA test_dfa(dfa_in);
   test_helper("inverse " + test_name, test_dfa, expected_boards);
 
   IntersectionDFA intersection_dfa(test_dfa, dfa_in);
-  test_intersection_pair("inverse " + test_name, test_dfa, dfa_in, 0);
+  test_intersection_pair("inverse " + test_name, test_dfa, dfa_in, size_t(0));
 
   test_union_pair("inverse union " + test_name, test_dfa, dfa_in, accept_all_boards);
 }
 
-void test_union_pair(std::string test_name, const DFA& left, const DFA& right, int expected_boards)
+void test_union_pair(std::string test_name, const DFA& left, const DFA& right, size_t expected_boards)
 {
   std::cout << "checking union pair " << test_name << std::endl;
   std::cout.flush();
 
   UnionDFA test_dfa(left, right);
   test_helper("union pair " + test_name, test_dfa, expected_boards);
+}
+
+void test_union_pair(std::string test_name, const DFA& left, const DFA& right, double expected_boards)
+{
+  return test_union_pair(test_name, left, right, size_t(expected_boards));
 }
 
 void test_suite(const dfa_shape_t& shape)
@@ -153,13 +163,13 @@ void test_suite(const dfa_shape_t& shape)
   // intersection tests
 
   test_intersection_pair("count0+count0", *count0, *count0, count0->size());
-  test_intersection_pair("count0+count1", *count0, *count1, 0);
+  test_intersection_pair("count0+count1", *count0, *count1, size_t(0));
   test_intersection_pair("count1+count1", *count1, *count1, count1->size());
-  test_intersection_pair("count1+count2", *count1, *count2, 0);
-  test_intersection_pair("count2+count1", *count2, *count1, 0);
+  test_intersection_pair("count1+count2", *count1, *count2, size_t(0));
+  test_intersection_pair("count2+count1", *count2, *count1, size_t(0));
   test_intersection_pair("count2+count2", *count2, *count2, count2->size());
-  test_intersection_pair("count2+count3", *count2, *count3, 0);
-  test_intersection_pair("count3+count2", *count3, *count2, 0);
+  test_intersection_pair("count2+count3", *count2, *count3, size_t(0));
+  test_intersection_pair("count3+count2", *count3, *count2, size_t(0));
   test_intersection_pair("count3+count3", *count3, *count3, count3->size());
 
   // union tests
@@ -204,7 +214,7 @@ void test_suite(const dfa_shape_t& shape)
       zero1_expected += l0_expected;
     }
   test_helper("zero1", *zero1, zero1_expected);
-  test_intersection_pair("zero1 + count1", *zero0, *count1, 0);
+  test_intersection_pair("zero1 + count1", *zero0, *count1, size_t(0));
 
   std::shared_ptr<const DFA> one1(new CountCharacterDFA(shape, 1, 1));
   size_t one1_expected = 0;

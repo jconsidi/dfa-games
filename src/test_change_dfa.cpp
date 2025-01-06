@@ -15,7 +15,7 @@
 void test_change(std::string test_name, const DFA& dfa_in, change_vector changes_in, const DFA& dfa_expected)
 {
   const dfa_shape_t& shape = dfa_in.get_shape();
-  int ndim = shape.size();
+  int ndim = int(shape.size());
 
   std::ostringstream builder;
   builder << "[" << shape[0];
@@ -50,7 +50,7 @@ void test_change(std::string test_name, const DFA& dfa_in, change_vector changes
 
 void test_suite(const dfa_shape_t& shape_in)
 {
-  int ndim = shape_in.size();
+  int ndim = int(shape_in.size());
 
   AcceptDFA accept(shape_in);
   RejectDFA reject(shape_in);

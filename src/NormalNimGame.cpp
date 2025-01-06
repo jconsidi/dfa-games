@@ -15,7 +15,7 @@ NormalNimGame::NormalNimGame(int num_heaps, int heap_max)
 
 MoveGraph NormalNimGame::build_move_graph(int) const
 {
-  int n = get_shape().size();
+  int n = get_shape_size();
 
   MoveGraph move_graph(get_shape());
 

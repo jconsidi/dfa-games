@@ -54,7 +54,7 @@ void test_forward(const BreakthroughGame& game, int width, int height)
 
   auto check_ply = [&](int ply, size_t expected_positions)
   {
-    assert(positions_by_ply.at(ply)->size() == expected_positions);
+    assert(size_t(positions_by_ply.at(ply)->size()) == expected_positions);
   };
 
   if(height == 4)
@@ -79,7 +79,7 @@ void test_forward(const BreakthroughGame& game, int width, int height)
     }
 
   // TODO : calculate positions after side's second move
-  size_t positions_3 = positions_by_ply.at(3)->size();
+  size_t positions_3 = size_t(positions_by_ply.at(3)->size());
 
   size_t side_0_positions = positions_3 / positions_1;
   size_t positions_4 = side_0_positions * side_0_positions;

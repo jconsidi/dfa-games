@@ -12,7 +12,7 @@ int main(int argc, char **argv)
   Board board(fen);
   std::cout << board << std::endl;
 
-  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
   std::default_random_engine generator(seed);
   for(int half_move = 0; !board.is_final(); ++half_move)
     {

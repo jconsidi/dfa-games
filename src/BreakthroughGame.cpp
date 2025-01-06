@@ -184,7 +184,7 @@ shared_dfa_ptr BreakthroughBase::build_positions_reversed(shared_dfa_ptr positio
 
   for(int layer_from = 0; layer_from * 2 < get_shape().size(); ++layer_from)
     {
-      int layer_to = get_shape().size() - 1 - layer_from;
+      int layer_to = get_shape_size() - 1 - layer_from;
 
       std::vector<std::string> current_changes;
 

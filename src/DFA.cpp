@@ -78,10 +78,10 @@ void remove_directory(std::string directory)
 }
 
 DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& layer_transitions_in,
-						 dfa_state_t state_in,
+						 size_t state_in,
 						 int layer_shape_in)
   : layer_transitions(layer_transitions_in),
-    offset(size_t(state_in) * size_t(layer_shape_in)),
+    offset(state_in * size_t(layer_shape_in)),
     layer_shape(layer_shape_in)
 {
   assert(layer_shape > 0);
@@ -104,9 +104,9 @@ DFATransitionsReference::DFATransitionsReference(const DFATransitionsReference& 
 
 DFA::DFA(const dfa_shape_t& shape_in)
   : shape(shape_in),
-    ndim(shape.size()),
+    ndim(int(shape.size())),
     directory(create_directory("scratch/temp/" + std::to_string(next_dfa_id++))),
-    layer_file_names(get_layer_file_names(shape_in.size(), directory)),
+    layer_file_names(get_layer_file_names(int(shape_in.size()), directory)),
     layer_sizes(),
     layer_transitions(),
     size_cache(directory + "/size_cache", size_t(1)),
@@ -145,7 +145,7 @@ DFA::DFA(const dfa_shape_t& shape_in)
 
 DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
   : shape(shape_in),
-    ndim(shape.size()),
+    ndim(int(shape.size())),
     directory("scratch/" + name_in),
     name(name_in),
     layer_file_names(get_layer_file_names(ndim, directory)),
@@ -234,14 +234,14 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
       current_transitions = MemoryMap<dfa_state_t>(layer_file_names[layer], next_size);
     }
 
-  dfa_state_t transition_bound = this->get_layer_size(layer + 1);
+  size_t transition_bound = this->get_layer_size(layer + 1);
   for(int i = 0; i < layer_shape; ++i)
     {
       assert(transitions[i] < transition_bound);
       current_transitions[current_offset + i] = transitions[i];
     }
 
-  return layer_sizes[layer]++;
+  return dfa_state_t(layer_sizes[layer]++);
 }
 
 dfa_state_t DFA::add_state_by_function(int layer, std::function<dfa_state_t(int)> transition_func)
@@ -273,7 +273,7 @@ dfa_state_t DFA::add_state_by_reference(int layer, const DFATransitionsReference
   return this->add_state(layer, temp_states);
 }
 
-void DFA::build_layer(int layer, dfa_state_t layer_size_in, std::function<void(dfa_state_t, dfa_state_t *)> populate_func)
+void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_state_t, dfa_state_t *)> populate_func)
 {
   assert(initial_state == ~dfa_state_t(0));
   assert(0 <= layer);
@@ -299,8 +299,8 @@ void DFA::build_layer(int layer, dfa_state_t layer_size_in, std::function<void(d
 
   const size_t chunk_bytes_max = size_t(1) << 30; // 1GB
   const size_t chunk_transitions_max = chunk_bytes_max / sizeof(dfa_state_t);
-  const dfa_state_t chunk_states_max = dfa_state_t(chunk_transitions_max / size_t(layer_shape));
-  const dfa_state_t chunk_states = std::min(layer_size_in, chunk_states_max);
+  const size_t chunk_states_max = chunk_transitions_max / size_t(layer_shape);
+  const size_t chunk_states = std::min(layer_size_in, chunk_states_max);
   assert(chunk_states >= 2);
 
   std::vector<dfa_state_t> chunk_buffer;
@@ -309,16 +309,17 @@ void DFA::build_layer(int layer, dfa_state_t layer_size_in, std::function<void(d
   std::vector<dfa_state_t> chunk_iota(chunk_states);
   std::iota(chunk_iota.begin(), chunk_iota.end(), 0);
 
-  for(dfa_state_t chunk_start = 0; chunk_start < layer_size_in; chunk_start += chunk_states)
+  for(size_t chunk_start = 0; chunk_start < layer_size_in; chunk_start += chunk_states)
     {
-      dfa_state_t chunk_end = std::min(chunk_start + chunk_states, layer_size_in);
-      dfa_state_t chunk_size = chunk_end - chunk_start;
+      size_t chunk_end = std::min(chunk_start + chunk_states, layer_size_in);
+      size_t chunk_size = chunk_end - chunk_start;
       chunk_buffer.resize(chunk_size * layer_shape);
 
-      auto populate_buffer = [&](dfa_state_t i)
+      auto populate_buffer = [&](size_t i)
       {
-        dfa_state_t state_id = chunk_start + i;
-        populate_func(state_id, chunk_buffer.data() + i * layer_shape);
+        size_t state_id = chunk_start + i;
+        assert(state_id <= DFA_STATE_MAX);
+        populate_func(dfa_state_t(state_id), chunk_buffer.data() + i * layer_shape);
       };
 
       if(chunk_start == 0)
@@ -520,7 +521,7 @@ int DFA::get_layer_shape(int layer) const
   return shape.at(layer);
 }
 
-dfa_state_t DFA::get_layer_size(int layer) const
+size_t DFA::get_layer_size(int layer) const
 {
   assert(layer <= ndim);
 
@@ -658,10 +659,10 @@ const dfa_shape_t& DFA::get_shape() const
 
 int DFA::get_shape_size() const
 {
-  return shape.size();
+  return int(shape.size());
 }
 
-DFATransitionsReference DFA::get_transitions(int layer, dfa_state_t state_index) const
+DFATransitionsReference DFA::get_transitions(int layer, size_t state_index) const
 {
   assert(layer < ndim);
   assert(state_index < layer_sizes[layer]);
@@ -759,10 +760,14 @@ std::optional<std::string> DFA::parse_hash(std::string name_in)
   if(ret >= 0)
     {
       std::string link_target_string(link_target);
-      int hash_offset = link_target_string.length() - hash_prefix.length() - 64;
-      assert(hash_offset >= 0);
-      if((hash_offset >= 0) &&
-	 (link_target_string.substr(hash_offset, hash_prefix.length()) == hash_prefix))
+      if(link_target_string.length() < hash_prefix.length() + 64)
+        {
+          // not long enough for prefix + hash
+          return std::optional<std::string>();
+        }
+
+      size_t hash_offset = link_target_string.length() - hash_prefix.length() - 64;
+      if(link_target_string.substr(hash_offset, hash_prefix.length()) == hash_prefix)
 	{
 	  std::string hash = link_target_string.substr(hash_offset + hash_prefix.length());
 	  return std::optional<std::string>(hash);
@@ -848,7 +853,7 @@ void DFA::save_by_hash() const
   // repoint internal state at new directory
 
   directory = directory_new;
-  layer_file_names = get_layer_file_names(shape.size(), directory_new);
+  layer_file_names = get_layer_file_names(int(shape.size()), directory_new);
 
   for(int layer = 0; layer < ndim; ++layer)
     {
@@ -885,12 +890,12 @@ double DFA::size() const
 	{
 	  int layer_shape = this->get_layer_shape(layer);
 
-	  dfa_state_t layer_size = get_layer_size(layer);
+	  size_t layer_size = get_layer_size(layer);
 	  std::vector<double> current_counts(layer_size);
           const double *current_counts_first = &current_counts.at(0);
           TRY_PARALLEL_3(std::for_each, current_counts.begin(), current_counts.end(), [&](double& state_count_out)
           {
-            dfa_state_t state_index = &state_count_out - current_counts_first;
+            size_t state_index = &state_count_out - current_counts_first;
             DFATransitionsReference transitions = this->get_transitions(layer, state_index);
 
             double state_count = 0;
@@ -919,7 +924,7 @@ size_t DFA::states() const
 
   for(int layer = 0; layer < ndim; ++layer)
     {
-      dfa_state_t layer_size = get_layer_size(layer);
+      size_t layer_size = get_layer_size(layer);
       assert(layer_size > 0);
       states_out += layer_size;
     }
@@ -929,7 +934,7 @@ size_t DFA::states() const
 
 DFAIterator::DFAIterator(const DFA& dfa_in, const std::vector<int>& characters_in)
   : shape(dfa_in.get_shape()),
-    ndim(shape.size()),
+    ndim(int(shape.size())),
     dfa(dfa_in),
     characters(characters_in)
 {
@@ -985,7 +990,7 @@ DFAIterator& DFAIterator::operator++()
     {
       assert(states.size() == characters.size());
 
-      int layer = states.size() - 1;
+      int layer = int(states.size()) - 1;
       int layer_shape = dfa.get_layer_shape(layer);
 
       DFATransitionsReference transitions = dfa.get_transitions(layer, states[layer]);
@@ -1028,7 +1033,7 @@ DFAIterator& DFAIterator::operator++()
 
   assert(states.size() == characters.size() + 1);
 
-  for(int layer = characters.size(); layer < ndim; ++layer)
+  for(int layer = int(characters.size()); layer < ndim; ++layer)
     {
       // figure out first matching character for next layer
       int layer_shape = dfa.get_layer_shape(layer);
@@ -1084,7 +1089,7 @@ bool DFALinearBound::operator<=(const DFALinearBound& bounds_right) const
 {
   assert(shape == bounds_right.shape);
 
-  int ndim = shape.size();
+  int ndim = int(shape.size());
   for(int layer = 0; layer < ndim; ++layer)
     {
       int layer_shape = shape[layer];
@@ -1134,7 +1139,7 @@ DFAString::DFAString(const dfa_shape_t& shape_in, const std::vector<int>& charac
   : shape(shape_in),
     characters(characters_in)
 {
-  int ndim = shape.size();
+  int ndim = int(shape.size());
   assert(characters.size() == ndim);
 
   for(int i = 0; i < ndim; ++i)

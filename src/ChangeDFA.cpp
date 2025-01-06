@@ -62,7 +62,7 @@ void ChangeDFA::build_one_pass(const DFA& dfa_in, const change_vector& changes_i
   for(int layer = get_shape_size() - 1; layer >= 0; --layer)
     {
       int layer_shape = this->get_layer_shape(layer);
-      dfa_state_t layer_size = dfa_in.get_layer_size(layer);
+      size_t layer_size = dfa_in.get_layer_size(layer);
 
       change_optional layer_change = changes_in[layer];
 
@@ -138,17 +138,17 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
 	  assert(0 <= before_character);
 	  assert(before_character < layer_shape);
 
-	  for(dfa_state_t curr_state: std::as_const(forward_reachable[layer]))
+	  for(auto curr_state: std::as_const(forward_reachable[layer]))
 	    {
-	      DFATransitionsReference curr_transitions = dfa_in.get_transitions(layer, dfa_state_t(curr_state));
+	      DFATransitionsReference curr_transitions = dfa_in.get_transitions(layer, curr_state);
 	      next_reachable.add(curr_transitions[before_character]);
 	    }
 	}
       else
 	{
-	  for(dfa_state_t curr_state: std::as_const(forward_reachable[layer]))
+	  for(auto curr_state: std::as_const(forward_reachable[layer]))
 	    {
-	      DFATransitionsReference curr_transitions = dfa_in.get_transitions(layer, dfa_state_t(curr_state));
+	      DFATransitionsReference curr_transitions = dfa_in.get_transitions(layer, curr_state);
 	      for(int i = 0; i < layer_shape; ++i)
 		{
 		  next_reachable.add(curr_transitions[i]);
@@ -217,7 +217,7 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
 
 	  // transitions_temp is all zeros, and will repeatedly
 	  // rewrite the same "after" transition.
-	  for(dfa_state_t state_in : forward_reachable[layer])
+	  for(auto state_in : forward_reachable[layer])
 	    {
 	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
 	      transitions_temp[after_character] = get_next_changed(transitions_in[before_character]);
@@ -227,7 +227,7 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
       else
 	{
 	  // rewrite all transitions for each state
-	  for(dfa_state_t state_in : forward_reachable[layer])
+	  for(auto state_in : forward_reachable[layer])
 	    {
 	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
 	      for(int i = 0; i < layer_shape; ++i)

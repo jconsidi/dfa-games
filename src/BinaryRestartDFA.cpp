@@ -11,7 +11,7 @@ BinaryRestartDFA::BinaryRestartDFA(const DFA& left_in,
 {
   // assume binarydfa directory has pairs from other DFAs cleared.
 
-  int ndim = get_shape().size();
+  int ndim = get_shape_size();
 
   // restart forward pass
 

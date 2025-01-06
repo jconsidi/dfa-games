@@ -23,7 +23,7 @@ int main(int argc, char **argv)
   shared_dfa_ptr reachable = game->get_positions_reachable(side_to_move, ply);
   auto positions = reachable->size();
   auto states = reachable->states();
-  std::cout << "ply " << ply << ": " << positions << " positions, " << states << " states, " << (positions / states) << " positions/state" << std::endl;
+  std::cout << "ply " << ply << ": " << positions << " positions, " << states << " states, " << (positions / double(states)) << " positions/state" << std::endl;
 
   return 0;
 }

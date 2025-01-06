@@ -112,7 +112,7 @@ void MoveGraph::add_node(std::string node_name_in,
 
   assert(changes_in.size() == shape.size());
 
-  node_names_to_indexes[node_name_in] = node_names.size();
+  node_names_to_indexes[node_name_in] = int(node_names.size());
   node_names.push_back(node_name_in);
 
   node_changes.push_back(changes_in);
@@ -238,7 +238,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
   std::vector<bool> node_todo(node_names.size(), false);
   node_todo.back() = true;
   std::vector<std::vector<int>> cleanup_schedule(node_names.size());
-  for(int node_index = node_names.size() - 1; node_index >= 0; --node_index)
+  for(int node_index = int(node_names.size()) - 1; node_index >= 0; --node_index)
     {
       int last_to_node_index = 0;
       for(const move_edge& edge : node_edges[node_index])
@@ -300,7 +300,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 	}
     }
 
-  return get_node_output(node_names.size() - 1);
+  return get_node_output(int(node_names.size()) - 1);
 }
 
 int MoveGraph::get_node_index(std::string node_name_in) const
@@ -350,7 +350,7 @@ MoveGraph MoveGraph::optimize() const
   traverse(0);
   assert(output.node_names[0] == node_names[0]);
   // traverse from output
-  traverse(node_names.size() - 1);
+  traverse(int(node_names.size()) - 1);
 
   // add edges to output
 
@@ -389,14 +389,14 @@ MoveGraph MoveGraph::reverse() const
 {
   MoveGraph output(shape);
 
-  for(int original_node_index = node_names.size() - 1; original_node_index >= 0; --original_node_index)
+  for(int original_node_index = int(node_names.size()) - 1; original_node_index >= 0; --original_node_index)
     {
       auto reversed_changes = reverse_changes(node_changes[original_node_index]);
       output.add_node(node_names[original_node_index],
 		      reversed_changes);
     }
 
-  for(int original_from_node_index = node_names.size() - 1; original_from_node_index >= 0; --original_from_node_index)
+  for(int original_from_node_index = int(node_names.size()) - 1; original_from_node_index >= 0; --original_from_node_index)
     {
       for(const move_edge& original_edge : node_edges[original_from_node_index])
 	{

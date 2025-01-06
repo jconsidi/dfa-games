@@ -43,11 +43,11 @@ class DFATransitionsReference
 
 public:
 
-  DFATransitionsReference(const MemoryMap<dfa_state_t>&, dfa_state_t, int);
+  DFATransitionsReference(const MemoryMap<dfa_state_t>&, size_t, int);
   DFATransitionsReference(const DFATransitionsReference&);
   dfa_state_t operator[](int c) const {return at(c);}
 
-  dfa_state_t at(int c) const {assert(c < layer_shape); return layer_transitions[offset + c];}
+  dfa_state_t at(size_t c) const {assert(c < layer_shape); return layer_transitions[offset + c];}
   int get_layer_shape() const {return layer_shape;}
 };
 
@@ -81,7 +81,7 @@ class DFA
 
   // ndim layers mapping (state, square contents) -> next state.
   mutable std::vector<std::string> layer_file_names;
-  std::vector<dfa_state_t> layer_sizes;
+  std::vector<size_t> layer_sizes;
   mutable std::vector<MemoryMap<dfa_state_t>> layer_transitions;
 
   mutable std::optional<std::string> hash;
@@ -99,7 +99,7 @@ class DFA
   dfa_state_t add_state_by_function(int, std::function<dfa_state_t(int)>);
   dfa_state_t add_state_by_reference(int, const DFATransitionsReference&);
 
-  void build_layer(int, dfa_state_t, std::function<void(dfa_state_t, dfa_state_t *)>);
+  void build_layer(int, size_t, std::function<void(dfa_state_t, dfa_state_t *)>);
   void copy_layer(int, const DFA&);
   virtual void set_initial_state(dfa_state_t);
 
@@ -118,12 +118,12 @@ class DFA
   std::string get_hash() const;
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
-  dfa_state_t get_layer_size(int) const;
+  size_t get_layer_size(int) const;
   const DFALinearBound& get_linear_bound() const;
   std::string get_name() const;
   const dfa_shape_t& get_shape() const;
   int get_shape_size() const;
-  DFATransitionsReference get_transitions(int, dfa_state_t) const;
+  DFATransitionsReference get_transitions(int, size_t) const;
 
   bool is_constant(bool) const;
   bool is_linear() const;

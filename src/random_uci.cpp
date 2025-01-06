@@ -129,7 +129,7 @@ Board apply_moves(const Board& board, std::string uci_string)
 
 std::string pick_move(const Board& board)
 {
-  static unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  static unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
   static std::default_random_engine generator(seed);
 
   Board moves[CHESS_MAX_MOVES];

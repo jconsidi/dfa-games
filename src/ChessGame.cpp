@@ -1314,7 +1314,7 @@ Board ChessGame::position_to_board(int side_to_move, const DFAString& position_i
   for(int square = 0; square < 64; ++square)
     {
       int square_rank = (square / 8) + 1;
-      char square_file = 'a' + (square % 8);
+      char square_file = char('a' + (square % 8));
 
       int c = position_in[square + CHESS_SQUARE_OFFSET];
       switch(c)
@@ -1375,14 +1375,14 @@ Board ChessGame::position_to_board(int side_to_move, const DFAString& position_i
 	  fen_temp += "P";
 	  fen_en_passant = "";
 	  fen_en_passant += square_file;
-	  fen_en_passant += ('1' + (square_rank - 1));
+	  fen_en_passant += char('1' + (square_rank - 1));
 	  break;
 
 	case DFA_BLACK_PAWN_EN_PASSANT:
 	  fen_temp += "p";
 	  fen_en_passant = "";
 	  fen_en_passant += square_file;
-	  fen_en_passant += ('1' + (square_rank + 1));
+	  fen_en_passant += char('1' + (square_rank + 1));
 	  break;
 
 	case DFA_WHITE_ROOK_CASTLE:

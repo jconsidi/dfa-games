@@ -22,8 +22,8 @@ std::string mask_to_square(BoardMask mask)
   int file = index % 8;
 
   std::string output;
-  output += 'a' + file;
-  output += '1' + (7 - rank);
+  output += char('a' + file);
+  output += char('1' + (7 - rank));
 
   return output;
 }
