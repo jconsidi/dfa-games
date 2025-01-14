@@ -8,6 +8,7 @@ move_graph_stats
 print
 random
 random_uci
+restart_difference
 restart_union
 scratch
 solve_backward
