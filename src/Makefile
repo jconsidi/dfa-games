@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_backward build_chess_database build_forward build_forward_backward divide generate_moves move_graph_stats print random random_uci restart_union solve_backward stats stats_backward stats_forward stats_forward_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_tictactoe_game validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal
+TARGETS=build_backward build_chess_database build_forward build_forward_backward divide generate_moves move_graph_stats print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_forward stats_forward_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_tictactoe_game validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal
 
 all : $(TARGETS)
 
@@ -81,6 +81,9 @@ random : random.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 random_uci : random_uci.o dfagames.a
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+restart_difference : restart_difference.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 restart_union : restart_union.o test_utils.o dfagames.a
@@ -167,7 +170,7 @@ validate_forward_backward : validate_forward_backward.o test_utils.o validate_ut
 validate_terminal : validate_terminal.o test_utils.o validate_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o BinaryRestartDFA.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnionRestartDFA.o UnorderedBitSet.o VectorBitSet.o utils.o
+dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o BinaryRestartDFA.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o CompactBitSet.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o DifferenceRestartDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnionRestartDFA.o UnorderedBitSet.o VectorBitSet.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################
