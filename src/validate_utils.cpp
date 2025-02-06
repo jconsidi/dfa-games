@@ -220,14 +220,18 @@ bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_wi
 {
   std::cout << "#  CHECK EXAMPLES" << std::endl;
 
-  shared_dfa_ptr new_winning = DFAUtil::get_difference(curr_winning, base_winning);
-
   int winning_examples = 0;
-  for(auto iter = new_winning->cbegin();
-      (iter < new_winning->cend()) && (winning_examples < max_examples);
+  for(auto iter = curr_winning->cbegin();
+      (iter < curr_winning->cend()) && (winning_examples < max_examples);
       ++iter, ++winning_examples)
     {
       DFAString position(*iter);
+
+      if(base_winning->contains(position))
+        {
+          // previously verified as winning
+          continue;
+        }
 
       int result = game.validate_result(side_to_move, position);
       if(result < 0)
