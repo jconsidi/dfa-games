@@ -15,9 +15,9 @@ shared_dfa_ptr load_helper(const Game& game, const std::format_string<Args...>& 
 bool validate_disjoint(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b);
 bool validate_equal(const Game&, std::string, shared_dfa_ptr, std::string, shared_dfa_ptr);
 bool validate_losing(const Game&, int, shared_dfa_ptr, shared_dfa_ptr, shared_dfa_ptr, int);
-bool validate_partition(const Game& game, shared_dfa_ptr, std::vector<shared_dfa_ptr>);
+bool validate_partition(shared_dfa_ptr, std::vector<shared_dfa_ptr>, int);
 bool validate_result(const Game&, int, shared_dfa_ptr, int, int);
-bool validate_subset(shared_dfa_ptr, shared_dfa_ptr);
+bool validate_subset(shared_dfa_ptr, shared_dfa_ptr, int);
 bool validate_winning(const Game&, int, shared_dfa_ptr, shared_dfa_ptr, shared_dfa_ptr, int);
 
 #endif

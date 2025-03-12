@@ -81,14 +81,18 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
 {
   std::cout << "# CHECKING EXAMPLES" << std::endl;
 
-  shared_dfa_ptr new_losing = DFAUtil::get_difference(curr_losing, base_losing);
-
   int losing_examples = 0;
-  for(auto iter = new_losing->cbegin();
-	  (iter < new_losing->cend()) && (losing_examples < max_examples);
+  for(auto iter = curr_losing->cbegin();
+	  (iter < curr_losing->cend()) && (losing_examples < max_examples);
 	  ++iter, ++losing_examples)
     {
       DFAString position(*iter);
+
+      if(base_losing->contains(position))
+        {
+          // previously verified as losing
+          continue;
+        }
 
       int result = game.validate_result(side_to_move, position);
       if(result > 0)
@@ -128,25 +132,42 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
   return true;
 }
 
-bool validate_partition(const Game& game, shared_dfa_ptr target, std::vector<shared_dfa_ptr> partition)
+bool validate_partition(shared_dfa_ptr target, std::vector<shared_dfa_ptr> partition, int max_examples)
 {
-  shared_dfa_ptr union_check = DFAUtil::get_union_vector(target->get_shape(), partition);
-  if(!validate_equal(game, "UNION", union_check, "EXPECTED", target))
+  size_t partition_examples = 0;
+  for(auto iter = target->cbegin();
+      (iter < target->cend()) && (partition_examples < max_examples);
+      ++iter, ++partition_examples)
     {
-      std::cerr << "# PARTITION CHECK FAILED: UNION MISMATCH" << std::endl;
-      return false;
+      int partition_matches = 0;
+      for(const shared_dfa_ptr& p_s : partition)
+        {
+          DFAString position(*iter);
+          if(p_s->contains(position))
+            {
+              ++partition_matches;
+            }
+        }
+
+      if(partition_matches == 0)
+        {
+          std::cerr << "# PARTITION CHECK FAILED: FOUND POSITION NOT IN ANY PARTITION" << std::endl;
+          return false;
+        }
+      if(partition_matches != 1)
+        {
+          std::cerr << "# PARTITION CHECK FAILED: PARTITIONS NOT DISJOINT" << std::endl;
+          return false;
+        }
     }
 
-  for(int i = 0; i < partition.size(); ++i)
+  for(const shared_dfa_ptr& p_s : partition)
     {
-      for(int j = i + 1; j < partition.size(); ++j)
-	{
-	  if(!validate_disjoint(partition[i], partition[j]))
-	    {
-	      std::cerr << "# PARTITION CHECK FAILED: PARTITIONS " << i << "+" << j << " ARE NOT DISJOINT" << std::endl;
-	      return false;
-	    }
-	}
+      if(!validate_subset(p_s, target, max_examples))
+        {
+          std::cerr << "# PARTITION CHECKED FAILED: SUBSET CHECK FAILED" << std::endl;
+          return false;
+        }
     }
 
   return true;
@@ -210,10 +231,22 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
   return true;
 }
 
-bool validate_subset(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
+bool validate_subset(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b, int max_examples)
 {
-  shared_dfa_ptr subset_check = DFAUtil::get_difference(dfa_a, dfa_b);
-  return subset_check->is_constant(0);
+  int subset_examples = 0;
+  for(auto iter = dfa_a->cbegin();
+      (iter < dfa_a->cend()) && (subset_examples < max_examples);
+      ++iter, ++subset_examples)
+    {
+      DFAString position(*iter);
+
+      if(!dfa_b->contains(position))
+        {
+          return false;
+        }
+    }
+
+  return true;
 }
 
 bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_winning, shared_dfa_ptr next_losing, shared_dfa_ptr base_winning, int max_examples)

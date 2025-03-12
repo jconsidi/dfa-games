@@ -23,7 +23,7 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
 
   std::cout << "# CHECK PARTITION" << std::endl;
 
-  if(!validate_partition(game, accept, std::vector<shared_dfa_ptr>({curr_winning, curr_losing, curr_unknown})))
+  if(!validate_partition(accept, std::vector<shared_dfa_ptr>({curr_winning, curr_losing, curr_unknown}), max_examples))
     {
       std::cerr << "# PARTITION CHECK FAILED" << std::endl;
       return false;
@@ -79,7 +79,7 @@ bool validate_backward(const Game& game, int ply_max, int side_to_move, int max_
   std::cout << "# CHECK UNKNOWN" << std::endl;
 
   shared_dfa_ptr base_unknown = game.get_positions_unknown(side_to_move, ply_max - 1);
-  if(!validate_subset(curr_unknown, base_unknown))
+  if(!validate_subset(curr_unknown, base_unknown, max_examples))
     {
       std::cerr << "# UNKNOWN SUBSET CHECK FAILED" << std::endl;
       return false;
