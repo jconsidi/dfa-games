@@ -139,10 +139,11 @@ bool validate_partition(shared_dfa_ptr target, std::vector<shared_dfa_ptr> parti
       (iter < target->cend()) && (partition_examples < max_examples);
       ++iter, ++partition_examples)
     {
+      DFAString position(*iter);
+
       int partition_matches = 0;
       for(const shared_dfa_ptr& p_s : partition)
         {
-          DFAString position(*iter);
           if(p_s->contains(position))
             {
               ++partition_matches;
