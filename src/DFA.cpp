@@ -314,6 +314,7 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
       size_t chunk_end = std::min(chunk_start + chunk_states, layer_size_in);
       size_t chunk_size = chunk_end - chunk_start;
       chunk_buffer.resize(chunk_size * layer_shape);
+      assert(chunk_buffer.end() == chunk_buffer.begin() + chunk_size * layer_shape);
 
       auto populate_buffer = [&](size_t i)
       {
@@ -340,6 +341,11 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
                          chunk_iota.begin() + chunk_size,
                          populate_buffer);
         }
+
+      auto transition_max = TRY_PARALLEL_2(std::max_element,
+                                           chunk_buffer.begin(),
+                                           chunk_buffer.end());
+      assert(*transition_max < get_layer_size(layer + 1));
 
       write_buffer(fildes, chunk_buffer.data(), chunk_buffer.size());
     }
