@@ -106,6 +106,7 @@ class DFA
  public:
 
   DFA(const dfa_shape_t&, std::string);
+  DFA(const dfa_shape_t&, const std::vector<size_t>&, std::function<void(int, dfa_state_t, dfa_state_t *)>);
   virtual ~DFA() noexcept(false);
 
   std::string calculate_hash() const;

@@ -177,6 +177,29 @@ DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
   assert(hash->length() == 64);
 }
 
+DFA::DFA(const dfa_shape_t& shape_in,
+         const std::vector<size_t>& layer_sizes_in,
+         std::function<void(int, dfa_state_t, dfa_state_t *)> populate_func)
+  : DFA(shape_in)
+{
+  assert(layer_sizes_in.size() == get_shape_size());
+
+  for(int layer = get_shape_size() - 1; layer >= 0; --layer)
+    {
+      std::function<void(dfa_state_t, dfa_state_t*)> layer_populate_func =( [&](dfa_state_t state_in, dfa_state_t *states_out)
+      {
+        populate_func(layer, state_in, states_out);
+      });
+
+      build_layer(layer,
+                  layer_sizes_in.at(layer),
+                  layer_populate_func);
+    }
+
+  assert(get_layer_size(0) == 3);
+  set_initial_state(2);
+}
+
 DFA::~DFA() noexcept(false)
 {
   if(temporary)
