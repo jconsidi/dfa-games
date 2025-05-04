@@ -234,6 +234,14 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
 
 bool validate_subset(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b, int max_examples)
 {
+  if((dfa_a->states() < 1000000) && (dfa_b->states() < 1000000))
+    {
+      if(!DFAUtil::get_difference(dfa_a, dfa_b)->is_constant(0))
+        {
+          return false;
+        }
+    }
+
   int subset_examples = 0;
   for(auto iter = dfa_a->cbegin();
       (iter < dfa_a->cend()) && (subset_examples < max_examples);
