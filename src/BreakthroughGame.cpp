@@ -384,3 +384,63 @@ int BreakthroughRowWiseGame::calculate_layer(int row, int column) const
 {
   return row * width + column;
 }
+
+shared_dfa_ptr BreakthroughRowWiseGame::build_positions_forward_bound(int ply) const
+{
+  int max_potential = width * (height - 1 + height - 2) * 2 - ply;
+  if(max_potential < 0)
+    {
+      return DFAUtil::get_reject(get_shape());
+    }
+
+  std::vector<size_t> layer_sizes_temp = {3};
+  for(int layer = 0; layer < get_shape_size() - 1; ++layer)
+    {
+      assert(layer_sizes_temp.size() == size_t(layer + 1));
+
+      int row = layer / width;
+      assert(row < height);
+      int layer_max_potential = std::max(row, height - 1 - row);
+
+      layer_sizes_temp.push_back(std::min(int(2 + max_potential + 1),
+                                          int(layer_sizes_temp.back() + layer_max_potential)));
+    }
+  assert(layer_sizes_temp.size() == get_shape_size());
+
+  int last_layer = get_shape_size() - 1;
+  auto populate_func = [&](int layer, dfa_state_t state_in, dfa_state_t *states_out)
+  {
+    assert(state_in >= 2);
+
+    int row = layer / width;
+
+    // empty square - no potential change
+    states_out[0] = state_in;
+
+    // first player - moving from low to high rows
+    states_out[1] = state_in + (height - 1) - row;
+
+    // second player - moving from high rows to low rows
+    states_out[2] = state_in + row;
+
+    // rewrite based on whether max potential was exceeded.
+    for(int i = 0; i < 3; ++i)
+      {
+        if(states_out[i] > 2 + max_potential)
+          {
+            // exceeded max, so reject
+            states_out[i] = 0;
+          }
+        else if(layer == last_layer)
+          {
+            // last layer and did not overshoot so accept
+            states_out[i] = 1;
+          }
+      }
+  };
+
+  shared_dfa_ptr output(new DFA(get_shape(),
+                                layer_sizes_temp,
+                                populate_func));
+  return output;
+}

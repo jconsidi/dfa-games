@@ -47,6 +47,7 @@ class BreakthroughRowWiseGame
 protected:
 
   virtual int calculate_layer(int row, int column) const;
+  virtual shared_dfa_ptr build_positions_forward_bound(int) const;
 
 public:
 
