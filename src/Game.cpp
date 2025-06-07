@@ -303,15 +303,6 @@ shared_dfa_ptr Game::get_positions_unknown(int side_to_move, int ply_max) const
 
   return this->load_or_build(get_name_unknown(side_to_move, ply_max), [&]()
   {
-    if(this->can_reverse())
-      {
-        shared_dfa_ptr output_reversed = this->load_by_name(get_name_unknown(1 - side_to_move, ply_max));
-        if(output_reversed)
-          {
-            return build_positions_reversed(output_reversed);
-          }
-      }
-
     shared_dfa_ptr losing = this->get_positions_losing(side_to_move, ply_max);
     shared_dfa_ptr winning = this->get_positions_winning(side_to_move, ply_max);
 
