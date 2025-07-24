@@ -1480,8 +1480,23 @@ std::vector<DFAString> ChessGame::validate_moves(int side_to_move, DFAString pos
   return output;
 }
 
-int ChessGame::validate_result(int side_to_move, DFAString position) const
+std::optional<int> ChessGame::validate_result(int side_to_move, DFAString position) const
 {
   Board board = position_to_board(side_to_move, position);
-  return board.is_checkmate() ? -1 : 0;
+
+  if(board.count_moves() == 0)
+    {
+      if(board.is_check())
+        {
+          // checkmate
+          return std::optional<int>(-1);
+        }
+      else
+        {
+          // stalemate
+          return std::optional<int>(0);
+        }
+    }
+
+  return std::optional<int>();
 }

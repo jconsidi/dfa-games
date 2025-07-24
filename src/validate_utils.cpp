@@ -94,14 +94,20 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
           continue;
         }
 
-      int result = game.validate_result(side_to_move, position);
-      if(result > 0)
+      std::optional<int> result = game.validate_result(side_to_move, position);
+      if(!result)
+        {
+          std::cerr << "# LOSING EXAMPLE WITHOUT RESULT" << std::endl;
+	  std::cerr << game.position_to_string(position) << std::endl;
+	  return false;
+	}
+      if(*result > 0)
 	{
 	  std::cerr << "# LOSING EXAMPLE ACTUALLY WON" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
 	  return false;
 	}
-      if(result < 0)
+      if(*result < 0)
 	{
 	  std::cerr << "LOST EXAMPLE MISSED BY BASE CASE" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
@@ -201,8 +207,14 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
     {
       DFAString position(*iter);
 
-      int result_actual = game.validate_result(side_to_move, position);
-      bool result_mismatch = result_actual != result_expected;
+      std::optional<int> result_actual = game.validate_result(side_to_move, position);
+      if(!result_actual)
+        {
+          std::cerr << "# RESULT MISSING: expected " << result_expected << std::endl;
+	  std::cerr << std::endl;
+	  return false;
+        }
+      bool result_mismatch = *result_actual != result_expected;
 
       std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
       bool moves_mismatch = (result_expected != 0) && (moves.size() != 0);
@@ -213,7 +225,7 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
 
 	  if(result_mismatch)
 	    {
-	      std::cerr << "# RESULT MISMATCH: expected " << result_expected << ", actual " << result_actual << std::endl;
+              std::cerr << "# RESULT MISMATCH: expected " << result_expected << ", actual " << *result_actual << std::endl;
 	    }
 
 	  if(moves_mismatch)
@@ -267,14 +279,20 @@ bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_wi
           continue;
         }
 
-      int result = game.validate_result(side_to_move, position);
-      if(result < 0)
+      std::optional<int> result = game.validate_result(side_to_move, position);
+      if(!result)
+        {
+          std::cerr << "# WINNING EXAMPLE WITHOUT RESULT" << std::endl;
+          std::cerr << game.position_to_string(position) << std::endl;
+          return false;
+        }
+      if(*result < 0)
 	{
 	  std::cerr << "# WINNING EXAMPLE ACTUALLY LOST" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;
 	  return false;
 	}
-      if(result > 0)
+      if(*result > 0)
 	{
 	  std::cerr << "# WON EXAMPLE MISSED BY BASE CASE" << std::endl;
 	  std::cerr << game.position_to_string(position) << std::endl;

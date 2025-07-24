@@ -4,6 +4,7 @@
 #define GAME_H
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -94,7 +95,7 @@ public:
   // validation
 
   virtual std::vector<DFAString> validate_moves(int, DFAString) const;
-  virtual int validate_result(int, DFAString) const;
+  virtual std::optional<int> validate_result(int, DFAString) const;
 };
 
 #endif

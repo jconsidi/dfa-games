@@ -398,7 +398,7 @@ std::vector<DFAString> Game::validate_moves(int, DFAString) const
   throw std::logic_error(name + " did not implement validate_moves()");
 }
 
-int Game::validate_result(int, DFAString) const
+std::optional<int> Game::validate_result(int, DFAString) const
 {
   throw std::logic_error(name + "did not implement validate_result()");
 }
