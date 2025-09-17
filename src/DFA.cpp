@@ -1572,6 +1572,42 @@ DFAString::DFAString(const dfa_shape_t& shape_in, const std::vector<int>& charac
     }
 }
 
+bool DFAString::operator<(const DFAString& right) const
+{
+  int ndim = int(shape.size());
+  assert(right.shape.size() == ndim);
+
+  for(int i = 0; i < ndim; ++i)
+    {
+      if(characters[i] < right.characters[i])
+        {
+          return true;
+        }
+      else if(characters[i] > right.characters[i])
+        {
+          return false;
+        }
+    }
+
+  return false;
+}
+
+bool DFAString::operator==(const DFAString& right) const
+{
+  int ndim = int(shape.size());
+  assert(right.shape.size() == ndim);
+
+  for(int i = 0; i < ndim; ++i)
+    {
+      if(characters[i] != right.characters[i])
+        {
+          return false;
+        }
+    }
+
+  return true;
+}
+
 int DFAString::operator[](int layer_in) const
 {
   return characters.at(layer_in);

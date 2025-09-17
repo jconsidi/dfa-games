@@ -28,7 +28,11 @@ class DFAString
 
 public:
 
+  DFAString() : shape(), characters() {};
   DFAString(const dfa_shape_t&, const std::vector<int>& characters_in);
+
+  bool operator<(const DFAString& right) const;
+  bool operator==(const DFAString& right) const;
   int operator[](int) const;
 
   const dfa_shape_t& get_shape() const;
