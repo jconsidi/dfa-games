@@ -102,8 +102,20 @@ int main(int argc, char **argv)
 
       std::cout << "  expanded to " << next_positions.size() << std::endl;
       TRY_PARALLEL_2(std::sort, next_positions.begin(), next_positions.end());
-      std::cout << "  sorted" << std::endl;
-      auto unique_end = TRY_PARALLEL_2(std::unique, next_positions.begin(), next_positions.end());
+
+      std::cout << "  compressing" << std::endl;
+      shared_dfa_ptr next_positions_dfa = DFAUtil::from_strings(game->get_shape(), next_positions);
+      std::cout << "  compressed to " << next_positions_dfa->states() << " states" << std::endl;
+
+      std::cout << "  decompressing" << std::endl;
+      auto unique_end = next_positions.begin();
+      for(auto iter = next_positions_dfa->cbegin();
+          iter < next_positions_dfa->cend();
+          ++iter)
+        {
+          *(unique_end++) = *iter;
+        }
+
       auto unique_count = unique_end - next_positions.begin();
       std::cout << "  uniqued to " << unique_count << std::endl;
       next_positions.resize(unique_count);
