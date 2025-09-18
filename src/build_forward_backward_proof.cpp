@@ -58,24 +58,28 @@ int main(int argc, char **argv)
   shared_dfa_ptr winning_0 = get_positions(*game, forward_ply_max, backward_ply_max, 0, "winning");
   bool initial_winning = winning_0->contains(initial_position);
 
-  std::vector<DFAString> curr_positions = {initial_position};
+  shared_dfa_ptr curr_positions = initial_positions;
   for(int ply = 0; ply <= forward_ply_max; ++ply)
     {
       int side_to_move = ply % 2;
       bool ply_winning = initial_winning ^ (ply % 2);
       
-      std::cout << "PLY " << ply << " " << (ply_winning ? "WINNING" : "LOSING") << " " << curr_positions.size() << " positions to prove." << std::endl;
+      std::cout << "PLY " << ply << " " << (ply_winning ? "WINNING" : "LOSING") << " " << curr_positions->size() << " positions to prove." << std::endl;
 
       // load next losing positions if proving wins now.
       shared_dfa_ptr next_losing = ply_winning ? get_positions(*game, forward_ply_max, backward_ply_max, ply + 1, "losing") : 0;
       
-      std::vector<DFAString> next_positions;
-      for(const DFAString& curr_position : curr_positions)
+      if(ply_winning)
         {
-          std::vector<DFAString> temp_positions = game->validate_moves(side_to_move, curr_position);
+          std::vector<DFAString> next_positions;
 
-          if(ply_winning)
+          for(auto iter = curr_positions->cbegin();
+              iter < curr_positions->cend();
+              ++iter)
             {
+              DFAString curr_position = *iter;
+
+              std::vector<DFAString> temp_positions = game->validate_moves(side_to_move, curr_position);
               // must have at least one move to a losing position
               assert(temp_positions.size() > 0);
               bool found_loss = false;
@@ -90,39 +94,18 @@ int main(int argc, char **argv)
                 }
               assert(found_loss);
             }
-          else // ply is losing
-            {
-              // all moves must go to winning positions
-              for(const DFAString &temp_position : temp_positions)
-                {
-                  next_positions.push_back(temp_position);
-                }
-            }
+
+          curr_positions = DFAUtil::from_strings(game->get_shape(), next_positions);
         }
-
-      std::cout << "  expanded to " << next_positions.size() << std::endl;
-      TRY_PARALLEL_2(std::sort, next_positions.begin(), next_positions.end());
-
-      std::cout << "  compressing" << std::endl;
-      shared_dfa_ptr next_positions_dfa = DFAUtil::from_strings(game->get_shape(), next_positions);
-      std::cout << "  compressed to " << next_positions_dfa->states() << " states" << std::endl;
-
-      std::cout << "  decompressing" << std::endl;
-      auto unique_end = next_positions.begin();
-      for(auto iter = next_positions_dfa->cbegin();
-          iter < next_positions_dfa->cend();
-          ++iter)
+      else // ply is losing
         {
-          *(unique_end++) = *iter;
+          // all moves must go to winning positions
+          curr_positions = game->get_moves_forward(side_to_move, curr_positions);
         }
 
-      auto unique_count = unique_end - next_positions.begin();
-      std::cout << "  uniqued to " << unique_count << std::endl;
-      next_positions.resize(unique_count);
-      std::cout << "  resized" << std::endl;
-
-      // prepare for next ply
-      std::swap(curr_positions, next_positions);
+      std::cout << "  compressed to " << curr_positions->states() << " states" << std::endl;
+      auto size = curr_positions->size();
+      std::cout << "  compressed " << size << " positions" << std::endl;
     }
 
   return 0;
