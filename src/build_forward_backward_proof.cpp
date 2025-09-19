@@ -71,52 +71,15 @@ int main(int argc, char **argv)
 
       curr_positions = game->load_or_build(save_name.str(), [&]()
       {
-        // load next losing positions if proving wins now.
-        shared_dfa_ptr next_losing = ply_winning ? get_positions(*game, forward_ply_max, backward_ply_max, ply + 1, "losing") : 0;
-
         if(ply_winning)
           {
-            std::cout << "  decompressing" << std::endl;
-            std::vector<DFAString> curr_positions_vector;
-            for(auto iter = curr_positions->cbegin();
-                iter < curr_positions->cend();
-                ++iter)
-              {
-                curr_positions_vector.push_back(*iter);
-              }
-            std::cout << "  decompressed " << curr_positions_vector.size() << " positions" << std::endl;
+            // get all moves to winning positions and do not worry
+            // about redundancy.
 
-            std::cout << "  finding losses" << std::endl;
+            shared_dfa_ptr next_positions = game->get_moves_forward(side_to_move, curr_positions);
+            shared_dfa_ptr next_losing = ply_winning ? get_positions(*game, forward_ply_max, backward_ply_max, ply + 1, "losing") : 0;
 
-            std::vector<DFAString> next_positions;
-            next_positions.resize(curr_positions_vector.size());
-
-            auto find_loss = [&](const DFAString& curr_position)
-            {
-              std::vector<DFAString> temp_positions = game->validate_moves(side_to_move, curr_position);
-              // must have at least one move to a losing position
-              assert(temp_positions.size() > 0);
-
-              for(const DFAString &temp_position : temp_positions)
-                {
-                  if(next_losing->contains(temp_position))
-                    {
-                      return temp_position;
-                    }
-                }
-
-              assert(false);
-            };
-
-            TRY_PARALLEL_4(std::transform,
-                           curr_positions_vector.begin(),
-                           curr_positions_vector.end(),
-                           next_positions.begin(),
-                           find_loss);
-
-            std::cout << "  compressing losses" << std::endl;
-
-            return DFAUtil::from_strings(game->get_shape(), next_positions);
+            return DFAUtil::get_intersection(next_positions, next_losing);
           }
         else // ply is losing
           {
@@ -124,7 +87,6 @@ int main(int argc, char **argv)
             return game->get_moves_forward(side_to_move, curr_positions);
           }
       });
-
 
       auto size = curr_positions->size();
       std::cout << "  compressed " << size << " positions to " << curr_positions->states() << " states" << std::endl;
