@@ -245,10 +245,10 @@ std::string BreakthroughBase::position_to_string(const DFAString& string_in) con
 	      output << ".";
 	      break;
 	    case 1:
-	      output << "x";
+	      output << "w";
 	      break;
 	    case 2:
-	      output << "o";
+	      output << "b";
 	      break;
 	    default:
 	      assert(0);
