@@ -230,7 +230,7 @@ std::string OthelloGame::get_name_move(int x, int y) const
   return "move x=" + std::to_string(x) + ",y=" + std::to_string(y);
 }
 
-DFAString OthelloGame::get_position_initial() const
+std::optional<DFAString> OthelloGame::get_position_initial() const
 {
   std::vector<int> position_raw(width * height, 0);
 

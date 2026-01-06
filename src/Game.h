@@ -68,7 +68,7 @@ public:
   std::string get_name_winning(int, int) const;
   std::string get_name_won(int) const;
 
-  virtual DFAString get_position_initial() const = 0;
+  virtual std::optional<DFAString> get_position_initial() const;
 
   shared_dfa_ptr get_positions_forward(int) const;
   shared_dfa_ptr get_positions_initial() const;

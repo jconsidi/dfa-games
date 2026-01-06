@@ -88,7 +88,7 @@ void test_forward(const BreakthroughGame& game, int width, int height)
 
 void test_lost(const BreakthroughGame& game, int width, int height)
 {
-  DFAString initial = game.get_position_initial();
+  DFAString initial = *game.get_position_initial();
   DFAString penultimate = get_penultimate_string(game, width, height);
 
   std::vector<DFAString> not_lost = {initial, penultimate};
@@ -140,7 +140,7 @@ void test_reachable(const BreakthroughGame& game, int width, int height)
     assert(reachable_1->contains(position) == expected);
   };
 
-  DFAString initial_position = game.get_position_initial();
+  DFAString initial_position = *game.get_position_initial();
   check_both_string(initial_position, false);
 
   // generic checking of both
@@ -181,7 +181,7 @@ void test(int width, int height)
 
   BreakthroughGame game(width, height);
 
-  DFAString initial_position = game.get_position_initial();
+  DFAString initial_position = *game.get_position_initial();
   std::cout << game.position_to_string(initial_position) << std::endl;
 
   test_forward(game, width, height);

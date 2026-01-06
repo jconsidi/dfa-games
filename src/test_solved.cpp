@@ -47,7 +47,7 @@ int main(int argc, char **argv)
   std::string game_name(argv[1]);
   Game *game = get_game(game_name);
 
-  DFAString initial_position = game->get_position_initial();
+  DFAString initial_position = *game->get_position_initial();
   std::cout << "INITIAL POSITION:" << std::endl;
   std::cout << game->position_to_string(initial_position) << std::endl;
 

@@ -16,7 +16,7 @@ public:
 
   NormalNimGame(int, int);
 
-  virtual DFAString get_position_initial() const;
+  virtual std::optional<DFAString> get_position_initial() const;
 
   virtual std::string position_to_string(const DFAString&) const;
 };

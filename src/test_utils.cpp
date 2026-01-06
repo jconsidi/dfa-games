@@ -16,16 +16,26 @@
 
 bool check_loss(const Game& game, int ply_max)
 {
-  DFAString initial_position = game.get_position_initial();
+  std::optional<DFAString> initial_position = game.get_position_initial();
+  if(!initial_position)
+    {
+      throw std::runtime_error("initial position not defined");
+    }
+
   shared_dfa_ptr losing = game.get_positions_losing(0, ply_max);
-  return losing->contains(initial_position);
+  return losing->contains(*initial_position);
 }
 
 bool check_win(const Game& game, int ply_max)
 {
-  DFAString initial_position = game.get_position_initial();
+  std::optional<DFAString> initial_position = game.get_position_initial();
+  if(!initial_position)
+    {
+      throw std::runtime_error("initial position not defined");
+    }
+
   shared_dfa_ptr winning = game.get_positions_winning(0, ply_max);
-  return winning->contains(initial_position);
+  return winning->contains(*initial_position);
 }
 
 shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name)

@@ -142,7 +142,7 @@ MoveGraph BreakthroughBase::build_move_graph(int side_to_move) const
   return move_graph;
 }
 
-DFAString BreakthroughBase::get_position_initial() const
+std::optional<DFAString> BreakthroughBase::get_position_initial() const
 {
   std::vector<int> initial_characters(width * height, 0);
 

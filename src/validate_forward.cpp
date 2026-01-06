@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
   dfa_shape_t shape = game->get_shape();
 
-  DFAString initial_position = game->get_position_initial();
+  DFAString initial_position = *game->get_position_initial();
   std::cout << "# INITIAL POSITION" << std::endl;
   std::cout << game->position_to_string(initial_position) << std::endl;
 

@@ -20,22 +20,30 @@ int main(int argc, char **argv)
   int ply_max = (argc >= 3) ? atoi(argv[2]) : 1;
   std::cout << "PLY MAX: " << ply_max << std::endl;
 
-  DFAString initial_position = game->get_position_initial();
-  std::cout << "INITIAL POSITION:" << std::endl;
-  std::cout << game->position_to_string(initial_position) << std::endl;
+  auto initial_position = game->get_position_initial();
+  if(initial_position)
+    {
+      std::cout << "INITIAL POSITION:" << std::endl;
+      std::cout << game->position_to_string(*initial_position) << std::endl;
+    }
 
   for(int ply = 0; ply <= ply_max; ++ply)
     {
-      bool finished = true;
+      bool finished = false;
       for(int side_to_move = 0; side_to_move < 2; ++side_to_move)
 	{
 	  shared_dfa_ptr losing = game->get_positions_losing(side_to_move, ply);
 	  shared_dfa_ptr winning = game->get_positions_winning(side_to_move, ply);
 	  shared_dfa_ptr unknown = game->get_positions_unknown(side_to_move, ply);
 
-          if(!unknown->is_constant(0))
+          if(initial_position && (side_to_move == 0) && unknown->contains(*initial_position))
             {
-              finished = false;
+              finished = true;
+            }
+
+          if(unknown->is_constant(0))
+            {
+              finished = true;
             }
 	}
 

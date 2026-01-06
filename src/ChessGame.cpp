@@ -1296,7 +1296,7 @@ shared_dfa_ptr ChessGame::get_positions_threat(int threatened_side, int threaten
   });
 }
 
-DFAString ChessGame::get_position_initial() const
+std::optional<DFAString> ChessGame::get_position_initial() const
 {
   Profile profile("get_positions_initial");
 

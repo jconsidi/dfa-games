@@ -59,7 +59,7 @@ MoveGraph NormalNimGame::build_move_graph(int) const
   return move_graph;
 }
 
-DFAString NormalNimGame::get_position_initial() const
+std::optional<DFAString> NormalNimGame::get_position_initial() const
 {
   std::vector<int> initial_string;
   for(int layer = 0; layer < get_shape().size(); ++layer)

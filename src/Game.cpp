@@ -242,9 +242,20 @@ shared_dfa_ptr Game::get_positions_forward(int ply) const
 		       });
 }
 
+std::optional<DFAString> Game::get_position_initial() const
+{
+  return std::optional<DFAString>();
+}
+
 shared_dfa_ptr Game::get_positions_initial() const
 {
-  return DFAUtil::from_string(get_position_initial());
+  std::optional<DFAString> p = get_position_initial();
+  if(!p)
+    {
+      return DFAUtil::get_reject(shape);
+    }
+
+  return DFAUtil::from_string(*p);
 }
 
 shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const

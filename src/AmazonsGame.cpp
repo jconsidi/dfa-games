@@ -154,8 +154,13 @@ shared_dfa_ptr AmazonsGame::build_positions_reversed(shared_dfa_ptr positions_in
   return reverse_graph.get_moves(name_prefix, positions_in);
 }
 
-DFAString AmazonsGame::get_position_initial() const
+std::optional<DFAString> AmazonsGame::get_position_initial() const
 {
+  if((width < 2) || (height < 2))
+    {
+      return std::optional<DFAString>();
+    }
+
   std::vector<int> initial_characters(width * height, 0);
 
   int smaller_dim = (width < height) ? width : height;
