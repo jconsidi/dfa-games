@@ -27,9 +27,10 @@ shared_dfa_ptr NormalPlayGame::build_positions_losing(int side_to_move, int ply_
      get_positions_winning(1 - side_to_move, ply_max - 1));
 
   shared_dfa_ptr not_winning_soon = DFAUtil::get_inverse(winning_soon);
-  shared_dfa_ptr not_losing_soon = this->get_moves_backward(side_to_move, not_winning_soon);
-  shared_dfa_ptr losing_soon = DFAUtil::get_inverse(not_losing_soon);
-  return losing_soon;
+
+  shared_dfa_ptr not_losing_now = this->get_moves_backward(side_to_move, not_winning_soon);
+  shared_dfa_ptr losing_now = DFAUtil::get_inverse(not_losing_now);
+  return losing_now;
 }
 
 shared_dfa_ptr NormalPlayGame::build_positions_lost(int side_to_move) const
