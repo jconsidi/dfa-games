@@ -342,6 +342,26 @@ shared_dfa_ptr Game::get_positions_winning(int side_to_move, int ply_max) const
           }
       }
 
+    // optimize case where number of unknown states is small
+    if(ply_max > 0)
+      {
+        // soon = ply_max - 1
+        shared_dfa_ptr losing_soon = get_positions_losing(1 - side_to_move, ply_max - 1);
+        shared_dfa_ptr unknown_soon = get_positions_unknown(side_to_move, ply_max - 1);
+
+        if(unknown_soon->states() <= losing_soon->states() / 10)
+          {
+            shared_dfa_ptr unknown_to_losing = DFAUtil::get_intersection(this->get_moves_forward(side_to_move, unknown_soon), losing_soon);
+
+            // winning in exactly ply_max ply.
+            shared_dfa_ptr winning_new = DFAUtil::get_intersection(this->get_moves_backward(side_to_move, unknown_to_losing), unknown_soon);
+
+            shared_dfa_ptr winning_soon = get_positions_winning(side_to_move, ply_max - 1);
+
+            return DFAUtil::get_union(winning_new, winning_soon);
+          }
+      }
+
     return build_positions_winning(side_to_move, ply_max);
   });
 }
