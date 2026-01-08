@@ -71,6 +71,9 @@ generate_moves : generate_moves.o dfagames.a
 move_graph_stats : move_graph_stats.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
+play_breakthrough : play_breakthrough.o test_utils.o dfagames.a
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
 print: print.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
