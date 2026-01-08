@@ -9,6 +9,7 @@
 #include "AmazonsGame.h"
 #include "BreakthroughGame.h"
 #include "ChessGame.h"
+#include "ClobberGame.h"
 #include "DFAUtil.h"
 #include "NormalNimGame.h"
 #include "OthelloGame.h"
@@ -94,6 +95,16 @@ Game *get_game(std::string game_name)
       output = new ChessGame();
     }
 #endif
+  else if(game_name.starts_with("clobber_"))
+    {
+      int width = 0;
+      int height = 0;
+      if(std::sscanf(game_name.c_str(), "clobber_%dx%d", &width, &height) != 2)
+	{
+	  throw std::logic_error("get_name() failed parsing clobber game name");
+	}
+      output = new ClobberGame(width, height);
+    }
   else if(game_name.starts_with("normalnim_"))
     {
       int num_heaps = 0;
