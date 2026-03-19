@@ -570,7 +570,7 @@ const DFALinearBound& DFA::get_linear_bound() const
 		  bool local_accept_all = false;
 		  uint32_t local_bounds = 0;
 
-		  size_t offset = state_id * layer_shape;
+		  size_t offset = size_t(state_id) * size_t(layer_shape);
 		  for(size_t i = 0; i < layer_shape; ++i)
 		    {
 		      if(curr_transitions[offset + i] == 1)
