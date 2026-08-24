@@ -1,3 +1,4 @@
+*.o
 build_backward
 build_chess_database
 build_forward
@@ -16,8 +17,8 @@ stats
 stats_backward
 stats_forward
 stats_forward_backward
-test_breakthrough_game
 test_bitset
+test_breakthrough_game
 test_change_dfa
 test_chess_game
 test_chess_limited
