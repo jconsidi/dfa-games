@@ -3,14 +3,16 @@
 //! See `FORMAT-DFA.md` at the repository root for the specification.  Section
 //! references in the source refer to it.
 //!
-//! [`layout`] is the single authority on where bytes go; everything else in
-//! this crate goes through it.
+//! [`layout`] is the single authority on where bytes go, and [`read`] uses it
+//! to validate a file against the specification.
 
 pub mod error;
 pub mod layout;
+pub mod read;
 
 pub use error::{FormatError, Result, Violation};
 pub use layout::Layout;
+pub use read::{validate, Dfa, Report, ValidateOptions};
 
 /// Lower case hex, the spelling used for every digest this crate prints.
 pub fn hex(bytes: &[u8]) -> String {
