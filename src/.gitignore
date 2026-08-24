@@ -6,6 +6,7 @@ build_forward_backward
 divide
 generate_moves
 move_graph_stats
+play_breakthrough
 print
 random
 random_uci
@@ -17,11 +18,13 @@ stats
 stats_backward
 stats_forward
 stats_forward_backward
+test_backward
 test_bitset
 test_breakthrough_game
 test_change_dfa
 test_chess_game
 test_chess_limited
+test_clobber_game
 test_dfa
 test_get_intersection
 test_get_union
