@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use memmap2::Mmap;
 use sha2::{Digest, Sha256};
 
+use crate::bitset::Bitset;
 use crate::error::{FormatError, Result, Violation};
 use crate::hex;
 use crate::layout::{self, Layout};
@@ -571,38 +572,5 @@ fn check_reachability(m: &[u8], header: &Header, lay: &Layout, out: &mut Vec<Vio
             }
         }
         current = next;
-    }
-}
-
-/// Bit per state, so a layer with tens of millions of states costs megabytes
-/// rather than gigabytes.
-struct Bitset {
-    words: Vec<u64>,
-    len: u64,
-}
-
-impl Bitset {
-    fn new(len: u64) -> Bitset {
-        let words = usize::try_from(len.div_ceil(64)).unwrap_or(usize::MAX);
-        Bitset {
-            words: vec![0; words],
-            len,
-        }
-    }
-
-    fn set(&mut self, index: u64) {
-        if index >= self.len {
-            return;
-        }
-        let word = (index / 64) as usize;
-        self.words[word] |= 1u64 << (index % 64);
-    }
-
-    fn get(&self, index: u64) -> bool {
-        if index >= self.len {
-            return false;
-        }
-        let word = (index / 64) as usize;
-        self.words[word] & (1u64 << (index % 64)) != 0
     }
 }

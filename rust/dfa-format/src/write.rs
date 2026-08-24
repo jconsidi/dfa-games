@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
+use crate::bitset::Bitset;
 use crate::error::{FormatError, Result};
 use crate::hex;
 use crate::layout::{self, Layout};
@@ -17,22 +18,115 @@ use crate::read::{self, ValidateOptions};
 
 const CHUNK: usize = 8 << 20;
 
-/// Where the canonical ordering first broke, for the diagnostic.
+/// Why the source does not qualify for `flags` bit 0, for the diagnostic.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanonicalBreak {
     pub layer: usize,
     pub row: u64,
+    pub reason: String,
 }
 
 impl std::fmt::Display for CanonicalBreak {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "layer {} row {} does not sort after row {}",
-            self.layer,
-            self.row,
-            self.row - 1
-        )
+        write!(f, "layer {} row {} {}", self.layer, self.row, self.reason)
+    }
+}
+
+/// Decides whether the source qualifies for `flags` bit 0.
+///
+/// Spec 8 ties canonical numbering to minimality -- the ordering is only well
+/// defined if no two ordinary states in a layer share a row, and setting the
+/// bit therefore also asserts that the automaton is free of unreachable and
+/// dead states.  All of it is checked here, in the same pass that copies the
+/// rows, so the converter never makes a claim `dfa-validate` would reject:
+///
+/// * rows `2..layer_size[i]` strictly ascending as tuples of next-state
+///   indices,
+/// * every ordinary state reachable from `initial_state`,
+/// * no ordinary row that merely repeats a reserved state.
+///
+/// Rows arrive in order, layer by layer, so reachability needs only the bitset
+/// for the current layer and the one being filled for the next.
+struct CanonicalTracker {
+    broke: Option<CanonicalBreak>,
+    current: Bitset,
+    next: Bitset,
+    prev_row: Vec<u64>,
+    have_prev: bool,
+}
+
+impl CanonicalTracker {
+    fn new(lay: &Layout, initial_state: u32) -> CanonicalTracker {
+        let mut current = Bitset::new(lay.layer_size()[0]);
+        current.set(u64::from(initial_state));
+        CanonicalTracker {
+            broke: None,
+            current,
+            next: Bitset::new(0),
+            prev_row: Vec::new(),
+            have_prev: false,
+        }
+    }
+
+    /// False once the answer is known, so the remaining rows skip the work.
+    fn active(&self) -> bool {
+        self.broke.is_none()
+    }
+
+    fn begin_layer(&mut self, lay: &Layout, layer: usize) {
+        self.next = Bitset::new(lay.next_layer_size(layer));
+        self.prev_row.clear();
+        self.have_prev = false;
+    }
+
+    fn row(&mut self, layer: usize, row: u64, values: &[u64]) {
+        if !self.active() || row < 2 {
+            return;
+        }
+
+        if !self.current.get(row) {
+            self.fail(layer, row, "is unreachable".to_string());
+            return;
+        }
+        if self.have_prev && self.prev_row.as_slice() >= values {
+            self.fail(layer, row, format!("does not sort after row {}", row - 1));
+            return;
+        }
+        if values.iter().all(|&v| v == u64::from(layout::STATE_REJECT)) {
+            self.fail(
+                layer,
+                row,
+                "rejects everything, duplicating state 0".to_string(),
+            );
+            return;
+        }
+        if values.iter().all(|&v| v == u64::from(layout::STATE_ACCEPT)) {
+            self.fail(
+                layer,
+                row,
+                "accepts everything, duplicating state 1".to_string(),
+            );
+            return;
+        }
+
+        for &v in values {
+            self.next.set(v);
+        }
+        self.prev_row.clear();
+        self.prev_row.extend_from_slice(values);
+        self.have_prev = true;
+    }
+
+    fn end_layer(&mut self) {
+        self.current = std::mem::replace(&mut self.next, Bitset::new(0));
+    }
+
+    fn fail(&mut self, layer: usize, row: u64, reason: String) {
+        self.broke = Some(CanonicalBreak { layer, row, reason });
+    }
+
+    fn verdict(self) -> Option<CanonicalBreak> {
+        self.broke
     }
 }
 
@@ -80,17 +174,12 @@ fn write_and_publish(
     let mut writer = BufWriter::with_capacity(CHUNK, file);
     write_header_and_tables(&mut writer, lay, src.initial_state())?;
 
-    let mut canonical = true;
-    let mut canonical_break = None;
+    let mut tracker = CanonicalTracker::new(lay, src.initial_state());
     for layer in 0..lay.ndim() {
-        let broke = write_layer(&mut writer, src, lay, layer, canonical)?;
-        if canonical {
-            if let Some(row) = broke {
-                canonical = false;
-                canonical_break = Some(CanonicalBreak { layer, row });
-            }
-        }
+        write_layer(&mut writer, src, lay, layer, &mut tracker)?;
     }
+    let canonical_break = tracker.verdict();
+    let canonical = canonical_break.is_none();
 
     writer.flush().map_err(|e| FormatError::io(tmp, e))?;
     let mut file = writer
@@ -194,18 +283,15 @@ fn write_header_and_tables(
     Ok(())
 }
 
-/// Copy one layer, re-encoding entries to the derived width.
-///
-/// Returns `Some(row)` when the canonical ordering first fails in this layer.
-/// `check_canonical` is false once some earlier layer has already broken it,
-/// so the comparison work stops as soon as the answer is known.
+/// Copy one layer, re-encoding entries to the derived width, feeding each row
+/// to the canonical/minimality tracker on the way past.
 fn write_layer(
     writer: &mut BufWriter<File>,
     src: &LegacyDfa,
     lay: &Layout,
     layer: usize,
-    check_canonical: bool,
-) -> Result<Option<u64>> {
+    tracker: &mut CanonicalTracker,
+) -> Result<()> {
     let path = &src.layer_paths()[layer];
     let shape = usize::try_from(lay.shape()[layer])
         .map_err(|_| FormatError::Overflow(format!("shape[{layer}] exceeds usize")))?;
@@ -218,10 +304,9 @@ fn write_layer(
     let mut in_buf = vec![0u8; rows_per_chunk * src_row_bytes];
     let mut out_buf: Vec<u8> = Vec::with_capacity(rows_per_chunk * shape * usize::from(width));
     let mut values: Vec<u64> = vec![0; shape];
-    let mut prev: Vec<u64> = Vec::new();
 
+    tracker.begin_layer(lay, layer);
     let mut file = File::open(path).map_err(|e| FormatError::io(path, e))?;
-    let mut broke_at = None;
     let mut row: u64 = 0;
 
     while row < layer_size {
@@ -239,15 +324,7 @@ fn write_layer(
             }
 
             check_row(src, layer, index, &values, bound)?;
-
-            if check_canonical && broke_at.is_none() && index >= 2 {
-                if index >= 3 && prev.as_slice() >= values.as_slice() {
-                    broke_at = Some(index);
-                } else {
-                    prev.clear();
-                    prev.extend_from_slice(&values);
-                }
-            }
+            tracker.row(layer, index, &values);
 
             for &v in &values {
                 layout::encode_entry(v, width, &mut out_buf);
@@ -266,7 +343,8 @@ fn write_layer(
     };
     write_zeros(writer, pad)?;
 
-    Ok(broke_at)
+    tracker.end_layer();
+    Ok(())
 }
 
 fn check_row(src: &LegacyDfa, layer: usize, index: u64, values: &[u64], bound: u64) -> Result<()> {

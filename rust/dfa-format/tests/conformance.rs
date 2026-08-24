@@ -261,6 +261,38 @@ fn canonical_order_compares_integers_not_bytes() {
     );
 }
 
+#[test]
+fn ordered_but_unreachable_leaves_the_flag_clear() {
+    // Spec 8 makes bit 0 assert minimality as well as ordering, so an ordered
+    // source with a state nothing can enter must not get the flag.
+    let mut a = canonical_automaton();
+    // Layer 1 gains a fourth state that sorts after the others but that no
+    // transition in layer 0 points at.
+    a.add_state(1, vec![3, 3]);
+
+    let (_tmp, path) = build(&a);
+    assert_valid(&path);
+    let dfa = Dfa::open(&path).unwrap();
+    assert!(
+        !dfa.header().canonical(),
+        "layer 1 state 4 is unreachable, so the file is not minimal"
+    );
+}
+
+#[test]
+fn an_ordinary_row_repeating_a_reserved_state_leaves_the_flag_clear() {
+    let mut a = Automaton::new(vec![2, 2]);
+    a.add_state(1, vec![0, 1]);
+    // An ordinary row that accepts everything simply repeats state 1.
+    a.add_state(1, vec![1, 1]);
+    let start = a.add_state(0, vec![2, 3]);
+    a.set_initial_state(start);
+
+    let (_tmp, path) = build(&a);
+    assert_valid(&path);
+    assert!(!Dfa::open(&path).unwrap().header().canonical());
+}
+
 // --- negative tests ---------------------------------------------------------
 
 /// Copy a good file, corrupt it at `offset`, and return the new path.

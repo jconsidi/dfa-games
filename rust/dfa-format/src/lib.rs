@@ -8,6 +8,7 @@
 //! validates them, and [`legacy`] knows how to read the directory-per-DFA
 //! layout that `src/DFA.cpp` writes.
 
+mod bitset;
 pub mod error;
 pub mod layout;
 pub mod legacy;
