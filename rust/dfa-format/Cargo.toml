@@ -15,5 +15,9 @@ thiserror = "2"
 tempfile = "3"
 
 [[bin]]
+name = "dfa-convert"
+path = "src/bin/dfa-convert.rs"
+
+[[bin]]
 name = "dfa-validate"
 path = "src/bin/dfa-validate.rs"
