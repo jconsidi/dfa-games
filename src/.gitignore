@@ -3,6 +3,7 @@ build_backward
 build_chess_database
 build_forward
 build_forward_backward
+build_forward_backward_proof
 divide
 generate_moves
 move_graph_stats
