@@ -111,6 +111,21 @@ impl LegacyDfa {
         crate::is_hash(name).then(|| name.to_string())
     }
 
+    /// A copy of this DFA restricted to its first `ndim` layers.
+    ///
+    /// Used to recover from directories that hold leftover layer files from an
+    /// unrelated DFA; see [`LegacyDfa::check_name`].
+    pub fn truncated(&self, ndim: usize) -> LegacyDfa {
+        LegacyDfa {
+            dir: self.dir.clone(),
+            resolved_dir: self.resolved_dir.clone(),
+            shape: self.shape[..ndim].to_vec(),
+            layer_size: self.layer_size[..ndim].to_vec(),
+            initial_state: self.initial_state,
+            layer_paths: self.layer_paths[..ndim].to_vec(),
+        }
+    }
+
     /// Recompute `DFA::calculate_hash()` (src/DFA.cpp:409) over the contents:
     ///
     /// ```text
@@ -122,17 +137,23 @@ impl LegacyDfa {
     /// `std::vector<size_t>`, so this assumes `sizeof(int) == 4` and
     /// `sizeof(size_t) == 8` -- true for every 64-bit target the C++ builds on.
     pub fn legacy_hash(&self) -> Result<String> {
+        self.legacy_hash_prefix(self.ndim())
+    }
+
+    /// The same hash, computed as though the DFA had only its first `ndim`
+    /// layers.
+    fn legacy_hash_prefix(&self, ndim: usize) -> Result<String> {
         let mut hasher = Sha256::new();
         hasher.update(self.initial_state.to_le_bytes());
-        for &s in &self.shape {
+        for &s in &self.shape[..ndim] {
             hasher.update(s.to_le_bytes());
         }
-        for &n in &self.layer_size {
+        for &n in &self.layer_size[..ndim] {
             hasher.update(n.to_le_bytes());
         }
 
         let mut buf = vec![0u8; CHUNK];
-        for path in &self.layer_paths {
+        for path in &self.layer_paths[..ndim] {
             let mut file = File::open(path).map_err(|e| FormatError::io(path, e))?;
             loop {
                 let n = file.read(&mut buf).map_err(|e| FormatError::io(path, e))?;
@@ -145,6 +166,97 @@ impl LegacyDfa {
 
         Ok(hex(&hasher.finalize()))
     }
+
+    /// Largest stored transition in each layer.
+    ///
+    /// Only the terminal test matters here: the last layer of a well formed
+    /// DFA points exclusively at the two reserved states, so a layer whose
+    /// maximum is below 2 is a candidate for being the real last layer.
+    fn layer_max_entries(&self) -> Result<Vec<u64>> {
+        let mut out = Vec::with_capacity(self.ndim());
+        let mut buf = vec![0u8; CHUNK];
+        for path in &self.layer_paths {
+            let mut file = File::open(path).map_err(|e| FormatError::io(path, e))?;
+            let mut max = 0u32;
+            loop {
+                let n = file.read(&mut buf).map_err(|e| FormatError::io(path, e))?;
+                if n == 0 {
+                    break;
+                }
+                for w in buf[..n].chunks_exact(4) {
+                    let v = u32::from_le_bytes([w[0], w[1], w[2], w[3]]);
+                    if v > max {
+                        max = v;
+                    }
+                }
+            }
+            out.push(u64::from(max));
+        }
+        Ok(out)
+    }
+
+    /// Compare the contents against the name the directory is stored under.
+    ///
+    /// Some directories in the store hold leftover `layer=` files from an
+    /// unrelated DFA.  `DFA::DFA(shape)` builds its scratch directory as
+    /// `scratch/temp/<next_dfa_id++>` with a counter that is static per
+    /// process (src/DFA.cpp:25), so two concurrent processes march through the
+    /// same temp directories in lockstep.  A shorter DFA landing in a
+    /// directory an earlier, longer one had used overwrites `layer=0` upward
+    /// and leaves the tail behind, then renames the mixture into place under
+    /// its own perfectly correct hash.
+    ///
+    /// The name is therefore evidence, not damage: when some prefix of the
+    /// layers reproduces it, that prefix is the DFA that was meant to be
+    /// stored here.
+    pub fn check_name(&self) -> Result<NameCheck> {
+        let Some(stored) = self.stored_hash() else {
+            return Ok(NameCheck::Unnamed {
+                hash: self.legacy_hash()?,
+            });
+        };
+
+        let hash = self.legacy_hash()?;
+        if hash == stored {
+            return Ok(NameCheck::Matches { hash });
+        }
+
+        // The real last layer points only at states 0 and 1, which rules out
+        // almost every prefix without hashing it.
+        let max_entries = self.layer_max_entries()?;
+        for ndim in 1..self.ndim() {
+            if max_entries[ndim - 1] >= 2 {
+                continue;
+            }
+            if self.legacy_hash_prefix(ndim)? == stored {
+                return Ok(NameCheck::Repaired {
+                    ndim,
+                    hash: stored,
+                    extra_layers: self.ndim() - ndim,
+                });
+            }
+        }
+
+        Ok(NameCheck::Mismatch { hash, stored })
+    }
+}
+
+/// How a directory's contents relate to the name it is stored under.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NameCheck {
+    /// The directory is not named by a hash, so there is nothing to check.
+    Unnamed { hash: String },
+    /// The contents hash to the directory name.
+    Matches { hash: String },
+    /// The first `ndim` layers hash to the directory name, and the remaining
+    /// `extra_layers` are leftovers from an unrelated DFA.
+    Repaired {
+        ndim: usize,
+        hash: String,
+        extra_layers: usize,
+    },
+    /// Neither the contents nor any prefix of them hash to the directory name.
+    Mismatch { hash: String, stored: String },
 }
 
 /// `layer=0 .. layer=ndim-1`, requiring the sequence to have no gaps.

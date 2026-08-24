@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 use clap::Parser;
+use dfa_format::legacy::NameCheck;
 use dfa_format::{convert, resolve_source, LegacyDfa};
 
 #[derive(Parser, Debug)]
@@ -45,12 +46,12 @@ fn main() -> Result<()> {
     }
 
     let mut failures = 0usize;
-    let mut stale = 0usize;
+    let mut repaired = 0usize;
     for source in &sources {
         match convert_one(source, &out_dir, args.verify) {
-            Ok(was_stale) => {
-                if was_stale {
-                    stale += 1;
+            Ok(was_repaired) => {
+                if was_repaired {
+                    repaired += 1;
                 }
             }
             Err(e) => {
@@ -64,7 +65,7 @@ fn main() -> Result<()> {
 
     if sources.len() > 1 {
         println!(
-            "{} converted, {stale} with a stale directory name, {failures} failed",
+            "{} converted, {repaired} repaired from leftover layers, {failures} failed",
             sources.len() - failures
         );
     }
@@ -74,7 +75,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// Returns true when the source directory's name disagrees with its contents.
+/// Returns true when the source directory needed repairing.
 fn convert_one(source: &Path, out_dir: &Path, verify: bool) -> Result<bool> {
     let legacy =
         LegacyDfa::open(source).with_context(|| format!("reading {}", source.display()))?;
@@ -83,24 +84,43 @@ fn convert_one(source: &Path, out_dir: &Path, verify: bool) -> Result<bool> {
     if legacy.resolved_dir() != source {
         println!("  resolves to: {}", legacy.resolved_dir().display());
     }
+
+    let check = legacy
+        .check_name()
+        .context("checking the contents against the directory name")?;
+
+    let (legacy, repaired) = match check {
+        NameCheck::Unnamed { hash } | NameCheck::Matches { hash } => {
+            println!("  legacy hash: {hash}");
+            (legacy, false)
+        }
+        NameCheck::Repaired {
+            ndim,
+            hash,
+            extra_layers,
+        } => {
+            println!("  legacy hash: {hash}");
+            println!(
+                "  WARNING: {extra_layers} leftover layer file(s) from an unrelated DFA; \
+                 layers 0..{ndim} reproduce the directory name, so only those are converted"
+            );
+            (legacy.truncated(ndim), true)
+        }
+        NameCheck::Mismatch { hash, stored } => {
+            bail!(
+                "contents hash to {hash}, the directory is named {stored}, and no prefix of its \
+                 {} layers reproduces that name",
+                legacy.ndim()
+            );
+        }
+    };
+
     println!(
         "  ndim: {}  shape: {}  states: {}",
         legacy.ndim(),
         summarize_shape(legacy.shape()),
         legacy.layer_size().iter().sum::<u64>()
     );
-
-    let legacy_hash = legacy
-        .legacy_hash()
-        .context("recomputing the legacy hash")?;
-    println!("  legacy hash: {legacy_hash}");
-    let stale = match legacy.stored_hash() {
-        Some(stored) if stored != legacy_hash => {
-            println!("  WARNING: contents hash to {legacy_hash} but directory is named {stored}");
-            true
-        }
-        _ => false,
-    };
 
     let converted = convert(&legacy, out_dir, verify).context("converting")?;
     match &converted.canonical_break {
@@ -116,7 +136,7 @@ fn convert_one(source: &Path, out_dir: &Path, verify: bool) -> Result<bool> {
     }
     println!();
 
-    Ok(stale)
+    Ok(repaired)
 }
 
 fn collect_sources(args: &Args) -> Result<Vec<PathBuf>> {
