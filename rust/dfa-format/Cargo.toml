@@ -19,5 +19,9 @@ name = "dfa-convert"
 path = "src/bin/dfa-convert.rs"
 
 [[bin]]
+name = "dfa-stats"
+path = "src/bin/dfa-stats.rs"
+
+[[bin]]
 name = "dfa-validate"
 path = "src/bin/dfa-validate.rs"

@@ -13,12 +13,14 @@ pub mod error;
 pub mod layout;
 pub mod legacy;
 pub mod read;
+pub mod stats;
 pub mod write;
 
 pub use error::{FormatError, Result, Violation};
 pub use layout::Layout;
 pub use legacy::LegacyDfa;
 pub use read::{validate, Dfa, Report, ValidateOptions};
+pub use stats::Stats;
 pub use write::{convert, Converted};
 
 use std::path::{Path, PathBuf};
