@@ -137,5 +137,6 @@ INSTANTIATE(double);
 INSTANTIATE(int);
 INSTANTIATE(long long unsigned int);
 INSTANTIATE(long unsigned int);
+INSTANTIATE(unsigned char);
 INSTANTIATE(unsigned int);
 INSTANTIATE(dfa_state_pair_t);

@@ -472,6 +472,7 @@ void MemoryMap<T>::unlink()
 #include "BinaryDFA.h"
 
 template class MemoryMap<double>;
+template class MemoryMap<unsigned char>;
 template class MemoryMap<int>;
 template class MemoryMap<long long unsigned int>;
 template class MemoryMap<long unsigned int>;

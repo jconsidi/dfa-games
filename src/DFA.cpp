@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
@@ -18,6 +19,7 @@
 #include <string>
 
 #include "DFA.h"
+#include "DFAFormat.h"
 #include "Profile.h"
 #include "parallel.h"
 #include "utils.h"
@@ -91,39 +93,13 @@ void remove_directory(std::string directory)
     }
 }
 
-DFATransitionsReference::DFATransitionsReference(const MemoryMap<dfa_state_t>& layer_transitions_in,
-						 size_t state_in,
-						 int layer_shape_in)
-  : layer_transitions(layer_transitions_in),
-    offset(state_in * size_t(layer_shape_in)),
-    layer_shape(layer_shape_in)
-{
-  assert(layer_shape > 0);
-  size_t size_temp = layer_transitions.size();
-  assert(offset < size_temp);
-  assert(offset + layer_shape <= size_temp);
-}
-
-DFATransitionsReference::DFATransitionsReference(const DFATransitionsReference& reference_in)
-  : layer_transitions(reference_in.layer_transitions),
-    offset(reference_in.offset),
-    layer_shape(reference_in.layer_shape)
-{
-  size_t size_temp = layer_transitions.size();
-  assert(offset < size_temp);
-
-  assert(layer_shape > 0);
-  assert(offset + layer_shape <= size_temp);
-}
-
 DFA::DFA(const dfa_shape_t& shape_in)
   : shape(shape_in),
     ndim(int(shape.size())),
+    layer_sizes(),
     directory(create_directory(get_temp_directory())),
     layer_file_names(get_layer_file_names(int(shape_in.size()), directory)),
-    layer_sizes(),
     layer_transitions(),
-    size_cache(directory + "/size_cache", size_t(1)),
     temporary(true)
 {
   assert(ndim > 0);
@@ -152,41 +128,41 @@ DFA::DFA(const dfa_shape_t& shape_in)
   assert(layer_sizes.size() == ndim);
   assert(layer_file_names.size() == ndim);
   assert(layer_transitions.size() == ndim);
+}
 
-  // finish size_cache initialization
-  size_cache[0] = 0.0;
+// Path of a saved DFA. A name under dfas_by_hash/ addresses the file
+// directly; any other name is a symbolic link to one.
+static std::string get_file_name(std::string name_in)
+{
+  if(name_in.starts_with("dfas_by_hash/"))
+    {
+      return "scratch/" + name_in + ".dfa";
+    }
+
+  return "scratch/" + name_in;
 }
 
 DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
-  : shape(shape_in),
-    ndim(int(shape.size())),
-    directory("scratch/" + name_in),
+  : shape(),
+    ndim(0),
     name(name_in),
-    layer_file_names(get_layer_file_names(ndim, directory)),
     layer_sizes(),
+    directory(),
+    layer_file_names(),
     layer_transitions(),
-    size_cache(directory + "/size_cache", size_t(1)),
     temporary(false)
 {
-  assert(shape.size() == ndim);
+  load_file(get_file_name(name_in));
 
-  for(int layer = 0; layer < ndim; ++layer)
+  // The file carries its own shape, so this is a cross check rather than an
+  // input: a name that resolves to a DFA of the wrong shape is a mistake
+  // worth catching here instead of much later.
+  if(shape != shape_in)
     {
-      layer_transitions.emplace_back(layer_file_names.at(layer));
-
-      int layer_shape = get_layer_shape(layer);
-      assert(layer_transitions[layer].size() % layer_shape == 0);
-      layer_sizes.push_back(layer_transitions[layer].size() / layer_shape);
+      throw std::runtime_error("DFA " + name_in + " has a different shape than expected");
     }
 
-  MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state");
-  if(initial_state_mmap.size() != 1)
-    {
-      throw std::runtime_error("initial_state file has an invalid size");
-    }
-  set_initial_state(initial_state_mmap[0]);
-
-  hash = parse_hash(name_in);
+  assert(ready());
   assert(hash);
   assert(hash->length() == 64);
 }
@@ -198,11 +174,167 @@ DFA::~DFA() noexcept(false)
       remove_directory(directory);
     }
 
+  close_file();
+
   if(linear_bound)
     {
       delete linear_bound;
       linear_bound = 0;
     }
+}
+
+static uint16_t read_u16(const uint8_t *bytes)
+{
+  return uint16_t(uint16_t(bytes[0]) | uint16_t(uint16_t(bytes[1]) << 8));
+}
+
+static uint32_t read_u32(const uint8_t *bytes)
+{
+  return (uint32_t(bytes[0]) |
+	  (uint32_t(bytes[1]) << 8) |
+	  (uint32_t(bytes[2]) << 16) |
+	  (uint32_t(bytes[3]) << 24));
+}
+
+static uint64_t read_u64(const uint8_t *bytes)
+{
+  return uint64_t(read_u32(bytes)) | (uint64_t(read_u32(bytes + 4)) << 32);
+}
+
+void DFA::close_file() const
+{
+  if(file_layout)
+    {
+      delete file_layout;
+      file_layout = 0;
+    }
+
+  if(file_map)
+    {
+      delete file_map;
+      file_map = 0;
+    }
+}
+
+// Map a file whose contents are already known to match this DFA. Used after
+// saving, to swap the in memory object over to what was just written.
+void DFA::attach_file(std::string file_name_in) const
+{
+  close_file();
+
+  file_name = file_name_in;
+  file_map = new MemoryMap<uint8_t>(file_name_in, true);
+
+  std::vector<uint64_t> file_layer_sizes;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      file_layer_sizes.push_back(uint64_t(layer_sizes.at(layer)));
+    }
+  file_layout = new dfa_format::Layout(shape, file_layer_sizes);
+}
+
+// Map a saved DFA and take the shape, layer sizes, initial state and flags
+// from its header.
+//
+// Every check FORMAT-DFA.md section 7 requires of a reader is done here.
+// Failures throw, which is what DFAUtil::_try_load turns into "not found".
+void DFA::load_file(std::string file_name_in)
+{
+  file_name = file_name_in;
+  file_map = new MemoryMap<uint8_t>(file_name_in, true);
+
+  size_t file_length = file_map->size();
+  if(file_length < dfa_format::header_bytes)
+    {
+      throw std::runtime_error(file_name_in + " is shorter than a DFA header");
+    }
+
+  const uint8_t *bytes = file_map->begin();
+
+  if(memcmp(bytes, dfa_format::magic, sizeof(dfa_format::magic)))
+    {
+      throw std::runtime_error(file_name_in + " is not a DFA file");
+    }
+
+  uint16_t file_version_major = read_u16(bytes + dfa_format::off_version_major);
+  if(file_version_major != dfa_format::version_major)
+    {
+      throw std::runtime_error(file_name_in + " has an unsupported major version");
+    }
+  // A higher minor version is readable by ignoring what we do not understand.
+
+  if(read_u32(bytes + dfa_format::off_header_bytes) != dfa_format::header_bytes)
+    {
+      throw std::runtime_error(file_name_in + " has an unsupported header size");
+    }
+
+  uint32_t file_ndim = read_u32(bytes + dfa_format::off_ndim);
+  if(file_ndim < 1)
+    {
+      throw std::runtime_error(file_name_in + " has no layers");
+    }
+
+  uint32_t flags = read_u32(bytes + dfa_format::off_flags);
+  if(flags & ~dfa_format::flag_canonical)
+    {
+      throw std::runtime_error(file_name_in + " sets reserved flag bits");
+    }
+  canonical = (flags & dfa_format::flag_canonical) != 0;
+
+  if(file_length < dfa_format::off_tables + 20 * size_t(file_ndim))
+    {
+      throw std::runtime_error(file_name_in + " is too short for its layer tables");
+    }
+
+  ndim = int(file_ndim);
+  const uint8_t *size_table = bytes + dfa_format::off_tables;
+  const uint8_t *offset_table = size_table + 8 * size_t(file_ndim);
+  const uint8_t *shape_table = offset_table + 8 * size_t(file_ndim);
+
+  std::vector<uint64_t> file_layer_sizes;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      uint64_t layer_size = read_u64(size_table + 8 * size_t(layer));
+      if(layer_size > DFA_STATE_MAX)
+	{
+	  throw std::runtime_error(file_name_in + " has a layer too large for dfa_state_t");
+	}
+      file_layer_sizes.push_back(layer_size);
+      layer_sizes.push_back(size_t(layer_size));
+
+      shape.push_back(int(read_u32(shape_table + 4 * size_t(layer))));
+    }
+
+  // Layout::Layout rejects ndim < 1, shape < 1 and layer sizes < 2.
+  file_layout = new dfa_format::Layout(shape, file_layer_sizes);
+
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      if(read_u64(offset_table + 8 * size_t(layer)) != file_layout->get_layer_offset(layer))
+	{
+	  throw std::runtime_error(file_name_in + " has a layer offset the layout does not imply");
+	}
+    }
+
+  // An equality, not a lower bound: the file ends where the last block does.
+  if(file_length != file_layout->file_len())
+    {
+      throw std::runtime_error(file_name_in + " is not the length its layout implies");
+    }
+
+  uint64_t file_initial_state = read_u64(bytes + dfa_format::off_initial_state);
+  if(file_initial_state >= file_layer_sizes.at(0))
+    {
+      throw std::runtime_error(file_name_in + " has an out of range initial state");
+    }
+  initial_state = dfa_state_t(file_initial_state);
+
+  char digest[65] = {0};
+  for(size_t i = 0; i < dfa_format::digest_length; ++i)
+    {
+      snprintf(digest + 2 * i, 3, "%02x", bytes[dfa_format::off_digest + i]);
+    }
+  hash = std::string(digest);
 }
 
 dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
@@ -387,17 +519,22 @@ void DFA::copy_layer(int layer, const DFA& dfa_in)
   assert(layer_sizes[layer] == 2);
   assert(dfa_in.get_layer_size(layer) >= 2);
 
-  layer_sizes[layer] = dfa_in.get_layer_size(layer);
-  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], size_t(layer_sizes[layer]) * size_t(get_layer_shape(layer)));
-  assert(layer_transitions[layer].size() == dfa_in.layer_transitions[layer].size());
+  int layer_shape = get_layer_shape(layer);
+  assert(dfa_in.get_layer_shape(layer) == layer_shape);
 
-  // make sure the source layer is mapped
-  dfa_in.layer_transitions[layer].mmap();
+  // The source may be staged as uint32 or saved at whatever width the format
+  // derived for it, so copy through get_transitions rather than reading its
+  // bytes directly.
+  dfa_in.mmap();
 
-  TRY_PARALLEL_3(std::copy,
-                 dfa_in.layer_transitions[layer].begin(),
-                 dfa_in.layer_transitions[layer].end(),
-                 layer_transitions[layer].begin());
+  build_layer(layer, dfa_in.get_layer_size(layer), [&](dfa_state_t state, dfa_state_t *transitions_out)
+  {
+    DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state);
+    for(int c = 0; c < layer_shape; ++c)
+      {
+	transitions_out[c] = transitions_in[c];
+      }
+  });
 }
 
 void DFA::set_initial_state(dfa_state_t initial_state_in)
@@ -407,6 +544,8 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
   assert(initial_state_in < get_layer_size(0));
   initial_state = initial_state_in;
 
+  // Trim staging down to the layer sizes actually reached, since add_state
+  // grows the files by doubling.
   for(int layer = 0; layer < ndim; ++layer)
     {
       int layer_shape = get_layer_shape(layer);
@@ -420,34 +559,195 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
   assert(ready());
 }
 
-std::string DFA::calculate_hash() const
+// Write this DFA to file_name_in in the format of FORMAT-DFA.md and return
+// the hex digest of what was written.
+//
+// Mirrors rust/dfa-format/src/write.rs. The two write into the same content
+// addressed store, so they have to agree byte for byte.
+std::string DFA::serialize(std::string file_name_in) const
 {
-  Profile profile("calculate_hash");
+  Profile profile("serialize");
 
   assert(ready());
+  assert(temporary);
 
-  mmap();
-
-  unsigned char hash_output[SHA256_DIGEST_LENGTH];
-  static const EVP_MD *hash_implementation = EVP_sha256();
-  static EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
-
-  EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
-  EVP_DigestUpdate(hash_context, &initial_state, sizeof(initial_state));
-  EVP_DigestUpdate(hash_context, shape.data(), shape.size() * sizeof(shape[0]));
-  EVP_DigestUpdate(hash_context, layer_sizes.data(), layer_sizes.size() * sizeof(layer_sizes[0]));
+  std::vector<uint64_t> sizes;
   for(int layer = 0; layer < ndim; ++layer)
     {
-      EVP_DigestUpdate(hash_context, &(layer_transitions[layer][0]), layer_transitions[layer].length());
+      sizes.push_back(uint64_t(layer_sizes.at(layer)));
     }
-  EVP_DigestFinal_ex(hash_context, hash_output, 0);
+  dfa_format::Layout layout(shape, sizes);
+
+  int fildes = open(file_name_in.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+  if(fildes == -1)
+    {
+      perror("DFA serialize open");
+      throw std::runtime_error("DFA serialize open failed");
+    }
+
+  // Header. The digest is filled in at the end, and flags is already settled
+  // because canonicity is declared by the subclass rather than discovered.
+  std::vector<uint8_t> header(dfa_format::header_bytes, 0);
+  memcpy(&header[dfa_format::off_magic], dfa_format::magic, sizeof(dfa_format::magic));
+  dfa_format::encode_entry(dfa_format::version_major, 2, &header[dfa_format::off_version_major]);
+  dfa_format::encode_entry(dfa_format::version_minor, 2, &header[dfa_format::off_version_minor]);
+  dfa_format::encode_entry(dfa_format::header_bytes, 4, &header[dfa_format::off_header_bytes]);
+  dfa_format::encode_entry(uint64_t(ndim), 4, &header[dfa_format::off_ndim]);
+  dfa_format::encode_entry(canonical ? dfa_format::flag_canonical : 0, 4, &header[dfa_format::off_flags]);
+  dfa_format::encode_entry(initial_state, 8, &header[dfa_format::off_initial_state]);
+  write_buffer(fildes, header.data(), header.size());
+
+  // Tables, then padding up to the first block.
+  std::vector<uint8_t> tables;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      uint8_t entry[8];
+      dfa_format::encode_entry(sizes.at(layer), 8, entry);
+      tables.insert(tables.end(), entry, entry + 8);
+    }
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      uint8_t entry[8];
+      dfa_format::encode_entry(layout.get_layer_offset(layer), 8, entry);
+      tables.insert(tables.end(), entry, entry + 8);
+    }
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      uint8_t entry[4];
+      dfa_format::encode_entry(uint64_t(shape.at(layer)), 4, entry);
+      tables.insert(tables.end(), entry, entry + 4);
+    }
+  tables.resize(size_t(layout.get_layer_offset(0) - dfa_format::off_tables), 0);
+  write_buffer(fildes, tables.data(), tables.size());
+
+  // Blocks, narrowing each transition to the width the layout derives.
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      profile.tic("serialize layer");
+
+      int layer_shape = get_layer_shape(layer);
+      int width = layout.get_width(layer);
+      uint64_t layer_size = sizes.at(layer);
+      uint64_t bound = layout.next_layer_size(layer);
+
+      layer_transitions.at(layer).mmap();
+      const MemoryMap<dfa_state_t>& source = layer_transitions.at(layer);
+
+      size_t block_bytes = size_t(layout.get_block_bytes(layer));
+      std::vector<uint8_t> block(block_bytes);
+
+      std::vector<dfa_state_t> previous_row;
+      for(uint64_t state = 0; state < layer_size; ++state)
+	{
+	  size_t source_offset = size_t(state) * size_t(layer_shape);
+	  size_t block_offset = size_t(state) * size_t(layer_shape) * size_t(width);
+
+	  for(int c = 0; c < layer_shape; ++c)
+	    {
+	      dfa_state_t next_state = source[source_offset + size_t(c)];
+	      assert(next_state < bound);
+	      dfa_format::encode_entry(next_state, width, &block[block_offset + size_t(c) * size_t(width)]);
+	    }
+
+	  // Rows 0 and 1 carry fixed values (section 4).
+	  if(state < 2)
+	    {
+	      for(int c = 0; c < layer_shape; ++c)
+		{
+		  assert(source[source_offset + size_t(c)] == state);
+		}
+	      continue;
+	    }
+
+	  // Verify the cheap half of the canonical claim. The rows are
+	  // streaming past in order anyway, so comparing each against the
+	  // last costs nothing, and a subclass that declares canonical
+	  // wrongly fails here rather than producing a file readers reject.
+	  if(canonical)
+	    {
+	      std::vector<dfa_state_t> row(source.begin() + long(source_offset),
+					   source.begin() + long(source_offset) + layer_shape);
+
+	      bool uniform_reject = true;
+	      bool uniform_accept = true;
+	      for(int c = 0; c < layer_shape; ++c)
+		{
+		  uniform_reject = uniform_reject && (row[size_t(c)] == dfa_format::state_reject);
+		  uniform_accept = uniform_accept && (row[size_t(c)] == dfa_format::state_accept);
+		}
+	      assert(!uniform_reject);
+	      assert(!uniform_accept);
+
+	      if(previous_row.size())
+		{
+		  assert(previous_row < row);
+		}
+	      previous_row = row;
+	    }
+	}
+
+      write_buffer(fildes, block.data(), block.size());
+
+      // Padding between blocks. The last block is followed by EOF.
+      if(layer + 1 < ndim)
+	{
+	  uint64_t end = layout.get_layer_offset(layer) + layout.get_block_bytes(layer);
+	  std::vector<uint8_t> padding(size_t(layout.get_layer_offset(layer + 1) - end), 0);
+	  write_buffer(fildes, padding.data(), padding.size());
+	}
+    }
+
+  // The digest covers [48, EOF), which includes flags, so it can only be
+  // computed once everything else is on disk.
+  profile.tic("serialize digest");
+
+  if(lseek(fildes, off_t(dfa_format::digest_coverage_start), SEEK_SET) == -1)
+    {
+      perror("DFA serialize lseek");
+      throw std::runtime_error("DFA serialize lseek failed");
+    }
+
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+  static const EVP_MD *hash_implementation = EVP_sha256();
+  EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+  EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
+
+  std::vector<uint8_t> chunk(size_t(1) << 23);
+  while(1)
+    {
+      ssize_t chunk_read = read(fildes, chunk.data(), chunk.size());
+      if(chunk_read < 0)
+	{
+	  perror("DFA serialize read");
+	  throw std::runtime_error("DFA serialize read failed");
+	}
+      if(chunk_read == 0)
+	{
+	  break;
+	}
+      EVP_DigestUpdate(hash_context, chunk.data(), size_t(chunk_read));
+    }
+  EVP_DigestFinal_ex(hash_context, digest, 0);
+  EVP_MD_CTX_destroy(hash_context);
+
+  if(lseek(fildes, off_t(dfa_format::off_digest), SEEK_SET) == -1)
+    {
+      perror("DFA serialize lseek");
+      throw std::runtime_error("DFA serialize lseek failed");
+    }
+  write_buffer(fildes, digest, sizeof(digest));
+
+  if(fsync(fildes) || close(fildes))
+    {
+      perror("DFA serialize close");
+      throw std::runtime_error("DFA serialize close failed");
+    }
 
   std::stringstream ss;
-  for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+  for(size_t i = 0; i < SHA256_DIGEST_LENGTH; ++i)
     {
-      ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash_output[i];
+      ss << std::hex << std::setw(2) << std::setfill('0') << int(digest[i]);
     }
-
   return ss.str();
 }
 
@@ -508,15 +808,46 @@ bool DFA::contains(const DFAString& string_in) const
   return current_state != 0;
 }
 
+std::string DFA::calculate_digest() const
+{
+  Profile profile("calculate_digest");
+
+  if(!file_map)
+    {
+      throw std::runtime_error("DFA has not been saved, so it has no digest yet");
+    }
+  file_map->mmap();
+
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+  static const EVP_MD *hash_implementation = EVP_sha256();
+  EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+  EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
+  EVP_DigestUpdate(hash_context,
+		   file_map->begin() + dfa_format::digest_coverage_start,
+		   file_map->size() - dfa_format::digest_coverage_start);
+  EVP_DigestFinal_ex(hash_context, digest, 0);
+  EVP_MD_CTX_destroy(hash_context);
+
+  std::stringstream ss;
+  for(size_t i = 0; i < SHA256_DIGEST_LENGTH; ++i)
+    {
+      ss << std::hex << std::setw(2) << std::setfill('0') << int(digest[i]);
+    }
+  return ss.str();
+}
+
 std::string DFA::get_hash() const
 {
   assert(ready());
 
+  // The hash is the file's own digest, so it does not exist until the DFA has
+  // been written.
   if(!hash)
     {
-      hash = calculate_hash();
+      save_by_hash();
     }
 
+  assert(hash);
   assert(hash->length() == 64);
 
   return *hash;
@@ -573,7 +904,6 @@ const DFALinearBound& DFA::get_linear_bound() const
 	  bounds.emplace_back(layer_shape, false);
 
 	  std::vector<bool>& curr_bounds = bounds[layer];
-	  const MemoryMap<dfa_state_t>& curr_transitions = layer_transitions[layer];
 
 	  // narrow shape case
 
@@ -584,16 +914,16 @@ const DFALinearBound& DFA::get_linear_bound() const
 		  bool local_accept_all = false;
 		  uint32_t local_bounds = 0;
 
-		  size_t offset = size_t(state_id) * size_t(layer_shape);
-		  for(size_t i = 0; i < layer_shape; ++i)
+		  DFATransitionsReference transitions = this->get_transitions(layer, state_id);
+		  for(int i = 0; i < layer_shape; ++i)
 		    {
-		      if(curr_transitions[offset + i] == 1)
+		      if(transitions[i] == 1)
 			{
 			  local_accept_all = true;
 			}
-		      if(curr_transitions[offset + i])
+		      if(transitions[i])
 			{
-			  local_bounds |= 1 << i;
+			  local_bounds |= uint32_t(1) << i;
 			}
 		    }
 
@@ -633,17 +963,20 @@ const DFALinearBound& DFA::get_linear_bound() const
 
 	  // general shape case
 
-	  size_t num_transitions = layer_size * layer_shape;
-	  for(size_t i = 2 * layer_shape; i < num_transitions; ++i)
+	  for(size_t state_id = 2; state_id < layer_size; ++state_id)
 	    {
-	      dfa_state_t t = curr_transitions[i];
-	      if(t == 1)
+	      DFATransitionsReference transitions = this->get_transitions(layer, state_id);
+	      for(int i = 0; i < layer_shape; ++i)
 		{
-		  reached_accept_all = true;
-		}
-	      if(t)
-		{
-		  curr_bounds[i % layer_shape] = true;
+		  dfa_state_t t = transitions[i];
+		  if(t == 1)
+		    {
+		      reached_accept_all = true;
+		    }
+		  if(t)
+		    {
+		      curr_bounds[i] = true;
+		    }
 		}
 	    }
 	}
@@ -680,7 +1013,35 @@ DFATransitionsReference DFA::get_transitions(int layer, size_t state_index) cons
 {
   assert(layer < ndim);
   assert(state_index < layer_sizes[layer]);
-  return DFATransitionsReference(layer_transitions[layer], state_index, get_layer_shape(layer));
+
+  int layer_shape = get_layer_shape(layer);
+
+  if(file_map)
+    {
+      // Saved: entries are stored at the width the format derives.
+      file_map->mmap();
+      size_t offset = size_t(file_layout->row_offset(layer, uint64_t(state_index)));
+      return DFATransitionsReference(file_map->begin() + offset,
+				     layer_shape,
+				     file_layout->get_width(layer));
+    }
+
+  // Being built: staging holds one uint32 per transition.
+  const MemoryMap<dfa_state_t>& staging = layer_transitions[layer];
+  staging.mmap();
+  const uint8_t *row = reinterpret_cast<const uint8_t *>(staging.begin() +
+							 state_index * size_t(layer_shape));
+  return DFATransitionsReference(row, layer_shape, int(sizeof(dfa_state_t)));
+}
+
+bool DFA::is_canonical() const
+{
+  return canonical;
+}
+
+void DFA::set_canonical(bool canonical_in)
+{
+  canonical = canonical_in;
 }
 
 bool DFA::is_constant(bool constant_in) const
@@ -741,6 +1102,12 @@ bool DFA::is_linear() const
 
 void DFA::mmap() const
 {
+  if(file_map)
+    {
+      file_map->mmap();
+      return;
+    }
+
   for(int layer = 0; layer < ndim; ++layer)
     {
       layer_transitions[layer].mmap();
@@ -749,6 +1116,12 @@ void DFA::mmap() const
 
 void DFA::munmap() const
 {
+  if(file_map)
+    {
+      file_map->munmap();
+      return;
+    }
+
   for(int layer = 0; layer < ndim; ++layer)
     {
       layer_transitions[layer].munmap();
@@ -758,6 +1131,8 @@ void DFA::munmap() const
 std::optional<std::string> DFA::parse_hash(std::string name_in)
 {
   std::string hash_prefix = "dfas_by_hash/";
+  std::string hash_suffix = ".dfa";
+
   if(name_in.starts_with(hash_prefix))
     {
       assert(name_in.length() == hash_prefix.length() + 64);
@@ -774,11 +1149,16 @@ std::optional<std::string> DFA::parse_hash(std::string name_in)
   if(ret >= 0)
     {
       std::string link_target_string(link_target);
+      if(!link_target_string.ends_with(hash_suffix))
+	{
+	  return std::optional<std::string>();
+	}
+      link_target_string.resize(link_target_string.length() - hash_suffix.length());
+
       if(link_target_string.length() < hash_prefix.length() + 64)
-        {
-          // not long enough for prefix + hash
-          return std::optional<std::string>();
-        }
+	{
+	  return std::optional<std::string>();
+	}
 
       size_t hash_offset = link_target_string.length() - hash_prefix.length() - 64;
       if(link_target_string.substr(hash_offset, hash_prefix.length()) == hash_prefix)
@@ -808,8 +1188,8 @@ void DFA::save(std::string name_in) const
 
   std::string symlink_path = std::string("scratch/") + name_in;
 
-  // add symbolic link to existing directory in dfas_by_hash/
-  std::string symlink_target = "dfas_by_hash/" + get_hash();
+  // add symbolic link to the existing file in dfas_by_hash/
+  std::string symlink_target = "dfas_by_hash/" + get_hash() + ".dfa";
   for(char c : name_in)
     {
       if(c == '/')
@@ -838,45 +1218,43 @@ void DFA::save_by_hash() const
       return;
     }
 
-  std::string directory_new = std::string("scratch/dfas_by_hash/") + get_hash();
-  // TODO: check if hash directory already exists and share carefully
+  mkdir("scratch/dfas_by_hash", 0700);
 
-  // flush state to disk
+  // Write under a temporary name, since the final name is the digest of the
+  // bytes and is not known until they have all been written.
+  static int next_serialize_id = 0;
+  std::string temporary_name = ("scratch/dfas_by_hash/.tmp-" +
+				std::to_string(getpid()) + "-" +
+				std::to_string(next_serialize_id++) + ".dfa");
 
-  for(int layer = 0; layer < ndim; ++layer)
+  std::string digest = serialize(temporary_name);
+  std::string file_name_new = "scratch/dfas_by_hash/" + digest + ".dfa";
+
+  // link() fails with EEXIST rather than replacing, which is what section 10
+  // asks for: a file of this name already holds these exact bytes, and a
+  // reader may have it open. rename() would clobber it.
+  int link_ret = link(temporary_name.c_str(), file_name_new.c_str());
+  if(link_ret && (errno != EEXIST))
     {
-      layer_transitions.at(layer).msync();
+      perror("DFA save link");
+      throw std::runtime_error("DFA save link failed");
     }
 
-  size_cache.msync();
-
-  // write initial state to disk
-  MemoryMap<dfa_state_t> initial_state_mmap(directory + "/initial_state", size_t(1));
-  initial_state_mmap[0] = initial_state;
-  initial_state_mmap.msync();
-
-  remove_directory(directory_new);
-
-  int ret = rename(directory.c_str(), directory_new.c_str());
-  if(ret)
+  if(unlink(temporary_name.c_str()))
     {
-      perror("DFA save rename");
-      throw std::runtime_error("DFA save rename failed");
+      perror("DFA save unlink");
+      throw std::runtime_error("DFA save unlink failed");
     }
 
-  // repoint internal state at new directory
+  hash = digest;
 
-  directory = directory_new;
-  layer_file_names = get_layer_file_names(int(shape.size()), directory_new);
+  // Switch this object over to the file, and drop the staging directory.
+  attach_file(file_name_new);
 
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      // switch layer memory maps to the new file names so they do not
-      // break on munmap. has an implied flush.
-      layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer]);
-      assert(layer_transitions[layer].size() == size_t(layer_sizes[layer]) * size_t(shape[layer]));
-    }
-
+  layer_transitions.clear();
+  layer_file_names.clear();
+  remove_directory(directory);
+  directory = "";
   temporary = false;
 }
 
@@ -885,17 +1263,41 @@ void DFA::set_name(std::string name_in) const
   name = name_in;
 }
 
+// Where the cached position count lives. Section 9 keeps derived data out of
+// the file itself: the bytes must stay a function of the automaton alone, and
+// readers must be able to treat the file as immutable.
+static std::string get_size_file_name(std::string hash_in)
+{
+  return "scratch/sizes/" + hash_in;
+}
+
 double DFA::size() const
 {
   assert(ready());
 
   if(initial_state == 0)
     {
-      assert(size_cache[0] == 0.0);
       return 0.0;
     }
 
-  if(size_cache[0] == 0.0)
+  if((size_cache == 0.0) && !size_cache_loaded && hash)
+    {
+      size_cache_loaded = true;
+      try
+	{
+	  MemoryMap<double> cached(get_size_file_name(*hash), true);
+	  if(cached.size() == 1)
+	    {
+	      size_cache = cached[0];
+	    }
+	}
+      catch(const std::runtime_error& e)
+	{
+	  // no cached size yet
+	}
+    }
+
+  if(size_cache == 0.0)
     {
       mmap();
 
@@ -924,12 +1326,20 @@ double DFA::size() const
           std::swap(current_counts, previous_counts);
 	}
 
-      size_cache[0] = previous_counts.at(initial_state);
+      size_cache = previous_counts.at(initial_state);
+
+      if(hash)
+	{
+	  mkdir("scratch/sizes", 0700);
+	  MemoryMap<double> cached(get_size_file_name(*hash), size_t(1));
+	  cached[0] = size_cache;
+	  cached.msync();
+	}
     }
 
-  assert(size_cache[0] >= 1.0);
+  assert(size_cache >= 1.0);
 
-  return size_cache[0];
+  return size_cache;
 }
 
 size_t DFA::states() const
