@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = ["dfa-format"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+# These tools are I/O bound, so the overflow checks cost nothing measurable and
+# turn a mis-sized offset into a panic instead of a silently wrong file.
+[profile.release]
+overflow-checks = true

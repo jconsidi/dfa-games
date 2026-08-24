@@ -1,6 +1,1 @@
-#*#
-*.a
-*.bak
-*.o
-*~
-.depend
+rust/target
