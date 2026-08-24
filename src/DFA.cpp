@@ -24,6 +24,20 @@
 
 static int next_dfa_id = 0;
 
+// Staging directory for a DFA under construction.
+//
+// The counter is per process, so it alone does not make the name unique:
+// two concurrent processes both start at zero and march through the same
+// directories, overwriting each other's layer files. Mixing in the pid is
+// what makes the name actually unique, and a pid cannot be reused while
+// this process holds it.
+static std::string get_temp_directory()
+{
+  return ("scratch/temp/" +
+	  std::to_string(getpid()) + "-" +
+	  std::to_string(next_dfa_id++));
+}
+
 std::vector<std::string> get_layer_file_names(int ndim, std::string directory)
 {
   std::vector<std::string> output;
@@ -105,7 +119,7 @@ DFATransitionsReference::DFATransitionsReference(const DFATransitionsReference& 
 DFA::DFA(const dfa_shape_t& shape_in)
   : shape(shape_in),
     ndim(int(shape.size())),
-    directory(create_directory("scratch/temp/" + std::to_string(next_dfa_id++))),
+    directory(create_directory(get_temp_directory())),
     layer_file_names(get_layer_file_names(int(shape_in.size()), directory)),
     layer_sizes(),
     layer_transitions(),
