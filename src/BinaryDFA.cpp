@@ -64,12 +64,14 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
     {
       if(left_in.is_constant(i) && leaf_func.has_left_sink(i))
         {
+          this->set_canonical(true);
           this->set_initial_state(i);
           return;
         }
 
       if(right_in.is_constant(i) && leaf_func.has_right_sink(i))
         {
+          this->set_canonical(true);
           this->set_initial_state(i);
           return;
         }
@@ -312,6 +314,8 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
   dfa_state_t initial_right = right_in.get_initial_state();
   if(filter_func(initial_left, initial_right))
     {
+      // No ordinary states, so canonical numbering is vacuous.
+      this->set_canonical(true);
       this->set_initial_state(shortcircuit_func(initial_left, initial_right));
       return;
     }
@@ -327,6 +331,11 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
   profile.tic("backward");
 
   build_quadratic_backward(left_in, right_in, num_layers_used);
+
+  // Every layer sorted by its raw transitions, so states came out numbered in
+  // ascending order of those transitions, with uniform rows folded into the
+  // reserved states and duplicates merged. That is canonical and minimal.
+  this->set_canonical(!hashed_any_layer);
 
   assert(this->ready());
   profile.tic("final cleanup");
@@ -501,6 +510,15 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
     }
 
   profile.tic("transitions hash");
+
+  // Below the threshold the sort key is the transitions themselves, so the
+  // sort leaves states in canonical order (FORMAT-DFA.md section 8) and the
+  // scan below numbers them 2, 3, ... in that order. Above it the key is a
+  // hash and the order is arbitrary.
+  if(curr_layer_shape + 1 > binary_dfa_hash_width)
+    {
+      hashed_any_layer = true;
+    }
 
   MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed("scratch/binarydfa/transitions_hashed", curr_layer_count, [&](size_t i)
   {

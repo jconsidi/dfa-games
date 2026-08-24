@@ -97,6 +97,11 @@ class BinaryDFA : public DFA
 {
   BinaryFunction leaf_func;
 
+  // Set when a layer's transitions were too wide to be the sort key
+  // directly and had to be hashed. Sorting by hash renumbers states in an
+  // arbitrary order, which is what costs this DFA its canonical numbering.
+  bool hashed_any_layer = false;
+
   void build_linear(const DFA&, const DFA&);
 
   void build_quadratic(const DFA&, const DFA&);
