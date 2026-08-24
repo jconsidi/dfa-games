@@ -32,6 +32,10 @@ struct Args {
     #[arg(long)]
     no_canonical: bool,
 
+    /// Skip verifying that a <digest>.dfa file is named after its own digest
+    #[arg(long)]
+    no_filename: bool,
+
     /// Validate every .dfa file under <scratch>/dfas_by_hash
     #[arg(long)]
     all: bool,
@@ -51,6 +55,7 @@ fn main() -> Result<()> {
         reserved_rows: !args.no_reserved_rows,
         entry_bounds: !args.no_entry_bounds,
         canonical: !args.no_canonical,
+        filename: !args.no_filename,
     };
 
     let paths = collect_paths(&args)?;

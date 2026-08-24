@@ -391,6 +391,100 @@ fn negative_cases_are_all_rejected() {
 }
 
 #[test]
+fn a_digest_named_file_must_be_named_after_its_digest() {
+    let a = singleton(vec![3, 2, 4], &[2, 0, 3]);
+    let (tmp, good) = build(&a);
+
+    // The converter names its output after the digest, so the file it just
+    // produced must already satisfy this.
+    assert_valid(&good);
+    let digest = good.file_stem().unwrap().to_str().unwrap().to_string();
+    assert_eq!(digest.len(), 64);
+
+    // A file under someone else's digest is lying about its contents.
+    let wrong = tmp.path().join(format!("{}.dfa", "a".repeat(64)));
+    std::fs::copy(&good, &wrong).unwrap();
+    assert_rejected(&wrong, "but its digest is");
+
+    // The complaint is about the name alone: the bytes are untouched, so the
+    // digest check still passes and that is the only violation.
+    let found = violations(&wrong);
+    assert_eq!(found.len(), 1, "{found:?}");
+}
+
+#[test]
+fn a_file_not_named_after_a_digest_makes_no_claim() {
+    let a = singleton(vec![3, 2, 4], &[2, 0, 3]);
+    let (tmp, good) = build(&a);
+
+    for name in [
+        "positions.dfa",                    // an ordinary name
+        ".tmp-1234-0.dfa",                  // what the converter writes to
+        "ABCDEF0123456789.dfa",             // too short to be a digest
+        &format!("{}.bin", "0".repeat(64)), // right stem, wrong extension
+    ] {
+        let path = tmp.path().join(name);
+        std::fs::copy(&good, &path).unwrap();
+        let report = validate(&path, &ValidateOptions::default()).unwrap();
+        assert!(
+            report.ok(),
+            "{name} should be accepted: {:?}",
+            report.violations
+        );
+    }
+}
+
+#[test]
+fn a_renamed_and_edited_file_reports_both_lies() {
+    let a = singleton(vec![3, 2, 4], &[2, 0, 3]);
+    let (tmp, good) = build(&a);
+
+    // Corrupt the digest field, then store the result under yet another name.
+    let corrupted = corrupt(&tmp, &good, layout::OFF_DIGEST, &[0xAA; 4]);
+    let renamed = tmp.path().join(format!("{}.dfa", "b".repeat(64)));
+    std::fs::rename(&corrupted, &renamed).unwrap();
+
+    let found = violations(&renamed);
+    assert!(
+        found.iter().any(|m| m.contains("but its digest is")),
+        "{found:?}"
+    );
+    assert!(
+        found.iter().any(|m| m.contains("but the contents hash to")),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn the_file_length_must_match_exactly_not_merely_suffice() {
+    // Spec 3.3: the file ends at the end of the last block, with no trailing
+    // bytes.  A file that is long enough is not thereby correct.
+    let a = singleton(vec![3, 2, 4], &[2, 0, 3]);
+    let (tmp, good) = build(&a);
+
+    let mut data = std::fs::read(&good).unwrap();
+    let implied = data.len();
+    data.extend_from_slice(&[0u8; 8]);
+    let trailing = tmp.path().join("trailing.dfa");
+    std::fs::write(&trailing, &data).unwrap();
+
+    assert_rejected(&trailing, &format!("but the layout implies {implied}"));
+}
+
+#[test]
+fn padding_between_blocks_must_be_zero() {
+    // Distinct from the padding after the shape table, and on its own branch.
+    let a = singleton(vec![3, 2, 4], &[2, 0, 3]);
+    let (tmp, good) = build(&a);
+
+    let lay = Layout::new(vec![3, 2, 4], vec![3, 3, 3]).unwrap();
+    let gap = lay.layer_offset()[0] + lay.block_bytes()[0];
+    assert!(gap < lay.layer_offset()[1], "this shape must actually pad");
+
+    assert_rejected(&corrupt(&tmp, &good, gap, &[1]), "padding after block 0");
+}
+
+#[test]
 fn canonical_flag_without_canonical_order_is_rejected() {
     // Take an unordered file and lie about it by setting bit 0 by hand.
     let mut a = canonical_automaton();

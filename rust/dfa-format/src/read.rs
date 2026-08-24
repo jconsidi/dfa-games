@@ -26,6 +26,10 @@ pub struct ValidateOptions {
     pub entry_bounds: bool,
     /// Verify canonical numbering and minimality when `flags` bit 0 is set.
     pub canonical: bool,
+    /// Verify that a file stored as `<digest>.dfa` is named after its own
+    /// digest.  Not part of the format, which says nothing about file names,
+    /// but content addressing is only worth anything if the name is true.
+    pub filename: bool,
 }
 
 impl Default for ValidateOptions {
@@ -35,6 +39,7 @@ impl Default for ValidateOptions {
             reserved_rows: true,
             entry_bounds: true,
             canonical: true,
+            filename: true,
         }
     }
 }
@@ -47,6 +52,7 @@ impl ValidateOptions {
             reserved_rows: false,
             entry_bounds: false,
             canonical: false,
+            filename: false,
         }
     }
 }
@@ -188,6 +194,9 @@ pub fn validate(path: &Path, opts: &ValidateOptions) -> Result<Report> {
 
     if opts.digest {
         check_digest(&map, &header, &mut violations);
+    }
+    if opts.filename {
+        check_filename(path, &header, &mut violations);
     }
     if blocks_present {
         check_padding(&map, &lay, &mut violations);
@@ -412,6 +421,33 @@ fn check_digest(m: &[u8], header: &Header, out: &mut Vec<Violation>) {
                 hex(&header.digest),
                 hex(&actual)
             ),
+        ));
+    }
+}
+
+/// A file stored as `<digest>.dfa` is making a claim about its own contents,
+/// so check it.  Files named any other way -- a temp file mid-conversion, a
+/// copy someone renamed -- make no such claim and are left alone.
+///
+/// This compares the name against the digest *field*.  Whether that field
+/// matches the bytes is the separate business of `check_digest`, and a file
+/// that fails both reports both, which is what tells you which half lied.
+fn check_filename(path: &Path, header: &Header, out: &mut Vec<Violation>) {
+    if path.extension().and_then(|e| e.to_str()) != Some("dfa") {
+        return;
+    }
+    let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+        return;
+    };
+    if !crate::is_hash(stem) {
+        return;
+    }
+
+    let digest = hex(&header.digest);
+    if stem != digest {
+        out.push(Violation::at(
+            layout::OFF_DIGEST,
+            format!("file is named {stem}.dfa but its digest is {digest}"),
         ));
     }
 }
