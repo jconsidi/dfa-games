@@ -51,7 +51,7 @@ bool validate_side_to_move(const Game& game, int side_to_move, int max_examples)
   std::cout << "# CHECK has_moves" << std::endl;
 
   shared_dfa_ptr has_moves = game.get_has_moves(side_to_move);
-  if(!validate_result(game, side_to_move, has_moves, 0, max_examples))
+  if(!validate_nonterminal(game, side_to_move, has_moves, max_examples))
     {
       std::cerr << "# CHECK has_moves failed" << std::endl;
       return false;
