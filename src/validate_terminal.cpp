@@ -57,14 +57,14 @@ bool validate_side_to_move(const Game& game, int side_to_move, int max_examples)
       return false;
     }
 
-  std::cout << "# CHECK drawn" << std::endl;
+  std::cout << "# CHECK tied" << std::endl;
 
-  shared_dfa_ptr not_drawn = DFAUtil::get_union_vector(shape,
+  shared_dfa_ptr not_tied = DFAUtil::get_union_vector(shape,
 						       std::vector<shared_dfa_ptr>({won, lost, has_moves}));
-  shared_dfa_ptr drawn = DFAUtil::get_inverse(not_drawn);
-  if(!validate_result(game, side_to_move, drawn, 0, max_examples))
+  shared_dfa_ptr tied = DFAUtil::get_inverse(not_tied);
+  if(!validate_result(game, side_to_move, tied, 0, max_examples))
     {
-      std::cerr << "# CHECK drawn failed" << std::endl;
+      std::cerr << "# CHECK tied failed" << std::endl;
       return false;
     }
 
