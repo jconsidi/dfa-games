@@ -14,54 +14,6 @@ TicTacToeGame::TicTacToeGame(int n_in)
 {
 }
 
-shared_dfa_ptr TicTacToeGame::build_positions_lost(int side_to_move) const
-{
-  shared_dfa_ptr lost_positions = DFAUtil::get_reject(get_shape());
-
-  // vertical lost conditions
-  for(int x = 0; x < n; ++x)
-    {
-      shared_dfa_ptr lost_vertical = get_lost_condition(side_to_move, x, 0, 0, 1);
-      lost_positions = DFAUtil::get_union(lost_positions, lost_vertical);
-    }
-
-  // horizontal lost conditions
-  for(int y = 0; y < n; ++y)
-    {
-      shared_dfa_ptr lost_horizontal = get_lost_condition(side_to_move, 0, y, 1, 0);
-      lost_positions = DFAUtil::get_union(lost_positions, lost_horizontal);
-    }
-
-  // diagonal lost conditions
-
-  shared_dfa_ptr diagonal_plus = get_lost_condition(side_to_move, 0, 0, 1, 1);
-  lost_positions = DFAUtil::get_union(lost_positions, diagonal_plus);
-
-  shared_dfa_ptr diagonal_negative = get_lost_condition(side_to_move, 0, n - 1, 1, -1);
-  lost_positions = DFAUtil::get_union(lost_positions, diagonal_negative);
-
-  // done
-
-  return lost_positions;
-}
-
-shared_dfa_ptr TicTacToeGame::get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta) const
-{
-  shared_dfa_ptr condition = DFAUtil::get_accept(get_shape());
-
-  for(int i = 0; i < n; ++i)
-    {
-      int x = x_start + x_delta * i;
-      int y = y_start + y_delta * i;
-      int index = y * n + x;
-
-      shared_dfa_ptr opponent_piece = DFAUtil::get_fixed(get_shape(), index, 2 - side_to_move);
-      condition = DFAUtil::get_intersection(condition, opponent_piece);
-    }
-
-  return condition;
-}
-
 MoveGraph TicTacToeGame::build_move_graph(int side_to_move) const
 {
   shared_dfa_ptr lost_positions = this->get_positions_lost(side_to_move);

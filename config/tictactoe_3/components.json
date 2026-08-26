@@ -1,0 +1,159 @@
+{
+  "components": {
+    "lost,side_to_move=0": {
+      "inputs": [
+        "lost,side_to_move=0,row=0",
+        "lost,side_to_move=0,row=1",
+        "lost,side_to_move=0,row=2",
+        "lost,side_to_move=0,col=0",
+        "lost,side_to_move=0,col=1",
+        "lost,side_to_move=0,col=2",
+        "lost,side_to_move=0,diag0",
+        "lost,side_to_move=0,diag1"
+      ],
+      "type": "union"
+    },
+    "lost,side_to_move=0,col=0": {
+      "inputs": {
+        "0": 2,
+        "3": 2,
+        "6": 2
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=0,col=1": {
+      "inputs": {
+        "1": 2,
+        "4": 2,
+        "7": 2
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=0,col=2": {
+      "inputs": {
+        "2": 2,
+        "5": 2,
+        "8": 2
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=0,diag0": {
+      "inputs": {
+        "0": 2,
+        "4": 2,
+        "8": 2
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=0,diag1": {
+      "inputs": {
+        "2": 2,
+        "4": 2,
+        "6": 2
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=0,row=0": {
+      "inputs": {
+        "0": 2,
+        "1": 2,
+        "2": 2
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=0,row=1": {
+      "inputs": {
+        "3": 2,
+        "4": 2,
+        "5": 2
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=0,row=2": {
+      "inputs": {
+        "6": 2,
+        "7": 2,
+        "8": 2
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=1": {
+      "inputs": [
+        "lost,side_to_move=1,row=0",
+        "lost,side_to_move=1,row=1",
+        "lost,side_to_move=1,row=2",
+        "lost,side_to_move=1,col=0",
+        "lost,side_to_move=1,col=1",
+        "lost,side_to_move=1,col=2",
+        "lost,side_to_move=1,diag0",
+        "lost,side_to_move=1,diag1"
+      ],
+      "type": "union"
+    },
+    "lost,side_to_move=1,col=0": {
+      "inputs": {
+        "0": 1,
+        "3": 1,
+        "6": 1
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=1,col=1": {
+      "inputs": {
+        "1": 1,
+        "4": 1,
+        "7": 1
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=1,col=2": {
+      "inputs": {
+        "2": 1,
+        "5": 1,
+        "8": 1
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=1,diag0": {
+      "inputs": {
+        "0": 1,
+        "4": 1,
+        "8": 1
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=1,diag1": {
+      "inputs": {
+        "2": 1,
+        "4": 1,
+        "6": 1
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=1,row=0": {
+      "inputs": {
+        "0": 1,
+        "1": 1,
+        "2": 1
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=1,row=1": {
+      "inputs": {
+        "3": 1,
+        "4": 1,
+        "5": 1
+      },
+      "type": "fixed"
+    },
+    "lost,side_to_move=1,row=2": {
+      "inputs": {
+        "6": 1,
+        "7": 1,
+        "8": 1
+      },
+      "type": "fixed"
+    }
+  },
+  "game": "tictactoe_3"
+}

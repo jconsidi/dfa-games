@@ -16,6 +16,7 @@ class ConfigBase
 
   std::string game_name;
   nlohmann::json game_config;
+  nlohmann::json components_config;
 
  protected:
 
@@ -23,7 +24,10 @@ class ConfigBase
 
   static nlohmann::json read_config(std::string, std::string);
 
-  const nlohmann::json& get_config_value(std::string) const;
+  bool check_component_config(std::string) const;
+  bool check_game_config(std::string) const;
+  const nlohmann::json& get_component_config(std::string) const;
+  const nlohmann::json& get_game_config(std::string) const;
   dfa_shape_t get_shape_config() const;
 };
 
@@ -33,6 +37,10 @@ class ConfigGame
  protected:
 
   ConfigGame(std::string);
+
+  virtual shared_dfa_ptr build_positions_lost(int) const;
+
+  shared_dfa_ptr get_component(std::string) const;
 
  public:
 

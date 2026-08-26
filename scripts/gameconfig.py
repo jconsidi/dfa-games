@@ -14,6 +14,15 @@ class GameConfig(object):
             "initial_position": list(initial_position),
         }
 
+        self.components_data = {"game": game, "components": {}}
+
+    def add_component(self, component_name, component_type, component_inputs):
+        assert component_name not in self.components_data
+        self.components_data["components"][component_name] = {
+            "type": component_type,
+            "inputs": component_inputs,
+        }
+
     def save(self):
         config_dir = pathlib.Path("config")
         game_dir = config_dir / self.game
@@ -29,3 +38,4 @@ class GameConfig(object):
                 config_fp.write("\n")
 
         save_config("game.json", self.game_data, sort_keys=False)
+        save_config("components.json", self.components_data)
