@@ -50,7 +50,7 @@ MoveGraph ClobberGame::build_move_graph(int side_to_move) const
 
             move_graph.add_node(move_name, move_changes);
           };
-          
+
           if(x0 > 0)
             {
               add_move(x0 - 1, y0);
