@@ -1,3 +1,4 @@
+*.a
 *.o
 build_backward
 build_chess_database
