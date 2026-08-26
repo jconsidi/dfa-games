@@ -7,7 +7,7 @@ LDFLAGS_SHARED=-L/usr/local/opt/openssl/lib -lcrypto
 
 ifeq ($(CXX), g++)
 # enable parallel execution when using g++ since available in libstdc++
-CXXFLAGS=$(CXXFLAGS_SHARED) -I/usr/local/include -Wno-sign-compare
+CXXFLAGS=$(CXXFLAGS_SHARED) -isystem /usr/local/include -Wno-sign-compare
 LDFLAGS=$(LDFLAGS_SHARED) -L/usr/local/lib -ltbb
 else
 CXXFLAGS=$(CXXFLAGS_SHARED)
@@ -22,7 +22,7 @@ clean :
 	$(RM) $(TARGETS) *.a *.o
 
 depend :
-	makedepend -Y -f - -- $(CXXFLAGS) -- *.cpp > .depend 2> /dev/null
+	makedepend -Y -f - -- $(subst -isystem ,-I,$(CXXFLAGS)) -- *.cpp > .depend 2> /dev/null
 
 test : all
 	./test_bitset

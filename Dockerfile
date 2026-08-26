@@ -16,6 +16,7 @@ RUN apt-get update --fix-missing \
   libtbb-dev \
   lldb \
   make \
+  nlohmann-json3-dev \
   openssl \
   tzdata
 
