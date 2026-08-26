@@ -117,6 +117,11 @@ shared_dfa_ptr ConfigGame::get_component(std::string key_in) const
         return DFAUtil::get_intersection_vector(get_shape(), dfa_inputs);
       }
 
+    if(component_type == "inverse")
+      {
+        return DFAUtil::get_inverse(get_component(component_inputs.get<std::string>()));
+      }
+
     if(component_type == "union")
       {
         std::vector<shared_dfa_ptr> dfa_inputs;
