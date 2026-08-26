@@ -105,6 +105,14 @@
         "3": 1
       },
       "type": "fixed"
+    },
+    "not_lost,side_to_move=0": {
+      "inputs": "lost,side_to_move=0",
+      "type": "inverse"
+    },
+    "not_lost,side_to_move=1": {
+      "inputs": "lost,side_to_move=1",
+      "type": "inverse"
     }
   },
   "game": "tictactoe_2"

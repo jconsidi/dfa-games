@@ -17,12 +17,6 @@ private:
 
   TicTacToeGame(int);
 
- private:
-
-  virtual MoveGraph build_move_graph(int) const;
-
- public:
-
   virtual std::string position_to_string(const DFAString&) const;
 };
 

@@ -15,6 +15,7 @@ def generate_size(n):
         return r * n + c
 
     for side_to_move in range(2):
+        # components
         loss_components = []
 
         def add_loss_component(name, coordinates):
@@ -45,6 +46,35 @@ def generate_size(n):
         game_config.add_component(
             f"lost,side_to_move={side_to_move}", "union", loss_components
         )
+
+        game_config.add_component(
+            f"not_lost,side_to_move={side_to_move}", "inverse", f"lost,side_to_move={side_to_move}"
+        )
+
+        # nodes
+
+        game_config.add_move_node(side_to_move, "begin", changes=[])
+        game_config.add_move_node(side_to_move, "not lost", changes=[])
+
+        move_node_names = []
+        for r in range(n):
+            for c in range(n):
+                node_name = f"move={r},{c}"
+                layer = r * n + c
+
+                game_config.add_move_node(
+                    side_to_move, node_name, changes=[{"layer": layer, "before": 0, "after": side_to_move + 1}]
+                )
+                move_node_names.append(node_name)
+
+        game_config.add_move_node(side_to_move, "end", [])
+
+        # edges
+
+        game_config.add_move_edge(side_to_move, "begin", "not lost", [f"not_lost,side_to_move={side_to_move}"])
+        for node_name in move_node_names:
+            game_config.add_move_edge(side_to_move, "not lost", node_name, [])
+            game_config.add_move_edge(side_to_move, node_name, "end", [])
 
     game_config.save()
 

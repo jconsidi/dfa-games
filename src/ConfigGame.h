@@ -38,6 +38,7 @@ class ConfigGame
 
   ConfigGame(std::string);
 
+  virtual MoveGraph build_move_graph(int) const;
   virtual shared_dfa_ptr build_positions_lost(int) const;
 
   shared_dfa_ptr get_component(std::string) const;

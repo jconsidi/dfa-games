@@ -4,6 +4,7 @@
 
 #include <sys/stat.h>
 
+#include <format>
 #include <fstream>
 #include <stdexcept>
 
@@ -71,6 +72,49 @@ ConfigGame::ConfigGame(std::string name_in)
   : ConfigBase(name_in),
     Game(name_in, ConfigBase::get_shape_config())
 {
+}
+
+MoveGraph ConfigGame::build_move_graph(int side_to_move) const
+{
+  std::string config_file = std::format("move_graph_{:d}.json", side_to_move);
+  auto config = read_config(get_name(), config_file);
+
+  MoveGraph move_graph(get_shape());
+
+  for(auto node_config : config.at("nodes"))
+    {
+      std::string node_name = node_config.at("node").get<std::string>();
+
+      change_vector changes(get_shape().size());
+      for(auto change : node_config.at("changes"))
+        {
+          int layer = change.at("layer").get<int>();
+          int before = change.at("before").get<int>();
+          int after = change.at("after").get<int>();
+          changes[layer] = change_type(before, after);
+        }
+
+      move_graph.add_node(node_name, changes);
+    }
+
+  for(auto edge_config : config.at("edges"))
+    {
+      std::string edge_name = edge_config.at("edge");
+      std::string from_node = edge_config.at("from");
+      std::string to_node = edge_config.at("to");
+
+      std::vector<shared_dfa_ptr> edge_conditions;
+      for(auto config_condition : edge_config.at("conditions"))
+        {
+          edge_conditions.push_back(get_component(config_condition));
+        }
+
+      move_graph.add_edge(edge_name, from_node, to_node, edge_conditions);
+    }
+
+  // done
+
+  return move_graph;
 }
 
 shared_dfa_ptr ConfigGame::build_positions_lost(int side_to_move) const
