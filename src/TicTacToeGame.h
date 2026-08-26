@@ -5,10 +5,10 @@
 
 #include <string>
 
-#include "Game.h"
+#include "ConfigGame.h"
 
 class TicTacToeGame
-  : public Game
+  : public ConfigGame
 {
 private:
   int n;

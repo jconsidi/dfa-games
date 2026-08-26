@@ -8,13 +8,8 @@
 
 #include "DFAUtil.h"
 
-static dfa_shape_t get_shape(int n)
-{
-  return std::vector<int>(n * n, 3);
-}
-
 TicTacToeGame::TicTacToeGame(int n_in)
-  : Game("tictactoe_" + std::to_string(n_in), ::get_shape(n_in)),
+  : ConfigGame("tictactoe_" + std::to_string(n_in)),
     n(n_in)
 {
 }
