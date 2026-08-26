@@ -45,11 +45,6 @@ shared_dfa_ptr TicTacToeGame::build_positions_lost(int side_to_move) const
   return lost_positions;
 }
 
-DFAString TicTacToeGame::get_position_initial() const
-{
-  return DFAString(get_shape(), std::vector<int>(get_shape().size(), 0));
-}
-
 shared_dfa_ptr TicTacToeGame::get_lost_condition(int side_to_move, int x_start, int y_start, int x_delta, int y_delta) const
 {
   shared_dfa_ptr condition = DFAUtil::get_accept(get_shape());

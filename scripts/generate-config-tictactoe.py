@@ -6,12 +6,13 @@ import sys
 
 
 class GameConfig(object):
-    def __init__(self, game, shape):
+    def __init__(self, game, shape, initial_position):
         self.game = game
 
         self.game_data = {
             "game": game,
             "shape": list(shape),
+            "initial_position": list(initial_position),
         }
 
     def save(self):
@@ -33,7 +34,7 @@ class GameConfig(object):
 def generate_size(n):
     n2 = n * n
     game_config = GameConfig(
-        f"tictactoe_{n}", shape=[3] * n2,
+        f"tictactoe_{n}", shape=[3] * n2, initial_position=[0] * n2
     )
 
     game_config.save()

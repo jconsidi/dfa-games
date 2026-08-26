@@ -4,6 +4,7 @@
 #define CONFIG_GAME_H
 
 #include <string>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -22,6 +23,7 @@ class ConfigBase
 
   static nlohmann::json read_config(std::string, std::string);
 
+  const nlohmann::json& get_config_value(std::string) const;
   dfa_shape_t get_shape_config() const;
 };
 
@@ -31,6 +33,10 @@ class ConfigGame
  protected:
 
   ConfigGame(std::string);
+
+ public:
+
+  virtual DFAString get_position_initial() const;
 };
 
 #endif
