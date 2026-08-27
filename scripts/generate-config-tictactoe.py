@@ -77,7 +77,7 @@ def generate_size(n):
             game_config.add_move_edge(side_to_move, "not lost", node_name, [])
             game_config.add_move_edge(side_to_move, node_name, "end", [])
 
-        # tests - perft_u
+        # tests - perft_u from initial position
 
         positions_expected = []
         for depth in range(1, 2 * n + 1):
@@ -92,6 +92,18 @@ def generate_size(n):
             positions_expected.append((positions_0 - positions_0_won) * positions_1)
 
         game_config.add_test({"type": "perft_u", "position": [0] * n2, "side_to_move": side_to_move, "expected": positions_expected})
+
+        # tests - perft_u from lost position
+
+        lost_position = []
+        # first row by prev player
+        lost_position.extend([2 - side_to_move] * n)
+        # second row by next player except one
+        lost_position.extend([1 + side_to_move] * (n - 1))
+        # rest empty
+        lost_position.extend([0] * (n * n - 2 * n + 1))
+        
+        game_config.add_test({"type": "perft_u", "position": lost_position, "side_to_move": side_to_move, "expected": [0]})
 
     game_config.save()
 

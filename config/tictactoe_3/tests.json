@@ -27,6 +27,24 @@
     {
       "type": "perft_u",
       "position": [
+        2,
+        2,
+        2,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 0,
+      "expected": [
+        0
+      ]
+    },
+    {
+      "type": "perft_u",
+      "position": [
         0,
         0,
         0,
@@ -45,6 +63,24 @@
         756,
         1260,
         1520
+      ]
+    },
+    {
+      "type": "perft_u",
+      "position": [
+        1,
+        1,
+        1,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 1,
+      "expected": [
+        0
       ]
     }
   ]

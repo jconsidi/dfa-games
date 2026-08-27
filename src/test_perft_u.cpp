@@ -5,6 +5,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "DFAUtil.h"
 #include "test_utils.h"
 
 void test_game(std::string game_name)
@@ -32,7 +33,7 @@ void test_game(std::string game_name)
       
       std::vector<int> expected = test_case.at("expected").get<std::vector<int>>();
 
-      shared_dfa_ptr positions = game->get_positions_initial();
+      shared_dfa_ptr positions = DFAUtil::from_string(position);
       for(int ply = 0; ply < expected.size(); ++ply)
         {
           int depth = ply + 1;
