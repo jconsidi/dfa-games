@@ -202,6 +202,12 @@ class DFAIterator
   const DFA& dfa;
   std::vector<int> characters;
 
+  // states[layer + 1] is the state reached after consuming
+  // characters[layer], with states[0] the initial state. Kept across
+  // operator++ so advancing does not walk the whole string again. Empty at
+  // the end iterator, which has no states.
+  std::vector<dfa_state_t> states;
+
   DFAIterator(const DFA& dfa_in, const std::vector<int>& characters_in);
 
 public:

@@ -1359,7 +1359,8 @@ size_t DFA::states() const
 DFAIterator::DFAIterator(const DFA& dfa_in, const std::vector<int>& characters_in)
   : ndim(int(dfa_in.get_shape().size())),
     dfa(dfa_in),
-    characters(characters_in)
+    characters(characters_in),
+    states()
 {
   assert(characters.size() == ndim);
 
@@ -1370,6 +1371,15 @@ DFAIterator::DFAIterator(const DFA& dfa_in, const std::vector<int>& characters_i
 	{
 	  assert(characters[i] < dfa.get_shape()[i]);
 	}
+
+      states.push_back(dfa.get_initial_state());
+      for(int layer = 0; layer < ndim; ++layer)
+	{
+	  states.push_back(dfa.get_transitions(layer, states[layer]).at(characters[layer]));
+	  assert(states.at(layer + 1) < dfa.get_layer_size(layer + 1));
+	}
+      assert(states.size() == ndim + 1);
+      assert(states[ndim] == 1);
     }
   else
     {
@@ -1392,15 +1402,6 @@ DFAString DFAIterator::operator*() const
 DFAIterator& DFAIterator::operator++()
 {
   assert(characters[0] < dfa.get_shape()[0]);
-
-  std::vector<dfa_state_t> states;
-  states.push_back(dfa.get_initial_state());
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      assert(characters.at(layer) < dfa.get_shape()[layer]);
-      states.push_back(dfa.get_transitions(layer, states[layer]).at(characters[layer]));
-      assert(states.at(layer + 1) < dfa.get_layer_size(layer + 1));
-    }
   assert(states.size() == ndim + 1);
   assert(states[ndim] == 1);
 
@@ -1442,7 +1443,7 @@ DFAIterator& DFAIterator::operator++()
 
   if(states.size() == 0)
     {
-      // no more accepting strings
+      // no more accepting strings. states stays empty, matching cend().
       characters.push_back(dfa.get_shape()[0]);
       for(int layer = 1; layer < ndim; ++layer)
 	{
