@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof divide generate_moves move_graph_stats play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_forward stats_forward_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_clobber_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved test_tictactoe_game validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal
+TARGETS=build_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof divide generate_moves move_graph_stats play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_forward stats_forward_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_clobber_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal
 
 all : $(TARGETS)
 
@@ -29,7 +29,7 @@ test : all
 	./test_sort_unique
 	./test_dfa
 	./test_change_dfa
-	./test_tictactoe_game
+	./test_perft_u
 	./test_chess_game
 
 test_chess : all
@@ -160,9 +160,6 @@ test_solved : test_solved.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 test_sort_unique : test_sort_unique.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_tictactoe_game : test_tictactoe_game.o TicTacToeGame.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 validate_backward : validate_backward.o test_utils.o validate_utils.o dfagames.a
