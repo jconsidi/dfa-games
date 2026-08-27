@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 
 #include "AmazonsGame.h"
 #include "BreakthroughGame.h"
@@ -45,7 +46,28 @@ shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name)
 	}
     }
 
-  return game->load(hash_or_name);
+  // Callers dereference what they get back without checking, and the load
+  // path only reports a missing file as "open() failed" with no indication
+  // of which DFA was wanted.
+
+  shared_dfa_ptr output;
+  try
+    {
+      output = game->load(hash_or_name);
+    }
+  catch(const std::runtime_error& e)
+    {
+      throw std::runtime_error("could not load DFA \"" + hash_or_name +
+			       "\" for game \"" + game_name + "\": " + e.what());
+    }
+
+  if(!output)
+    {
+      throw std::runtime_error("no DFA named \"" + hash_or_name +
+			       "\" for game \"" + game_name + "\"");
+    }
+
+  return output;
 }
 
 Game *get_game(std::string game_name)
