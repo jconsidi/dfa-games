@@ -2,7 +2,9 @@
 
 #include "test_utils.h"
 
+#include <algorithm>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -146,9 +148,14 @@ Game *get_game(std::string game_name)
   return output;
 }
 
-nlohmann::json get_test_cases(std::string game_name, std::string test_type)
+static std::string get_tests_path(std::string game_name)
 {
-  std::string config_path = "config/" + game_name + "/tests.json";
+  return "config/" + game_name + "/tests.json";
+}
+
+static std::vector<nlohmann::json> read_test_cases(std::string game_name, std::string test_type)
+{
+  std::string config_path = get_tests_path(game_name);
 
   std::ifstream config_file(config_path);
   if(!config_file)
@@ -157,6 +164,11 @@ nlohmann::json get_test_cases(std::string game_name, std::string test_type)
     }
 
   nlohmann::json config_data = nlohmann::json::parse(config_file);
+
+  if(config_data.at("game").get<std::string>() != game_name)
+    {
+      throw std::runtime_error(config_path + " is for " + config_data.at("game").get<std::string>() + " instead of " + game_name);
+    }
 
   std::vector<nlohmann::json> test_cases;
   for (auto test_case : config_data.at("tests"))
@@ -168,6 +180,81 @@ nlohmann::json get_test_cases(std::string game_name, std::string test_type)
     }
 
   return test_cases;
+}
+
+static std::vector<std::string> get_test_game_names()
+{
+  std::string config_dir = "config";
+
+  std::error_code error;
+  auto dir_iter = std::filesystem::directory_iterator(config_dir, error);
+  if(error)
+    {
+      throw std::runtime_error(config_dir + " could not be scanned: " + error.message());
+    }
+
+  std::vector<std::string> game_names;
+  for(const auto& dir_entry : dir_iter)
+    {
+      if(!dir_entry.is_directory())
+        {
+          continue;
+        }
+
+      std::string game_name = dir_entry.path().filename().string();
+      if(!std::filesystem::exists(get_tests_path(game_name)))
+        {
+          // games are not required to have tests
+          continue;
+        }
+
+      game_names.push_back(game_name);
+    }
+
+  std::sort(game_names.begin(), game_names.end());
+
+  return game_names;
+}
+
+std::vector<TestGroup> get_test_cases(std::string test_type, std::string game_name)
+{
+  std::vector<std::string> game_names =
+    (game_name != "") ? std::vector<std::string>({game_name}) : get_test_game_names();
+
+  std::vector<TestGroup> output;
+  for(std::string current_game_name : game_names)
+    {
+      std::vector<nlohmann::json> test_cases = read_test_cases(current_game_name, test_type);
+      if(test_cases.size() > 0)
+        {
+          output.emplace_back(current_game_name, test_cases);
+        }
+    }
+
+  return output;
+}
+
+void run_test_cases(std::string test_type, std::string game_name, std::function<void(const Game&, const nlohmann::json&)> test_case_func)
+{
+  auto test_groups = get_test_cases(test_type, game_name);
+  if(test_groups.size() == 0)
+    {
+      throw std::runtime_error("no " + test_type + " test cases found");
+    }
+
+  for(const auto& test_group : test_groups)
+    {
+      std::cout << "############################################################" << std::endl;
+      std::cout << "GAME: " << test_group.game_name << std::endl;
+
+      const std::unique_ptr<Game> game(get_game(test_group.game_name));
+
+      for(const auto& test_case : test_group.test_cases)
+        {
+          std::cout << "############################################################" << std::endl;
+          test_case_func(*game, test_case);
+        }
+    }
 }
 
 void test_backward(const Game& game_in, int ply_max, bool initial_win_expected)
