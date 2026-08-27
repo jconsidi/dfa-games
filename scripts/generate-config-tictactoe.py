@@ -49,7 +49,9 @@ def generate_size(n):
         )
 
         game_config.add_component(
-            f"not_lost,side_to_move={side_to_move}", "inverse", f"lost,side_to_move={side_to_move}"
+            f"not_lost,side_to_move={side_to_move}",
+            "inverse",
+            f"lost,side_to_move={side_to_move}",
         )
 
         # nodes
@@ -64,7 +66,9 @@ def generate_size(n):
                 layer = r * n + c
 
                 game_config.add_move_node(
-                    side_to_move, node_name, changes=[{"layer": layer, "before": 0, "after": side_to_move + 1}]
+                    side_to_move,
+                    node_name,
+                    changes=[{"layer": layer, "before": 0, "after": side_to_move + 1}],
                 )
                 move_node_names.append(node_name)
 
@@ -72,7 +76,9 @@ def generate_size(n):
 
         # edges
 
-        game_config.add_move_edge(side_to_move, "begin", "not lost", [f"not_lost,side_to_move={side_to_move}"])
+        game_config.add_move_edge(
+            side_to_move, "begin", "not lost", [f"not_lost,side_to_move={side_to_move}"]
+        )
         for node_name in move_node_names:
             game_config.add_move_edge(side_to_move, "not lost", node_name, [])
             game_config.add_move_edge(side_to_move, node_name, "end", [])
@@ -91,7 +97,14 @@ def generate_size(n):
 
             positions_expected.append((positions_0 - positions_0_won) * positions_1)
 
-        game_config.add_test({"type": "perft_u", "position": [0] * n2, "side_to_move": side_to_move, "expected": positions_expected})
+        game_config.add_test(
+            {
+                "type": "perft_u",
+                "position": [0] * n2,
+                "side_to_move": side_to_move,
+                "expected": positions_expected,
+            }
+        )
 
         # tests - perft_u from lost position
 
@@ -102,8 +115,15 @@ def generate_size(n):
         lost_position.extend([1 + side_to_move] * (n - 1))
         # rest empty
         lost_position.extend([0] * (n * n - 2 * n + 1))
-        
-        game_config.add_test({"type": "perft_u", "position": lost_position, "side_to_move": side_to_move, "expected": [0]})
+
+        game_config.add_test(
+            {
+                "type": "perft_u",
+                "position": lost_position,
+                "side_to_move": side_to_move,
+                "expected": [0],
+            }
+        )
 
     game_config.save()
 
