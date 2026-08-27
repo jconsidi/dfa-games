@@ -256,6 +256,20 @@ shared_dfa_ptr _try_load(const dfa_shape_t& shape_in, std::string name_in)
     }
 }
 
+uint64_t DFAUtil::for_each_position(shared_dfa_ptr dfa_in, std::function<void(const DFAString&)> func)
+{
+  uint64_t count = 0;
+
+  for(auto iter = dfa_in->cbegin();
+      iter < dfa_in->cend();
+      ++iter, ++count)
+    {
+      func(*iter);
+    }
+
+  return count;
+}
+
 shared_dfa_ptr DFAUtil::from_string(const DFAString& string_in)
 {
   std::vector<DFAString> strings = {string_in};

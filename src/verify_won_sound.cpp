@@ -3,6 +3,7 @@
 #include <iostream>
 #include <optional>
 
+#include "DFAUtil.h"
 #include "test_utils.h"
 #include "verify_utils.h"
 
@@ -42,14 +43,11 @@ void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positio
 {
   std::cout << "VERIFYING " << positions->size() << " POSITIONS" << std::endl;
   
-  uint64_t verified_count = 0;
-  for(auto iter = positions->cbegin();
-      iter < positions->cend();
-      ++iter, ++verified_count)
+  uint64_t verified_count =
+    DFAUtil::for_each_position(positions, [&](const DFAString& position)
     {
-      DFAString position(*iter);
       verify_won_position(game, side_to_move, position);
-    }
+    });
 
   std::cout << "VERIFIED " << verified_count << " / " << positions->size() << " POSITIONS" << std::endl;
 
