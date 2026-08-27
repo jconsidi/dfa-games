@@ -51,19 +51,7 @@ test_chess : all
 time : all
 	time ./test_perft
 
-build_backward : build_backward.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-build_chess_database : build_chess_database.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-build_forward : build_forward.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-build_forward_backward : build_forward_backward.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-build_forward_backward_proof : build_forward_backward_proof.o test_utils.o dfagames.a
+build_% : build_%.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 divide : divide.o dfagames.a
@@ -111,70 +99,12 @@ stats_forward : stats_forward.o test_utils.o dfagames.a
 stats_forward_backward : stats_forward_backward.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_breakthrough_game : test_breakthrough_game.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_clobber_game : test_clobber_game.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_bitset : test_bitset.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_change_dfa : test_change_dfa.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_chess_game : test_chess_game.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_chess_backward : test_chess_backward.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_dfa : test_dfa.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_get_intersection : test_get_intersection.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_get_union : test_get_union.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_get_union_vector : test_get_union_vector.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_memorymap : test_memorymap.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_normal_nim_game : test_normal_nim_game.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
 test_perft : test_perft.o dfagames.a PerftTestCases.o
+
+test_% : test_%.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-test_perft_u : test_perft_u.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_reachable : test_reachable.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_solved : test_solved.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-test_sort_unique : test_sort_unique.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-validate_backward : validate_backward.o test_utils.o validate_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-validate_dfa : validate_dfa.o test_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-validate_forward : validate_forward.o test_utils.o validate_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-validate_forward_backward : validate_forward_backward.o test_utils.o validate_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-validate_terminal : validate_terminal.o test_utils.o validate_utils.o dfagames.a
+validate_% : validate_%.o test_utils.o validate_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o BinaryRestartDFA.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o ClobberGame.o CompactBitSet.o ConfigGame.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAFormat.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o DifferenceRestartDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnionRestartDFA.o UnorderedBitSet.o VectorBitSet.o utils.o
