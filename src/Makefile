@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof divide generate_moves move_graph_stats play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_forward stats_forward_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_clobber_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal
+TARGETS=build_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof divide generate_moves move_graph_stats play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_forward stats_forward_backward test_bitset test_breakthrough_game test_change_dfa test_chess_game test_clobber_game test_dfa test_get_intersection test_get_union test_get_union_vector test_normal_nim_game test_perft test_perft_u test_reachable test_solved validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal verify_lost_sound verify_won_sound
 
 all : $(TARGETS)
 
@@ -105,6 +105,9 @@ test_% : test_%.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 validate_% : validate_%.o test_utils.o validate_utils.o dfagames.a
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+verify_% : verify_%.o verify_utils.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o BinaryRestartDFA.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o ClobberGame.o CompactBitSet.o ConfigGame.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAFormat.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o DifferenceRestartDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RejectDFA.o StringDFA.o TicTacToeGame.o UnionDFA.o UnionRestartDFA.o UnorderedBitSet.o VectorBitSet.o utils.o
