@@ -197,7 +197,6 @@ class DFAIterator
 {
   friend class DFA;
 
-  std::vector<int> shape;
   int ndim;
 
   const DFA& dfa;
