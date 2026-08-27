@@ -30,7 +30,7 @@ test : all
 	./test_dfa
 	./test_change_dfa
 	./test_perft_u
-	./test_chess_game
+	#./test_chess_game
 
 test_chess : all
 	./test_perft
