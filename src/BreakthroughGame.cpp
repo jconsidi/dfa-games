@@ -262,7 +262,7 @@ std::string BreakthroughBase::position_to_string(const DFAString& string_in) con
 
 std::vector<DFAString> BreakthroughBase::validate_moves(int side_to_move, const DFAString& position) const
 {
-  auto shape = get_shape();
+  const auto& shape = get_shape();
 
   std::vector<DFAString> output;
 
