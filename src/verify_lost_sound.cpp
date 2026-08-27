@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <optional>
+#include <sstream>
+#include <stdexcept>
 
 #include "DFAUtil.h"
 #include "test_utils.h"
@@ -17,25 +19,31 @@ void verify_lost_position(const Game& game, int side_to_move, const DFAString& p
 
   if(result_mismatch || moves_mismatch)
     {
-      std::cerr << game.position_to_string(position) << std::endl;
+      // built up instead of printed so that the caller does the writing.
+      // for_each_position may run this on many positions at once, and
+      // interleaved reports would be unreadable.
+
+      std::ostringstream report;
+
+      report << game.position_to_string(position) << "\n";
 
       if(!result_actual)
         {
-          std::cerr << "# RESULT MISMATCH: not terminal" << std::endl;
+          report << "# RESULT MISMATCH: not terminal" << "\n";
         }
       else if(result_mismatch)
         {
-          std::cerr << "# RESULT MISMATCH: expected lost (-1), actual " << *result_actual << std::endl;
+          report << "# RESULT MISMATCH: expected lost (-1), actual " << *result_actual << "\n";
         }
 
       if(moves_mismatch)
         {
-          std::cerr << "# MOVES MISMATCH: expected some, actual " << moves.size() << std::endl;
+          report << "# MOVES MISMATCH: expected some, actual " << moves.size() << "\n";
         }
 
-      std::cerr << std::endl;
+      report << "\n";
 
-      throw std::runtime_error("position not lost");
+      throw std::runtime_error(report.str());
     }
 }
 
@@ -43,11 +51,20 @@ void verify_lost_sound(const Game& game, int side_to_move, shared_dfa_ptr positi
 {
   std::cout << "VERIFYING " << positions->size() << " POSITIONS" << std::endl;
   
-  uint64_t verified_count =
-    DFAUtil::for_each_position(positions, [&](const DFAString& position)
+  uint64_t verified_count = 0;
+  try
     {
-      verify_lost_position(game, side_to_move, position);
-    });
+      verified_count =
+	DFAUtil::for_each_position(positions, [&](const DFAString& position)
+	{
+	  verify_lost_position(game, side_to_move, position);
+	});
+    }
+  catch(const std::runtime_error& e)
+    {
+      std::cerr << e.what();
+      throw std::runtime_error("position not lost");
+    }
 
   std::cout << "VERIFIED " << verified_count << " / " << positions->size() << " POSITIONS" << std::endl;
 

@@ -3,10 +3,13 @@
 #include "DFAUtil.h"
 
 #include <algorithm>
+#include <atomic>
+#include <exception>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <queue>
 #include <set>
 #include <sstream>
@@ -24,6 +27,7 @@
 #include "RejectDFA.h"
 #include "StringDFA.h"
 #include "UnionDFA.h"
+#include "parallel.h"
 
 double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
 {
@@ -258,13 +262,71 @@ shared_dfa_ptr _try_load(const dfa_shape_t& shape_in, std::string name_in)
 
 uint64_t DFAUtil::for_each_position(shared_dfa_ptr dfa_in, std::function<void(const DFAString&)> func)
 {
+  // Enumeration stays on this thread. DFAIterator is sequential, and the
+  // lazy mmap behind DFA::get_transitions is not thread safe, so workers are
+  // handed DFAString values and never touch the DFA. Positions are collected
+  // a batch at a time and each batch is then checked in parallel.
+
+  constexpr size_t batch_size = 4096;
+
+  dfa_in->mmap();
+
+  std::vector<DFAString> batch;
+  batch.reserve(batch_size);
+
+  std::mutex failure_mutex;
+  std::optional<size_t> failure_index;
+  std::exception_ptr failure;
+  std::atomic<bool> failed(false);
+
   uint64_t count = 0;
 
-  for(auto iter = dfa_in->cbegin();
-      iter < dfa_in->cend();
-      ++iter, ++count)
+  auto iter = dfa_in->cbegin();
+  auto end = dfa_in->cend();
+  while(iter < end)
     {
-      func(*iter);
+      batch.clear();
+      for(; (iter < end) && (batch.size() < batch_size); ++iter)
+	{
+	  batch.push_back(*iter);
+	}
+
+      const DFAString *batch_first = batch.data();
+      TRY_PARALLEL_PAR_3(std::for_each, batch.begin(), batch.end(), [&](const DFAString& position)
+      {
+	if(failed.load(std::memory_order_relaxed))
+	  {
+	    // another position in this batch already failed
+	    return;
+	  }
+
+	try
+	  {
+	    func(position);
+	  }
+	catch(...)
+	  {
+	    size_t index = size_t(&position - batch_first);
+
+	    std::lock_guard<std::mutex> guard(failure_mutex);
+	    if(!failure_index || (index < *failure_index))
+	      {
+		// keep the earliest failure so the reported position does
+		// not depend on how the batch was scheduled
+		failure_index = index;
+		failure = std::current_exception();
+	      }
+	    failed.store(true, std::memory_order_relaxed);
+	  }
+      });
+
+      if(failed.load())
+	{
+	  // batches run in order, so this is the first failing position
+	  std::rethrow_exception(failure);
+	}
+
+      count += batch.size();
     }
 
   return count;
