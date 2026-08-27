@@ -15,6 +15,22 @@ static dfa_shape_t build_shape(int width, int height)
   return dfa_shape_t(width * height, 4);
 }
 
+static std::vector<std::vector<std::tuple<int, std::vector<int>>>> build_queen_moves_by_layer(int width, int height)
+{
+  std::vector<std::vector<std::tuple<int, std::vector<int>>>> output(size_t(width) * size_t(height));
+
+  for(const auto& queen_move : GameUtil::get_queen_moves(0, width, height))
+    {
+      int from_layer = std::get<0>(queen_move);
+      int to_layer = std::get<1>(queen_move);
+      const std::vector<int>& between = std::get<2>(queen_move);
+
+      output.at(size_t(from_layer)).emplace_back(to_layer, between);
+    }
+
+  return output;
+}
+
 static move_edge_condition_vector get_empty_conditions(dfa_shape_t shape, const std::vector<int> empty_layers)
 {
   move_edge_condition_vector output;
@@ -35,7 +51,8 @@ AmazonsGame::AmazonsGame(int width_in, int height_in)
   : NormalPlayGame("amazons_" + std::to_string(width_in) + "x" + std::to_string(height_in),
 		   build_shape(width_in, height_in)),
     width(width_in),
-    height(height_in)
+    height(height_in),
+    queen_moves_by_layer(build_queen_moves_by_layer(width_in, height_in))
 {
 }
 
@@ -242,16 +259,6 @@ std::vector<DFAString> AmazonsGame::validate_moves(int side_to_move, const DFASt
 {
   std::vector<DFAString> output;
 
-  std::vector<std::vector<std::tuple<int, std::vector<int>>>> queen_moves(get_shape().size());
-  for(auto queen_move : GameUtil::get_queen_moves(0, width, height))
-    {
-      int from_layer = std::get<0>(queen_move);
-      int to_layer = std::get<1>(queen_move);
-      const std::vector<int>& between = std::get<2>(queen_move);
-
-      queen_moves[from_layer].emplace_back(to_layer, between);
-    }
-
   auto check_between = [&](const std::vector<int>& between_layers)
   {
     for(int layer : between_layers)
@@ -274,7 +281,7 @@ std::vector<DFAString> AmazonsGame::validate_moves(int side_to_move, const DFASt
           continue;
         }
 
-      for(auto queen_move : queen_moves.at(from_layer))
+      for(const auto& queen_move : queen_moves_by_layer.at(size_t(from_layer)))
         {
           int to_layer = std::get<0>(queen_move);
           if(position[to_layer] != 0)
@@ -289,7 +296,7 @@ std::vector<DFAString> AmazonsGame::validate_moves(int side_to_move, const DFASt
               continue;
             }
 
-          for(auto queen_shot : queen_moves.at(to_layer))
+          for(const auto& queen_shot : queen_moves_by_layer.at(size_t(to_layer)))
             {
               int shot_layer = std::get<0>(queen_shot);
               if((shot_layer != from_layer) && (position[shot_layer] != 0))
