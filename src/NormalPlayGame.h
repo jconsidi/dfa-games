@@ -20,7 +20,7 @@ public:
 
   // validation
 
-  virtual std::optional<int> validate_result(int, DFAString) const;
+  virtual std::optional<int> validate_result(int, const DFAString&) const;
 };
 
 #endif

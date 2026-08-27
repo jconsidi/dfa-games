@@ -413,12 +413,12 @@ shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared
   return DFAUtil::load_or_build(shape, dfa_name, build_func);
 }
 
-std::vector<DFAString> Game::validate_moves(int, DFAString) const
+std::vector<DFAString> Game::validate_moves(int, const DFAString&) const
 {
   throw std::logic_error(name + " did not implement validate_moves()");
 }
 
-std::optional<int> Game::validate_result(int, DFAString) const
+std::optional<int> Game::validate_result(int, const DFAString&) const
 {
   throw std::logic_error(name + "did not implement validate_result()");
 }

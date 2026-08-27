@@ -238,7 +238,7 @@ std::string AmazonsGame::position_to_string(const DFAString& string_in) const
   return output.str();
 }
 
-std::vector<DFAString> AmazonsGame::validate_moves(int side_to_move, DFAString position) const
+std::vector<DFAString> AmazonsGame::validate_moves(int side_to_move, const DFAString& position) const
 {
   std::vector<DFAString> output;
 

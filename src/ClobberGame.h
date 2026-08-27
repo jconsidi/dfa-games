@@ -30,7 +30,7 @@ public:
 
   // validation
 
-  // virtual std::vector<DFAString> validate_moves(int, DFAString) const;
+  // virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
 };
 
 #endif
