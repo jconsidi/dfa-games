@@ -21,12 +21,7 @@ int main(int argc, char **argv)
   auto initial_positions = game->get_positions_initial();
   assert(initial_positions->size() == 1);
 
-  for(auto iter = initial_positions->cbegin();
-      iter < initial_positions->cend();
-      ++iter)
-    {
-      std::cout << game->position_to_string(*iter) << std::endl;
-    }
+  std::cout << game->position_to_string(game->get_position_initial()) << std::endl;
 
   for(int ply = 0; ply <= ply_max; ++ply)
     {

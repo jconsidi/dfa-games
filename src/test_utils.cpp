@@ -322,12 +322,7 @@ void test_forward(const Game& game_in, const std::vector<size_t>& positions_expe
   auto initial_positions = game_in.get_positions_initial();
   assert(initial_positions);
 
-  for(auto iter = initial_positions->cbegin();
-      iter < initial_positions->cend();
-      ++iter)
-    {
-      std::cout << game_in.position_to_string(*iter) << std::endl;
-    }
+  std::cout << game_in.position_to_string(game_in.get_position_initial()) << std::endl;
   assert(size_t(initial_positions->size()) == positions_expected[0]);
 
   std::cout << log_prefix << "get_moves_forward()" << std::endl;

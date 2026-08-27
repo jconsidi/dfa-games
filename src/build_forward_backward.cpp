@@ -39,12 +39,7 @@ int main(int argc, char **argv)
   auto initial_positions = game->get_positions_initial();
   assert(initial_positions->size() == 1);
 
-  for(auto iter = initial_positions->cbegin();
-      iter < initial_positions->cend();
-      ++iter)
-    {
-      std::cout << game->position_to_string(*iter) << std::endl;
-    }
+  std::cout << game->position_to_string(game->get_position_initial()) << std::endl;
 
   std::vector<shared_dfa_ptr> losing_by_ply(forward_ply_max + 2, 0);
   std::vector<shared_dfa_ptr> winning_by_ply(forward_ply_max + 2, 0);
