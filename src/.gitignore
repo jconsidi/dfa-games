@@ -1,5 +1,6 @@
 *.a
 *.o
+.depend
 build_backward
 build_chess_database
 build_forward
