@@ -24,6 +24,8 @@ class GameConfig(object):
             self.move_graph_edges.append({})
             self.move_graph_nodes.append({})
 
+        self.test_data = {"game": game, "tests": []}
+
     def add_component(self, component_name, component_type, component_inputs):
         assert component_name not in self.components_data
         self.components_data["components"][component_name] = {
@@ -72,6 +74,9 @@ class GameConfig(object):
 
         self.move_graph_data[side_to_move]["nodes"].append(node_data)
 
+    def add_test(self, test):
+        self.test_data["tests"].append(test)
+
     def save(self):
         config_dir = pathlib.Path("config")
         game_dir = config_dir / self.game
@@ -94,3 +99,5 @@ class GameConfig(object):
                 self.move_graph_data[side_to_move],
                 sort_keys=False,
             )
+
+        save_config("tests.json", self.test_data, sort_keys=False)

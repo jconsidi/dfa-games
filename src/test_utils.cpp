@@ -3,6 +3,7 @@
 #include "test_utils.h"
 
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <memory>
 
@@ -143,6 +144,30 @@ Game *get_game(std::string game_name)
 
   assert(output->get_name() == game_name);
   return output;
+}
+
+nlohmann::json get_test_cases(std::string game_name, std::string test_type)
+{
+  std::string config_path = "config/" + game_name + "/tests.json";
+
+  std::ifstream config_file(config_path);
+  if(!config_file)
+    {
+      throw std::runtime_error(config_path + " could not be opened");
+    }
+
+  nlohmann::json config_data = nlohmann::json::parse(config_file);
+
+  std::vector<nlohmann::json> test_cases;
+  for (auto test_case : config_data.at("tests"))
+    {
+      if(test_case.at("type").get<std::string>() == test_type)
+        {
+          test_cases.push_back(test_case);
+        }
+    }
+
+  return test_cases;
 }
 
 void test_backward(const Game& game_in, int ply_max, bool initial_win_expected)

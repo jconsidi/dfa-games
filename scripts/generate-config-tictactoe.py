@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import math
 import sys
 
 from gameconfig import GameConfig
@@ -75,6 +76,22 @@ def generate_size(n):
         for node_name in move_node_names:
             game_config.add_move_edge(side_to_move, "not lost", node_name, [])
             game_config.add_move_edge(side_to_move, node_name, "end", [])
+
+        # tests - perft_u
+
+        positions_expected = []
+        for depth in range(1, 2 * n + 1):
+            moves_0 = (depth + 1) // 2
+            moves_1 = (depth + 0) // 2
+
+            positions_0 = math.comb(n2, moves_0)
+            positions_1 = math.comb(n2 - moves_0, moves_1)
+
+            positions_0_won = 2 * n + 2 if depth == 2 * n else 0
+
+            positions_expected.append((positions_0 - positions_0_won) * positions_1)
+
+        game_config.add_test({"type": "perft_u", "position": [0] * n2, "side_to_move": side_to_move, "expected": positions_expected})
 
     game_config.save()
 
