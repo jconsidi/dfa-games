@@ -1,0 +1,12 @@
+[package]
+name = "dfa-games"
+version.workspace = true
+edition.workspace = true
+description = "Position level rules for the games the solver solves"
+
+[dependencies]
+dfa-format = { path = "../dfa-format" }
+anyhow = "1"
+
+[dev-dependencies]
+tempfile = "3"

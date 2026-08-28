@@ -157,6 +157,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dfa-games"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dfa-format",
+ "tempfile",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
