@@ -23,19 +23,22 @@ typedef std::vector<int> dfa_shape_t;
 
 class DFAString
 {
-  dfa_shape_t shape;
+  // The shape is not stored. Every string of a given DFA has the same one,
+  // and copying it here doubled the allocations for each position produced
+  // while iterating. It is still taken by the constructor, which checks the
+  // characters against it.
   std::vector<int> characters;
 
 public:
 
-  DFAString() : shape(), characters() {};
+  DFAString() : characters() {};
   DFAString(const dfa_shape_t&, const std::vector<int>& characters_in);
 
   bool operator<(const DFAString& right) const;
   bool operator==(const DFAString& right) const;
   int operator[](int) const;
 
-  const dfa_shape_t& get_shape() const;
+  int get_size() const;
 
   std::string to_string() const;
 };

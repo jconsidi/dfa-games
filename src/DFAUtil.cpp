@@ -332,10 +332,10 @@ uint64_t DFAUtil::for_each_position(shared_dfa_ptr dfa_in, std::function<void(co
   return count;
 }
 
-shared_dfa_ptr DFAUtil::from_string(const DFAString& string_in)
+shared_dfa_ptr DFAUtil::from_string(const dfa_shape_t& shape_in, const DFAString& string_in)
 {
   std::vector<DFAString> strings = {string_in};
-  return shared_dfa_ptr(new StringDFA(strings));
+  return shared_dfa_ptr(new StringDFA(shape_in, strings));
 }
 
 shared_dfa_ptr DFAUtil::from_strings(const dfa_shape_t& shape_in, const std::vector<DFAString>& strings_in)
@@ -349,7 +349,7 @@ shared_dfa_ptr DFAUtil::from_strings(const dfa_shape_t& shape_in, const std::vec
 
   // build new DFA
 
-  return shared_dfa_ptr(new StringDFA(strings_in));
+  return shared_dfa_ptr(new StringDFA(shape_in, strings_in));
 }
 
 shared_dfa_ptr DFAUtil::get_accept(const dfa_shape_t& shape_in)

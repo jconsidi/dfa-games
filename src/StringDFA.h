@@ -14,7 +14,7 @@ private:
 
 public:
 
-  StringDFA(const std::vector<DFAString>&);
+  StringDFA(const dfa_shape_t&, const std::vector<DFAString>&);
 };
 
 #endif

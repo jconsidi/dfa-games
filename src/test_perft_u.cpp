@@ -20,7 +20,7 @@ void test_perft_u_case(const Game& game, const nlohmann::json& test_case)
 
   std::vector<int> expected = test_case.at("expected").get<std::vector<int>>();
 
-  shared_dfa_ptr positions = DFAUtil::from_string(position);
+  shared_dfa_ptr positions = DFAUtil::from_string(game.get_shape(), position);
   for(int ply = 0; ply < expected.size(); ++ply)
     {
       int depth = ply + 1;

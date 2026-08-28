@@ -2,8 +2,8 @@
 
 #include "StringDFA.h"
 
-StringDFA::StringDFA(const std::vector<DFAString>& strings_in)
-  : DedupedDFA(strings_in[0].get_shape())
+StringDFA::StringDFA(const dfa_shape_t& shape_in, const std::vector<DFAString>& strings_in)
+  : DedupedDFA(shape_in)
 {
   this->set_initial_state(build_internal(0, strings_in));
 }

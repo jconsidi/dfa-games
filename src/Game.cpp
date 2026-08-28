@@ -244,7 +244,7 @@ shared_dfa_ptr Game::get_positions_forward(int ply) const
 
 shared_dfa_ptr Game::get_positions_initial() const
 {
-  return DFAUtil::from_string(get_position_initial());
+  return DFAUtil::from_string(shape, get_position_initial());
 }
 
 shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const

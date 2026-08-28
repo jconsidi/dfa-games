@@ -1560,22 +1560,21 @@ bool DFALinearBound::check_fixed(int layer_in, int character_in) const
 }
 
 DFAString::DFAString(const dfa_shape_t& shape_in, const std::vector<int>& characters_in)
-  : shape(shape_in),
-    characters(characters_in)
+  : characters(characters_in)
 {
-  int ndim = int(shape.size());
+  int ndim = int(shape_in.size());
   assert(characters.size() == ndim);
 
   for(int i = 0; i < ndim; ++i)
     {
-      assert(characters.at(i) < shape.at(i));
+      assert(characters.at(i) < shape_in.at(i));
     }
 }
 
 bool DFAString::operator<(const DFAString& right) const
 {
-  int ndim = int(shape.size());
-  assert(right.shape.size() == ndim);
+  int ndim = int(characters.size());
+  assert(right.characters.size() == ndim);
 
   for(int i = 0; i < ndim; ++i)
     {
@@ -1594,8 +1593,8 @@ bool DFAString::operator<(const DFAString& right) const
 
 bool DFAString::operator==(const DFAString& right) const
 {
-  int ndim = int(shape.size());
-  assert(right.shape.size() == ndim);
+  int ndim = int(characters.size());
+  assert(right.characters.size() == ndim);
 
   for(int i = 0; i < ndim; ++i)
     {
@@ -1613,9 +1612,9 @@ int DFAString::operator[](int layer_in) const
   return characters.at(layer_in);
 }
 
-const dfa_shape_t& DFAString::get_shape() const
+int DFAString::get_size() const
 {
-  return shape;
+  return int(characters.size());
 }
 
 std::string DFAString::to_string() const

@@ -23,7 +23,7 @@ public:
   // earliest position in DFA order is rethrown once the work in flight
   // finishes, and the remaining positions are skipped.
   static uint64_t for_each_position(shared_dfa_ptr, std::function<void(const DFAString&)>);
-  static shared_dfa_ptr from_string(const DFAString&);
+  static shared_dfa_ptr from_string(const dfa_shape_t&, const DFAString&);
   static shared_dfa_ptr from_strings(const dfa_shape_t&, const std::vector<DFAString>&);
   static shared_dfa_ptr get_accept(const dfa_shape_t&);
   static shared_dfa_ptr get_change(shared_dfa_ptr, const change_vector&);

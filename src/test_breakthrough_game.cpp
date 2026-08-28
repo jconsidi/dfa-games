@@ -99,7 +99,7 @@ void test_lost(const BreakthroughGame& game, int width, int height)
 
       for(const DFAString& position : not_lost)
 	{
-	  shared_dfa_ptr moves = game.get_moves_forward(side_to_move, DFAUtil::from_string(position));
+	  shared_dfa_ptr moves = game.get_moves_forward(side_to_move, DFAUtil::from_string(game.get_shape(), position));
 
 	  std::cout << game.position_to_string(position) << std::endl;
 
