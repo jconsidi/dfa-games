@@ -46,4 +46,5 @@ validate_forward
 validate_forward_backward
 validate_terminal
 verify_lost_sound
+verify_winning_sound
 verify_won_sound
