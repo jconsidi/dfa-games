@@ -6,7 +6,9 @@ the language of a DFA over that alphabet. Set operations (union, intersection,
 difference) and move generation are DFA operations, which is what makes solving
 whole games tractable.
 
-Everything builds and runs from `src/`.
+The C++ solver is in `src/` and builds and runs from there. `rust/` holds an
+incremental Rust port of the read side, described under **Rust** below; its
+binaries also expect to be run from `src/`.
 
 ## Building
 
@@ -63,6 +65,61 @@ symlink reports clearly rather than failing obscurely.
 Game names are parsed from the argument: `breakthrough_WxH`, `breakthroughcw_WxH`,
 `amazons_WxH`, `clobber_WxH`, `othello_WxH`, `normalnim_*`, `tictactoe_N`, and
 `chess+0` / `chess+1` / `chess+2*`.
+
+## Rust
+
+`rust/` is a cargo workspace holding a port of the parts of this repo that
+*read* solver output. Nothing there constructs a DFA — building is still the
+C++'s job.
+
+    cd rust && cargo build --release && cargo test --release
+
+Both crates build clean under `RUSTFLAGS="-D warnings" cargo clippy --release
+--all-targets`; keep them that way. It is the closest thing here to the C++
+side's `-Werror`.
+
+- `dfa-format` — the single authority on the `.dfa` file format
+  (`FORMAT-DFA.md`). `layout.rs` owns every byte offset, so the reader and
+  writer cannot drift. `Dfa::positions()` in `iter.rs` is the port of
+  `DFAIterator` and enumerates accepted strings in lexicographic order.
+  Binaries: `dfa-validate`, `dfa-stats`, `dfa-convert`.
+- `dfa-games` — position level rules (`validate_moves`, `validate_result`,
+  `position_to_string`) and the verifiers over them. Binaries:
+  `verify-lost-sound`, `verify-won-sound`, `verify-losing-sound`,
+  `verify-winning-sound`, `verify-backward-sound`, taking the same arguments
+  as their C++ namesakes.
+
+Every binary takes `--scratch`, defaulting to `scratch`, so run them from
+`src/` where that resolves:
+
+    cd src && ../rust/target/release/verify-backward-sound breakthrough_4x4 1
+
+Coverage is narrower than the C++ and the gaps matter:
+
+- Only **row-wise breakthrough** and **amazons** have Rust rules.
+  `breakthroughcw_`, `chess+` and the games with no `validate_moves` at all are
+  recognized by name so the error says "not ported" rather than
+  "unrecognized" — but they are genuinely not verifiable from Rust.
+- The Rust verifiers do **not** consult `lost,side_to_move=N` /
+  `won,side_to_move=N` the way `verify_utils.cpp` does. Each position generates
+  its moves once and an empty move list branches to `validate_result`, which
+  must return the base case the DFA asserts. This is deliberate: it keeps DFA
+  construction out of a program that only reads, and `won,side_to_move=N` is
+  the reject DFA for a normal play game so that half was dead code anyway. It
+  is *stricter* than the C++ on both branches. What it gives up is that the
+  losing and winning verifiers no longer incidentally cross check the `lost`
+  DFA, so keep running `verify-lost-sound` on `lost,side_to_move=N` itself.
+
+The two implementations are meant to disagree loudly, so when changing either,
+check both against the same DFAs. `verify-backward-sound breakthrough_4x4 1`
+and `./verify_backward_sound breakthrough_4x4 1` cover eight DFAs in well under
+two minutes between them. The messages differ by design — only the counts and
+the verdicts are comparable.
+
+Enumeration costs roughly 100 ns per position on its own; the rules dominate
+after that, and by a lot. Breakthrough is about 0.2 us per position, amazons
+about 16 us, so pick a case by expected runtime rather than position count —
+the same trap the C++ benchmarking notes below describe.
 
 ## Core types
 
