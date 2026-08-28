@@ -49,7 +49,7 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
 
 void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positions)
 {
-  std::cout << "VERIFYING " << positions->size() << " POSITIONS" << std::endl;
+  std::cout << "VERIFYING " << positions->size() << " WON POSITIONS" << std::endl;
   
   uint64_t verified_count = 0;
   try
@@ -62,11 +62,11 @@ void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positio
     }
   catch(const std::runtime_error& e)
     {
-      std::cerr << e.what();
+      std::cerr << e.what() << std::endl;
       throw std::runtime_error("position not won");
     }
 
-  std::cout << "VERIFIED " << verified_count << " / " << positions->size() << " POSITIONS" << std::endl;
+  std::cout << "VERIFIED " << verified_count << " / " << positions->size() << " WON POSITIONS" << std::endl;
 
   if(verified_count != uint64_t(positions->size()))
     {
@@ -86,6 +86,7 @@ int main(int argc, char **argv)
   Game *game = get_game(game_name);
   
   std::string name(argv[2]);
+  std::cout << "VERIFYING " << name << std::endl;
   shared_dfa_ptr positions = get_dfa(game_name, name);
 
   int side_to_move = verify_parse_side_to_move(name);
