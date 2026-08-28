@@ -11,6 +11,32 @@
 
 #include "DFAUtil.h"
 
+shared_dfa_ptr verify_load(const Game& game, std::string dfa_name)
+{
+  // Callers dereference what they get back without checking, and the load
+  // path only reports a missing file as "open() failed" with no indication
+  // of which DFA was wanted.
+
+  shared_dfa_ptr output;
+  try
+    {
+      output = game.load(dfa_name);
+    }
+  catch(const std::runtime_error& e)
+    {
+      throw std::runtime_error("could not load DFA \"" + dfa_name +
+			       "\" for game \"" + game.get_name() + "\": " + e.what());
+    }
+
+  if(!output)
+    {
+      throw std::runtime_error("no DFA named \"" + dfa_name +
+			       "\" for game \"" + game.get_name() + "\"");
+    }
+
+  return output;
+}
+
 void verify_losing_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr winning_prev, shared_dfa_ptr lost)
 {
   // lost probably hits less often but will be better cached
@@ -65,6 +91,16 @@ void verify_losing_sound(const Game& game, int side_to_move, shared_dfa_ptr losi
     {
       throw std::runtime_error("verified count does not match DFA size");
     }
+}
+
+void verify_losing_sound(const Game& game, int side_to_move, std::string losing_curr_name, std::string winning_prev_name)
+{
+  std::cout << "VERIFYING " << losing_curr_name << " WITH " << winning_prev_name << std::endl;
+
+  shared_dfa_ptr losing_curr = verify_load(game, losing_curr_name);
+  shared_dfa_ptr winning_prev = verify_load(game, winning_prev_name);
+
+  verify_losing_sound(game, side_to_move, losing_curr, winning_prev);
 }
 
 void verify_lost_position(const Game& game, int side_to_move, const DFAString& position)
@@ -130,6 +166,14 @@ void verify_lost_sound(const Game& game, int side_to_move, shared_dfa_ptr positi
     {
       throw std::runtime_error("verified count does not match DFA size");
     }
+}
+
+void verify_lost_sound(const Game& game, int side_to_move, std::string lost_name)
+{
+  std::cout << "VERIFYING " << lost_name << std::endl;
+  shared_dfa_ptr lost_positions = verify_load(game, lost_name);
+
+  verify_lost_sound(game, side_to_move, lost_positions);
 }
 
 int verify_parse_side_to_move(std::string dfa_name)
@@ -211,6 +255,16 @@ void verify_winning_sound(const Game& game, int side_to_move, shared_dfa_ptr win
     }
 }
 
+void verify_winning_sound(const Game& game, int side_to_move, std::string winning_curr_name, std::string losing_prev_name)
+{
+  std::cout << "VERIFYING " << winning_curr_name << " WITH " << losing_prev_name << std::endl;
+
+  shared_dfa_ptr winning_curr = verify_load(game, winning_curr_name);
+  shared_dfa_ptr losing_prev = verify_load(game, losing_prev_name);
+
+  verify_winning_sound(game, side_to_move, winning_curr, losing_prev);
+}
+
 void verify_won_position(const Game& game, int side_to_move, const DFAString& position)
 {
   std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
@@ -274,4 +328,12 @@ void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positio
     {
       throw std::runtime_error("verified count does not match DFA size");
     }
+}
+
+void verify_won_sound(const Game& game, int side_to_move, std::string won_name)
+{
+  std::cout << "VERIFYING " << won_name << std::endl;
+  shared_dfa_ptr won_positions = verify_load(game, won_name);
+
+  verify_won_sound(game, side_to_move, won_positions);
 }

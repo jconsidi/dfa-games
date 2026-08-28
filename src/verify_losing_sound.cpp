@@ -18,14 +18,10 @@ int main(int argc, char **argv)
   
   std::string losing_name(argv[2]);
   std::string winning_name(argv[3]);
-  std::cout << "VERIFYING " << losing_name << " WITH " << winning_name << std::endl;
-
-  shared_dfa_ptr losing_curr = get_dfa(game_name, losing_name);
-  shared_dfa_ptr winning_prev = get_dfa(game_name, winning_name);
 
   int side_to_move = verify_parse_side_to_move(losing_name);
 
-  verify_losing_sound(*game, side_to_move, losing_curr, winning_prev);
+  verify_losing_sound(*game, side_to_move, losing_name, winning_name);
 
   return 0;
 }
