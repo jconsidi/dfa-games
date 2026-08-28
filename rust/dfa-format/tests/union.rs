@@ -196,7 +196,7 @@ fn a_true_union_holds() {
     let union = |s: &[u32]| first_is_zero(s) || sum_is_even(s);
     let (a, b, c) = triple(&tmp, "true", &SHAPE, &union, &first_is_zero, &sum_is_even);
 
-    let report = verify_dfa_union(&a, &b, &c).unwrap();
+    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
     assert!(report.holds(), "{:?}", report.failure);
     // Guard against a vacuous test: the walk must have done real work on the
     // two-sided memo.
@@ -210,12 +210,12 @@ fn the_union_is_checked_both_ways() {
 
     // A too small: it misses the strings only C contributes.
     let (a, b, c) = triple(&tmp, "small", &SHAPE, &first_is_zero, &first_is_zero, &sum_is_even);
-    assert!(!verify_dfa_union(&a, &b, &c).unwrap().holds());
+    assert!(!verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap().holds());
 
     // A too big: it holds strings neither B nor C has.
     let union = |s: &[u32]| first_is_zero(s) || sum_is_even(s);
     let (a, b, c) = triple(&tmp, "big", &SHAPE, &union, &first_is_zero, &never);
-    assert!(!verify_dfa_union(&a, &b, &c).unwrap().holds());
+    assert!(!verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap().holds());
 }
 
 #[test]
@@ -224,7 +224,7 @@ fn a_reject_all_side_collapses_to_equality() {
 
     // C empty, so the obligation is A == B and every pair is keyed on b alone.
     let (a, b, c) = triple(&tmp, "cempty", &SHAPE, &first_is_zero, &first_is_zero, &never);
-    let report = verify_dfa_union(&a, &b, &c).unwrap();
+    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
     assert!(report.holds(), "{:?}", report.failure);
     assert_eq!(report.stats.pairs_both, 0);
     assert_eq!(report.stats.pairs_b_reject, 0);
@@ -232,7 +232,7 @@ fn a_reject_all_side_collapses_to_equality() {
 
     // B empty, so the mirror: keyed on c alone.
     let (a, b, c) = triple(&tmp, "bempty", &SHAPE, &first_is_zero, &never, &first_is_zero);
-    let report = verify_dfa_union(&a, &b, &c).unwrap();
+    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
     assert!(report.holds(), "{:?}", report.failure);
     assert_eq!(report.stats.pairs_both, 0);
     assert!(report.stats.pairs_b_reject > 0, "{:?}", report.stats);
@@ -240,7 +240,7 @@ fn a_reject_all_side_collapses_to_equality() {
 
     // And the equality is really checked, not assumed.
     let (a, b, c) = triple(&tmp, "cempty-bad", &SHAPE, &first_is_zero, &last_is_zero, &never);
-    assert!(!verify_dfa_union(&a, &b, &c).unwrap().holds());
+    assert!(!verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap().holds());
 }
 
 #[test]
@@ -248,7 +248,7 @@ fn an_accept_all_side_short_circuits() {
     let tmp = TempDir::new().unwrap();
 
     let (a, b, c) = triple(&tmp, "ball", &SHAPE, &always, &always, &first_is_zero);
-    let report = verify_dfa_union(&a, &b, &c).unwrap();
+    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
     assert!(report.holds(), "{:?}", report.failure);
     // B is accept-all from its initial state, so the walk stops immediately
     // and never expands anything.
@@ -257,7 +257,7 @@ fn an_accept_all_side_short_circuits() {
 
     // A must then be accept-all too.
     let (a, b, c) = triple(&tmp, "ball-bad", &SHAPE, &first_is_zero, &always, &never);
-    let report = verify_dfa_union(&a, &b, &c).unwrap();
+    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
     assert!(matches!(
         report.failure,
         Some(UnionFailure::Rule { required_a: 1, .. })
@@ -268,7 +268,7 @@ fn an_accept_all_side_short_circuits() {
 fn all_three_empty_holds() {
     let tmp = TempDir::new().unwrap();
     let (a, b, c) = triple(&tmp, "empty", &SHAPE, &never, &never, &never);
-    let report = verify_dfa_union(&a, &b, &c).unwrap();
+    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
     assert!(report.holds(), "{:?}", report.failure);
     assert_eq!(report.stats.stops_reject, 1);
     assert_eq!(report.stats.steps, 0);
@@ -278,7 +278,7 @@ fn all_three_empty_holds() {
 fn a_union_with_itself_holds() {
     let tmp = TempDir::new().unwrap();
     let (a, b, c) = triple(&tmp, "self", &SHAPE, &sum_is_even, &sum_is_even, &sum_is_even);
-    let report = verify_dfa_union(&a, &b, &c).unwrap();
+    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
     assert!(report.holds(), "{:?}", report.failure);
 }
 
@@ -288,7 +288,7 @@ fn overlapping_sides_are_fine() {
     // B and C share strings; union still has to come out right.
     let union = |s: &[u32]| first_is_zero(s) || last_is_zero(s);
     let (a, b, c) = triple(&tmp, "overlap", &SHAPE, &union, &first_is_zero, &last_is_zero);
-    let report = verify_dfa_union(&a, &b, &c).unwrap();
+    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
     assert!(report.holds(), "{:?}", report.failure);
 }
 
@@ -320,8 +320,11 @@ fn exhaustive_over_every_triple_of_small_languages() {
             for c_mask in 0u32..16 {
                 let report = verify_dfa_union(
                     &published[a_mask as usize],
+                    &format!("mask{a_mask}"),
                     &published[b_mask as usize],
+                    &format!("mask{b_mask}"),
                     &published[c_mask as usize],
+                    &format!("mask{c_mask}"),
                 )
                 .unwrap();
                 assert_eq!(
@@ -372,9 +375,16 @@ fn a_non_canonical_a_is_rejected_rather_than_walked() {
     }
     assert!(!a.header().canonical());
 
-    let err = verify_dfa_union(&a, &b, &c).err().unwrap().to_string();
+    // The name is what makes the rejection actionable: which of the three
+    // files has to be rebuilt, not which letter it was passed as.
+    let err = verify_dfa_union(&a, "lost,side_to_move=0", &b, "B", &c, "C")
+        .err()
+        .unwrap()
+        .to_string();
     assert!(err.contains("canonical flag"), "{err}");
     assert!(err.contains("minimal"), "{err}");
+    assert!(err.contains("lost,side_to_move=0"), "{err}");
+    assert!(!err.contains("dfa-convert"), "{err}");
 }
 
 #[test]
@@ -384,8 +394,14 @@ fn mismatched_shapes_are_an_error() {
     let b = publish(&minimal_dfa(&[2, 2], &always), &tmp, "shape-b");
     let c = publish(&minimal_dfa(&[2, 3], &always), &tmp, "shape-c");
 
-    let err = verify_dfa_union(&a, &b, &c).err().unwrap().to_string();
+    let err = verify_dfa_union(&a, "the-union", &b, "left-side", &c, "right-side")
+        .err()
+        .unwrap()
+        .to_string();
     assert!(err.contains("shaped"), "{err}");
+    // Both ends of the mismatch, so it says which pair disagrees.
+    assert!(err.contains("the-union"), "{err}");
+    assert!(err.contains("right-side"), "{err}");
 }
 
 #[test]

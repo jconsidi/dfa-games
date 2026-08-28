@@ -24,10 +24,9 @@
 //!
 //! That is licensed by minimality, so `A` is **required** to carry the format's
 //! canonical flag, which asserts it; a triple whose `A` does not is rejected
-//! rather than walked.  The flag is an assertion in the file and this function
-//! does not re-derive it — `dfa-convert` sets it only after checking, and
-//! `dfa-validate` re-checks it — so the guarantee here is exactly as good as
-//! that flag.  Given it, a conflict refutes `A = B ∪ C`.
+//! rather than walked.  The flag is an assertion made by whatever wrote the
+//! file, and this function does not re-derive it, so the guarantee here is
+//! exactly as good as that flag.  Given it, a conflict refutes `A = B ∪ C`.
 //!
 //! The same reasoning is why `a == 1` and `a == 0` can be *required* in the
 //! trivial cases rather than checked by descending: in a minimal automaton the
@@ -242,17 +241,28 @@ fn usize_states(dfa: &Dfa, layer: usize, which: &str) -> Result<usize> {
 
 /// Check `L(A) = L(B) ∪ L(C)`.
 ///
+/// Each automaton is passed with the name it is known by, as the game
+/// verifiers take theirs, so a rejected triple can say which file was at
+/// fault rather than which letter.
+///
 /// Returns a report rather than a bare bool: the statistics are wanted even on
 /// success, and the failure carries enough to act on.
-pub fn verify_dfa_union(a: &Dfa, b: &Dfa, c: &Dfa) -> Result<UnionReport> {
+pub fn verify_dfa_union(
+    a: &Dfa,
+    a_name: &str,
+    b: &Dfa,
+    b_name: &str,
+    c: &Dfa,
+    c_name: &str,
+) -> Result<UnionReport> {
     let layout = a.layout();
     let ndim = layout.ndim();
 
-    for (other, name) in [(b, "B"), (c, "C")] {
+    for (other, role, other_name) in [(b, "B", b_name), (c, "C", c_name)] {
         if other.layout().ndim() != ndim || other.layout().shape() != layout.shape() {
             return Err(FormatError::Other(format!(
-                "A is shaped {:?} but {name} is shaped {:?}; a union relation between \
-                 different shapes is not meaningful",
+                "A \"{a_name}\" is shaped {:?} but {role} \"{other_name}\" is shaped {:?}; \
+                 a union relation between different shapes is not meaningful",
                 layout.shape(),
                 other.layout().shape()
             )));
@@ -264,14 +274,12 @@ pub fn verify_dfa_union(a: &Dfa, b: &Dfa, c: &Dfa) -> Result<UnionReport> {
     // that, so require it rather than silently producing a result whose
     // meaning depends on something unchecked.
     if !a.header().canonical() {
-        return Err(FormatError::Other(
-            "A does not carry the canonical flag, which is what asserts it is minimal. \
-             This check requires it: without minimality two distinct states of A can share \
-             a residual, and a disagreement would not distinguish \"A is not the union\" \
-             from \"A is not minimal\". Republish A with dfa-convert, and confirm with \
-             dfa-validate."
-                .to_string(),
-        ));
+        return Err(FormatError::Other(format!(
+            "A \"{a_name}\" does not carry the canonical flag, which is what asserts it is \
+             minimal. This check requires it: without minimality two distinct states of A \
+             can share a residual, and a disagreement would not distinguish \"A is not the \
+             union\" from \"A is not minimal\"."
+        )));
     }
 
     let mut stats = UnionStats::default();

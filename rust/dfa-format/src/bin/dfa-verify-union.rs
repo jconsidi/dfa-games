@@ -88,10 +88,15 @@ fn run(args: &Args) -> Result<bool> {
     let b = open(&args.scratch, game, &args.b, "B")?;
     let c = open(&args.scratch, game, &args.c, "C")?;
 
-    // Printed as resolved, so the log says which files were actually read.
-    println!("A = {}", resolve(&args.scratch, game, &args.a).display());
-    println!("B = {}", resolve(&args.scratch, game, &args.b).display());
-    println!("C = {}", resolve(&args.scratch, game, &args.c).display());
+    // Resolved, so both the log and any failure name the file that was read
+    // rather than what was typed.
+    let a_name = resolve(&args.scratch, game, &args.a).display().to_string();
+    let b_name = resolve(&args.scratch, game, &args.b).display().to_string();
+    let c_name = resolve(&args.scratch, game, &args.c).display().to_string();
+
+    println!("A = {a_name}");
+    println!("B = {b_name}");
+    println!("C = {c_name}");
 
     let samples = if args.exact_only { 0 } else { args.samples };
     if samples > 0 {
@@ -108,7 +113,7 @@ fn run(args: &Args) -> Result<bool> {
         }
     }
 
-    let report_out = verify_dfa_union(&a, &b, &c)?;
+    let report_out = verify_dfa_union(&a, &a_name, &b, &b_name, &c, &c_name)?;
     let stats = report_out.stats;
 
     // Printed either way: which of the memos carried the work is the thing
