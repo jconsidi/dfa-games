@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use clap::Parser;
-use dfa_format::union::{sample_for_witness, verify_dfa_union, UnionFailure};
+use dfa_format::union::{sample_for_witness, verify_dfa_union};
 use dfa_format::{is_hash, Dfa};
 
 #[derive(Parser, Debug)]
@@ -54,9 +54,11 @@ struct Args {
 fn main() -> std::process::ExitCode {
     let args = Args::parse();
     match run(&args) {
-        Ok(true) => std::process::ExitCode::SUCCESS,
-        Ok(false) => std::process::ExitCode::FAILURE,
+        Ok(()) => std::process::ExitCode::SUCCESS,
         Err(e) => {
+            // A refutation arrives here like any other failure, which is the
+            // point: there is no path where it can be passed over.
+            println!("A = B union C FAILED");
             eprintln!("{e:#}");
             std::process::ExitCode::FAILURE
         }
@@ -82,7 +84,7 @@ fn open(scratch: &Path, game: Option<&str>, name: &str, role: &str) -> Result<Df
     Dfa::open(&path).map_err(|e| anyhow::anyhow!("opening {role}: {e}"))
 }
 
-fn run(args: &Args) -> Result<bool> {
+fn run(args: &Args) -> Result<()> {
     let game = args.game.as_deref();
     let a = open(&args.scratch, game, &args.a, "A")?;
     let b = open(&args.scratch, game, &args.b, "B")?;
@@ -100,21 +102,14 @@ fn run(args: &Args) -> Result<bool> {
 
     let samples = if args.exact_only { 0 } else { args.samples };
     if samples > 0 {
-        match sample_for_witness(&a, &b, &c, samples, args.seed)? {
-            Some(failure) => {
-                println!("prefilter: {samples} samples per language, seed {} -- REFUTED", args.seed);
-                report(&failure);
-                return Ok(false);
-            }
-            None => println!(
-                "prefilter: {samples} samples per language, seed {} -- no witness",
-                args.seed
-            ),
-        }
+        sample_for_witness(&a, &b, &c, samples, args.seed)?;
+        println!(
+            "prefilter: {samples} samples per language, seed {} -- no witness",
+            args.seed
+        );
     }
 
-    let report_out = verify_dfa_union(&a, &a_name, &b, &b_name, &c, &c_name)?;
-    let stats = report_out.stats;
+    let stats = verify_dfa_union(&a, &a_name, &b, &b_name, &c, &c_name)?;
 
     // Printed either way: which of the memos carried the work is the thing
     // worth knowing about a triple, and it is only visible from here.
@@ -128,19 +123,6 @@ fn run(args: &Args) -> Result<bool> {
     );
     println!("triples stepped: {}", stats.steps);
 
-    match &report_out.failure {
-        None => {
-            println!("A = B union C HOLDS");
-            Ok(true)
-        }
-        Some(failure) => {
-            report(failure);
-            Ok(false)
-        }
-    }
-}
-
-fn report(failure: &UnionFailure) {
-    println!("A = B union C FAILED");
-    eprintln!("{failure}");
+    println!("A = B union C HOLDS");
+    Ok(())
 }

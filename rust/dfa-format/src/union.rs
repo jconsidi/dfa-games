@@ -42,8 +42,21 @@
 //!   `A`'s numbering rather than a difference in language —
 //!   [`Caveat::MayNotBeMinimal`].
 //!
-//! The flag is an assertion made by whatever wrote the file, and this function
+//! The flag is an assertion made by whatever wrote the file, and this module
 //! does not re-derive it.
+//!
+//! # Refutations are errors
+//!
+//! [`verify_dfa_union`] returns its statistics on success and an error on a
+//! refutation.  There is deliberately no form that hands a refutation back as
+//! a value: a caller that forgets to inspect it has checked nothing, and a run
+//! that skipped the check looks exactly like one that passed it.  The error
+//! carries the disagreement and how far the walk got, so a caller can print
+//! whatever detail it likes before giving up.
+//!
+//! This diverges from `read::validate`, which reports conformance and lets the
+//! caller judge.  The difference is that a union relation is asserted by
+//! whoever calls this, so failing it is not a judgement call.
 //!
 //! # Dispatch
 //!
@@ -256,21 +269,6 @@ impl std::fmt::Display for UnionFailure {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct UnionReport {
-    pub stats: UnionStats,
-    /// The first failure found.  The walk stops there: after a conflict the
-    /// memo no longer means what the rest of the walk assumes, and one
-    /// refutation is the whole answer anyway.
-    pub failure: Option<UnionFailure>,
-}
-
-impl UnionReport {
-    pub fn holds(&self) -> bool {
-        self.failure.is_none()
-    }
-}
-
 /// The parts of a run that do not vary from triple to triple.
 struct Context<'a> {
     ndim: usize,
@@ -330,19 +328,21 @@ fn usize_states(dfa: &Dfa, layer: usize, which: &str) -> Result<usize> {
 /// Check `L(A) = L(B) ∪ L(C)`.
 ///
 /// Each automaton is passed with the name it is known by, as the game
-/// verifiers take theirs, so a rejected triple can say which file was at
-/// fault rather than which letter.
+/// verifiers take theirs, so a refutation can say which files were at fault
+/// rather than which letters.
 ///
-/// Returns a report rather than a bare bool: the statistics are wanted even on
-/// success, and the failure carries enough to act on.
+/// Returns the walk's statistics on success.  A refutation is an error, and
+/// carries the disagreement and the partial statistics with it; see the module
+/// documentation for why.
 pub fn verify_dfa_union(
+
     a: &Dfa,
     a_name: &str,
     b: &Dfa,
     b_name: &str,
     c: &Dfa,
     c_name: &str,
-) -> Result<UnionReport> {
+) -> Result<UnionStats> {
     let layout = a.layout();
     let ndim = layout.ndim();
 
@@ -378,10 +378,7 @@ pub fn verify_dfa_union(
         b.header().initial_state,
         c.header().initial_state,
     ) {
-        return Ok(UnionReport {
-            stats,
-            failure: Some(failure),
-        });
+        return Err(refuted(a_name, b_name, c_name, failure, stats));
     }
 
     for layer in 0..ndim {
@@ -406,10 +403,7 @@ pub fn verify_dfa_union(
                     c.entry(layer, cv, sigma),
                 );
                 if let Some(failure) = failure {
-                    return Ok(UnionReport {
-                        stats,
-                        failure: Some(failure),
-                    });
+                    return Err(refuted(a_name, b_name, c_name, failure, stats));
                 }
             }
         }
@@ -417,10 +411,33 @@ pub fn verify_dfa_union(
         current = next;
     }
 
-    Ok(UnionReport {
-        stats,
-        failure: None,
-    })
+    Ok(stats)
+}
+
+/// The error a refutation becomes.
+///
+/// The statistics are the walk up to the disagreement, not a measurement of
+/// the triple -- the walk stops at the first one -- so they are labelled as
+/// such rather than presented as totals.
+fn refuted(
+    a_name: &str,
+    b_name: &str,
+    c_name: &str,
+    failure: UnionFailure,
+    stats: UnionStats,
+) -> FormatError {
+    let message = format!(
+        "\"{a_name}\" is not the union of \"{b_name}\" and \"{c_name}\": {failure}\n\
+         walk stopped after {} triples stepped, having reached {} pairs with both sides \
+         non-trivial, {} with b reject-all and {} with c reject-all",
+        stats.steps, stats.pairs_both, stats.pairs_b_reject, stats.pairs_c_reject
+    );
+
+    FormatError::Refuted {
+        message,
+        failure: Box::new(failure),
+        stats: Some(stats),
+    }
 }
 
 /// Dispatch one triple: check the trivial obligations, or memoize and queue.
@@ -514,15 +531,11 @@ fn visit(
 ///
 /// Sampling `L(A)` alone would only ever catch `A ⊄ B ∪ C`, so `L(B)` and
 /// `L(C)` are sampled too, which catches the other direction.
-pub fn sample_for_witness(
-    a: &Dfa,
-    b: &Dfa,
-    c: &Dfa,
-    samples: u32,
-    seed: u64,
-) -> Result<Option<UnionFailure>> {
+///
+/// A witness is a refutation, so it comes back as an error like any other.
+pub fn sample_for_witness(a: &Dfa, b: &Dfa, c: &Dfa, samples: u32, seed: u64) -> Result<()> {
     if samples == 0 {
-        return Ok(None);
+        return Ok(());
     }
 
     let mut rng = Rng::new(seed);
@@ -539,15 +552,21 @@ pub fn sample_for_witness(
             let in_c = c.accepts(&string)?;
 
             if in_a != (in_b || in_c) {
-                return Ok(Some(UnionFailure::Witness {
+                let failure = UnionFailure::Witness {
                     string,
                     in_a,
                     in_b,
                     in_c,
-                }));
+                };
+                return Err(FormatError::Refuted {
+                    message: failure.to_string(),
+                    failure: Box::new(failure),
+                    // No walk happened, so there is nothing to report about one.
+                    stats: None,
+                });
             }
         }
     }
 
-    Ok(None)
+    Ok(())
 }

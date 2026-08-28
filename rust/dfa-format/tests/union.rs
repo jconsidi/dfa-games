@@ -9,7 +9,30 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use dfa_format::union::{Caveat, UnionFailure};
-use dfa_format::{convert, sample_for_witness, verify_dfa_union, Automaton, Dfa, LegacyDfa};
+use dfa_format::{
+    convert, sample_for_witness, verify_dfa_union, Automaton, Dfa, FormatError, LegacyDfa,
+};
+
+/// The failure and partial statistics a refutation carries, or a panic if the
+/// call did not refute.
+fn refutation(result: dfa_format::Result<dfa_format::UnionStats>) -> (UnionFailure, dfa_format::UnionStats) {
+    match result {
+        Ok(stats) => panic!("expected a refutation, but the union held: {stats:?}"),
+        Err(FormatError::Refuted { failure, stats, .. }) => {
+            (*failure, stats.expect("a walk refutation carries its statistics"))
+        }
+        Err(other) => panic!("expected a refutation, got {other}"),
+    }
+}
+
+/// Whether the relation holds, for tests that only care about the verdict.
+fn holds(result: dfa_format::Result<dfa_format::UnionStats>) -> bool {
+    match result {
+        Ok(_) => true,
+        Err(FormatError::Refuted { .. }) => false,
+        Err(other) => panic!("expected a verdict, got {other}"),
+    }
+}
 use tempfile::TempDir;
 
 /// Every string over `shape[from..]`.
@@ -196,12 +219,11 @@ fn a_true_union_holds() {
     let union = |s: &[u32]| first_is_zero(s) || sum_is_even(s);
     let (a, b, c) = triple(&tmp, "true", &SHAPE, &union, &first_is_zero, &sum_is_even);
 
-    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
-    assert!(report.holds(), "{:?}", report.failure);
+    let stats = verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
     // Guard against a vacuous test: the walk must have done real work on the
     // two-sided memo.
-    assert!(report.stats.pairs_both > 0);
-    assert!(report.stats.steps > 0);
+    assert!(stats.pairs_both > 0);
+    assert!(stats.steps > 0);
 }
 
 #[test]
@@ -210,12 +232,12 @@ fn the_union_is_checked_both_ways() {
 
     // A too small: it misses the strings only C contributes.
     let (a, b, c) = triple(&tmp, "small", &SHAPE, &first_is_zero, &first_is_zero, &sum_is_even);
-    assert!(!verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap().holds());
+    assert!(!holds(verify_dfa_union(&a, "A", &b, "B", &c, "C")));
 
     // A too big: it holds strings neither B nor C has.
     let union = |s: &[u32]| first_is_zero(s) || sum_is_even(s);
     let (a, b, c) = triple(&tmp, "big", &SHAPE, &union, &first_is_zero, &never);
-    assert!(!verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap().holds());
+    assert!(!holds(verify_dfa_union(&a, "A", &b, "B", &c, "C")));
 }
 
 #[test]
@@ -224,23 +246,21 @@ fn a_reject_all_side_collapses_to_equality() {
 
     // C empty, so the obligation is A == B and every pair is keyed on b alone.
     let (a, b, c) = triple(&tmp, "cempty", &SHAPE, &first_is_zero, &first_is_zero, &never);
-    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
-    assert!(report.holds(), "{:?}", report.failure);
-    assert_eq!(report.stats.pairs_both, 0);
-    assert_eq!(report.stats.pairs_b_reject, 0);
-    assert!(report.stats.pairs_c_reject > 0, "{:?}", report.stats);
+    let stats = verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
+    assert_eq!(stats.pairs_both, 0);
+    assert_eq!(stats.pairs_b_reject, 0);
+    assert!(stats.pairs_c_reject > 0, "{stats:?}");
 
     // B empty, so the mirror: keyed on c alone.
     let (a, b, c) = triple(&tmp, "bempty", &SHAPE, &first_is_zero, &never, &first_is_zero);
-    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
-    assert!(report.holds(), "{:?}", report.failure);
-    assert_eq!(report.stats.pairs_both, 0);
-    assert!(report.stats.pairs_b_reject > 0, "{:?}", report.stats);
-    assert_eq!(report.stats.pairs_c_reject, 0);
+    let stats = verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
+    assert_eq!(stats.pairs_both, 0);
+    assert!(stats.pairs_b_reject > 0, "{stats:?}");
+    assert_eq!(stats.pairs_c_reject, 0);
 
     // And the equality is really checked, not assumed.
     let (a, b, c) = triple(&tmp, "cempty-bad", &SHAPE, &first_is_zero, &last_is_zero, &never);
-    assert!(!verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap().holds());
+    assert!(!holds(verify_dfa_union(&a, "A", &b, "B", &c, "C")));
 }
 
 #[test]
@@ -248,38 +268,32 @@ fn an_accept_all_side_short_circuits() {
     let tmp = TempDir::new().unwrap();
 
     let (a, b, c) = triple(&tmp, "ball", &SHAPE, &always, &always, &first_is_zero);
-    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
-    assert!(report.holds(), "{:?}", report.failure);
+    let stats = verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
     // B is accept-all from its initial state, so the walk stops immediately
     // and never expands anything.
-    assert_eq!(report.stats.stops_accept, 1);
-    assert_eq!(report.stats.steps, 0);
+    assert_eq!(stats.stops_accept, 1);
+    assert_eq!(stats.steps, 0);
 
     // A must then be accept-all too.
     let (a, b, c) = triple(&tmp, "ball-bad", &SHAPE, &first_is_zero, &always, &never);
-    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
-    assert!(matches!(
-        report.failure,
-        Some(UnionFailure::Rule { required_a: 1, .. })
-    ));
+    let (failure, _) = refutation(verify_dfa_union(&a, "A", &b, "B", &c, "C"));
+    assert!(matches!(failure, UnionFailure::Rule { required_a: 1, .. }), "{failure:?}");
 }
 
 #[test]
 fn all_three_empty_holds() {
     let tmp = TempDir::new().unwrap();
     let (a, b, c) = triple(&tmp, "empty", &SHAPE, &never, &never, &never);
-    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
-    assert!(report.holds(), "{:?}", report.failure);
-    assert_eq!(report.stats.stops_reject, 1);
-    assert_eq!(report.stats.steps, 0);
+    let stats = verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
+    assert_eq!(stats.stops_reject, 1);
+    assert_eq!(stats.steps, 0);
 }
 
 #[test]
 fn a_union_with_itself_holds() {
     let tmp = TempDir::new().unwrap();
     let (a, b, c) = triple(&tmp, "self", &SHAPE, &sum_is_even, &sum_is_even, &sum_is_even);
-    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
-    assert!(report.holds(), "{:?}", report.failure);
+    verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
 }
 
 #[test]
@@ -288,8 +302,7 @@ fn overlapping_sides_are_fine() {
     // B and C share strings; union still has to come out right.
     let union = |s: &[u32]| first_is_zero(s) || last_is_zero(s);
     let (a, b, c) = triple(&tmp, "overlap", &SHAPE, &union, &first_is_zero, &last_is_zero);
-    let report = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap();
-    assert!(report.holds(), "{:?}", report.failure);
+    verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
 }
 
 #[test]
@@ -320,38 +333,47 @@ fn exhaustive_over_every_triple_of_small_languages() {
     for a_mask in 0u32..16 {
         for b_mask in 0u32..16 {
             for c_mask in 0u32..16 {
-                let report = verify_dfa_union(
+                let result = verify_dfa_union(
                     &published[a_mask as usize],
                     &format!("mask{a_mask}"),
                     &published[b_mask as usize],
                     &format!("mask{b_mask}"),
                     &published[c_mask as usize],
                     &format!("mask{c_mask}"),
-                )
-                .unwrap();
-                assert_eq!(
-                    report.holds(),
-                    a_mask == (b_mask | c_mask),
-                    "A={a_mask:04b} B={b_mask:04b} C={c_mask:04b}: {:?}",
-                    report.failure
                 );
-                match &report.failure {
-                    Some(UnionFailure::Rule { caveat, .. }) => {
-                        rules += 1;
-                        if caveat.is_definitive() {
-                            definitive += 1;
-                        } else {
-                            conditional += 1;
+
+                let expected = a_mask == (b_mask | c_mask);
+                match result {
+                    Ok(_) => assert!(
+                        expected,
+                        "A={a_mask:04b} B={b_mask:04b} C={c_mask:04b} held but should not"
+                    ),
+                    Err(FormatError::Refuted { failure, .. }) => {
+                        assert!(
+                            !expected,
+                            "A={a_mask:04b} B={b_mask:04b} C={c_mask:04b} refuted but should hold: {failure}"
+                        );
+                        match *failure {
+                            UnionFailure::Rule { caveat, .. } => {
+                                rules += 1;
+                                if caveat.is_definitive() {
+                                    definitive += 1;
+                                } else {
+                                    conditional += 1;
+                                }
+                            }
+                            UnionFailure::Conflict { caveat, .. } => {
+                                conflicts += 1;
+                                // Never definitive: a conflict needs an ordinary b or c.
+                                assert!(!caveat.is_definitive());
+                                conditional += 1;
+                            }
+                            UnionFailure::Witness { .. } => {
+                                unreachable!("the walk emits no witnesses")
+                            }
                         }
                     }
-                    Some(UnionFailure::Conflict { caveat, .. }) => {
-                        conflicts += 1;
-                        // Never definitive: a conflict needs an ordinary b or c.
-                        assert!(!caveat.is_definitive());
-                        conditional += 1;
-                    }
-                    Some(UnionFailure::Witness { .. }) => unreachable!("the walk emits no witnesses"),
-                    None => {}
+                    Err(other) => panic!("unexpected error: {other}"),
                 }
             }
         }
@@ -394,8 +416,7 @@ fn a_non_canonical_a_is_walked_and_the_failure_says_so() {
     }
     assert!(!a.header().canonical());
 
-    let report = verify_dfa_union(&a, "lost,side_to_move=0", &b, "B", &c, "C").unwrap();
-    let failure = report.failure.expect("A is not minimal, so the pairs conflict");
+    let (failure, _) = refutation(verify_dfa_union(&a, "lost,side_to_move=0", &b, "B", &c, "C"));
     match &failure {
         UnionFailure::Conflict { layer, caveat, .. } => {
             assert_eq!(*layer, 1);
@@ -421,7 +442,7 @@ fn a_canonical_a_gets_no_such_caveat() {
     let tmp = TempDir::new().unwrap();
     let (a, b, c) = triple(&tmp, "canon", &SHAPE, &first_is_zero, &last_is_zero, &never);
 
-    let failure = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap().failure.unwrap();
+    let (failure, _) = refutation(verify_dfa_union(&a, "A", &b, "B", &c, "C"));
     let caveat = match &failure {
         UnionFailure::Rule { caveat, .. } | UnionFailure::Conflict { caveat, .. } => caveat,
         other => panic!("expected a walk failure, got {other:?}"),
@@ -438,8 +459,7 @@ fn mismatched_shapes_are_an_error() {
     let c = publish(&minimal_dfa(&[2, 3], &always), &tmp, "shape-c");
 
     let err = verify_dfa_union(&a, "the-union", &b, "left-side", &c, "right-side")
-        .err()
-        .unwrap()
+        .expect_err("the shapes do not agree")
         .to_string();
     assert!(err.contains("shaped"), "{err}");
     // Both ends of the mismatch, so it says which pair disagrees.
@@ -453,12 +473,18 @@ fn the_prefilter_finds_a_witness_and_stays_quiet_when_there_is_none() {
 
     let union = |s: &[u32]| first_is_zero(s) || sum_is_even(s);
     let (a, b, c) = triple(&tmp, "wit-ok", &SHAPE, &union, &first_is_zero, &sum_is_even);
-    assert!(sample_for_witness(&a, &b, &c, 200, 1).unwrap().is_none());
+    sample_for_witness(&a, &b, &c, 200, 1).expect("no witness exists for a true union");
 
     // A is missing everything C contributes, so a sample from C refutes it.
     let (a, b, c) = triple(&tmp, "wit-bad", &SHAPE, &first_is_zero, &first_is_zero, &sum_is_even);
-    let witness = sample_for_witness(&a, &b, &c, 200, 1).unwrap().unwrap();
-    match witness {
+    // A witness is a refutation, so it arrives as an error like any other.
+    let err = sample_for_witness(&a, &b, &c, 200, 1).expect_err("A is missing what C contributes");
+    let FormatError::Refuted { failure, stats, .. } = err else {
+        panic!("expected a refutation, got {err}")
+    };
+    // Nothing was walked, so there are no walk statistics to report.
+    assert!(stats.is_none());
+    match *failure {
         UnionFailure::Witness {
             string,
             in_a,
@@ -473,4 +499,52 @@ fn the_prefilter_finds_a_witness_and_stays_quiet_when_there_is_none() {
         }
         other => panic!("expected a witness, got {other:?}"),
     }
+}
+
+#[test]
+fn the_failing_form_propagates_a_refutation() {
+    // verify_dfa_union exists so that `?` carries a refutation up. A caller
+    // that writes `verify_dfa_union(..)?;` and nothing else is correct, which
+    // is the whole difference from the reporting form.
+    let tmp = TempDir::new().unwrap();
+
+    let union = |s: &[u32]| first_is_zero(s) || sum_is_even(s);
+    let (a, b, c) = triple(&tmp, "fail-ok", &SHAPE, &union, &first_is_zero, &sum_is_even);
+    verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
+
+    // A too small: missing everything C contributes.
+    let (a, b, c) = triple(
+        &tmp,
+        "fail-bad",
+        &SHAPE,
+        &first_is_zero,
+        &first_is_zero,
+        &sum_is_even,
+    );
+    let err = verify_dfa_union(&a, "curr", &b, "prev", &c, "new")
+        .expect_err("this union does not hold")
+        .to_string();
+
+    // The message has to name the relation, not just the disagreement, since
+    // the caller checks many of these in a row.
+    assert!(err.contains("\"curr\" is not the union of \"prev\" and \"new\""), "{err}");
+    // ... and still carry the detail the walk found.
+    assert!(err.contains("layer"), "{err}");
+}
+
+#[test]
+fn the_failing_form_still_errors_on_unusable_input() {
+    // A shape mismatch is a different kind of failure -- the check could not
+    // be run at all -- but both reach the caller as Err, which is what makes
+    // `?` sufficient at the call site.
+    let tmp = TempDir::new().unwrap();
+    let a = publish(&minimal_dfa(&[2, 2], &always), &tmp, "fs-a");
+    let b = publish(&minimal_dfa(&[2, 2], &always), &tmp, "fs-b");
+    let c = publish(&minimal_dfa(&[2, 3], &always), &tmp, "fs-c");
+
+    let err = verify_dfa_union(&a, "A", &b, "B", &c, "C")
+        .expect_err("the shapes do not agree")
+        .to_string();
+    assert!(err.contains("shaped"), "{err}");
+    assert!(!err.contains("is not the union of"), "{err}");
 }

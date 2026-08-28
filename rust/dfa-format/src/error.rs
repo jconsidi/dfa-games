@@ -35,6 +35,21 @@ pub enum FormatError {
     #[error("{path}: {message}")]
     Invalid { path: PathBuf, message: String },
 
+    /// A relation between DFAs was asserted and does not hold.
+    ///
+    /// A refutation is an error rather than a value the caller inspects: a
+    /// caller that forgets to look has checked nothing, and that failure mode
+    /// is invisible in a passing run.  The structured pieces are kept
+    /// alongside the message so a caller can act on them without parsing text.
+    #[error("{message}")]
+    Refuted {
+        message: String,
+        failure: Box<crate::union::UnionFailure>,
+        /// How far the walk got, absent when the refutation came from
+        /// sampling rather than from a walk.
+        stats: Option<crate::union::UnionStats>,
+    },
+
     #[error("{0}")]
     Other(String),
 }
