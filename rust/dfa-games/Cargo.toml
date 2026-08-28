@@ -2,11 +2,33 @@
 name = "dfa-games"
 version.workspace = true
 edition.workspace = true
-description = "Position level rules for the games the solver solves"
+description = "Game rules and the verifiers that check solver output against them"
 
 [dependencies]
 dfa-format = { path = "../dfa-format" }
 anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+rayon = "1"
 
 [dev-dependencies]
 tempfile = "3"
+
+[[bin]]
+name = "verify-lost-sound"
+path = "src/bin/verify-lost-sound.rs"
+
+[[bin]]
+name = "verify-won-sound"
+path = "src/bin/verify-won-sound.rs"
+
+[[bin]]
+name = "verify-losing-sound"
+path = "src/bin/verify-losing-sound.rs"
+
+[[bin]]
+name = "verify-winning-sound"
+path = "src/bin/verify-winning-sound.rs"
+
+[[bin]]
+name = "verify-backward-sound"
+path = "src/bin/verify-backward-sound.rs"
