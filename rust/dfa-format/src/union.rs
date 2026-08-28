@@ -22,16 +22,28 @@
 //! - reaching one pair with two different `a` values is a failure;
 //! - work is bounded by reachable *pairs*, not triples.
 //!
-//! That is licensed by minimality, so `A` is **required** to carry the format's
-//! canonical flag, which asserts it; a triple whose `A` does not is rejected
-//! rather than walked.  The flag is an assertion made by whatever wrote the
-//! file, and this function does not re-derive it, so the guarantee here is
-//! exactly as good as that flag.  Given it, a conflict refutes `A = B ∪ C`.
+//! That reasoning needs `A` minimal, and the same is true of the trivial cases
+//! below, where `a == 1` and `a == 0` are *required* rather than checked by
+//! descending: in a minimal automaton the accept-everything residual is state 1
+//! and the reject-everything residual is state 0, because the format reserves
+//! those two indices for exactly them.  A non-minimal `A` could instead reach an
+//! ordinary state with either residual and be reported wrongly.
 //!
-//! The same reasoning is why `a == 1` and `a == 0` can be *required* in the
-//! trivial cases rather than checked by descending: in a minimal automaton the
-//! accept-everything residual is state 1 and the reject-everything residual is
-//! state 0, because the format reserves those two indices for exactly them.
+//! `A` is *not* required to carry the format's canonical flag, which is what
+//! asserts minimality.  Every triple is walked and every disagreement is a
+//! failure, but a failure carries a [`Caveat`] saying how much it proves:
+//!
+//! - at the terminal pseudo-layer every state is 0 or 1, so a disagreement
+//!   there is about acceptance itself and holds whatever `A`'s numbering is
+//!   like — [`Caveat::Definitive`];
+//! - earlier than that the argument rests on minimality, which the flag
+//!   asserts — [`Caveat::RestsOnCanonicalFlag`];
+//! - earlier than that with no flag, the disagreement may be an artifact of
+//!   `A`'s numbering rather than a difference in language —
+//!   [`Caveat::MayNotBeMinimal`].
+//!
+//! The flag is an assertion made by whatever wrote the file, and this function
+//! does not re-derive it.
 //!
 //! # Dispatch
 //!
@@ -102,6 +114,61 @@ pub enum MemoKey {
     Pair(u64, u64),
 }
 
+/// How much a failure proves, which depends on whether `A` is minimal.
+///
+/// Only the terminal layer is free of that dependence, so only it is
+/// unconditional.  Everything else is still reported as a failure — a
+/// disagreement is a disagreement — but with the assumption it rests on named.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Caveat {
+    /// Found at the terminal pseudo-layer, where every state is 0 or 1.  A
+    /// difference in acceptance, independent of how A is numbered.
+    Definitive,
+
+    /// Found earlier, so it rests on A being minimal, which A's canonical flag
+    /// asserts.
+    RestsOnCanonicalFlag,
+
+    /// Found earlier, and A does not carry the canonical flag.  If A is not
+    /// minimal then two of its states can share a residual, and this may be an
+    /// artifact of the numbering rather than a difference in language.
+    MayNotBeMinimal { a_name: String },
+}
+
+impl Caveat {
+    fn of(terminal: bool, a_canonical: bool, a_name: &str) -> Caveat {
+        if terminal {
+            Caveat::Definitive
+        } else if a_canonical {
+            Caveat::RestsOnCanonicalFlag
+        } else {
+            Caveat::MayNotBeMinimal {
+                a_name: a_name.to_string(),
+            }
+        }
+    }
+
+    /// Whether the failure holds without assuming anything about A.
+    pub fn is_definitive(&self) -> bool {
+        matches!(self, Caveat::Definitive)
+    }
+
+    fn note(&self) -> String {
+        match self {
+            Caveat::Definitive => String::new(),
+            Caveat::RestsOnCanonicalFlag => {
+                ". This rests on A being minimal, which A's canonical flag asserts".to_string()
+            }
+            Caveat::MayNotBeMinimal { a_name } => format!(
+                ". This rests on A being minimal, and A \"{a_name}\" does not carry the \
+                 canonical flag that would assert it: if A is not minimal, two of its states \
+                 can share a residual and this disagreement may be an artifact of A's \
+                 numbering rather than a difference in language"
+            ),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum UnionFailure {
     /// A trivial case demanded a specific `a` and got something else.
@@ -112,6 +179,7 @@ pub enum UnionFailure {
         c: u64,
         required_a: u64,
         because: &'static str,
+        caveat: Caveat,
     },
 
     /// One `(b, c)` pair was reached with two different `a` values.  Since `A`
@@ -122,6 +190,7 @@ pub enum UnionFailure {
         key: MemoKey,
         first_a: u64,
         second_a: u64,
+        caveat: Caveat,
     },
 
     /// A sampled string is in one side and not the other.  Re-checkable in
@@ -144,9 +213,12 @@ impl std::fmt::Display for UnionFailure {
                 c,
                 required_a,
                 because,
+                caveat,
             } => write!(
                 f,
-                "layer {layer}: triple (a={a}, b={b}, c={c}) requires a == {required_a} because {because}"
+                "layer {layer}: triple (a={a}, b={b}, c={c}) requires a == {required_a} \
+                 because {because}{}",
+                caveat.note()
             ),
 
             UnionFailure::Conflict {
@@ -154,6 +226,7 @@ impl std::fmt::Display for UnionFailure {
                 key,
                 first_a,
                 second_a,
+                caveat,
             } => {
                 let key = match key {
                     MemoKey::C(c) => format!("c={c} (with b reject-all)"),
@@ -163,7 +236,8 @@ impl std::fmt::Display for UnionFailure {
                 write!(
                     f,
                     "layer {layer}: {key} was reached with a={first_a} and again with \
-                     a={second_a}, so A distinguishes two prefixes that B union C does not"
+                     a={second_a}, so A distinguishes two prefixes that B union C does not{}",
+                    caveat.note()
                 )
             }
 
@@ -194,6 +268,20 @@ pub struct UnionReport {
 impl UnionReport {
     pub fn holds(&self) -> bool {
         self.failure.is_none()
+    }
+}
+
+/// The parts of a run that do not vary from triple to triple.
+struct Context<'a> {
+    ndim: usize,
+    /// Whether A claims the canonical numbering that asserts minimality.
+    a_canonical: bool,
+    a_name: &'a str,
+}
+
+impl Context<'_> {
+    fn caveat(&self, layer: usize) -> Caveat {
+        Caveat::of(layer == self.ndim, self.a_canonical, self.a_name)
     }
 }
 
@@ -269,18 +357,14 @@ pub fn verify_dfa_union(
         }
     }
 
-    // The pair keyed memo below is only sound if the correct `a` is a function
-    // of `(b, c)`, which needs A minimal. The canonical flag asserts exactly
-    // that, so require it rather than silently producing a result whose
-    // meaning depends on something unchecked.
-    if !a.header().canonical() {
-        return Err(FormatError::Other(format!(
-            "A \"{a_name}\" does not carry the canonical flag, which is what asserts it is \
-             minimal. This check requires it: without minimality two distinct states of A \
-             can share a residual, and a disagreement would not distinguish \"A is not the \
-             union\" from \"A is not minimal\"."
-        )));
-    }
+    // Not a precondition: a triple whose A is not canonical is still walked,
+    // and any disagreement is still a failure. What changes is how much the
+    // failure proves, which each one carries as a Caveat.
+    let context = Context {
+        ndim,
+        a_canonical: a.header().canonical(),
+        a_name,
+    };
 
     let mut stats = UnionStats::default();
 
@@ -289,6 +373,7 @@ pub fn verify_dfa_union(
         &mut current,
         &mut stats,
         0,
+        &context,
         a.header().initial_state,
         b.header().initial_state,
         c.header().initial_state,
@@ -315,6 +400,7 @@ pub fn verify_dfa_union(
                     &mut next,
                     &mut stats,
                     layer + 1,
+                    &context,
                     a.entry(layer, av, sigma),
                     b.entry(layer, bv, sigma),
                     c.entry(layer, cv, sigma),
@@ -342,6 +428,7 @@ fn visit(
     frontier: &mut Frontier,
     stats: &mut UnionStats,
     layer: usize,
+    context: &Context,
     a: u64,
     b: u64,
     c: u64,
@@ -357,6 +444,7 @@ fn visit(
             c,
             required_a,
             because,
+            caveat: context.caveat(layer),
         })
     };
 
@@ -408,6 +496,10 @@ fn visit(
             key,
             first_a: *slot,
             second_a: a,
+            // A conflict needs an ordinary b or c, which the terminal layer
+            // does not have, so `layer` is never ndim here and this is never
+            // Definitive.
+            caveat: context.caveat(layer),
         });
     }
 

@@ -8,7 +8,7 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use dfa_format::union::UnionFailure;
+use dfa_format::union::{Caveat, UnionFailure};
 use dfa_format::{convert, sample_for_witness, verify_dfa_union, Automaton, Dfa, LegacyDfa};
 use tempfile::TempDir;
 
@@ -315,6 +315,8 @@ fn exhaustive_over_every_triple_of_small_languages() {
 
     let mut rules = 0;
     let mut conflicts = 0;
+    let mut definitive = 0;
+    let mut conditional = 0;
     for a_mask in 0u32..16 {
         for b_mask in 0u32..16 {
             for c_mask in 0u32..16 {
@@ -333,9 +335,21 @@ fn exhaustive_over_every_triple_of_small_languages() {
                     "A={a_mask:04b} B={b_mask:04b} C={c_mask:04b}: {:?}",
                     report.failure
                 );
-                match report.failure {
-                    Some(UnionFailure::Rule { .. }) => rules += 1,
-                    Some(UnionFailure::Conflict { .. }) => conflicts += 1,
+                match &report.failure {
+                    Some(UnionFailure::Rule { caveat, .. }) => {
+                        rules += 1;
+                        if caveat.is_definitive() {
+                            definitive += 1;
+                        } else {
+                            conditional += 1;
+                        }
+                    }
+                    Some(UnionFailure::Conflict { caveat, .. }) => {
+                        conflicts += 1;
+                        // Never definitive: a conflict needs an ordinary b or c.
+                        assert!(!caveat.is_definitive());
+                        conditional += 1;
+                    }
                     Some(UnionFailure::Witness { .. }) => unreachable!("the walk emits no witnesses"),
                     None => {}
                 }
@@ -346,14 +360,21 @@ fn exhaustive_over_every_triple_of_small_languages() {
     // Both ways of detecting a wrong A have to be exercised, or one of the two
     // code paths is untested here.
     assert!(rules > 0 && conflicts > 0, "rules {rules}, conflicts {conflicts}");
+    // Both a failure that needs no assumption about A and one that does.
+    assert!(
+        definitive > 0 && conditional > 0,
+        "definitive {definitive}, conditional {conditional}"
+    );
 }
 
 #[test]
-fn a_non_canonical_a_is_rejected_rather_than_walked() {
+fn a_non_canonical_a_is_walked_and_the_failure_says_so() {
     // A accepts exactly the union, but splits layer 1 into two equal states,
-    // so it is not minimal. The pair keyed memo would then be unsound: two
-    // distinct states of A share a residual, and a disagreement could not tell
-    // "A is not the union" from "A is not minimal". So it is refused up front.
+    // so it is not minimal. The pair keyed memo then sees one pair with two
+    // different a values and reports a conflict -- which is, in this case, an
+    // artifact of A's numbering and not a difference in language. That is
+    // exactly what the caveat is for: the triple is still walked and still
+    // fails, but the report says what the failure rests on.
     let shape = vec![2u32, 2];
     let tmp = TempDir::new().unwrap();
 
@@ -368,23 +389,45 @@ fn a_non_canonical_a_is_rejected_rather_than_walked() {
     split.set_initial_state(start);
     let a = publish(&split, &tmp, "noncanon-a");
 
-    // A really does denote the union, so this is about A's shape, not its
-    // language.
     for s in suffixes(&[2, 2], 0) {
         assert_eq!(a.accepts(&s).unwrap(), second_is_zero(&s));
     }
     assert!(!a.header().canonical());
 
-    // The name is what makes the rejection actionable: which of the three
-    // files has to be rebuilt, not which letter it was passed as.
-    let err = verify_dfa_union(&a, "lost,side_to_move=0", &b, "B", &c, "C")
-        .err()
-        .unwrap()
-        .to_string();
-    assert!(err.contains("canonical flag"), "{err}");
-    assert!(err.contains("minimal"), "{err}");
-    assert!(err.contains("lost,side_to_move=0"), "{err}");
-    assert!(!err.contains("dfa-convert"), "{err}");
+    let report = verify_dfa_union(&a, "lost,side_to_move=0", &b, "B", &c, "C").unwrap();
+    let failure = report.failure.expect("A is not minimal, so the pairs conflict");
+    match &failure {
+        UnionFailure::Conflict { layer, caveat, .. } => {
+            assert_eq!(*layer, 1);
+            assert!(!caveat.is_definitive());
+            match caveat {
+                Caveat::MayNotBeMinimal { a_name } => assert_eq!(a_name, "lost,side_to_move=0"),
+                other => panic!("expected MayNotBeMinimal, got {other:?}"),
+            }
+        }
+        other => panic!("expected a conflict, got {other:?}"),
+    }
+
+    // And the message names A, so a reader knows which file to look at.
+    let text = failure.to_string();
+    assert!(text.contains("lost,side_to_move=0"), "{text}");
+    assert!(text.contains("canonical flag"), "{text}");
+}
+
+#[test]
+fn a_canonical_a_gets_no_such_caveat() {
+    // The same shape of failure against a minimal A rests on the flag rather
+    // than on nothing, and says so differently.
+    let tmp = TempDir::new().unwrap();
+    let (a, b, c) = triple(&tmp, "canon", &SHAPE, &first_is_zero, &last_is_zero, &never);
+
+    let failure = verify_dfa_union(&a, "A", &b, "B", &c, "C").unwrap().failure.unwrap();
+    let caveat = match &failure {
+        UnionFailure::Rule { caveat, .. } | UnionFailure::Conflict { caveat, .. } => caveat,
+        other => panic!("expected a walk failure, got {other:?}"),
+    };
+    assert!(!matches!(caveat, Caveat::MayNotBeMinimal { .. }), "{caveat:?}");
+    assert!(!failure.to_string().contains("does not carry"), "{failure}");
 }
 
 #[test]
