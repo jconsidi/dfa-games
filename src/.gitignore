@@ -45,6 +45,7 @@ validate_dfa
 validate_forward
 validate_forward_backward
 validate_terminal
+verify_backward_sound
 verify_losing_sound
 verify_lost_sound
 verify_winning_sound
