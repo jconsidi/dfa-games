@@ -16,6 +16,7 @@ pub mod legacy;
 pub mod read;
 pub mod sample;
 pub mod stats;
+pub mod union;
 pub mod write;
 
 pub use error::{FormatError, Result, Violation};
@@ -25,6 +26,7 @@ pub use legacy::LegacyDfa;
 pub use read::{validate, Dfa, Report, ValidateOptions};
 pub use sample::{Rng, Sampler};
 pub use stats::Stats;
+pub use union::{sample_for_witness, verify_dfa_union, UnionFailure, UnionReport, UnionStats};
 pub use write::{convert, Converted};
 
 use std::path::{Path, PathBuf};
