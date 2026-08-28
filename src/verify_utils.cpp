@@ -294,7 +294,7 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
 
       if(moves_mismatch)
         {
-          report << "# MOVES MISMATCH: expected some, actual " << moves.size() << "\n";
+          report << "# MOVES MISMATCH: expected none, actual " << moves.size() << "\n";
         }
 
       report << "\n";
