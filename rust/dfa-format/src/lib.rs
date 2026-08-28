@@ -14,6 +14,7 @@ pub mod iter;
 pub mod layout;
 pub mod legacy;
 pub mod read;
+pub mod sample;
 pub mod stats;
 pub mod write;
 
@@ -22,6 +23,7 @@ pub use iter::Positions;
 pub use layout::Layout;
 pub use legacy::LegacyDfa;
 pub use read::{validate, Dfa, Report, ValidateOptions};
+pub use sample::{Rng, Sampler};
 pub use stats::Stats;
 pub use write::{convert, Converted};
 
