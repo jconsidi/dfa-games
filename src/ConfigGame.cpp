@@ -22,7 +22,12 @@ ConfigBase::ConfigBase(std::string name_in)
     }
 
   std::string components_directory = "scratch/" + name_in + "/components";
-  mkdir(components_directory.c_str(), 0700);
+  int mkdir_ret = mkdir(components_directory.c_str(), 0700);
+  if(mkdir_ret && (errno != EEXIST))
+    {
+      perror("components mkdir");
+      throw std::runtime_error("components mkdir failed");
+    }
 }
 
 nlohmann::json ConfigBase::read_config(std::string game_name_in, std::string config_filename_in)
