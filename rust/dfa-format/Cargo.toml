@@ -25,3 +25,7 @@ path = "src/bin/dfa-stats.rs"
 [[bin]]
 name = "dfa-validate"
 path = "src/bin/dfa-validate.rs"
+
+[[bin]]
+name = "dfa-verify-union"
+path = "src/bin/dfa-verify-union.rs"
