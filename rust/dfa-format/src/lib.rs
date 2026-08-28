@@ -10,6 +10,7 @@
 
 mod bitset;
 pub mod error;
+pub mod iter;
 pub mod layout;
 pub mod legacy;
 pub mod read;
@@ -17,6 +18,7 @@ pub mod stats;
 pub mod write;
 
 pub use error::{FormatError, Result, Violation};
+pub use iter::Positions;
 pub use layout::Layout;
 pub use legacy::LegacyDfa;
 pub use read::{validate, Dfa, Report, ValidateOptions};

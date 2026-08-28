@@ -134,6 +134,11 @@ impl Dfa {
         layout::decode_entry(&self.map[offset..offset + usize::from(width)], width)
     }
 
+    /// Every string this automaton accepts, in lexicographic order.
+    pub fn positions(&self) -> crate::iter::Positions<'_> {
+        crate::iter::Positions::new(self)
+    }
+
     /// Spec section 5.  The early returns on states 0 and 1 are the operative
     /// definition, not an optimization: a reader that instead walks all the
     /// way to the terminal pseudo-layer implements a different rule and
