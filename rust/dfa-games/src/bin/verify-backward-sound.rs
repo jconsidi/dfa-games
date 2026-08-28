@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Parser;
-use dfa_format::Dfa;
+use dfa_format::{Dfa, union};
 use dfa_games::{get_game, load, verify};
 
 #[derive(Parser, Debug)]
@@ -27,11 +27,19 @@ struct Args {
     ply_max: u32,
 }
 
-fn losing_name(side_to_move: u32, ply: u32) -> String {
+fn losing_eq_name(side_to_move: u32, ply: u32) -> String {
+    format!("backward,ply={ply:03},side={side_to_move},losing")
+}
+
+fn losing_max_name(side_to_move: u32, ply: u32) -> String {
     format!("backward,ply_max={ply:03},side={side_to_move},losing")
 }
 
-fn winning_name(side_to_move: u32, ply: u32) -> String {
+fn winning_eq_name(side_to_move: u32, ply: u32) -> String {
+    format!("backward,ply={ply:03},side={side_to_move},winning")
+}
+
+fn winning_max_name(side_to_move: u32, ply: u32) -> String {
     format!("backward,ply_max={ply:03},side={side_to_move},winning")
 }
 
@@ -54,36 +62,74 @@ fn run(args: &Args) -> anyhow::Result<()> {
 
     // ply 0: the base cases, which stand on the rules alone.
     for side_to_move in 0..2 {
-        let lost = losing_name(side_to_move, 0);
+        let lost = losing_max_name(side_to_move, 0);
         verify::verify_lost_sound(game, side_to_move, &open(&lost)?, &lost)?;
 
-        let won = winning_name(side_to_move, 0);
+        let won = winning_max_name(side_to_move, 0);
         verify::verify_won_sound(game, side_to_move, &open(&won)?, &won)?;
     }
 
     // later ply: each one against the other side's previous ply.
     for ply in 1..=args.ply_max {
         for side_to_move in 0..2 {
-            let losing_curr = losing_name(side_to_move, ply);
-            let winning_prev = winning_name(1 - side_to_move, ply - 1);
+            let losing_curr_name = losing_max_name(side_to_move, ply);
+            let losing_curr = open(&losing_curr_name)?;
+
+            let losing_prev_name = losing_max_name(side_to_move, ply - 1);
+            let losing_prev = open(&losing_prev_name)?;
+
+            let losing_new_name = losing_eq_name(side_to_move, ply);
+            let losing_new = open(&losing_new_name)?;
+
+            union::verify_dfa_union(
+                &losing_curr,
+                &losing_curr_name,
+                &losing_prev,
+                &losing_prev_name,
+                &losing_new,
+                &losing_new_name
+            )?;
+
+            let winning_prev_name = winning_max_name(1 - side_to_move, ply - 1);
+            let winning_prev = open(&winning_prev_name)?;
+
             verify::verify_losing_sound(
                 game,
                 side_to_move,
-                &open(&losing_curr)?,
-                &losing_curr,
-                &open(&winning_prev)?,
+                &losing_new,
+                &losing_new_name,
                 &winning_prev,
+                &winning_prev_name,
             )?;
 
-            let winning_curr = winning_name(side_to_move, ply);
-            let losing_prev = losing_name(1 - side_to_move, ply - 1);
+            let winning_curr_name = winning_max_name(side_to_move, ply);
+            let winning_curr = open(&winning_curr_name)?;
+
+            let winning_prev_name = winning_max_name(side_to_move, ply - 1);
+            let winning_prev = open(&winning_prev_name)?;
+
+            let winning_new_name = winning_eq_name(side_to_move, ply);
+            let winning_new = open(&winning_new_name)?;
+
+            union::verify_dfa_union(
+                &winning_curr,
+                &winning_curr_name,
+                &winning_prev,
+                &winning_prev_name,
+                &winning_new,
+                &winning_new_name
+            )?;
+
+            let losing_prev_name = losing_max_name(1 - side_to_move, ply - 1);
+            let losing_prev = open(&losing_prev_name)?;
+
             verify::verify_winning_sound(
                 game,
                 side_to_move,
-                &open(&winning_curr)?,
-                &winning_curr,
-                &open(&losing_prev)?,
+                &winning_new,
+                &winning_new_name,
                 &losing_prev,
+                &losing_prev_name,
             )?;
         }
     }
