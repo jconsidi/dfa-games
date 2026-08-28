@@ -57,8 +57,9 @@ fn main() -> std::process::ExitCode {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(e) => {
             // A refutation arrives here like any other failure, which is the
-            // point: there is no path where it can be passed over.
-            println!("A = B union C FAILED");
+            // point: there is no path where it can be passed over. The message
+            // already says the relation does not hold, so there is nothing to
+            // add before it.
             eprintln!("{e:#}");
             std::process::ExitCode::FAILURE
         }
@@ -96,10 +97,6 @@ fn run(args: &Args) -> Result<()> {
     let b_name = resolve(&args.scratch, game, &args.b).display().to_string();
     let c_name = resolve(&args.scratch, game, &args.c).display().to_string();
 
-    println!("A = {a_name}");
-    println!("B = {b_name}");
-    println!("C = {c_name}");
-
     let samples = if args.exact_only { 0 } else { args.samples };
     if samples > 0 {
         sample_for_witness(&a, &b, &c, samples, args.seed)?;
@@ -111,8 +108,8 @@ fn run(args: &Args) -> Result<()> {
 
     let stats = verify_dfa_union(&a, &a_name, &b, &b_name, &c, &c_name)?;
 
-    // Printed either way: which of the memos carried the work is the thing
-    // worth knowing about a triple, and it is only visible from here.
+    // The breakdown, which the library's one line summarises: which of the
+    // memos carried the work is the thing worth knowing about a triple.
     println!(
         "reachable pairs: {} both non-trivial, {} b reject-all (keyed on c), {} c reject-all (keyed on b)",
         stats.pairs_both, stats.pairs_b_reject, stats.pairs_c_reject
@@ -121,8 +118,6 @@ fn run(args: &Args) -> Result<()> {
         "short circuits:  {} accept-all, {} reject-all",
         stats.stops_accept, stats.stops_reject
     );
-    println!("triples stepped: {}", stats.steps);
 
-    println!("A = B union C HOLDS");
     Ok(())
 }

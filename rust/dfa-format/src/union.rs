@@ -334,6 +334,12 @@ fn usize_states(dfa: &Dfa, layer: usize, which: &str) -> Result<usize> {
 /// Returns the walk's statistics on success.  A refutation is an error, and
 /// carries the disagreement and the partial statistics with it; see the module
 /// documentation for why.
+///
+/// Announces itself on stdout before and after, the way the game verifiers do,
+/// so a run that checks many relations in a row leaves a record of which ones
+/// it actually checked.  A check that prints nothing on success cannot be
+/// distinguished from one that never ran, which is how a whole set of these
+/// once passed while being silently discarded.
 pub fn verify_dfa_union(
 
     a: &Dfa,
@@ -365,6 +371,8 @@ pub fn verify_dfa_union(
         a_canonical: a.header().canonical(),
         a_name,
     };
+
+    println!("verifying {a_name} as the union of {b_name} and {c_name}");
 
     let mut stats = UnionStats::default();
 
@@ -410,6 +418,13 @@ pub fn verify_dfa_union(
 
         current = next;
     }
+
+    println!(
+        "verified {a_name} as the union of {b_name} and {c_name}: {} pairs reached, \
+         {} triples stepped",
+        stats.pairs_both + stats.pairs_b_reject + stats.pairs_c_reject,
+        stats.steps
+    );
 
     Ok(stats)
 }
