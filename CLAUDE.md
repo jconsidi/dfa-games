@@ -10,6 +10,34 @@ The C++ solver is in `src/` and builds and runs from there. `rust/` holds an
 incremental Rust port of the read side, described under **Rust** below; its
 binaries also expect to be run from `src/`.
 
+## Priorities
+
+**Provable correctness overrides everything else here** — speed, convenience,
+API tidiness, and consistency with neighbouring code. This project computes
+answers nobody will check by hand, so a wrong result that looks like a right
+one is the worst thing it can produce.
+
+**Always favor stopping with an error over silence.** In practice:
+
+- A check that disproves what it was asked about raises an error or throws. It
+  must not return a verdict as a value the caller can drop — and do not offer a
+  second, report-shaped entry point alongside, because that form can be called
+  and ignored. Where statistics are also wanted, return them on the success
+  path. `verify_dfa_union` (`rust/dfa-format/src/union.rs`) is the worked
+  example, and the reason: it once returned a report, a caller discarded it
+  with `?`, and the union checks in `verify-backward-sound` passed a corrupted
+  DFA while reporting success.
+- Fail loudly on an unexpected condition rather than continuing with a
+  plausible default or a quietly narrowed check.
+- Never weaken or skip a check to make something build, pass, or run faster.
+  Raise the tradeoff instead.
+- Say what was checked. A check that prints nothing on success cannot be told
+  apart from one that never ran.
+
+This is why `-DNDEBUG` is absent from the build (see **Building**) and why the
+`verify_*` programs exist at all: they are an independent oracle over results
+the solver has no other way to justify.
+
 ## Building
 
     cd src && make -j8
