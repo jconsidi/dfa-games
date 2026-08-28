@@ -6,6 +6,11 @@ StringDFA::StringDFA(const dfa_shape_t& shape_in, const std::vector<DFAString>& 
   : DedupedDFA(shape_in)
 {
   this->set_initial_state(build_internal(0, strings_in));
+
+  if(strings_in.size() <= 1)
+    {
+      set_canonical(1);
+    }
 }
 
 dfa_state_t StringDFA::build_internal(int layer,
