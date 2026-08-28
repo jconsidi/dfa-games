@@ -10,8 +10,23 @@ if [ -z "$GAME" ] ; then
     exit 1
 fi
 
+PLY_MAX="$2"
+if [ -z "${PLY_MAX}" ] ; then
+    PLY_MAX="1"
+fi
+
 make -j
 
-find scratch/"${GAME}" scratch/move_nodes -type l -exec rm {} \;
+find scratch/move_nodes -type l -exec rm {} \;
 
-./test_perft_u "$GAME"
+if [ -d "scratch/${GAME}" ] ; then
+    find "scratch/${GAME}" -type l -exec rm {} \;
+fi
+
+if [ -f "config/${GAME}/tests.json" ] ; then
+    ./test_perft_u "$GAME"
+fi
+
+./build_forward "$GAME" "${PLY_MAX}"
+./build_backward "$GAME" "${PLY_MAX}"
+./verify_backward_sound "$GAME" "${PLY_MAX}"
