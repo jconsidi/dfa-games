@@ -40,6 +40,27 @@ void test_validate_case(const Game& game, const DFAString& position, const nlohm
           throw std::logic_error(std::format("validate_moves() returned {:d} moves, but validate_result returned {:d}.", validate_moves.size(), *validate_result));
         }
     }
+
+  if(test_case.contains("expected_result"))
+    {
+      nlohmann::json expected_result = test_case.at("expected_result");
+      if(expected_result.is_null())
+        {
+          std::cout << "expected result none" << std::endl;
+          if(validate_result)
+            {
+              throw std::logic_error(std::format("validate_result() returned {:d}, but expected none", *validate_result));
+            }
+        }
+      else
+        {
+          std::cout << "expected result " << expected_result.get<int>() << std::endl;
+          if(!validate_result)
+            {
+              throw std::logic_error(std::format("validate_result() returned none, but expected {:d}", expected_result.get<int>()));
+            }
+        }
+    }
 }
 
 int main(int argc, char **argv)
