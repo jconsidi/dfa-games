@@ -20,6 +20,8 @@ private:
   virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 #endif
 
+  int calculate_layer(int r, int c) const {return r * width + c;};
+
 public:
 
   ClobberGame(int, int);
@@ -30,7 +32,7 @@ public:
 
   // validation
 
-  // virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
+  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
 };
 
 #endif

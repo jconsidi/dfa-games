@@ -163,3 +163,76 @@ std::string ClobberGame::position_to_string(const DFAString& string_in) const
 
   return output.str();
 }
+
+std::vector<DFAString> ClobberGame::validate_moves(int side_to_move, const DFAString& position) const
+{
+  const auto& shape = get_shape();
+
+  std::vector<DFAString> output;
+
+  int friendly_char = 1 + side_to_move;
+  int hostile_char = 1 + (1 - side_to_move);
+
+  // move generation
+
+  for(int row_from = 0; row_from < height; ++row_from)
+    {
+      for(int col_from = 0; col_from < width; ++col_from)
+	{
+	  int layer_from = calculate_layer(row_from, col_from);
+          if(position[layer_from] != friendly_char)
+            {
+              continue;
+            }
+
+          auto output_helper = [&](int row_to, int col_to)
+          {
+            int layer_to = calculate_layer(row_to, col_to);
+            if(position[layer_to] != hostile_char)
+              {
+                return;
+              }
+
+            std::vector<int> position_new;
+            for(int layer = 0; layer < shape.size(); ++layer)
+              {
+                if(layer == layer_from)
+                  {
+                    // from square now empty
+                    position_new.push_back(0);
+                  }
+                else if(layer == layer_to)
+                  {
+                    // to square now taken
+                    position_new.push_back(friendly_char);
+                  }
+                else
+                  {
+                    position_new.push_back(position[layer]);
+                  }
+              }
+
+            output.emplace_back(shape, position_new);
+          };
+
+          if(row_from > 0)
+            {
+              output_helper(row_from - 1, col_from);
+            }
+          if(row_from + 1 < height)
+            {
+              output_helper(row_from + 1, col_from);
+            }
+          if(col_from > 0)
+            {
+              output_helper(row_from, col_from - 1);
+            }
+          if(col_from + 1 < width)
+            {
+              output_helper(row_from, col_from + 1);
+            }
+        }
+    }
+  
+  return output;
+}
