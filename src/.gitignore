@@ -38,6 +38,7 @@ test_perft_u
 test_reachable
 test_solved
 test_sort_unique
+test_validate
 typescript*
 validate_backward
 validate_dfa
