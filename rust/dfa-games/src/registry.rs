@@ -7,6 +7,7 @@ use crate::amazons::AmazonsGame;
 use crate::breakthrough::BreakthroughGame;
 use crate::clobber::ClobberGame;
 use crate::game::Game;
+use crate::normalnim::NormalNimGame;
 
 /// Games the C++ knows about that have no Rust rules yet.  Named separately so
 /// the error can say "not ported" rather than "unrecognized", which are very
@@ -14,7 +15,6 @@ use crate::game::Game;
 const NOT_PORTED: &[&str] = &[
     "breakthroughcw_",
     "chess+",
-    "normalnim_",
     "othello_",
     "tictactoe_",
 ];
@@ -47,6 +47,15 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
             bail!("clobber needs a board at least 1x1, got {width}x{height}");
         }
         Box::new(ClobberGame::new(width, height))
+    } else if let Some(rest) = game_name.strip_prefix("normalnim_") {
+        let (num_heaps, heap_max) = parse_dimensions(rest)
+            .ok_or_else(|| anyhow::anyhow!("could not parse normalnim game name \"{game_name}\", expected normalnim_HEAPSxHEAPMAX"))?;
+        if num_heaps < 1 {
+            bail!("normalnim needs at least one heap, got {num_heaps}");
+        }
+        let heap_max = u32::try_from(heap_max)
+            .map_err(|_| anyhow::anyhow!("normalnim heap maximum {heap_max} is too large"))?;
+        Box::new(NormalNimGame::new(num_heaps, heap_max))
     } else if let Some(prefix) = NOT_PORTED.iter().find(|p| game_name.starts_with(**p)) {
         bail!(
             "game \"{game_name}\" ({prefix}...) exists in the C++ but its rules are not ported to Rust yet; \
@@ -55,7 +64,7 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
     } else {
         bail!(
             "unrecognized game name \"{game_name}\"; ported games are amazons_WxH, \
-             breakthrough_WxH and clobber_WxH"
+             breakthrough_WxH, clobber_WxH and normalnim_HEAPSxHEAPMAX"
         );
     };
 

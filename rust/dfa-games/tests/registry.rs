@@ -18,6 +18,8 @@ fn ported_games_round_trip() {
         "amazons_4x6",
         "clobber_2x2",
         "clobber_4x5",
+        "normalnim_3x3",
+        "normalnim_1x7",
     ] {
         assert_eq!(get_game(name).unwrap().name(), name);
     }
@@ -30,7 +32,6 @@ fn a_game_that_exists_in_cpp_says_so() {
     for name in [
         "breakthroughcw_4x4",
         "chess+1",
-        "normalnim_3x3",
         "othello_6x6",
         "tictactoe_3",
     ] {
@@ -53,6 +54,7 @@ fn a_malformed_size_is_rejected() {
         "amazons_xx",
         "amazons_-1x4",
         "clobber_2",
+        "normalnim_3",
     ] {
         assert!(get_game(name).is_err(), "{name} should not parse");
     }
@@ -62,9 +64,13 @@ fn a_malformed_size_is_rejected() {
 fn a_board_with_nothing_on_it_is_rejected() {
     // Not a rule of any of these games: a game with no squares or no heaps has
     // no positions to describe at all.
-    for name in ["clobber_0x2", "clobber_2x0"] {
+    for name in ["clobber_0x2", "clobber_2x0", "normalnim_0x3"] {
         assert!(get_game(name).is_err(), "{name} should not parse");
     }
+
+    // A heap maximum of zero is degenerate but representable, and the C++
+    // accepts it, so refusing it here would refuse data the C++ can produce.
+    assert!(get_game("normalnim_2x0").is_ok());
 }
 
 #[test]

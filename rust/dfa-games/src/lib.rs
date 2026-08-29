@@ -12,6 +12,7 @@ pub mod breakthrough;
 pub mod clobber;
 pub mod game;
 pub mod load;
+pub mod normalnim;
 pub mod registry;
 pub mod verify;
 
