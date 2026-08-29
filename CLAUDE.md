@@ -103,8 +103,15 @@ C++'s job.
     cd rust && cargo build --release && cargo test --release
 
 Both crates build clean under `RUSTFLAGS="-D warnings" cargo clippy --release
---all-targets`; keep them that way. It is the closest thing here to the C++
-side's `-Werror`.
+--all-targets`, and the workspace is `cargo fmt --all --check` clean. Keep them
+both that way. Clippy is the closest thing here to the C++ side's `-Werror`;
+`fmt` is a gate so that a diff shows what changed rather than how it was
+wrapped. Run
+
+    cd rust && cargo fmt --all && RUSTFLAGS="-D warnings" cargo clippy --release --all-targets
+
+before committing Rust, and never hand-wrap around rustfmt — if a line reads
+badly after formatting, change the code, not the whitespace.
 
 - `dfa-format` — the single authority on the `.dfa` file format
   (`FORMAT-DFA.md`). `layout.rs` owns every byte offset, so the reader and
