@@ -80,3 +80,33 @@ std::string NormalNimGame::position_to_string(const DFAString& string_in) const
     }
   return output;
 }
+
+std::vector<DFAString> NormalNimGame::validate_moves(int, const DFAString& position) const
+{
+  int n = get_shape_size();
+
+  std::vector<DFAString> output;
+
+  for(int heap = 0; heap < n; ++heap)
+    {
+      for(int new_value = 0; new_value < position[heap]; ++new_value)
+        {
+            std::vector<int> position_new;
+            for(int layer = 0; layer < n; ++layer)
+              {
+                if(layer == heap)
+                  {
+                    position_new.push_back(new_value);
+                  }
+                else
+                  {
+                    position_new.push_back(position[layer]);
+                  }
+              }
+
+            output.emplace_back(get_shape(), position_new);
+        }
+    }
+  
+  return output;
+}
