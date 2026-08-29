@@ -1,0 +1,51 @@
+{
+  "game": "breakthrough_4x4",
+  "positions": [
+    {
+      "comment": "initial position",
+      "position": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "side_to_move": 0,
+      "expected_perft_u": []
+    },
+    {
+      "comment": "initial position",
+      "position": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "side_to_move": 1,
+      "expected_perft_u": []
+    }
+  ]
+}

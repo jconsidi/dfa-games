@@ -1,0 +1,85 @@
+{
+  "game": "breakthrough_5x6",
+  "positions": [
+    {
+      "comment": "initial position",
+      "position": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "side_to_move": 0,
+      "expected_perft_u": [
+        13,
+        169
+      ]
+    },
+    {
+      "comment": "initial position",
+      "position": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "side_to_move": 1,
+      "expected_perft_u": [
+        13,
+        169
+      ]
+    }
+  ]
+}
