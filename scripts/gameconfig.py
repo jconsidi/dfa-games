@@ -24,7 +24,7 @@ class GameConfig(object):
             self.move_graph_edges.append({})
             self.move_graph_nodes.append({})
 
-        self.test_data = {"game": game, "tests": []}
+        self.position_data = {"game": game, "positions": []}
 
     def add_component(self, component_name, component_type, component_inputs):
         assert component_name not in self.components_data
@@ -74,8 +74,8 @@ class GameConfig(object):
 
         self.move_graph_data[side_to_move]["nodes"].append(node_data)
 
-    def add_test(self, test):
-        self.test_data["tests"].append(test)
+    def add_position(self, position):
+        self.position_data["positions"].append(position)
 
     def save(self):
         config_dir = pathlib.Path("config")
@@ -100,4 +100,4 @@ class GameConfig(object):
                 sort_keys=False,
             )
 
-        save_config("tests.json", self.test_data, sort_keys=False)
+        save_config("positions-generated.json", self.position_data, sort_keys=False)

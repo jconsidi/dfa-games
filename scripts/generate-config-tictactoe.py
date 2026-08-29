@@ -97,12 +97,12 @@ def generate_size(n):
 
             positions_expected.append((positions_0 - positions_0_won) * positions_1)
 
-        game_config.add_test(
+        game_config.add_position(
             {
-                "type": "perft_u",
+                "comment": "initial position",
                 "position": [0] * n2,
                 "side_to_move": side_to_move,
-                "expected": positions_expected,
+                "expected_perft_u": positions_expected,
             }
         )
 
@@ -116,12 +116,12 @@ def generate_size(n):
         # rest empty
         lost_position.extend([0] * (n * n - 2 * n + 1))
 
-        game_config.add_test(
+        game_config.add_position(
             {
-                "type": "perft_u",
+                "comment": "lost position",
                 "position": lost_position,
                 "side_to_move": side_to_move,
-                "expected": [0],
+                "expected_perft_u": [0],
             }
         )
 

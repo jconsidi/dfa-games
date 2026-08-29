@@ -7,18 +7,12 @@
 #include "DFAUtil.h"
 #include "test_utils.h"
 
-void test_perft_u_case(const Game& game, const nlohmann::json& test_case)
+void test_perft_u_case(const Game& game, const DFAString& position, const nlohmann::json& test_case)
 {
-  std::vector<int> position_vector = test_case.at("position").get<std::vector<int>>();
-  DFAString position(game.get_shape(), position_vector);
-
-  std::cout << "POSITION:" << std::endl;
-  std::cout << game.position_to_string(position) << std::endl;
-
   int side_to_move = test_case.at("side_to_move").get<int>();
   std::cout << "SIDE TO MOVE: " << side_to_move << std::endl;
 
-  std::vector<int> expected = test_case.at("expected").get<std::vector<int>>();
+  std::vector<int> expected = test_case.at("expected_perft_u").get<std::vector<int>>();
 
   shared_dfa_ptr positions = DFAUtil::from_string(game.get_shape(), position);
   for(int ply = 0; ply < expected.size(); ++ply)
@@ -43,9 +37,9 @@ int main(int argc, char **argv)
       return 1;
     }
 
-  run_test_cases("perft_u",
-                 (argc >= 2) ? std::string(argv[1]) : std::string(""),
-                 test_perft_u_case);
+  run_test_positions((argc >= 2) ? std::string(argv[1]) : std::string(""),
+                     test_perft_u_case,
+                     "expected_perft_u");
 
   return 0;
 }
