@@ -20,6 +20,8 @@ fn ported_games_round_trip() {
         "clobber_4x5",
         "normalnim_3x3",
         "normalnim_1x7",
+        "tictactoe_2",
+        "tictactoe_3",
     ] {
         assert_eq!(get_game(name).unwrap().name(), name);
     }
@@ -29,12 +31,7 @@ fn ported_games_round_trip() {
 fn a_game_that_exists_in_cpp_says_so() {
     // "not ported" and "unrecognized" are very different things to read when
     // a command fails, so they are different messages.
-    for name in [
-        "breakthroughcw_4x4",
-        "chess+1",
-        "othello_6x6",
-        "tictactoe_3",
-    ] {
+    for name in ["breakthroughcw_4x4", "chess+1", "othello_6x6"] {
         let err = game_error(name);
         assert!(err.contains("not ported"), "{name}: {err}");
     }
@@ -55,6 +52,8 @@ fn a_malformed_size_is_rejected() {
         "amazons_-1x4",
         "clobber_2",
         "normalnim_3",
+        "tictactoe_",
+        "tictactoe_3x3",
     ] {
         assert!(get_game(name).is_err(), "{name} should not parse");
     }
@@ -64,7 +63,7 @@ fn a_malformed_size_is_rejected() {
 fn a_board_with_nothing_on_it_is_rejected() {
     // Not a rule of any of these games: a game with no squares or no heaps has
     // no positions to describe at all.
-    for name in ["clobber_0x2", "clobber_2x0", "normalnim_0x3"] {
+    for name in ["clobber_0x2", "clobber_2x0", "normalnim_0x3", "tictactoe_0"] {
         assert!(get_game(name).is_err(), "{name} should not parse");
     }
 

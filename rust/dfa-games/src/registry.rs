@@ -8,16 +8,12 @@ use crate::breakthrough::BreakthroughGame;
 use crate::clobber::ClobberGame;
 use crate::game::Game;
 use crate::normalnim::NormalNimGame;
+use crate::tictactoe::TicTacToeGame;
 
 /// Games the C++ knows about that have no Rust rules yet.  Named separately so
 /// the error can say "not ported" rather than "unrecognized", which are very
 /// different things to read when a command fails.
-const NOT_PORTED: &[&str] = &[
-    "breakthroughcw_",
-    "chess+",
-    "othello_",
-    "tictactoe_",
-];
+const NOT_PORTED: &[&str] = &["breakthroughcw_", "chess+", "othello_"];
 
 /// Parse `<prefix>WxH` into its two dimensions.
 fn parse_dimensions(rest: &str) -> Option<(usize, usize)> {
@@ -56,6 +52,14 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
         let heap_max = u32::try_from(heap_max)
             .map_err(|_| anyhow::anyhow!("normalnim heap maximum {heap_max} is too large"))?;
         Box::new(NormalNimGame::new(num_heaps, heap_max))
+    } else if let Some(rest) = game_name.strip_prefix("tictactoe_") {
+        let n: usize = rest.parse().map_err(|_| {
+            anyhow::anyhow!("could not parse tictactoe game name \"{game_name}\", expected tictactoe_N")
+        })?;
+        if n < 1 {
+            bail!("tictactoe needs a board at least 1x1, got {n}x{n}");
+        }
+        Box::new(TicTacToeGame::new(n))
     } else if let Some(prefix) = NOT_PORTED.iter().find(|p| game_name.starts_with(**p)) {
         bail!(
             "game \"{game_name}\" ({prefix}...) exists in the C++ but its rules are not ported to Rust yet; \
@@ -64,7 +68,7 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
     } else {
         bail!(
             "unrecognized game name \"{game_name}\"; ported games are amazons_WxH, \
-             breakthrough_WxH, clobber_WxH and normalnim_HEAPSxHEAPMAX"
+             breakthrough_WxH, clobber_WxH, normalnim_HEAPSxHEAPMAX and tictactoe_N"
         );
     };
 

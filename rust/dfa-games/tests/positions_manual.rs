@@ -35,8 +35,8 @@ fn config_dir() -> PathBuf {
 /// `get_test_game_names` scans for `tests.json`.
 fn games_with_positions() -> Vec<(String, PathBuf)> {
     let dir = config_dir();
-    let entries = std::fs::read_dir(&dir)
-        .unwrap_or_else(|e| panic!("could not scan {}: {e}", dir.display()));
+    let entries =
+        std::fs::read_dir(&dir).unwrap_or_else(|e| panic!("could not scan {}: {e}", dir.display()));
 
     let mut output = Vec::new();
     for entry in entries {
@@ -73,7 +73,8 @@ fn characters(value: &Value, what: &str) -> Vec<u32> {
             let n = c
                 .as_u64()
                 .unwrap_or_else(|| panic!("{what} holds a non-character {c}"));
-            u32::try_from(n).unwrap_or_else(|_| panic!("{what} holds an out of range character {n}"))
+            u32::try_from(n)
+                .unwrap_or_else(|_| panic!("{what} holds an out of range character {n}"))
         })
         .collect()
 }
@@ -220,8 +221,12 @@ fn manual_positions_match_the_rules() {
 
         // Not a skip: a file for a game with no rules here is a check that
         // would never run, which is what this is meant to prevent.
-        let game = get_game(game_name)
-            .unwrap_or_else(|e| panic!("{} names a game these rules cannot build: {e:#}", path.display()));
+        let game = get_game(game_name).unwrap_or_else(|e| {
+            panic!(
+                "{} names a game these rules cannot build: {e:#}",
+                path.display()
+            )
+        });
 
         let cases = config
             .get("tests")

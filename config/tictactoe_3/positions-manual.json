@@ -1,0 +1,100 @@
+{
+  "game": "tictactoe_3",
+  "tests": [
+    {
+      "type": "validate",
+      "comment": "empty board: nine squares to mark",
+      "position": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [
+        [1, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1]
+      ],
+      "expected_result": null
+    },
+    {
+      "type": "validate",
+      "comment": "the second player marks with 2",
+      "position": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "side_to_move": 1,
+      "expected_moves": [
+        [2, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 2, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 2, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 2, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 2, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 2, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 2, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 2, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 2]
+      ],
+      "expected_result": null
+    },
+    {
+      "type": "validate",
+      "comment": "opponent holds the top row: the game ended there, so no moves and a loss",
+      "position": [2, 2, 2, 0, 0, 0, 0, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "type": "validate",
+      "comment": "opponent holds a diagonal, seen from the other side",
+      "position": [1, 0, 0, 0, 1, 0, 0, 0, 1],
+      "side_to_move": 1,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "type": "validate",
+      "comment": "full board with no line: no moves, but drawn rather than lost",
+      "position": [1, 2, 1, 1, 2, 2, 2, 1, 1],
+      "side_to_move": 0,
+      "expected_moves": [],
+      "expected_result": 0
+    },
+    {
+      "type": "validate",
+      "comment": "the same drawn board from the other side",
+      "position": [1, 2, 1, 1, 2, 2, 2, 1, 1],
+      "side_to_move": 1,
+      "expected_moves": [],
+      "expected_result": 0
+    },
+    {
+      "type": "validate",
+      "comment": "midgame: the five empty squares, in order",
+      "position": [1, 2, 0, 0, 1, 0, 0, 0, 2],
+      "side_to_move": 0,
+      "expected_moves": [
+        [1, 2, 1, 0, 1, 0, 0, 0, 2],
+        [1, 2, 0, 1, 1, 0, 0, 0, 2],
+        [1, 2, 0, 0, 1, 1, 0, 0, 2],
+        [1, 2, 0, 0, 1, 0, 1, 0, 2],
+        [1, 2, 0, 0, 1, 0, 0, 1, 2]
+      ],
+      "expected_result": null
+    },
+    {
+      "type": "validate",
+      "comment": "the side to move already holds a line, which cannot happen in play; only the opponent's line stops a player, so this board is still playable",
+      "position": [1, 1, 1, 2, 2, 0, 0, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [
+        [1, 1, 1, 2, 2, 1, 0, 0, 0],
+        [1, 1, 1, 2, 2, 0, 1, 0, 0],
+        [1, 1, 1, 2, 2, 0, 0, 1, 0],
+        [1, 1, 1, 2, 2, 0, 0, 0, 1]
+      ],
+      "expected_result": null
+    }
+  ]
+}
