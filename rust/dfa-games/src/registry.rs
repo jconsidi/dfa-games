@@ -5,6 +5,7 @@ use anyhow::{bail, Result};
 
 use crate::amazons::AmazonsGame;
 use crate::breakthrough::BreakthroughGame;
+use crate::clobber::ClobberGame;
 use crate::game::Game;
 
 /// Games the C++ knows about that have no Rust rules yet.  Named separately so
@@ -13,7 +14,6 @@ use crate::game::Game;
 const NOT_PORTED: &[&str] = &[
     "breakthroughcw_",
     "chess+",
-    "clobber_",
     "normalnim_",
     "othello_",
     "tictactoe_",
@@ -40,13 +40,23 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
             bail!("amazons needs a board at least 1x1, got {width}x{height}");
         }
         Box::new(AmazonsGame::new(width, height))
+    } else if let Some(rest) = game_name.strip_prefix("clobber_") {
+        let (width, height) = parse_dimensions(rest)
+            .ok_or_else(|| anyhow::anyhow!("could not parse clobber game name \"{game_name}\", expected clobber_WIDTHxHEIGHT"))?;
+        if width < 1 || height < 1 {
+            bail!("clobber needs a board at least 1x1, got {width}x{height}");
+        }
+        Box::new(ClobberGame::new(width, height))
     } else if let Some(prefix) = NOT_PORTED.iter().find(|p| game_name.starts_with(**p)) {
         bail!(
             "game \"{game_name}\" ({prefix}...) exists in the C++ but its rules are not ported to Rust yet; \
              use the C++ verify_* binaries for it"
         );
     } else {
-        bail!("unrecognized game name \"{game_name}\"; ported games are breakthrough_WxH and amazons_WxH");
+        bail!(
+            "unrecognized game name \"{game_name}\"; ported games are amazons_WxH, \
+             breakthrough_WxH and clobber_WxH"
+        );
     };
 
     // The C++ asserts this. A name that parses but does not round trip means
