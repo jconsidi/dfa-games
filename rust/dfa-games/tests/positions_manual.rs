@@ -1,19 +1,12 @@
 //! Hand-written positions checked against the rules, config driven.
 //!
-//! Modelled on `test_perft_u` and the `tests.json` files it reads through
-//! `run_test_cases` (`src/test_utils.cpp`): `config/<game>/positions-manual.json`
-//! holds a `"game"` key naming the game and a `"tests"` array of cases, each
-//! with `"type"`, `"position"` and `"side_to_move"` as the perft cases have,
-//! plus `"expected_moves"` and `"expected_result"`.
-//!
-//! `"expected_moves"` is the full list of resulting positions, compared as a
-//! set — the file does not pin down the order moves come out in, but a
-//! duplicate on either side is a failure. `"expected_result"` is what
-//! `validate_result` must return: `-1`, `0`, `1`, or `null` for a position
-//! that is not terminal.
+//! read `/config/<game>/positions-manual.json` for positions to test.
+//! `"position"` gives the vector representation.
+//! `"expected_moves"` gives the vectors of the moves from that position to be compared as a set.
+//! `"expected_result"` gives the result (-1, 0, or 1) for terminal positions or null for non-terminal positions.
 //!
 //! A file naming a game these rules cannot build fails the run rather than
-//! being skipped. Test data that silently never executes is worse than none.
+//! being skipped.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
@@ -21,10 +14,6 @@ use std::path::{Path, PathBuf};
 use dfa_games::game::Game;
 use dfa_games::get_game;
 use serde_json::Value;
-
-/// The test cases this file knows how to run. Other types in the same file,
-/// once the configs are merged, are left to whoever handles them.
-const CASE_TYPE: &str = "validate";
 
 fn config_dir() -> PathBuf {
     // CARGO_MANIFEST_DIR is rust/dfa-games, and config/ is at the repo root.
@@ -229,29 +218,16 @@ fn manual_positions_match_the_rules() {
         });
 
         let cases = config
-            .get("tests")
+            .get("positions")
             .and_then(|t| t.as_array())
             .unwrap_or_else(|| panic!("{} has no \"tests\" array", path.display()));
 
         let mut ran_here = 0usize;
         for (index, case) in cases.iter().enumerate() {
-            let case_type = case
-                .get("type")
-                .and_then(|t| t.as_str())
-                .unwrap_or_else(|| panic!("{} case {index} has no \"type\"", path.display()));
-            if case_type != CASE_TYPE {
-                continue;
-            }
-
             run_case(game.as_ref(), index, case);
             ran_here += 1;
         }
 
-        assert!(
-            ran_here > 0,
-            "{} holds no \"{CASE_TYPE}\" cases",
-            path.display()
-        );
         cases_run += ran_here;
     }
 

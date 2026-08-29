@@ -1,8 +1,7 @@
 {
   "game": "clobber_2x2",
-  "tests": [
+  "positions": [
     {
-      "type": "validate",
       "comment": "starting position, first player: each piece can take either neighbour",
       "position": [1, 2, 2, 1],
       "side_to_move": 0,
@@ -15,7 +14,6 @@
       "expected_result": null
     },
     {
-      "type": "validate",
       "comment": "starting position, second player: the same four moves mirrored",
       "position": [1, 2, 2, 1],
       "side_to_move": 1,
@@ -28,7 +26,6 @@
       "expected_result": null
     },
     {
-      "type": "validate",
       "comment": "one colour left: nothing to clobber, so the player to move has lost",
       "position": [1, 1, 1, 1],
       "side_to_move": 0,
@@ -36,7 +33,6 @@
       "expected_result": -1
     },
     {
-      "type": "validate",
       "comment": "and the same board from the other side, which has no pieces at all",
       "position": [1, 1, 1, 1],
       "side_to_move": 1,
@@ -44,7 +40,6 @@
       "expected_result": -1
     },
     {
-      "type": "validate",
       "comment": "both colours present but only diagonally adjacent, so neither can move",
       "position": [1, 0, 0, 2],
       "side_to_move": 0,
@@ -52,7 +47,6 @@
       "expected_result": -1
     },
     {
-      "type": "validate",
       "comment": "one capture available, and it empties the square moved from",
       "position": [1, 2, 0, 0],
       "side_to_move": 0,
@@ -62,7 +56,6 @@
       "expected_result": null
     },
     {
-      "type": "validate",
       "comment": "the same board the other way round",
       "position": [1, 2, 0, 0],
       "side_to_move": 1,

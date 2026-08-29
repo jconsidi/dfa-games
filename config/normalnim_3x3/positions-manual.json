@@ -1,8 +1,7 @@
 {
   "game": "normalnim_3x3",
-  "tests": [
+  "positions": [
     {
-      "type": "validate",
       "comment": "three full heaps: every heap can be reduced to anything smaller",
       "position": [3, 3, 3],
       "side_to_move": 0,
@@ -20,7 +19,6 @@
       "expected_result": null
     },
     {
-      "type": "validate",
       "comment": "both sides always have the same moves, so the second player sees those nine too",
       "position": [3, 3, 3],
       "side_to_move": 1,
@@ -38,7 +36,6 @@
       "expected_result": null
     },
     {
-      "type": "validate",
       "comment": "all heaps empty: normal play, so the player to move has lost",
       "position": [0, 0, 0],
       "side_to_move": 0,
@@ -46,7 +43,6 @@
       "expected_result": -1
     },
     {
-      "type": "validate",
       "comment": "and the same for the other side",
       "position": [0, 0, 0],
       "side_to_move": 1,
@@ -54,7 +50,6 @@
       "expected_result": -1
     },
     {
-      "type": "validate",
       "comment": "empty heaps offer nothing; only the one with tokens can be taken from",
       "position": [0, 2, 0],
       "side_to_move": 1,
@@ -65,7 +60,6 @@
       "expected_result": null
     },
     {
-      "type": "validate",
       "comment": "a single token left in each of two heaps",
       "position": [1, 0, 1],
       "side_to_move": 0,
