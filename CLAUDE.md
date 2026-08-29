@@ -258,3 +258,9 @@ comparing.
 The interactive shell is zsh, which does **not** word-split unquoted parameters.
 `$FLAGS` passes as a single argument where bash would split it. Use arrays or
 write flags literally.
+
+## Markdown Usage
+
+When writing Markdown, write each sentence on a separate line.
+This convention is to simplify diffs and avoid large changes from adjusting word wrapping.
+Most Markdown renderers will treat consecutive lines as the same paragraph and format them normally.
