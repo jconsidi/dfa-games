@@ -9,6 +9,10 @@ Every section describes play from the starting position onward. A board that
 could never be reached from the start is outside what these rules say, and
 nothing here should be read as deciding what happens on one.
 
+Most games are laid out on a rectangular board with a suffix indicating the size of the board.
+For example, `breakthrough_4x6` indicates the game of Breakthrough on a 4x6 board.
+Dimensions are always written `WIDTHxHEIGHT`.
+
 ## The normal play convention
 
 Most of these games are scored by the **normal play convention**: a player who
@@ -20,13 +24,9 @@ Games that end some other way have to say so, and each says what its result
 rule is instead. Three here do: chess, othello and tic-tac-toe. All three can
 be drawn, which is the clearest sign a game is not scored this way.
 
-A game can be won by achieving something and still be scored by normal play,
-so long as achieving it ends the game. Breakthrough is the case: a piece
-reaching the far row wins, and play stops there, so the loser is left with no
-legal move like any other loser.
-
-Each game's name carries its parameters. Dimensions are always written
-`WIDTHxHEIGHT`.
+A game can be won by achieving something and still be scored by normal play, so long as achieving it ends the game.
+Typically, this is implemented by adding a condition to all moves where the previous player may not have won.
+In the case of Breakthrough, this means that moves are only allowed if the opponent has not moved a piece to the last row of the board.
 
 ## amazons
 
@@ -153,12 +153,8 @@ game is `tictactoe_3`.
 
 The board starts empty. A move marks any empty square with the mover's mark;
 there is nothing else to a move, and a mark never moves or is removed.
-
 A player wins immediately by completing a line: a full row, a full column, or
 either of the two long diagonals, entirely of their own marks. The game ends
 the moment a line appears.
-
-**Not normal play.** Two different endings leave the next player with nothing
-to do, and they are not the same result: a completed enemy line is a loss,
-while a full board with no line is a draw. Having no move does not say which
-one happened — the board does.
+In addition, the game ends when there are no longer any empty squares.
+If the game ends and no player won, then the result is a tie.
