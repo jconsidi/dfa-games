@@ -52,7 +52,12 @@ impl Game for Stub {
         }
     }
 
-    fn validate_result(&self, _side: Side, _position: &Position, _moves: &[Vec<u32>]) -> Option<i32> {
+    fn validate_result(
+        &self,
+        _side: Side,
+        _position: &Position,
+        _moves: &[Vec<u32>],
+    ) -> Option<i32> {
         self.result_calls.fetch_add(1, Ordering::Relaxed);
         self.result
     }
@@ -158,7 +163,10 @@ fn some_move_must_be_in_the_other_dfa() {
 
     let none_in = Stub::new(vec![vec![1, 0], vec![0, 1]], Some(1));
     let err = check_position(&none_in, 0, &HAS_MOVES, &claim).unwrap_err();
-    assert!(err.to_string().contains("none of them is in losing_prev"), "{err}");
+    assert!(
+        err.to_string().contains("none of them is in losing_prev"),
+        "{err}"
+    );
 }
 
 #[test]

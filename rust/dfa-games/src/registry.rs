@@ -30,15 +30,21 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
         }
         Box::new(BreakthroughGame::new(width, height))
     } else if let Some(rest) = game_name.strip_prefix("amazons_") {
-        let (width, height) = parse_dimensions(rest)
-            .ok_or_else(|| anyhow::anyhow!("could not parse amazons game name \"{game_name}\", expected amazons_WIDTHxHEIGHT"))?;
+        let (width, height) = parse_dimensions(rest).ok_or_else(|| {
+            anyhow::anyhow!(
+                "could not parse amazons game name \"{game_name}\", expected amazons_WIDTHxHEIGHT"
+            )
+        })?;
         if width < 1 || height < 1 {
             bail!("amazons needs a board at least 1x1, got {width}x{height}");
         }
         Box::new(AmazonsGame::new(width, height))
     } else if let Some(rest) = game_name.strip_prefix("clobber_") {
-        let (width, height) = parse_dimensions(rest)
-            .ok_or_else(|| anyhow::anyhow!("could not parse clobber game name \"{game_name}\", expected clobber_WIDTHxHEIGHT"))?;
+        let (width, height) = parse_dimensions(rest).ok_or_else(|| {
+            anyhow::anyhow!(
+                "could not parse clobber game name \"{game_name}\", expected clobber_WIDTHxHEIGHT"
+            )
+        })?;
         if width < 1 || height < 1 {
             bail!("clobber needs a board at least 1x1, got {width}x{height}");
         }
@@ -54,7 +60,9 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
         Box::new(NormalNimGame::new(num_heaps, heap_max))
     } else if let Some(rest) = game_name.strip_prefix("tictactoe_") {
         let n: usize = rest.parse().map_err(|_| {
-            anyhow::anyhow!("could not parse tictactoe game name \"{game_name}\", expected tictactoe_N")
+            anyhow::anyhow!(
+                "could not parse tictactoe game name \"{game_name}\", expected tictactoe_N"
+            )
         })?;
         if n < 1 {
             bail!("tictactoe needs a board at least 1x1, got {n}x{n}");

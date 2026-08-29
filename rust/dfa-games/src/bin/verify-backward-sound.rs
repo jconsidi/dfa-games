@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Parser;
-use dfa_format::{Dfa, union};
+use dfa_format::{union, Dfa};
 use dfa_games::{get_game, load, verify};
 
 #[derive(Parser, Debug)]
@@ -87,7 +87,7 @@ fn run(args: &Args) -> anyhow::Result<()> {
                 &losing_prev,
                 &losing_prev_name,
                 &losing_new,
-                &losing_new_name
+                &losing_new_name,
             )?;
 
             let winning_prev_name = winning_max_name(1 - side_to_move, ply - 1);
@@ -117,7 +117,7 @@ fn run(args: &Args) -> anyhow::Result<()> {
                 &winning_prev,
                 &winning_prev_name,
                 &winning_new,
-                &winning_new_name
+                &winning_new_name,
             )?;
 
             let losing_prev_name = losing_max_name(1 - side_to_move, ply - 1);

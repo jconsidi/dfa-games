@@ -201,7 +201,12 @@ pub fn verify_sound(
 }
 
 /// Every position is terminal and lost for the side to move.
-pub fn verify_lost_sound(game: &dyn Game, side_to_move: Side, dfa: &Dfa, label: &str) -> Result<u64> {
+pub fn verify_lost_sound(
+    game: &dyn Game,
+    side_to_move: Side,
+    dfa: &Dfa,
+    label: &str,
+) -> Result<u64> {
     verify_sound(
         game,
         side_to_move,
@@ -215,7 +220,12 @@ pub fn verify_lost_sound(game: &dyn Game, side_to_move: Side, dfa: &Dfa, label: 
 }
 
 /// Every position is terminal and won for the side to move.
-pub fn verify_won_sound(game: &dyn Game, side_to_move: Side, dfa: &Dfa, label: &str) -> Result<u64> {
+pub fn verify_won_sound(
+    game: &dyn Game,
+    side_to_move: Side,
+    dfa: &Dfa,
+    label: &str,
+) -> Result<u64> {
     verify_sound(
         game,
         side_to_move,

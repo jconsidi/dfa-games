@@ -26,9 +26,7 @@ pub use legacy::LegacyDfa;
 pub use read::{validate, Dfa, Report, ValidateOptions};
 pub use sample::{Rng, Sampler};
 pub use stats::Stats;
-pub use union::{
-    sample_for_witness, verify_dfa_union, Caveat, UnionFailure, UnionStats,
-};
+pub use union::{sample_for_witness, verify_dfa_union, Caveat, UnionFailure, UnionStats};
 pub use write::{convert, Converted};
 
 use std::path::{Path, PathBuf};

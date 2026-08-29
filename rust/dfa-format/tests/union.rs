@@ -15,12 +15,15 @@ use dfa_format::{
 
 /// The failure and partial statistics a refutation carries, or a panic if the
 /// call did not refute.
-fn refutation(result: dfa_format::Result<dfa_format::UnionStats>) -> (UnionFailure, dfa_format::UnionStats) {
+fn refutation(
+    result: dfa_format::Result<dfa_format::UnionStats>,
+) -> (UnionFailure, dfa_format::UnionStats) {
     match result {
         Ok(stats) => panic!("expected a refutation, but the union held: {stats:?}"),
-        Err(FormatError::Refuted { failure, stats, .. }) => {
-            (*failure, stats.expect("a walk refutation carries its statistics"))
-        }
+        Err(FormatError::Refuted { failure, stats, .. }) => (
+            *failure,
+            stats.expect("a walk refutation carries its statistics"),
+        ),
         Err(other) => panic!("expected a refutation, got {other}"),
     }
 }
@@ -231,7 +234,14 @@ fn the_union_is_checked_both_ways() {
     let tmp = TempDir::new().unwrap();
 
     // A too small: it misses the strings only C contributes.
-    let (a, b, c) = triple(&tmp, "small", &SHAPE, &first_is_zero, &first_is_zero, &sum_is_even);
+    let (a, b, c) = triple(
+        &tmp,
+        "small",
+        &SHAPE,
+        &first_is_zero,
+        &first_is_zero,
+        &sum_is_even,
+    );
     assert!(!holds(verify_dfa_union(&a, "A", &b, "B", &c, "C")));
 
     // A too big: it holds strings neither B nor C has.
@@ -245,21 +255,42 @@ fn a_reject_all_side_collapses_to_equality() {
     let tmp = TempDir::new().unwrap();
 
     // C empty, so the obligation is A == B and every pair is keyed on b alone.
-    let (a, b, c) = triple(&tmp, "cempty", &SHAPE, &first_is_zero, &first_is_zero, &never);
+    let (a, b, c) = triple(
+        &tmp,
+        "cempty",
+        &SHAPE,
+        &first_is_zero,
+        &first_is_zero,
+        &never,
+    );
     let stats = verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
     assert_eq!(stats.pairs_both, 0);
     assert_eq!(stats.pairs_b_reject, 0);
     assert!(stats.pairs_c_reject > 0, "{stats:?}");
 
     // B empty, so the mirror: keyed on c alone.
-    let (a, b, c) = triple(&tmp, "bempty", &SHAPE, &first_is_zero, &never, &first_is_zero);
+    let (a, b, c) = triple(
+        &tmp,
+        "bempty",
+        &SHAPE,
+        &first_is_zero,
+        &never,
+        &first_is_zero,
+    );
     let stats = verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
     assert_eq!(stats.pairs_both, 0);
     assert!(stats.pairs_b_reject > 0, "{stats:?}");
     assert_eq!(stats.pairs_c_reject, 0);
 
     // And the equality is really checked, not assumed.
-    let (a, b, c) = triple(&tmp, "cempty-bad", &SHAPE, &first_is_zero, &last_is_zero, &never);
+    let (a, b, c) = triple(
+        &tmp,
+        "cempty-bad",
+        &SHAPE,
+        &first_is_zero,
+        &last_is_zero,
+        &never,
+    );
     assert!(!holds(verify_dfa_union(&a, "A", &b, "B", &c, "C")));
 }
 
@@ -277,7 +308,10 @@ fn an_accept_all_side_short_circuits() {
     // A must then be accept-all too.
     let (a, b, c) = triple(&tmp, "ball-bad", &SHAPE, &first_is_zero, &always, &never);
     let (failure, _) = refutation(verify_dfa_union(&a, "A", &b, "B", &c, "C"));
-    assert!(matches!(failure, UnionFailure::Rule { required_a: 1, .. }), "{failure:?}");
+    assert!(
+        matches!(failure, UnionFailure::Rule { required_a: 1, .. }),
+        "{failure:?}"
+    );
 }
 
 #[test]
@@ -292,7 +326,14 @@ fn all_three_empty_holds() {
 #[test]
 fn a_union_with_itself_holds() {
     let tmp = TempDir::new().unwrap();
-    let (a, b, c) = triple(&tmp, "self", &SHAPE, &sum_is_even, &sum_is_even, &sum_is_even);
+    let (a, b, c) = triple(
+        &tmp,
+        "self",
+        &SHAPE,
+        &sum_is_even,
+        &sum_is_even,
+        &sum_is_even,
+    );
     verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
 }
 
@@ -301,7 +342,14 @@ fn overlapping_sides_are_fine() {
     let tmp = TempDir::new().unwrap();
     // B and C share strings; union still has to come out right.
     let union = |s: &[u32]| first_is_zero(s) || last_is_zero(s);
-    let (a, b, c) = triple(&tmp, "overlap", &SHAPE, &union, &first_is_zero, &last_is_zero);
+    let (a, b, c) = triple(
+        &tmp,
+        "overlap",
+        &SHAPE,
+        &union,
+        &first_is_zero,
+        &last_is_zero,
+    );
     verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
 }
 
@@ -381,7 +429,10 @@ fn exhaustive_over_every_triple_of_small_languages() {
 
     // Both ways of detecting a wrong A have to be exercised, or one of the two
     // code paths is untested here.
-    assert!(rules > 0 && conflicts > 0, "rules {rules}, conflicts {conflicts}");
+    assert!(
+        rules > 0 && conflicts > 0,
+        "rules {rules}, conflicts {conflicts}"
+    );
     // Both a failure that needs no assumption about A and one that does.
     assert!(
         definitive > 0 && conditional > 0,
@@ -416,7 +467,14 @@ fn a_non_canonical_a_is_walked_and_the_failure_says_so() {
     }
     assert!(!a.header().canonical());
 
-    let (failure, _) = refutation(verify_dfa_union(&a, "lost,side_to_move=0", &b, "B", &c, "C"));
+    let (failure, _) = refutation(verify_dfa_union(
+        &a,
+        "lost,side_to_move=0",
+        &b,
+        "B",
+        &c,
+        "C",
+    ));
     match &failure {
         UnionFailure::Conflict { layer, caveat, .. } => {
             assert_eq!(*layer, 1);
@@ -447,7 +505,10 @@ fn a_canonical_a_gets_no_such_caveat() {
         UnionFailure::Rule { caveat, .. } | UnionFailure::Conflict { caveat, .. } => caveat,
         other => panic!("expected a walk failure, got {other:?}"),
     };
-    assert!(!matches!(caveat, Caveat::MayNotBeMinimal { .. }), "{caveat:?}");
+    assert!(
+        !matches!(caveat, Caveat::MayNotBeMinimal { .. }),
+        "{caveat:?}"
+    );
     assert!(!failure.to_string().contains("does not carry"), "{failure}");
 }
 
@@ -476,7 +537,14 @@ fn the_prefilter_finds_a_witness_and_stays_quiet_when_there_is_none() {
     sample_for_witness(&a, &b, &c, 200, 1).expect("no witness exists for a true union");
 
     // A is missing everything C contributes, so a sample from C refutes it.
-    let (a, b, c) = triple(&tmp, "wit-bad", &SHAPE, &first_is_zero, &first_is_zero, &sum_is_even);
+    let (a, b, c) = triple(
+        &tmp,
+        "wit-bad",
+        &SHAPE,
+        &first_is_zero,
+        &first_is_zero,
+        &sum_is_even,
+    );
     // A witness is a refutation, so it arrives as an error like any other.
     let err = sample_for_witness(&a, &b, &c, 200, 1).expect_err("A is missing what C contributes");
     let FormatError::Refuted { failure, stats, .. } = err else {
@@ -509,7 +577,14 @@ fn the_failing_form_propagates_a_refutation() {
     let tmp = TempDir::new().unwrap();
 
     let union = |s: &[u32]| first_is_zero(s) || sum_is_even(s);
-    let (a, b, c) = triple(&tmp, "fail-ok", &SHAPE, &union, &first_is_zero, &sum_is_even);
+    let (a, b, c) = triple(
+        &tmp,
+        "fail-ok",
+        &SHAPE,
+        &union,
+        &first_is_zero,
+        &sum_is_even,
+    );
     verify_dfa_union(&a, "A", &b, "B", &c, "C").expect("this union holds");
 
     // A too small: missing everything C contributes.
@@ -527,7 +602,10 @@ fn the_failing_form_propagates_a_refutation() {
 
     // The message has to name the relation, not just the disagreement, since
     // the caller checks many of these in a row.
-    assert!(err.contains("\"curr\" is not the union of \"prev\" and \"new\""), "{err}");
+    assert!(
+        err.contains("\"curr\" is not the union of \"prev\" and \"new\""),
+        "{err}"
+    );
     // ... and still carry the detail the walk found.
     assert!(err.contains("layer"), "{err}");
 }

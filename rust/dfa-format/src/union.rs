@@ -341,7 +341,6 @@ fn usize_states(dfa: &Dfa, layer: usize, which: &str) -> Result<usize> {
 /// distinguished from one that never ran, which is how a whole set of these
 /// once passed while being silently discarded.
 pub fn verify_dfa_union(
-
     a: &Dfa,
     a_name: &str,
     b: &Dfa,
@@ -491,7 +490,10 @@ fn visit(
     if b == REJECT && c == REJECT {
         stats.stops_reject += 1;
         if a != REJECT {
-            return rule(REJECT, "B and C both reject every continuation, so A must too");
+            return rule(
+                REJECT,
+                "B and C both reject every continuation, so A must too",
+            );
         }
         return None;
     }

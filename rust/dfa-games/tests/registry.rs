@@ -95,6 +95,8 @@ fn side_to_move_comes_from_the_dfa_name() {
 
 #[test]
 fn a_name_with_no_side_is_rejected() {
-    let err = parse_side_to_move("forward,ply=001").unwrap_err().to_string();
+    let err = parse_side_to_move("forward,ply=001")
+        .unwrap_err()
+        .to_string();
     assert!(err.contains("side_to_move"), "{err}");
 }

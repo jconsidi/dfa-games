@@ -64,7 +64,10 @@ fn every_sample_is_accepted() {
     let mut rng = Rng::new(99);
     for _ in 0..500 {
         let s = sampler.sample(&mut rng).unwrap();
-        assert!(dfa.accepts(&s).unwrap(), "{s:?} was sampled but is not accepted");
+        assert!(
+            dfa.accepts(&s).unwrap(),
+            "{s:?} was sampled but is not accepted"
+        );
     }
 }
 

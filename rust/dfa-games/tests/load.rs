@@ -41,7 +41,11 @@ fn scratch_with(tmp: &TempDir, game_name: &str, dfa_name: &str, shape: Vec<u32>)
 #[test]
 fn a_name_resolves_under_the_game_directory() {
     assert_eq!(
-        dfa_path(Path::new("scratch"), "breakthrough_4x4", "lost,side_to_move=0"),
+        dfa_path(
+            Path::new("scratch"),
+            "breakthrough_4x4",
+            "lost,side_to_move=0"
+        ),
         PathBuf::from("scratch/breakthrough_4x4/lost,side_to_move=0")
     );
 }
@@ -91,10 +95,14 @@ fn a_missing_dfa_names_the_game_and_the_dfa() {
     let game = get_game("breakthrough_4x4").unwrap();
     let scratch = tmp.path().join("scratch");
 
-    let err = load(&scratch, game.as_ref(), "backward,ply_max=099,side=0,losing")
-        .err()
-        .unwrap()
-        .to_string();
+    let err = load(
+        &scratch,
+        game.as_ref(),
+        "backward,ply_max=099,side=0,losing",
+    )
+    .err()
+    .unwrap()
+    .to_string();
     assert!(err.contains("backward,ply_max=099,side=0,losing"), "{err}");
     assert!(err.contains("breakthrough_4x4"), "{err}");
     assert!(err.contains("No such file"), "{err}");
