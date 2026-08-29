@@ -5,6 +5,21 @@
 - solution tests
   - tictactoe
 
+- a C++ runner over `config/<game>/positions-manual.json`, matching the Rust
+  `tests/positions_manual.rs`. The file holds hand written positions with
+  `expected_moves` and `expected_result` in the same envelope `tests.json`
+  uses, so `run_test_cases` can read it with a new case type and check
+  `validate_moves` / `validate_result` the way `test_perft_u` checks position
+  counts. Today only the Rust rules are held to those positions, which is half
+  the point of writing them down: the same file should pin both
+  implementations. Merging it into `tests.json` outright would work too, and is
+  where this is headed.
+  - note the C++ can only run the cases for games it has `validate_moves` for
+    — amazons, breakthrough and chess. `Game::validate_moves` (`Game.cpp:416`)
+    throws for clobber, normalnim, othello and tictactoe, so those cases have
+    to be skipped there rather than failing, which is the opposite of the Rust
+    runner's rule and worth a comment where it happens.
+
 ## memory maps
 
 - revisit the munmap calls added for mapping pressure, now that a saved DFA

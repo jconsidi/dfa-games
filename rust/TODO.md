@@ -147,3 +147,129 @@ new check is mostly the first bullet plus closing the spec gap; it does not
 make `chosen?` reachable or unreachable either way. Fixing #4 is still worth
 doing on its own terms, because the `None` is currently read downstream as
 "empty language" and says nothing.
+
+## validate the reserved rows unconditionally
+
+Spec section 4 fixes the meaning of states 0 and 1 by index and says that a
+reader which examines their rows and finds anything other than all-`0` and
+all-`1` "must reject the file as malformed". Section 7 lists the check under
+*may* only because a reader is allowed not to look at all.
+
+This reader looks, but optionally: `read.rs:25`, `39` and `52` make
+`reserved_rows` a `ValidateOptions` field, `dfa-validate.rs:25` exposes
+`--no-reserved-rows`, and `Dfa::open` (`read.rs:102`) runs only `parse`, which
+never touches a transition block. So a file whose row 0 or row 1 carries
+something else opens cleanly and validates cleanly whenever the flag is off.
+
+It has to become unconditional, and the reason is the **short circuit** item
+below. Once every consumer honours section 5 and stops at 0 and 1 without
+following their stored rows, nothing downstream can ever notice a bad reserved
+row: the bytes are read by no one. Validation is then the only place the
+condition can surface, so validation must always check it.
+
+The work: lift the `row < 2` branch out of `scan_blocks` (`read.rs:530`) into
+its own pass over rows 0 and 1 of every layer — `2 * ndim` rows, next to
+nothing beside the full block scan — run it from `validate` regardless of
+options and from `Dfa::open` once `parse` has returned without violations, and
+drop `reserved_rows` from `ValidateOptions` (`required_only` included) and
+`--no-reserved-rows` from the CLI. It needs the blocks to be present, which
+inside `Dfa::open` is already implied: `parse` reports a length mismatch, so an
+empty violation list means the file is exactly as long as the layout says.
+
+This makes the implementation stricter than section 7's *may*, which section 4
+explicitly permits. If the spec should say so instead, the bullet moves from
+the optional list to the required one.
+
+## consuming code must short circuit on states 0 and 1
+
+Spec section 5 is emphatic that the early returns are "the operative
+definition, not an optimization": a reader must treat 0 and 1 as terminal
+decisions wherever they appear, without following stored transitions, and one
+that walks on to the terminal pseudo-layer "implements a different rule" and
+diverges on malformed files.
+
+`Dfa::accepts` (`read.rs:165-170`) is the only consumer that obeys it. These
+four do not:
+
+- `iter.rs:62` `next_live` stops at `STATE_REJECT` but reads state 1's row like
+  any other. On a file with a bad row 1, `positions()` and `accepts()` report
+  different languages — and a dead end reached through row 1 is reported as
+  "automaton is not trim", which blames the automaton for a reserved row.
+- `stats.rs:141` `count_accepted` and `sample.rs:71` `Sampler::new` accumulate
+  rows 0 and 1 from their stored entries. `stats.rs:7-11` at least documents the
+  assumption; `sample.rs` does not.
+- `sample.rs:108` draws a character out of state 1 by reading its row.
+- `union.rs:409-411`. `visit` short circuits when `b` or `c` is 0 or 1, but a
+  triple whose `a` is 0 or 1 with ordinary `b` and `c` is queued and stepped, so
+  A's reserved rows do get followed.
+
+Fix it in one place rather than five: add `Dfa::step(layer, state, c)` beside
+`entry`, implementing section 5 — state 0 steps to 0, state 1 steps to 1,
+anything else reads the stored entry — and move the consumers onto it. `entry`
+stays the raw byte accessor, because the validator must see what is actually
+stored rather than what the semantics say it means.
+
+The swap is behaviour preserving on conforming files and falls out cleanly in
+the counting code, which needs no special case afterwards: `current[0]` becomes
+`shape * next[0] = 0` and `current[1]` becomes `shape * next[1]`, which is
+exactly the accept-all count.
+
+## a stopped scan must not report whole-file counts
+
+Stopping at the first violation is right. Presenting the file's summary
+alongside it is not: `dfa-validate.rs:85-100` prints size, version, `ndim`,
+`states: total_states`, `initial_state` and `canonical` before the verdict, all
+derived from a header and a layout that may be precisely what is wrong, and
+`scan_blocks`'s `reported_bounds` / `reported_order` / `reported_uniform`
+latches mean the rest of a layer went unscanned. The summary reads as a
+description of the whole file when the scan stopped early.
+
+`union.rs:434-437` already has the right instinct: a refutation labels its
+statistics as the walk up to the disagreement rather than a measurement of the
+triple.
+
+The work: when a report carries violations, print the path, the file length and
+the violations, and nothing derived. Keep the full summary for the valid case,
+where every number in it has actually been checked.
+
+## rules for the rest of the games
+
+`registry.rs` still lists three prefixes with no Rust rules: `breakthroughcw_`,
+`chess+` and `othello_`. Amazons, breakthrough, clobber, normalnim and
+tictactoe are done. The rules for anything new come from `GAMES.md` or from the
+game itself, never from porting the C++ move graph.
+
+- `breakthroughcw_` — breakthrough over a transposed square numbering. The
+  rules are already written in `breakthrough.rs`; only the numbering differs,
+  so this is the cheapest item here. Give `BreakthroughGame` its numbering as a
+  field rather than copying the file, which would leave two move generators to
+  keep in step.
+- `othello_` — needs `validate_result` as well as moves: the game ends when
+  neither side can place, the winner is whoever has more discs, and equal
+  counts draw, so the normal play default in `game.rs` is wrong for it. The
+  pass rule also means "no moves for the side to move" is not a terminal
+  condition at all. No C++ `validate_moves` exists either, so the Rust would be
+  the only oracle othello has.
+- `chess+0`, `chess+1`, `chess+2*` — the largest by far (`ChessGame.cpp` is
+  1502 lines) and the other game needing `validate_result`: an empty move list
+  is checkmate or stalemate depending on whether the king is attacked.
+
+As each lands, shrink `NOT_PORTED` in `registry.rs`, the coverage note in
+`CLAUDE.md`'s **Rust** section, and this list.
+
+## breakthrough.rs and amazons.rs are transcriptions
+
+Both open with "Port of ... from `src/…Game.cpp`", and that is the problem: a
+second implementation copied from the first agrees with it by construction, so
+whatever the C++ has wrong about those two games, the Rust confirms rather than
+catches. Everything written since — `clobber.rs`, `normalnim.rs`,
+`tictactoe.rs` — comes from `GAMES.md` instead, which is what makes the
+verifiers worth running.
+
+Re-derive both from their `GAMES.md` sections without the C++ open, then run
+the verifiers over the same DFAs and treat any disagreement as a finding rather
+than a bug in the rewrite. Add `config/<game>/positions-manual.json` for each
+while doing it: neither game has hand written positions today, and amazons in
+particular has a move rule (queen slide plus arrow, both needing a clear path,
+the arrow allowed back into the vacated square) with several ways to be subtly
+wrong.

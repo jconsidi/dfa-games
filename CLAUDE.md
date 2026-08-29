@@ -122,12 +122,34 @@ Every binary takes `--scratch`, defaulting to `scratch`, so run them from
 
     cd src && ../rust/target/release/verify-backward-sound breakthrough_4x4 1
 
+`cargo test` includes a config driven check of the rules themselves:
+`config/<game>/positions-manual.json` holds hand written positions with
+`expected_moves` and `expected_result`, read by `tests/positions_manual.rs` the
+way `test_perft_u` reads `tests.json`. A file naming a game the Rust cannot
+build fails the run rather than being skipped, since test data that never
+executes is worse than none.
+
 Coverage is narrower than the C++ and the gaps matter:
 
-- Only **row-wise breakthrough** and **amazons** have Rust rules.
-  `breakthroughcw_`, `chess+` and the games with no `validate_moves` at all are
+- **amazons**, **row-wise breakthrough**, **clobber**, **normalnim** and
+  **tictactoe** have Rust rules. `breakthroughcw_`, `chess+` and `othello_` are
   recognized by name so the error says "not ported" rather than
   "unrecognized" — but they are genuinely not verifiable from Rust.
+- The rules those modules implement are written down in `GAMES.md`, which
+  describes the games and nothing else — no shapes, no square numbering, no
+  file names. Rules for a new game come from there, or from the game itself,
+  **not** from porting the C++ move graph: a transcription reproduces whatever
+  the C++ gets wrong and then agrees with it. Only the encoding is read from
+  the C++, because it is the interface the two sides must share; it belongs in
+  the Rust module doc. `breakthrough.rs` and `amazons.rs` predate this and are
+  ports, which `rust/TODO.md` records.
+- Solved sets contain positions unreachable from the starting position — both
+  sides holding a winning condition at once, or the side to move holding one.
+  Backward solving covers every position on purpose, since testing
+  reachability in the set representation would cost more than solving the
+  extras, which resolve within about 2 ply. Rules must not treat such a
+  position as a failure: tictactoe stops the side to move only on the
+  *opponent's* line for exactly this reason.
 - The Rust verifiers do **not** consult `lost,side_to_move=N` /
   `won,side_to_move=N` the way `verify_utils.cpp` does. Each position generates
   its moves once and an empty move list branches to `validate_result`, which
