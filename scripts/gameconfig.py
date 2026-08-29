@@ -54,12 +54,14 @@ class GameConfig(object):
             raise RuntimeError(f"edge {edge_name!r} is incompatible with node order")
 
         conditions = list(conditions)
-        self.move_graph_data[side_to_move]["edges"].append({
-            "edge": edge_name,
-            "from": from_node,
-            "to": to_node,
-            "conditions": conditions,
-        })
+        self.move_graph_data[side_to_move]["edges"].append(
+            {
+                "edge": edge_name,
+                "from": from_node,
+                "to": to_node,
+                "conditions": conditions,
+            }
+        )
 
     def add_move_node(self, side_to_move, node_name, changes):
         if node_name in self.move_graph_nodes[side_to_move]:
@@ -82,22 +84,32 @@ class GameConfig(object):
         game_dir = config_dir / self.game
         game_dir.mkdir(0o700, exist_ok=True)
 
-        def save_config(config_filename, config_data, **kwargs):
+        def save_config(config_filename, config_data, missing_only=False, **kwargs):
             kwargs.setdefault("indent", 2)
             kwargs.setdefault("sort_keys", True)
 
             config_path = game_dir / config_filename
+            if missing_only and config_path.exists():
+                return
+
             with config_path.open("w") as config_fp:
                 json.dump(config_data, config_fp, **kwargs)
                 config_fp.write("\n")
 
         save_config("game.json", self.game_data, sort_keys=False)
-        save_config("components.json", self.components_data)
-        for side_to_move in range(2):
-            save_config(
-                f"move_graph_{side_to_move}.json",
-                self.move_graph_data[side_to_move],
-                sort_keys=False,
-            )
 
-        save_config("positions-generated.json", self.position_data, sort_keys=False)
+        if self.components_data["components"]:
+            save_config("components.json", self.components_data)
+
+        for side_to_move in range(2):
+            if self.move_graph_data[side_to_move]["nodes"]:
+                save_config(
+                    f"move_graph_{side_to_move}.json",
+                    self.move_graph_data[side_to_move],
+                    sort_keys=False,
+                )
+
+        if self.position_data["positions"]:
+            save_config("positions-generated.json", self.position_data, sort_keys=False)
+
+        save_config("positions-manual.json", {"game": self.game, "positions": []}, missing_only=True)
