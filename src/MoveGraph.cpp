@@ -194,28 +194,39 @@ std::vector<DFAString> MoveGraph::get_moves(const std::vector<DFAString>& positi
         }
 
       const auto& node_change = node_changes[node_index];
+      bool node_change_nop = std::none_of(node_change.cbegin(), node_change.cend(), [](const change_optional& c_o) {
+        return bool(c_o);
+      });
+
       for(const DFAString& from_position : node_input_positions.at(node_index))
         {
-          std::vector<int> new_position(shape.size());
-
-          for(int layer = 0; layer < node_change.size(); ++layer)
+          if(node_change_nop)
             {
-              if(node_change[layer])
-                {
-                  const change_type& layer_change = *(node_change[layer]);
-                  if(from_position[layer] != std::get<0>(layer_change))
-                    {
-                      throw std::logic_error(std::format("node {:d} ({:s}) before change condition failed: layer[{:d}]={:d} actual, {:d} expected", node_index, node_names[node_index], layer, from_position[layer], std::get<0>(layer_change)));
-                    }
-                  new_position[layer] = std::get<1>(layer_change);
-                }
-              else
-                {
-                  new_position[layer] = from_position[layer];
-                }
+              node_output_positions[node_index].push_back(from_position);
             }
+          else
+            {
+              std::vector<int> new_position(shape.size());
 
-          node_output_positions[node_index].emplace_back(shape, new_position);
+              for(int layer = 0; layer < node_change.size(); ++layer)
+                {
+                  if(node_change[layer])
+                    {
+                      const change_type& layer_change = *(node_change[layer]);
+                      if(from_position[layer] != std::get<0>(layer_change))
+                        {
+                          throw std::logic_error(std::format("node {:d} ({:s}) before change condition failed: layer[{:d}]={:d} actual, {:d} expected", node_index, node_names[node_index], layer, from_position[layer], std::get<0>(layer_change)));
+                        }
+                      new_position[layer] = std::get<1>(layer_change);
+                    }
+                  else
+                    {
+                      new_position[layer] = from_position[layer];
+                    }
+                }
+
+              node_output_positions[node_index].emplace_back(shape, new_position);
+            }
         }
     }
 
