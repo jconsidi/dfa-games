@@ -15,10 +15,6 @@ thiserror = "2"
 tempfile = "3"
 
 [[bin]]
-name = "dfa-convert"
-path = "src/bin/dfa-convert.rs"
-
-[[bin]]
 name = "dfa-stats"
 path = "src/bin/dfa-stats.rs"
 

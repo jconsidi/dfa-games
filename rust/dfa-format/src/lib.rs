@@ -29,23 +29,7 @@ pub use stats::Stats;
 pub use union::{sample_for_witness, verify_dfa_union, Caveat, UnionFailure, UnionStats};
 pub use write::{convert, Converted};
 
-use std::path::{Path, PathBuf};
-
-/// Resolve a command line argument to a source directory.
-///
-/// Accepts a bare 64 character hash, a path that already exists, or a DFA name
-/// such as `breakthrough_4x4/forward,ply=001`, which lives in the scratch
-/// directory as a symlink into `dfas_by_hash/`.
-pub fn resolve_source(scratch: &Path, arg: &str) -> PathBuf {
-    if is_hash(arg) {
-        return scratch.join("dfas_by_hash").join(arg);
-    }
-    let direct = Path::new(arg);
-    if direct.exists() {
-        return direct.to_path_buf();
-    }
-    scratch.join(arg)
-}
+use std::path::Path;
 
 /// Lower case hex, the spelling used for every digest this crate prints.
 pub fn hex(bytes: &[u8]) -> String {
