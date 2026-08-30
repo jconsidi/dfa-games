@@ -40,7 +40,7 @@ static std::string get_temp_directory()
 	  std::to_string(next_dfa_id++));
 }
 
-std::vector<std::string> get_layer_file_names(int ndim, std::string directory)
+static std::vector<std::string> get_layer_file_names(int ndim, std::string directory)
 {
   std::vector<std::string> output;
 
@@ -52,19 +52,19 @@ std::vector<std::string> get_layer_file_names(int ndim, std::string directory)
   return output;
 }
 
-std::string create_directory(std::string directory)
+static std::string create_directory(std::string directory)
 {
   mkdir(directory.c_str(), 0700);
   return directory;
 }
 
-void remove_directory(std::string directory)
+// Empty and remove a staging directory. Reached from ~DFA for a DFA that was
+// never saved, and from save_by_hash once the .dfa file has taken over.
+static void remove_directory(std::string directory)
 {
   DIR *dir = opendir(directory.c_str());
   if(dir)
     {
-      // DFA was previously saved with this name?
-
       for(struct dirent *dirent = readdir(dir);
 	  dirent;
 	  dirent = readdir(dir))
@@ -76,8 +76,8 @@ void remove_directory(std::string directory)
 	      int unlink_ret = unlink(old_file_name.c_str());
 	      if(unlink_ret)
 		{
-		  perror("DFA save unlink");
-		  throw std::runtime_error("DFA save unlink failed");
+		  perror("DFA staging unlink");
+		  throw std::runtime_error("DFA staging unlink failed");
 		}
 	    }
 	}
@@ -87,8 +87,8 @@ void remove_directory(std::string directory)
       int rmdir_ret = rmdir(directory.c_str());
       if(rmdir_ret)
 	{
-	  perror("DFA save rmdir");
-	  throw std::runtime_error("DFA save rmdir failed");
+	  perror("DFA staging rmdir");
+	  throw std::runtime_error("DFA staging rmdir failed");
 	}
     }
 }
@@ -103,8 +103,6 @@ DFA::DFA(const dfa_shape_t& shape_in)
     temporary(true)
 {
   assert(ndim > 0);
-
-  mkdir(directory.c_str(), 0700);
 
   for(int layer = 0; layer < ndim; ++layer)
     {
@@ -1141,11 +1139,11 @@ std::optional<std::string> DFA::parse_hash(std::string name_in)
       return std::optional<std::string>(hash);
     }
 
-  // read symbolic link which should be pointing to hash directory.
+  // Any other name is a symbolic link to a file in dfas_by_hash/.
 
-  std::string directory = "scratch/" + name_in;
+  std::string symlink_path = "scratch/" + name_in;
   char link_target[1024] = {0};
-  ssize_t ret = readlink(directory.c_str(), link_target, sizeof(link_target) - 1);
+  ssize_t ret = readlink(symlink_path.c_str(), link_target, sizeof(link_target) - 1);
   if(ret >= 0)
     {
       std::string link_target_string(link_target);
