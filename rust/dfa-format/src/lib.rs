@@ -3,16 +3,14 @@
 //! See `FORMAT-DFA.md` at the repository root for the specification.  Section
 //! references in the source refer to it.
 //!
-//! The two binaries in this crate are thin wrappers: [`layout`] is the single
+//! The binaries in this crate are thin wrappers: [`layout`] is the single
 //! authority on where bytes go, [`write`] produces files and [`read`]
-//! validates them, and [`legacy`] knows how to read the directory-per-DFA
-//! layout that `src/DFA.cpp` writes.
+//! validates them.
 
 mod bitset;
 pub mod error;
 pub mod iter;
 pub mod layout;
-pub mod legacy;
 pub mod read;
 pub mod sample;
 pub mod stats;
@@ -22,14 +20,11 @@ pub mod write;
 pub use error::{FormatError, Result, Violation};
 pub use iter::Positions;
 pub use layout::Layout;
-pub use legacy::LegacyDfa;
 pub use read::{validate, Dfa, Report, ValidateOptions};
 pub use sample::{Rng, Sampler};
 pub use stats::Stats;
 pub use union::{sample_for_witness, verify_dfa_union, Caveat, UnionFailure, UnionStats};
 pub use write::{write_automaton, Converted};
-
-use std::path::Path;
 
 /// Lower case hex, the spelling used for every digest this crate prints.
 pub fn hex(bytes: &[u8]) -> String {
@@ -141,21 +136,5 @@ impl Automaton {
             out = next;
         }
         out
-    }
-
-    /// Write this automaton in the legacy directory layout of `src/DFA.cpp`.
-    pub fn write_legacy_dir(&self, dir: &Path) -> std::io::Result<()> {
-        std::fs::create_dir_all(dir)?;
-        std::fs::write(dir.join("initial_state"), self.initial_state.to_le_bytes())?;
-        for (layer, rows) in self.layers.iter().enumerate() {
-            let mut bytes = Vec::with_capacity(rows.len() * self.shape[layer] as usize * 4);
-            for row in rows {
-                for &v in row {
-                    bytes.extend_from_slice(&v.to_le_bytes());
-                }
-            }
-            std::fs::write(dir.join(format!("layer={layer}")), &bytes)?;
-        }
-        Ok(())
     }
 }

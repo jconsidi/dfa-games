@@ -27,10 +27,6 @@ pub enum FormatError {
     #[error("layout overflow: {0}")]
     Overflow(String),
 
-    /// A legacy `scratch/<name>` directory that is not a well formed DFA.
-    #[error("{path}: {message}")]
-    BadLegacy { path: PathBuf, message: String },
-
     /// The automaton handed to the writer is not one the format can describe.
     ///
     /// No path: the source is in memory, so there is nothing to name beyond
@@ -66,13 +62,6 @@ impl FormatError {
         FormatError::Io {
             path: path.into(),
             source,
-        }
-    }
-
-    pub fn bad_legacy(path: impl Into<PathBuf>, message: impl Into<String>) -> Self {
-        FormatError::BadLegacy {
-            path: path.into(),
-            message: message.into(),
         }
     }
 
