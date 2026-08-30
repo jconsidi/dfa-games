@@ -193,11 +193,11 @@ std::vector<DFAString> MoveGraph::get_moves(const std::vector<DFAString>& positi
             }
         }
 
+      const auto& node_change = node_changes[node_index];
       for(const DFAString& from_position : node_input_positions.at(node_index))
         {
           std::vector<int> new_position(shape.size());
 
-          const auto& node_change = node_changes[node_index];
           for(int layer = 0; layer < node_change.size(); ++layer)
             {
               if(node_change[layer])
