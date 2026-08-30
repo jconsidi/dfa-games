@@ -28,8 +28,9 @@ test : all
 	./test_bitset
 	./test_dfa
 	./test_change_dfa
+	./test_validate
+	./test_move_graph
 	./test_perft_u
-	#./test_chess_game
 
 test_chess : all
 	./test_perft
