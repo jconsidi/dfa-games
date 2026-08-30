@@ -119,3 +119,84 @@ The whole loop body belongs inside the try.
   DFAs, where validate_moves early returns, and non terminal ones, where it
   builds a DFAString per legal move. Pick test DFAs by expected runtime, not by
   position count.
+
+## move generation
+
+### hybrid dispatch for small inputs
+
+`MoveGraph::get_moves(const DFAString&)` (`MoveGraph.cpp:155`) generates moves
+by propagating explicit position lists through the graph, with no set DFAs at
+all.
+It is much faster than the DFA path for small inputs, which pays for roughly
+`4 + H + 3*W*H` node DFAs regardless of how few positions came in.
+Dispatch between the two inside
+`MoveGraph::get_moves(name_prefix, shared_dfa_ptr)` (`:219`) so both
+`get_moves_forward` and `get_moves_backward` benefit and `Game` stays unaware.
+
+- the two paths agree by construction, and this is the load bearing fact.
+  `add_node` appends `get_fixed(layer, before_character)` to the node's
+  pre conditions and `get_fixed(layer, after_character)` to its post
+  conditions for every changed layer (`:124-135`), and `add_edge` folds
+  `node_post_conditions[from]`, the explicit conditions, and
+  `node_pre_conditions[to]` into every edge (`:60-72`).
+  So the per position `contains` checks enforce exactly what the DFA path's
+  `get_intersection_vector` plus `get_change` enforce, and the
+  `std::logic_error` at `:200` is an unreachable invariant rather than a
+  divergence.
+  A node change added without the matching pre condition would make the two
+  paths disagree silently, so say this at the dispatch point.
+- add a third entry point taking `const std::vector<DFAString>&`. The
+  implementation is already vector shaped internally, so this is
+  `node_input_positions[0] = positions_in;` and both the single position
+  version and the fast path call it.
+- threshold on positions per state, not on positions. The DFA path is
+  empirically linear in the initial state count rather than quadratic, so
+  the fast path wins while `size() / states()` is below some constant, and
+  that constant should travel across games because both costs scale with the
+  move graph. `size()` is cached in a sidecar keyed by digest and `states()`
+  is cheap, so the test itself costs nothing.
+- watch peak memory once inputs can be large. `node_input_positions` and
+  `node_output_positions` hold every input position at every node at once,
+  `O(N * nodes * ndim)`, and a positions per state threshold admits a large
+  absolute `N` when the DFA has many states. The DFA path already computes
+  `last_to_node_index` per node for its cleanup schedule (`:305-315`); the
+  same schedule frees a node's output list once its last consumer has run.
+- the fast path writes none of the `move_nodes/` cache entries (`:230`, the
+  only reference in the tree), which is less scratch churn rather than a
+  behaviour change.
+- extend `test_move_graph.cpp` to compare the two paths on every configured
+  position, on top of the existing comparison against `validate_moves`. Add a
+  case with more than one input position, since every configured position is a
+  singleton today and would only ever exercise `N == 1`.
+
+### canonical numbering for StringDFA
+
+`StringDFA` claims canonical numbering only for a single input string
+(`StringDFA.cpp:12`).
+It is minimal, has no unreachable or dead states, and cannot produce a uniform
+reject or uniform accept row, since `DFA::add_state` returns the reserved state
+directly when every transition matches it (`DFA.cpp:340-365`).
+The one thing still missing is the ordering in section 8 of `FORMAT-DFA.md`:
+within a layer, ordinary states must be sorted by transition row ascending.
+`DedupedDFA::add_state` numbers states in call order, and `build_internal`
+recurses depth first, so states come out in subtree completion order instead.
+
+- the recursion does not need to change if a post pass renumbers each layer.
+  A layer's rows are indices into the next layer, so the next layer must be
+  final first: sweep from the highest layer down to layer 0, with the last
+  layer as the base case since its rows are already over `{0, 1}`.
+  Single pass canonical numbering would need a breadth first rewrite instead,
+  which is a different algorithm.
+- `DedupedDFA::set_initial_state` deletes `state_lookup` to block further
+  state creation, so the pass has to run before that call or work on `DFA`'s
+  staging directly. Confirm the staging is still writable there.
+- `BinaryDFA` gets this for free only because below `binary_dfa_hash_width`
+  its sort key is the transitions themselves (`BinaryDFA.cpp:513-520`), and it
+  drops the claim via `hashed_any_layer` when it has to sort by hash. There is
+  no reusable helper to borrow.
+- the payoff is that digest equality becomes language equality (section 8), so
+  the hybrid's two paths produce byte identical files for the same move set.
+  That turns the cross check above into an assert on hashes instead of two
+  `get_difference` calls, and keeps the content addressed caches from holding
+  two files per language. Determinism already bounds that fragmentation, so
+  this is a simplification rather than a correctness fix.
