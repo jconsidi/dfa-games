@@ -2,6 +2,7 @@
 
 #include "MoveGraph.h"
 
+#include <algorithm>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -149,6 +150,70 @@ void MoveGraph::add_node(std::string node_name_in, int layer_in, int before_char
   changes.at(layer_in) = change_type(before_character_in, after_character_in);
 
   add_node(node_name_in, changes);
+}
+
+std::vector<DFAString> MoveGraph::get_moves(const DFAString& position_in)
+{
+  std::vector<std::vector<DFAString>> node_input_positions(node_names.size());
+  node_input_positions[0].push_back(position_in);
+
+  std::vector<std::vector<DFAString>> node_output_positions(node_names.size());
+
+  for(int node_index = 0; node_index < node_names.size(); ++node_index)
+    {
+      // process all edges coming into this node
+
+      for(int node_edge_index = 0; node_edge_index < node_inputs[node_index].size(); ++node_edge_index)
+        {
+          const std::pair<int, move_edge>& from_edge = node_inputs[node_index][node_edge_index];
+
+          int from_node_index = std::get<0>(from_edge);
+          const move_edge& edge = std::get<1>(from_edge);
+
+          // const std::string& edge_name = std::get<0>(edge);
+          const move_edge_condition_vector& conditions = std::get<1>(edge);
+          int to_node_index = std::get<2>(edge);
+          assert(to_node_index == node_index);
+
+          for(const DFAString& from_position : node_output_positions.at(from_node_index))
+            {
+              if(std::all_of(conditions.begin(), conditions.end(), [&](shared_dfa_ptr c)
+              {
+                return c->contains(from_position);
+              }))
+                {
+                  node_input_positions.at(node_index).push_back(from_position);
+                }
+            }
+        }
+
+      for(const DFAString& from_position : node_input_positions.at(node_index))
+        {
+          std::vector<int> new_position(shape.size());
+
+          const auto& node_change = node_changes[node_index];
+          for(int layer = 0; layer < node_change.size(); ++layer)
+            {
+              if(node_change[layer])
+                {
+                  const change_type& layer_change = *(node_change[layer]);
+                  if(from_position[layer] != std::get<0>(layer_change))
+                    {
+                      throw std::logic_error(std::format("node {:d} ({:s}) before change condition failed: layer[{:d}]={:d} actual, {:d} expected", node_index, node_names[node_index], layer, from_position[layer], std::get<0>(layer_change)));
+                    }
+                  new_position[layer] = std::get<1>(layer_change);
+                }
+              else
+                {
+                  new_position[layer] = from_position[layer];
+                }
+            }
+
+          node_output_positions[node_index].emplace_back(shape, new_position);
+        }
+    }
+
+  return node_output_positions[node_names.size() - 1];
 }
 
 shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr positions_in) const
