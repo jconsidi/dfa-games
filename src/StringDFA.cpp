@@ -5,7 +5,8 @@
 StringDFA::StringDFA(const dfa_shape_t& shape_in, const std::vector<DFAString>& strings_in)
   : DedupedDFA(shape_in)
 {
-  this->set_initial_state(build_internal(0, strings_in));
+  std::vector<std::reference_wrapper<const DFAString>> strings(strings_in.begin(), strings_in.end());
+  this->set_initial_state(build_internal(0, strings));
 
   if(strings_in.size() <= 1)
     {
@@ -14,7 +15,7 @@ StringDFA::StringDFA(const dfa_shape_t& shape_in, const std::vector<DFAString>& 
 }
 
 dfa_state_t StringDFA::build_internal(int layer,
-				      const std::vector<DFAString>& strings_in)
+				      const std::vector<std::reference_wrapper<const DFAString>>& strings_in)
 {
   if(strings_in.size() <= 0)
     {
@@ -31,7 +32,7 @@ dfa_state_t StringDFA::build_internal(int layer,
   // split input strings by current layer's character
 
   int layer_shape = this->get_layer_shape(layer);
-  std::vector<std::vector<DFAString>> child_strings(layer_shape);
+  std::vector<std::vector<std::reference_wrapper<const DFAString>>> child_strings(layer_shape);
 
   for(const DFAString& string : strings_in)
     {

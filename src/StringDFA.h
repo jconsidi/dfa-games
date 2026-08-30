@@ -3,6 +3,8 @@
 #ifndef STRING_DFA_H
 #define STRING_DFA_H
 
+#include <functional>
+
 #include "DedupedDFA.h"
 
 class StringDFA
@@ -10,7 +12,7 @@ class StringDFA
 {
 private:
 
-  dfa_state_t build_internal(int, const std::vector<DFAString>&);
+  dfa_state_t build_internal(int, const std::vector<std::reference_wrapper<const DFAString>>&);
 
 public:
 
