@@ -1,0 +1,75 @@
+{
+  "game": "clobber_5x5",
+  "positions": [
+    {
+      "comment": "initial position",
+      "position": [
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1
+      ],
+      "side_to_move": 0,
+      "expected_result": null,
+      "expected_perft_u": [
+        40
+      ]
+    },
+    {
+      "comment": "initial position",
+      "position": [
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1,
+        2,
+        1
+      ],
+      "side_to_move": 1,
+      "expected_result": null,
+      "expected_perft_u": [
+        40
+      ]
+    }
+  ]
+}
