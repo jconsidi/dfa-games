@@ -8,6 +8,7 @@
 #include "CountCharacterDFA.h"
 #include "CountDFA.h"
 #include "DFA.h"
+#include "DFAUtil.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "RejectDFA.h"
@@ -91,8 +92,82 @@ void test_union_pair(std::string test_name, const DFA& left, const DFA& right, d
   return test_union_pair(test_name, left, right, size_t(expected_boards));
 }
 
+std::vector<DFAString> get_all_positions(const dfa_shape_t& shape)
+{
+  std::vector<std::vector<int>> characters_list(1);
+  for(int layer = 0; layer < shape.size(); ++layer)
+    {
+      std::vector<std::vector<int>> next_characters_list;
+      for(const std::vector<int>& prefix : characters_list)
+	{
+	  for(int c = 0; c < shape[layer]; ++c)
+	    {
+	      next_characters_list.push_back(prefix);
+	      next_characters_list.back().push_back(c);
+	    }
+	}
+      characters_list = next_characters_list;
+    }
+
+  std::vector<DFAString> output;
+  for(const std::vector<int>& characters : characters_list)
+    {
+      output.emplace_back(shape, characters);
+    }
+
+  return output;
+}
+
+void test_states(std::string test_name, const DFA& test_dfa, size_t expected_states)
+{
+  size_t actual_states = test_dfa.states();
+  if(actual_states != expected_states)
+    {
+      std::cerr << get_parameter_string(test_dfa.get_shape()) << " " << test_name << ": expected " << expected_states << " states" << std::endl;
+      std::cerr << get_parameter_string(test_dfa.get_shape()) << " " << test_name << ":   actual " << actual_states << " states" << std::endl;
+
+      throw std::logic_error(test_name + ": test failed");
+    }
+  std::cout << get_parameter_string(test_dfa.get_shape()) << " " << test_name << ": passed" << std::endl;
+  std::cout.flush();
+}
+
+void test_string_dfa(const dfa_shape_t& shape)
+{
+  std::vector<DFAString> all_positions = get_all_positions(shape);
+
+  // a state accepting every suffix is the reserved accept state, so building
+  // from every string in the shape must collapse to the accept DFA instead of
+  // duplicating state 1 in each layer.
+
+  AcceptDFA accept(shape);
+
+  shared_dfa_ptr string_all = DFAUtil::from_strings(shape, all_positions);
+  test_helper("string all", *string_all, all_positions.size());
+  test_states("string all states", *string_all, accept.states());
+
+  // dropping one string must stop the collapse, otherwise the check above
+  // would also pass for an implementation that always returned accept.
+
+  if(all_positions.size() >= 2)
+    {
+      std::vector<DFAString> all_but_one(all_positions.begin() + 1, all_positions.end());
+
+      shared_dfa_ptr string_all_but_one = DFAUtil::from_strings(shape, all_but_one);
+      test_helper("string all but one", *string_all_but_one, all_but_one.size());
+      if(string_all_but_one->states() <= accept.states())
+	{
+	  throw std::logic_error("string all but one: collapsed to accept");
+	}
+    }
+}
+
 void test_suite(const dfa_shape_t& shape)
 {
+
+  // string tests
+
+  test_string_dfa(shape);
 
   // accept all
 
