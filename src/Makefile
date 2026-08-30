@@ -26,7 +26,6 @@ depend :
 
 test : all
 	./test_bitset
-	./test_sort_unique
 	./test_dfa
 	./test_change_dfa
 	./test_perft_u

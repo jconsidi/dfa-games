@@ -37,7 +37,6 @@ test_normal_nim_game
 test_perft
 test_perft_u
 test_solved
-test_sort_unique
 test_validate
 typescript*
 validate_backward
