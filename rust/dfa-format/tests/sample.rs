@@ -3,14 +3,11 @@
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use dfa_format::{convert, Automaton, Dfa, LegacyDfa, Rng, Sampler};
+use dfa_format::{write_automaton, Automaton, Dfa, Rng, Sampler};
 use tempfile::TempDir;
 
-fn published(a: &Automaton, tmp: &TempDir, tag: &str) -> Dfa {
-    let src = tmp.path().join(format!("legacy-{tag}"));
-    a.write_legacy_dir(&src).unwrap();
-    let legacy = LegacyDfa::open(&src).unwrap();
-    let converted = convert(&legacy, Path::new(tmp.path()), true).unwrap();
+fn published(a: &Automaton, tmp: &TempDir, _tag: &str) -> Dfa {
+    let converted = write_automaton(a, Path::new(tmp.path()), true).unwrap();
     Dfa::open(&converted.path).unwrap()
 }
 

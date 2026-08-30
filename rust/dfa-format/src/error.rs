@@ -31,6 +31,13 @@ pub enum FormatError {
     #[error("{path}: {message}")]
     BadLegacy { path: PathBuf, message: String },
 
+    /// The automaton handed to the writer is not one the format can describe.
+    ///
+    /// No path: the source is in memory, so there is nothing to name beyond
+    /// the layer and row the message already carries.
+    #[error("source automaton: {message}")]
+    BadSource { message: String },
+
     /// A `.dfa` file that failed a required check from FORMAT-DFA.md section 7.
     #[error("{path}: {message}")]
     Invalid { path: PathBuf, message: String },
@@ -65,6 +72,12 @@ impl FormatError {
     pub fn bad_legacy(path: impl Into<PathBuf>, message: impl Into<String>) -> Self {
         FormatError::BadLegacy {
             path: path.into(),
+            message: message.into(),
+        }
+    }
+
+    pub fn bad_source(message: impl Into<String>) -> Self {
+        FormatError::BadSource {
             message: message.into(),
         }
     }

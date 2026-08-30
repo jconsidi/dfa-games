@@ -27,7 +27,7 @@ pub use read::{validate, Dfa, Report, ValidateOptions};
 pub use sample::{Rng, Sampler};
 pub use stats::Stats;
 pub use union::{sample_for_witness, verify_dfa_union, Caveat, UnionFailure, UnionStats};
-pub use write::{convert, Converted};
+pub use write::{write_automaton, Converted};
 
 use std::path::Path;
 
@@ -49,9 +49,9 @@ pub fn is_hash(s: &str) -> bool {
 
 /// An automaton held in memory, used to build test vectors.
 ///
-/// Tests write one of these out as a legacy directory and then run the real
-/// converter over it, so the code under test is the same code that runs in
-/// production rather than a parallel implementation.
+/// Tests build one of these and hand it to [`write_automaton`], so the file
+/// under test comes from this crate's one writer rather than from a second,
+/// weaker opinion about what conformance means.
 #[derive(Debug, Clone)]
 pub struct Automaton {
     shape: Vec<u32>,

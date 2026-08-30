@@ -5,17 +5,14 @@
 //! different way: brute force over the whole shape, no state chain, no
 //! carrying.  Every test here is that comparison on a different automaton.
 
-use dfa_format::{convert, Automaton, Dfa, LegacyDfa};
+use dfa_format::{write_automaton, Automaton, Dfa};
 use tempfile::TempDir;
 
 /// Publish an in-memory automaton and open it back as a real `.dfa` file, so
 /// the iterator runs over the same bytes production reads.
 fn published(a: &Automaton, tmp: &TempDir, tag: &str) -> Dfa {
-    let src = tmp.path().join(format!("legacy-{tag}"));
-    a.write_legacy_dir(&src).unwrap();
-    let legacy = LegacyDfa::open(&src).unwrap();
-    let out = tmp.path().join("out");
-    let converted = convert(&legacy, &out, true).unwrap();
+    let out = tmp.path().join(format!("out-{tag}"));
+    let converted = write_automaton(a, &out, true).unwrap();
     Dfa::open(&converted.path).unwrap()
 }
 

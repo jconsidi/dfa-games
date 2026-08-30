@@ -1,24 +1,21 @@
 //! The test vectors of FORMAT-DFA.md section 11, plus negative tests.
 //!
-//! Every vector is built as an in-memory `Automaton`, written out in the
-//! legacy directory layout, and then run through the real converter, so these
-//! exercise the production path rather than a parallel implementation.
+//! Every vector is built as an in-memory `Automaton` and run through
+//! `write_automaton`, so these exercise this crate's one writer rather than a
+//! parallel implementation written for the tests.
 
 use std::path::{Path, PathBuf};
 
 use dfa_format::layout::{self, Layout};
-use dfa_format::{convert, validate, Automaton, Dfa, LegacyDfa, ValidateOptions};
+use dfa_format::{validate, write_automaton, Automaton, Dfa, ValidateOptions};
 use tempfile::TempDir;
 
-/// Convert `automaton` into a fresh temp directory and return the file path.
+/// Write `automaton` into a fresh temp directory and return the file path.
 /// The `TempDir` is returned too, since dropping it deletes the file.
 fn build(automaton: &Automaton) -> (TempDir, PathBuf) {
     let tmp = TempDir::new().expect("temp dir");
-    let src = tmp.path().join("legacy");
-    automaton.write_legacy_dir(&src).expect("write legacy dir");
-    let legacy = LegacyDfa::open(&src).expect("open legacy dir");
     let out = tmp.path().join("out");
-    let converted = convert(&legacy, &out, true).expect("convert");
+    let converted = write_automaton(automaton, &out, true).expect("write");
     (tmp, converted.path)
 }
 

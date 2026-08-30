@@ -10,7 +10,7 @@ use std::path::Path;
 
 use dfa_format::union::{Caveat, UnionFailure};
 use dfa_format::{
-    convert, sample_for_witness, verify_dfa_union, Automaton, Dfa, FormatError, LegacyDfa,
+    sample_for_witness, verify_dfa_union, write_automaton, Automaton, Dfa, FormatError,
 };
 
 /// The failure and partial statistics a refutation carries, or a panic if the
@@ -160,11 +160,8 @@ fn minimal_dfa(shape: &[u32], accepts: &dyn Fn(&[u32]) -> bool) -> Automaton {
     a
 }
 
-fn publish(a: &Automaton, tmp: &TempDir, tag: &str) -> Dfa {
-    let src = tmp.path().join(format!("legacy-{tag}"));
-    a.write_legacy_dir(&src).unwrap();
-    let legacy = LegacyDfa::open(&src).unwrap();
-    let converted = convert(&legacy, Path::new(tmp.path()), true).unwrap();
+fn publish(a: &Automaton, tmp: &TempDir, _tag: &str) -> Dfa {
+    let converted = write_automaton(a, Path::new(tmp.path()), true).unwrap();
     Dfa::open(&converted.path).unwrap()
 }
 

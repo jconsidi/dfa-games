@@ -1,6 +1,6 @@
-//! Legacy directory in, `.dfa` out, same language on the way through.
+//! An in-memory automaton in, `.dfa` out, same language on the way through.
 
-use dfa_format::{convert, Automaton, Dfa, LegacyDfa};
+use dfa_format::{write_automaton, Automaton, Dfa};
 use tempfile::TempDir;
 
 /// A moderately tangled automaton over a mixed shape, built so that every
@@ -30,21 +30,11 @@ fn tangled() -> Automaton {
 }
 
 #[test]
-fn legacy_directory_round_trips_through_the_new_format() {
+fn an_automaton_round_trips_through_the_new_format() {
     let a = tangled();
     let tmp = TempDir::new().unwrap();
-    let src = tmp.path().join("legacy");
-    a.write_legacy_dir(&src).unwrap();
-
-    let legacy = LegacyDfa::open(&src).unwrap();
-    assert_eq!(legacy.shape(), a.shape());
-    assert_eq!(legacy.initial_state(), a.initial_state());
-    for layer in 0..a.ndim() {
-        assert_eq!(legacy.layer_size()[layer], a.layer_size(layer));
-    }
-
     let out = tmp.path().join("out");
-    let converted = convert(&legacy, &out, true).unwrap();
+    let converted = write_automaton(&a, &out, true).unwrap();
     assert!(!converted.already_existed);
 
     let dfa = Dfa::open(&converted.path).unwrap();
@@ -70,14 +60,11 @@ fn legacy_directory_round_trips_through_the_new_format() {
 fn republishing_the_same_automaton_is_a_no_op() {
     let a = tangled();
     let tmp = TempDir::new().unwrap();
-    let src = tmp.path().join("legacy");
-    a.write_legacy_dir(&src).unwrap();
-    let legacy = LegacyDfa::open(&src).unwrap();
     let out = tmp.path().join("out");
 
-    let first = convert(&legacy, &out, false).unwrap();
+    let first = write_automaton(&a, &out, false).unwrap();
     assert!(!first.already_existed);
-    let second = convert(&legacy, &out, false).unwrap();
+    let second = write_automaton(&a, &out, false).unwrap();
     assert!(second.already_existed);
     assert_eq!(first.digest, second.digest);
     assert_eq!(first.path, second.path);

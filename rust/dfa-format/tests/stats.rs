@@ -3,15 +3,12 @@
 use std::path::PathBuf;
 
 use dfa_format::stats::{count_accepted, format_positions};
-use dfa_format::{convert, Automaton, Dfa, LegacyDfa, Stats};
+use dfa_format::{write_automaton, Automaton, Dfa, Stats};
 use tempfile::TempDir;
 
 fn build(a: &Automaton) -> (TempDir, PathBuf) {
     let tmp = TempDir::new().unwrap();
-    let src = tmp.path().join("legacy");
-    a.write_legacy_dir(&src).unwrap();
-    let legacy = LegacyDfa::open(&src).unwrap();
-    let converted = convert(&legacy, &tmp.path().join("out"), true).unwrap();
+    let converted = write_automaton(a, &tmp.path().join("out"), true).unwrap();
     (tmp, converted.path)
 }
 

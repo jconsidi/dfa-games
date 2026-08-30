@@ -1,7 +1,7 @@
-//! Streaming writer: legacy directory in, one conforming `.dfa` file out.
+//! Writer: an in-memory automaton in, one conforming `.dfa` file out.
 //!
-//! Nothing is ever loaded whole.  The largest DFA in the existing store is
-//! about 28 GB, so every layer is copied through a fixed size buffer.
+//! The output is still built through a fixed size buffer rather than assembled
+//! whole, so the memory used does not scale with the file being written.
 
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, ErrorKind, Read, Seek, SeekFrom, Write};
@@ -13,8 +13,8 @@ use crate::bitset::Bitset;
 use crate::error::{FormatError, Result};
 use crate::hex;
 use crate::layout::{self, Layout};
-use crate::legacy::LegacyDfa;
 use crate::read::{self, ValidateOptions};
+use crate::Automaton;
 
 const CHUNK: usize = 8 << 20;
 
@@ -141,9 +141,10 @@ pub struct Converted {
     pub already_existed: bool,
 }
 
-/// Convert one legacy directory into `out_dir/<digest>.dfa`.
-pub fn convert(src: &LegacyDfa, out_dir: &Path, verify: bool) -> Result<Converted> {
-    let lay = Layout::new(src.shape().to_vec(), src.layer_size().to_vec())?;
+/// Write one automaton to `out_dir/<digest>.dfa`.
+pub fn write_automaton(src: &Automaton, out_dir: &Path, verify: bool) -> Result<Converted> {
+    let layer_size: Vec<u64> = (0..src.ndim()).map(|l| src.layer_size(l)).collect();
+    let lay = Layout::new(src.shape().to_vec(), layer_size)?;
 
     fs::create_dir_all(out_dir).map_err(|e| FormatError::io(out_dir, e))?;
     let tmp = temp_path(out_dir);
@@ -158,7 +159,7 @@ pub fn convert(src: &LegacyDfa, out_dir: &Path, verify: bool) -> Result<Converte
 }
 
 fn write_and_publish(
-    src: &LegacyDfa,
+    src: &Automaton,
     lay: &Layout,
     tmp: &Path,
     out_dir: &Path,
@@ -287,52 +288,54 @@ fn write_header_and_tables(
 /// to the canonical/minimality tracker on the way past.
 fn write_layer(
     writer: &mut BufWriter<File>,
-    src: &LegacyDfa,
+    src: &Automaton,
     lay: &Layout,
     layer: usize,
     tracker: &mut CanonicalTracker,
 ) -> Result<()> {
-    let path = &src.layer_paths()[layer];
     let shape = usize::try_from(lay.shape()[layer])
         .map_err(|_| FormatError::Overflow(format!("shape[{layer}] exceeds usize")))?;
     let width = lay.width()[layer];
     let bound = lay.next_layer_size(layer);
     let layer_size = lay.layer_size()[layer];
 
-    let src_row_bytes = shape * 4;
-    let rows_per_chunk = std::cmp::max(1, CHUNK / src_row_bytes);
-    let mut in_buf = vec![0u8; rows_per_chunk * src_row_bytes];
-    let mut out_buf: Vec<u8> = Vec::with_capacity(rows_per_chunk * shape * usize::from(width));
+    let row_bytes = shape * usize::from(width);
+    let rows_per_chunk = std::cmp::max(1, CHUNK / row_bytes);
+    let mut out_buf: Vec<u8> = Vec::with_capacity(rows_per_chunk * row_bytes);
     let mut values: Vec<u64> = vec![0; shape];
 
     tracker.begin_layer(lay, layer);
-    let mut file = File::open(path).map_err(|e| FormatError::io(path, e))?;
-    let mut row: u64 = 0;
 
-    while row < layer_size {
-        let rows_now = std::cmp::min(rows_per_chunk as u64, layer_size - row) as usize;
-        let want = rows_now * src_row_bytes;
-        file.read_exact(&mut in_buf[..want])
-            .map_err(|e| FormatError::io(path, e))?;
+    for index in 0..layer_size {
+        let row = src.row(layer, index);
 
-        out_buf.clear();
-        for r in 0..rows_now {
-            let index = row + r as u64;
-            let bytes = &in_buf[r * src_row_bytes..(r + 1) * src_row_bytes];
-            for (c, w) in bytes.chunks_exact(4).enumerate() {
-                values[c] = u64::from(u32::from_le_bytes([w[0], w[1], w[2], w[3]]));
-            }
-
-            check_row(src, layer, index, &values, bound)?;
-            tracker.row(layer, index, &values);
-
-            for &v in &values {
-                layout::encode_entry(v, width, &mut out_buf);
-            }
+        // The layout was derived from `shape`, so a row of any other length
+        // would be encoded into a block sized for something else.  `Automaton`
+        // asserts this on the way in; the writer does not take that on trust,
+        // because it is the one property every byte offset depends on.
+        if row.len() != shape {
+            return Err(FormatError::bad_source(format!(
+                "layer={layer} row {index} has {} entries, but shape[{layer}] is {shape}",
+                row.len()
+            )));
         }
-        writer.write_all(&out_buf)?;
-        row += rows_now as u64;
+        for (c, &v) in row.iter().enumerate() {
+            values[c] = u64::from(v);
+        }
+
+        check_row(layer, index, &values, bound)?;
+        tracker.row(layer, index, &values);
+
+        for &v in &values {
+            layout::encode_entry(v, width, &mut out_buf);
+        }
+
+        if out_buf.len() >= CHUNK {
+            writer.write_all(&out_buf)?;
+            out_buf.clear();
+        }
     }
+    writer.write_all(&out_buf)?;
 
     // Blocks start on an 8 byte boundary; the last one is followed by EOF.
     let end = lay.layer_offset()[layer] + lay.block_bytes()[layer];
@@ -347,16 +350,13 @@ fn write_layer(
     Ok(())
 }
 
-fn check_row(src: &LegacyDfa, layer: usize, index: u64, values: &[u64], bound: u64) -> Result<()> {
+fn check_row(layer: usize, index: u64, values: &[u64], bound: u64) -> Result<()> {
     for (c, &v) in values.iter().enumerate() {
         if v >= bound {
-            return Err(FormatError::bad_legacy(
-                src.dir(),
-                format!(
-                    "layer={layer} row {index} entry {c} is {v}, \
-                     but the next layer has only {bound} states"
-                ),
-            ));
+            return Err(FormatError::bad_source(format!(
+                "layer={layer} row {index} entry {c} is {v}, \
+                 but the next layer has only {bound} states"
+            )));
         }
     }
 
@@ -369,10 +369,9 @@ fn check_row(src: &LegacyDfa, layer: usize, index: u64, values: &[u64], bound: u
     };
     if let Some(required) = required {
         if let Some((c, &v)) = values.iter().enumerate().find(|(_, &v)| v != required) {
-            return Err(FormatError::bad_legacy(
-                src.dir(),
-                format!("layer={layer} reserved row {index} entry {c} is {v}, expected {required}"),
-            ));
+            return Err(FormatError::bad_source(format!(
+                "layer={layer} reserved row {index} entry {c} is {v}, expected {required}"
+            )));
         }
     }
     Ok(())

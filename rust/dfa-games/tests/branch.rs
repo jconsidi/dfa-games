@@ -8,7 +8,7 @@
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use dfa_format::{convert, Automaton, Dfa, LegacyDfa};
+use dfa_format::{write_automaton, Automaton, Dfa};
 use dfa_games::game::{Game, Position, Side};
 use dfa_games::verify::{check_position, Claim, Continuation};
 use tempfile::TempDir;
@@ -84,10 +84,7 @@ fn only_eleven(tmp: &TempDir) -> Dfa {
     let l0 = a.add_state(0, vec![0, l1]);
     a.set_initial_state(l0);
 
-    let src = tmp.path().join("legacy");
-    a.write_legacy_dir(&src).unwrap();
-    let legacy = LegacyDfa::open(&src).unwrap();
-    let converted = convert(&legacy, Path::new(tmp.path()), true).unwrap();
+    let converted = write_automaton(&a, Path::new(tmp.path()), true).unwrap();
     Dfa::open(&converted.path).unwrap()
 }
 

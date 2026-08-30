@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use dfa_format::{convert, Automaton, LegacyDfa};
+use dfa_format::{write_automaton, Automaton};
 use dfa_games::load::{dfa_path, load};
 use dfa_games::registry::get_game;
 use tempfile::TempDir;
@@ -24,12 +24,8 @@ fn scratch_with(tmp: &TempDir, game_name: &str, dfa_name: &str, shape: Vec<u32>)
     }
     a.set_initial_state(state);
 
-    let legacy_dir = tmp.path().join(format!("legacy-{dfa_name}"));
-    a.write_legacy_dir(&legacy_dir).unwrap();
-    let legacy = LegacyDfa::open(&legacy_dir).unwrap();
-
     let by_hash = scratch.join("dfas_by_hash");
-    let converted = convert(&legacy, &by_hash, true).unwrap();
+    let converted = write_automaton(&a, &by_hash, true).unwrap();
 
     let game_dir = scratch.join(game_name);
     std::fs::create_dir_all(&game_dir).unwrap();
