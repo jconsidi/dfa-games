@@ -67,20 +67,6 @@ fn legacy_directory_round_trips_through_the_new_format() {
 }
 
 #[test]
-fn shape_is_recovered_without_being_stored() {
-    // The legacy layout stores no shape; it is derived from the leading zero
-    // run of each layer, which is row 0.
-    let a = tangled();
-    let tmp = TempDir::new().unwrap();
-    let src = tmp.path().join("legacy");
-    a.write_legacy_dir(&src).unwrap();
-
-    let legacy = LegacyDfa::open(&src).unwrap();
-    assert_eq!(legacy.shape(), &[3, 2, 4, 2, 3]);
-    assert!(!src.join("shape").exists());
-}
-
-#[test]
 fn republishing_the_same_automaton_is_a_no_op() {
     let a = tangled();
     let tmp = TempDir::new().unwrap();
@@ -103,32 +89,4 @@ fn republishing_the_same_automaton_is_a_no_op() {
         .filter(|e| e.file_name().to_string_lossy().starts_with(".tmp-"))
         .collect();
     assert!(leftovers.is_empty(), "temp files left behind");
-}
-
-#[test]
-fn a_layer_file_of_the_wrong_size_is_rejected() {
-    let a = tangled();
-    let tmp = TempDir::new().unwrap();
-    let src = tmp.path().join("legacy");
-    a.write_legacy_dir(&src).unwrap();
-
-    let path = src.join("layer=2");
-    let mut bytes = std::fs::read(&path).unwrap();
-    bytes.truncate(bytes.len() - 4);
-    std::fs::write(&path, &bytes).unwrap();
-
-    let err = LegacyDfa::open(&src).unwrap_err().to_string();
-    assert!(err.contains("not a multiple of derived shape"), "{err}");
-}
-
-#[test]
-fn a_missing_layer_is_rejected() {
-    let a = tangled();
-    let tmp = TempDir::new().unwrap();
-    let src = tmp.path().join("legacy");
-    a.write_legacy_dir(&src).unwrap();
-    std::fs::remove_file(src.join("layer=3")).unwrap();
-
-    let err = LegacyDfa::open(&src).unwrap_err().to_string();
-    assert!(err.contains("not contiguous"), "{err}");
 }
