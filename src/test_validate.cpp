@@ -2,6 +2,7 @@
 
 #include <format>
 #include <iostream>
+#include <set>
 
 #include <nlohmann/json.hpp>
 
@@ -60,6 +61,20 @@ void test_validate_case(const Game& game, const DFAString& position, const nlohm
               throw std::logic_error(std::format("validate_result() returned none, but expected {:d}", expected_result.get<int>()));
             }
         }
+    }
+
+  if(test_case.contains("expected_moves"))
+    {
+      std::vector<std::vector<int>> expected_moves = test_case.at("expected_moves").get<std::vector<std::vector<int>>>();
+      std::set<DFAString> expected_moves_set;
+      for(const std::vector<int>& expected_move_vector : expected_moves)
+        {
+          expected_moves_set.emplace(game.get_shape(), expected_move_vector);
+        }
+
+      std::set<DFAString> validated_moves_set(validate_moves.begin(), validate_moves.end());
+
+      test_moves(game, validated_moves_set, expected_moves_set);
     }
 }
 

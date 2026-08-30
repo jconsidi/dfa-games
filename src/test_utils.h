@@ -28,5 +28,6 @@ void run_test_positions(std::string game_name, std::function<void(const Game&, c
 void test_backward(const Game& game_in, int ply_max, bool initial_win_expected);
 void test_forward(const Game& game_in, const std::vector<size_t>& positions_expected);
 void test_game(const Game& game_in, const std::vector<size_t>& positions_expected, int ply_max, bool initial_win_expected);
+void test_moves(const Game& game_in, const std::set<DFAString>& actual_moves, const std::set<DFAString>& expected_moves);
 
 #endif

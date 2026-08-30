@@ -358,3 +358,30 @@ void test_game(const Game& game_in, const std::vector<size_t>& positions_expecte
   test_forward(game_in, positions_expected);
   test_backward(game_in, ply_max, initial_win_expected);
 }
+
+void test_moves(const Game& game, const std::set<DFAString>& actual_moves, const std::set<DFAString>& expected_moves)
+{
+  std::cout << "actual moves: " << actual_moves.size() << ", expected moves: " << expected_moves.size() << std::endl;
+
+  std::set<DFAString> extra_moves;
+  std::set_difference(actual_moves.begin(), actual_moves.end(),
+                      expected_moves.begin(), expected_moves.end(),
+                      std::inserter(extra_moves, extra_moves.end()));
+  for(const DFAString& extra_move : extra_moves)
+    {
+      std::cerr << "EXTRA MOVE FOUND:" << std::endl;
+      std::cerr << game.position_to_string(extra_move) << std::endl;
+      throw std::logic_error(std::format("found {:d} extra moves", extra_moves.size()));
+    }
+
+  std::set<DFAString> missing_moves;
+  std::set_difference(expected_moves.begin(), expected_moves.end(),
+                      actual_moves.begin(), actual_moves.end(),
+                      std::inserter(missing_moves, missing_moves.end()));
+  for(const DFAString& missing_move : missing_moves)
+    {
+      std::cerr << "MISSING MOVE FOUND:" << std::endl;
+      std::cerr << game.position_to_string(missing_move) << std::endl;
+      throw std::logic_error(std::format("found {:d} missing moves", missing_moves.size()));
+    }
+}

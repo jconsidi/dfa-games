@@ -22,29 +22,7 @@ void test_position(const Game& game, const DFAString& position, const nlohmann::
   std::set<DFAString> actual_moves_set(actual_moves.begin(), actual_moves.end());
   std::set<DFAString> validate_moves_set(validate_moves.begin(), validate_moves.end());
 
-  std::cout << "move graph moves: " << actual_moves_set.size() << ", validation moves: " << validate_moves_set.size() << std::endl;
-
-  std::set<DFAString> extra_moves;
-  std::set_difference(actual_moves_set.begin(), actual_moves_set.end(),
-                      validate_moves_set.begin(), validate_moves_set.end(),
-                      std::inserter(extra_moves, extra_moves.end()));
-  for(const DFAString& extra_move : extra_moves)
-    {
-      std::cerr << "EXTRA MOVE FOUND:" << std::endl;
-      std::cerr << game.position_to_string(extra_move) << std::endl;
-      throw std::logic_error(std::format("found {:d} extra moves", extra_moves.size()));
-    }
-
-  std::set<DFAString> missing_moves;
-  std::set_difference(validate_moves_set.begin(), validate_moves_set.end(),
-                      actual_moves_set.begin(), actual_moves_set.end(),
-                      std::inserter(missing_moves, missing_moves.end()));
-  for(const DFAString& missing_move : missing_moves)
-    {
-      std::cerr << "MISSING MOVE FOUND:" << std::endl;
-      std::cerr << game.position_to_string(missing_move) << std::endl;
-      throw std::logic_error(std::format("found {:d} missing moves", missing_moves.size()));
-    }
+  test_moves(game, actual_moves_set, validate_moves_set);
 }
 
 int main(int argc, char **argv)
