@@ -154,8 +154,14 @@ void MoveGraph::add_node(std::string node_name_in, int layer_in, int before_char
 
 std::vector<DFAString> MoveGraph::get_moves(const DFAString& position_in) const
 {
+  std::vector<DFAString> positions_in = {position_in};
+  return get_moves(positions_in);
+}
+
+std::vector<DFAString> MoveGraph::get_moves(const std::vector<DFAString>& positions_in) const
+{
   std::vector<std::vector<DFAString>> node_input_positions(node_names.size());
-  node_input_positions[0].push_back(position_in);
+  node_input_positions[0] = positions_in;
 
   std::vector<std::vector<DFAString>> node_output_positions(node_names.size());
 
