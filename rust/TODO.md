@@ -36,20 +36,14 @@ Ordered by how wrong the resulting behaviour is.
     `check_reachability` bounds-check what it decodes, or run the entry bounds
     check whenever reachability runs regardless of the flag.
 
-- `dfa-format/src/write.rs:236-237` — the directory sync that makes a
+- `dfa-format/src/write.rs:237-238` — the directory sync that makes a
   published file survive a crash is entirely best effort:
   `if let Ok(dir) = File::open(out_dir) { let _ = dir.sync_all(); }`. Both the
-  open and the sync can fail without a word, and `convert` still reports
-  success, so the content addressed store can lose an entry it claims to hold.
+  open and the sync can fail without a word, and `write_automaton` still
+  reports success, so the content addressed store can lose an entry it claims
+  to hold.
   A durability guarantee that reports success when it did not happen is not a
   guarantee.
-
-- `dfa-format/src/legacy.rs:43` —
-  `fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf())` degrades to the
-  unresolved path when canonicalization fails, e.g. on a permissions error or
-  a dangling symlink. `resolved_dir` feeds name checking, so the case this hides
-  is exactly the one worth reporting: a scratch symlink pointing at nothing gets
-  a vaguer diagnosis than it deserves.
 
 - `dfa-format/src/sample.rs:121` — `let (c, next) = chosen?` returns `None`
   when a state has a positive suffix count but no successor with any weight.
@@ -68,12 +62,11 @@ Ordered by how wrong the resulting behaviour is.
 ### looked at and left alone
 
 Not error suppression, recorded so the audit does not get repeated:
-`lib.rs:57` (`write!` into a `String` cannot fail), `write.rs:155`
+`lib.rs:34` (`write!` into a `String` cannot fail), `write.rs:156`
 (best effort temp file cleanup on a path that is already returning an error),
 `registry.rs:25` (a parse failure becomes a message naming the expected form),
 the `wrapping_*` arithmetic in `sample.rs` (deliberate, it is a PRNG), and the
-`unwrap_or_else` display fallbacks in `read.rs:116`, `dfa-stats` and
-`dfa-convert`.
+`unwrap_or_else` display fallbacks in `read.rs:116` and `dfa-stats`.
 
 ## uniform ordinary rows are always wrong
 
@@ -117,7 +110,7 @@ at all. Add that check.
 The gap is visible in the spec. `FORMAT-DFA.md` section 8 says bit 0 asserts
 the automaton is "minimal and free of unreachable and dead states", and
 `write.rs:35-47` repeats the claim, but of the two only unreachable is
-verified. `dfa-convert` catches a row that is entirely `0` as "duplicating
+verified. `CanonicalTracker` catches a row that is entirely `0` as "duplicating
 state 0", which is the immediately dead case; a state whose successors are all
 dead two layers down is not caught by anything.
 

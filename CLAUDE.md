@@ -117,7 +117,7 @@ badly after formatting, change the code, not the whitespace.
   (`FORMAT-DFA.md`). `layout.rs` owns every byte offset, so the reader and
   writer cannot drift. `Dfa::positions()` in `iter.rs` is the port of
   `DFAIterator` and enumerates accepted strings in lexicographic order.
-  Binaries: `dfa-validate`, `dfa-stats`, `dfa-convert`.
+  Binaries: `dfa-validate`, `dfa-stats`, `dfa-verify-union`.
 - `dfa-games` — position level rules (`validate_moves`, `validate_result`,
   `position_to_string`) and the verifiers over them. Binaries:
   `verify-lost-sound`, `verify-won-sound`, `verify-losing-sound`,
