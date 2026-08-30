@@ -229,6 +229,20 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
   assert(node_names.size() >= 2);
   assert(positions_in);
 
+  if((positions_in->size() <= 1048576) &&
+     (positions_in->size() / double(positions_in->states() / shape.size()) <= 100))
+    {
+      std::vector<DFAString> positions_staging;
+      for(auto iter = positions_in->cbegin();
+          iter < positions_in->cend();
+          ++iter)
+        {
+          positions_staging.push_back(*iter);
+        }
+      std::vector<DFAString> output_staging = get_moves(positions_staging);
+      return DFAUtil::from_strings(shape, output_staging);
+    }
+
   std::vector<std::string> output_names;
   for(int node_index = 0; node_index < node_names.size(); ++node_index)
     {
