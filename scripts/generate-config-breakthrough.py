@@ -24,9 +24,14 @@ def generate_size(width, height):
         positions_expected = []
 
         if height >= 5:
+            # no captures
             positions_expected.append(width * 3 - 2)
+        elif height == 4:
+            # all captures
+            positions_expected.append(width * 2 - 2)
 
         if height >= 6:
+            # no captures yet
             positions_expected.append(positions_expected[-1] ** 2)
 
         game_config.add_position(
@@ -48,7 +53,10 @@ def main():
     generate_size(5, 4)
     generate_size(5, 5)
     generate_size(5, 6)
+    generate_size(6, 5)
     generate_size(6, 6)
+    generate_size(7, 7)
+    generate_size(8, 8)
 
     return 0
 

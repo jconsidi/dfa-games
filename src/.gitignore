@@ -22,7 +22,6 @@ stats_forward
 stats_forward_backward
 test_backward
 test_bitset
-test_breakthrough_game
 test_change_dfa
 test_chess_game
 test_chess_limited

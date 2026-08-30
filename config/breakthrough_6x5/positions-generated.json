@@ -1,5 +1,5 @@
 {
-  "game": "breakthrough_5x4",
+  "game": "breakthrough_6x5",
   "positions": [
     {
       "comment": "initial position",
@@ -14,6 +14,16 @@
         1,
         1,
         1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
         2,
         2,
         2,
@@ -27,7 +37,7 @@
       ],
       "side_to_move": 0,
       "expected_perft_u": [
-        8
+        16
       ]
     },
     {
@@ -43,6 +53,16 @@
         1,
         1,
         1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        2,
         2,
         2,
         2,
@@ -56,7 +76,7 @@
       ],
       "side_to_move": 1,
       "expected_perft_u": [
-        8
+        16
       ]
     }
   ]
