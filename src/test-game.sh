@@ -17,6 +17,11 @@ fi
 
 make -j
 
+BASE=`echo "$GAME" | sed "s/_.*//"`
+if [ -x "../scripts/generate-config-${BASE}.py" ] ; then
+    "../scripts/generate-config-${BASE}.py"
+fi
+
 find scratch/move_nodes -type l -exec rm {} \;
 
 if [ -d "scratch/${GAME}" ] ; then
