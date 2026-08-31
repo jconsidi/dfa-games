@@ -9,7 +9,7 @@
 
 NormalNimGame::NormalNimGame(int num_heaps, int heap_max)
   : NormalPlayGame(std::format("normalnim_{:d}x{:d}", num_heaps, heap_max),
-		   dfa_shape_t(num_heaps, heap_max + 1))
+                   dfa_shape_t(num_heaps, heap_max + 1))
 {
 }
 

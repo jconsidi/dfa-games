@@ -10,7 +10,7 @@
 
 class TicTacToeGame
   : public RowMajorOrderBase,
-    public ConfigGame
+    public ConfigExplicitOutcomeGame
     
 {
 private:
