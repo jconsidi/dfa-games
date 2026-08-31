@@ -15,10 +15,9 @@ static dfa_shape_t get_breakthrough_shape(int width, int height)
 }
 
 BreakthroughBase::BreakthroughBase(std::string name_in, int width_in, int height_in)
-  : NormalPlayGame(name_in,
-		   get_breakthrough_shape(width_in, height_in)),
-    width(width_in),
-    height(height_in)
+  : RectangularBase(width_in, height_in),
+    NormalPlayGame(name_in,
+		   get_breakthrough_shape(width_in, height_in))
 {
   assert(width >= 1);
   assert(height >= 4);
@@ -362,25 +361,19 @@ std::vector<DFAString> BreakthroughBase::validate_moves(int side_to_move, const 
 }
 
 BreakthroughColumnWiseGame::BreakthroughColumnWiseGame(int width_in, int height_in)
-  : BreakthroughBase(std::format("breakthroughcw_{:d}x{:d}", width_in, height_in),
+  : RectangularBase(width_in, height_in),
+    ColumnMajorOrderBase(width_in, height_in),
+    BreakthroughBase(std::format("breakthroughcw_{:d}x{:d}", width_in, height_in),
 		     width_in,
 		     height_in)
 {
-}
-
-int BreakthroughColumnWiseGame::calculate_layer(int row, int column) const
-{
-  return column * height + row;
 }
 
 BreakthroughRowWiseGame::BreakthroughRowWiseGame(int width_in, int height_in)
-  : BreakthroughBase(std::format("breakthrough_{:d}x{:d}", width_in, height_in),
+  : RectangularBase(width_in, height_in),
+    RowMajorOrderBase(width_in, height_in),
+    BreakthroughBase(std::format("breakthrough_{:d}x{:d}", width_in, height_in),
 		     width_in,
 		     height_in)
 {
-}
-
-int BreakthroughRowWiseGame::calculate_layer(int row, int column) const
-{
-  return row * width + column;
 }

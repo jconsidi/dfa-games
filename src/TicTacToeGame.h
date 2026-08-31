@@ -6,15 +6,16 @@
 #include <string>
 
 #include "ConfigGame.h"
+#include "RowMajorOrderBase.h"
 
 class TicTacToeGame
-  : public ConfigGame
+  : public RowMajorOrderBase,
+    public ConfigGame
+    
 {
 private:
   int n;
 
-  int calculate_layer(int r, int c) const {return r * n + c;}
-  
  public:
 
   TicTacToeGame(int);

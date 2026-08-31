@@ -16,10 +16,10 @@ static dfa_shape_t build_shape(int width, int height)
 }
 
 ClobberGame::ClobberGame(int width_in, int height_in)
-  : NormalPlayGame("clobber_" + std::to_string(width_in) + "x" + std::to_string(height_in),
-		   build_shape(width_in, height_in)),
-    width(width_in),
-    height(height_in)
+  : RectangularBase(width_in, height_in),
+    RowMajorOrderBase(width_in, height_in),
+    NormalPlayGame("clobber_" + std::to_string(width_in) + "x" + std::to_string(height_in),
+		   build_shape(width_in, height_in))
 {
 }
 

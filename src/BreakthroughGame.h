@@ -3,20 +3,20 @@
 #ifndef BREAKTHROUGH_GAME_H
 #define BREAKTHROUGH_GAME_H
 
+#include "ColumnMajorOrderBase.h"
 #include "NormalPlayGame.h"
+#include "RowMajorOrderBase.h"
 
 class BreakthroughBase
-  : public NormalPlayGame
+  : virtual public RectangularBase,
+    public NormalPlayGame
+    
 {
 protected:
-
-  int width;
-  int height;
 
   BreakthroughBase(std::string, int, int);
 
   virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
-  virtual int calculate_layer(int row, int column) const = 0;
 
 public:
 
@@ -30,24 +30,18 @@ public:
 };
 
 class BreakthroughColumnWiseGame
-  : public BreakthroughBase
+  : public ColumnMajorOrderBase,
+    public BreakthroughBase
 {
-protected:
-
-  virtual int calculate_layer(int row, int column) const;
-
 public:
 
-    BreakthroughColumnWiseGame(int, int);
+  BreakthroughColumnWiseGame(int, int);
 };
 
 class BreakthroughRowWiseGame
-  : public BreakthroughBase
+  : public RowMajorOrderBase,
+    public BreakthroughBase
 {
-protected:
-
-  virtual int calculate_layer(int row, int column) const;
-
 public:
 
   BreakthroughRowWiseGame(int, int);

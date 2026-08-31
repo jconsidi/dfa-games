@@ -9,7 +9,9 @@
 #include "DFAUtil.h"
 
 TicTacToeGame::TicTacToeGame(int n_in)
-  : ConfigGame("tictactoe_" + std::to_string(n_in)),
+  : RectangularBase(n_in, n_in),
+    RowMajorOrderBase(n_in, n_in),
+    ConfigGame("tictactoe_" + std::to_string(n_in)),
     n(n_in)
 {
 }

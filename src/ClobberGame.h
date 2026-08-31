@@ -6,21 +6,18 @@
 #include <string>
 
 #include "NormalPlayGame.h"
+#include "RowMajorOrderBase.h"
 
 class ClobberGame
-  : public NormalPlayGame
+  : public RowMajorOrderBase,
+    public NormalPlayGame
 {
 private:
-
-  int width;
-  int height;
 
   virtual MoveGraph build_move_graph(int) const;
 #if 0
   virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 #endif
-
-  int calculate_layer(int r, int c) const {return r * width + c;};
 
 public:
 
