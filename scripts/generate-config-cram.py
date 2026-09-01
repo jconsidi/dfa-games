@@ -90,6 +90,7 @@ def main():
     generate_size(5, 6)
     generate_size(6, 5)
     generate_size(6, 6)
+    generate_size(9, 9)
 
     return 0
 
