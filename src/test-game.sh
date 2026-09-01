@@ -28,6 +28,9 @@ if [ -d "scratch/${GAME}" ] ; then
     find "scratch/${GAME}" -type l -exec rm {} \;
 fi
 
+./test_validate "$GAME"
+./test_move_graph "$GAME"
+
 if [ -f "config/${GAME}/tests.json" ] ; then
     ./test_perft_u "$GAME"
 fi
