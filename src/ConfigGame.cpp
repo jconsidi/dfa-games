@@ -21,9 +21,17 @@ ConfigBase::ConfigBase(std::string name_in)
       throw std::runtime_error("game config is for " + std::string(game_config.at("game")) + " instead of " + game_name);
     }
 
-  std::string components_directory = "scratch/" + name_in + "/components";
-  int mkdir_ret = mkdir(components_directory.c_str(), 0700);
-  if(mkdir_ret && (errno != EEXIST))
+  std::string scratch_directory = "scratch/" + name_in;
+  int scratch_ret = mkdir(scratch_directory.c_str(), 0700);
+  if(scratch_ret && (errno != EEXIST))
+    {
+      perror("scratch mkdir");
+      throw std::runtime_error("scratch mkdir failed");
+    }
+
+  std::string components_directory = scratch_directory + "/components";
+  int components_ret = mkdir(components_directory.c_str(), 0700);
+  if(components_ret && (errno != EEXIST))
     {
       perror("components mkdir");
       throw std::runtime_error("components mkdir failed");
