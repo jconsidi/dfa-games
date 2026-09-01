@@ -16,6 +16,7 @@
 #include "BreakthroughGame.h"
 #include "ChessGame.h"
 #include "ClobberGame.h"
+#include "CramGame.h"
 #include "DFAUtil.h"
 #include "NormalNimGame.h"
 #include "OthelloGame.h"
@@ -131,6 +132,16 @@ Game *get_game(std::string game_name)
 	  throw std::logic_error("get_name() failed parsing clobber game name");
 	}
       output = new ClobberGame(width, height);
+    }
+  else if(game_name.starts_with("cram_"))
+    {
+      int width = 0;
+      int height = 0;
+      if(std::sscanf(game_name.c_str(), "cram_%dx%d", &width, &height) != 2)
+	{
+	  throw std::logic_error("get_name() failed parsing cram game name");
+	}
+      output = new CramGame(width, height);
     }
   else if(game_name.starts_with("normalnim_"))
     {

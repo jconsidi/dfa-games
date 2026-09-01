@@ -110,7 +110,7 @@ validate_% : validate_%.o test_utils.o validate_utils.o dfagames.a
 verify_% : verify_%.o verify_utils.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o BinaryRestartDFA.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o ClobberGame.o ColumnMajorOrderBase.o CompactBitSet.o ConfigGame.o CountCharacterDFA.o CountDFA.o CountManager.o DFA.o DFAFormat.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o DifferenceRestartDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RectangularBase.o RejectDFA.o RowMajorOrderBase.o StringDFA.o TicTacToeGame.o UnionDFA.o UnionRestartDFA.o UnorderedBitSet.o VectorBitSet.o utils.o
+dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o BinaryRestartDFA.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o ClobberGame.o ColumnMajorOrderBase.o CompactBitSet.o ConfigGame.o CountCharacterDFA.o CountDFA.o CountManager.o CramGame.o DFA.o DFAFormat.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o DifferenceRestartDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o RectangularBase.o RejectDFA.o RowMajorOrderBase.o StringDFA.o TicTacToeGame.o UnionDFA.o UnionRestartDFA.o UnorderedBitSet.o VectorBitSet.o utils.o
 	$(AR) rcs $@ $^
 
 ############################################################

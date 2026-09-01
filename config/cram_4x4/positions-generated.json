@@ -1,0 +1,57 @@
+{
+  "game": "cram_4x4",
+  "positions": [
+    {
+      "comment": "initial position",
+      "position": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 0,
+      "expected_result": null,
+      "expected_perft_u": [
+        24
+      ]
+    },
+    {
+      "comment": "initial position",
+      "position": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 1,
+      "expected_result": null,
+      "expected_perft_u": [
+        24
+      ]
+    }
+  ]
+}

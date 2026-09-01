@@ -1,0 +1,33 @@
+{
+  "game": "cram_2x2",
+  "positions": [
+    {
+      "comment": "starting position, first player: each piece can take either neighbour",
+      "position": [0, 0, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [
+        [1, 1, 0, 0],
+        [0, 0, 1, 1],
+        [0, 1, 0, 1],
+        [1, 0, 1, 0]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "blocked position",
+      "position": [0, 1, 1, 0],
+      "side_to_move": 0,
+      "expected_moves": [
+      ],
+      "expected_result": -1
+    },
+    {
+      "comment": "blocked position", 
+      "position": [0, 1, 1, 0],
+      "side_to_move": 1,
+      "expected_moves": [
+      ],
+      "expected_result": -1
+    }
+  ]
+}

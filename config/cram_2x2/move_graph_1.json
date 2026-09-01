@@ -1,0 +1,123 @@
+{
+  "game": "cram_2x2",
+  "nodes": [
+    {
+      "node": "begin",
+      "changes": []
+    },
+    {
+      "node": "move_0,0_0,1",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 1,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,0_1,1",
+      "changes": [
+        {
+          "layer": 2,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 3,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,0_1,0",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 2,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,1_1,1",
+      "changes": [
+        {
+          "layer": 1,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 3,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "end",
+      "changes": []
+    }
+  ],
+  "edges": [
+    {
+      "edge": "begin to move_0,0_0,1",
+      "from": "begin",
+      "to": "move_0,0_0,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,0_0,1 to end",
+      "from": "move_0,0_0,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,0_1,1",
+      "from": "begin",
+      "to": "move_1,0_1,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,0_1,1 to end",
+      "from": "move_1,0_1,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,0_1,0",
+      "from": "begin",
+      "to": "move_0,0_1,0",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,0_1,0 to end",
+      "from": "move_0,0_1,0",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,1_1,1",
+      "from": "begin",
+      "to": "move_0,1_1,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,1_1,1 to end",
+      "from": "move_0,1_1,1",
+      "to": "end",
+      "conditions": []
+    }
+  ]
+}

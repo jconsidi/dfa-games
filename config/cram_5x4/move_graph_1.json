@@ -1,0 +1,852 @@
+{
+  "game": "cram_5x4",
+  "nodes": [
+    {
+      "node": "begin",
+      "changes": []
+    },
+    {
+      "node": "move_0,0_0,1",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 1,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,1_0,2",
+      "changes": [
+        {
+          "layer": 1,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 2,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,2_0,3",
+      "changes": [
+        {
+          "layer": 2,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 3,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,3_0,4",
+      "changes": [
+        {
+          "layer": 3,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 4,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,0_1,1",
+      "changes": [
+        {
+          "layer": 5,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 6,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,1_1,2",
+      "changes": [
+        {
+          "layer": 6,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 7,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,2_1,3",
+      "changes": [
+        {
+          "layer": 7,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 8,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,3_1,4",
+      "changes": [
+        {
+          "layer": 8,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 9,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,0_2,1",
+      "changes": [
+        {
+          "layer": 10,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 11,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,1_2,2",
+      "changes": [
+        {
+          "layer": 11,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 12,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,2_2,3",
+      "changes": [
+        {
+          "layer": 12,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 13,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,3_2,4",
+      "changes": [
+        {
+          "layer": 13,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 14,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_3,0_3,1",
+      "changes": [
+        {
+          "layer": 15,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 16,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_3,1_3,2",
+      "changes": [
+        {
+          "layer": 16,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 17,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_3,2_3,3",
+      "changes": [
+        {
+          "layer": 17,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 18,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_3,3_3,4",
+      "changes": [
+        {
+          "layer": 18,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 19,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,0_1,0",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 5,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,1_1,1",
+      "changes": [
+        {
+          "layer": 1,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 6,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,2_1,2",
+      "changes": [
+        {
+          "layer": 2,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 7,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,3_1,3",
+      "changes": [
+        {
+          "layer": 3,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 8,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_0,4_1,4",
+      "changes": [
+        {
+          "layer": 4,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 9,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,0_2,0",
+      "changes": [
+        {
+          "layer": 5,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 10,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,1_2,1",
+      "changes": [
+        {
+          "layer": 6,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 11,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,2_2,2",
+      "changes": [
+        {
+          "layer": 7,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 12,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,3_2,3",
+      "changes": [
+        {
+          "layer": 8,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 13,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_1,4_2,4",
+      "changes": [
+        {
+          "layer": 9,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 14,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,0_3,0",
+      "changes": [
+        {
+          "layer": 10,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 15,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,1_3,1",
+      "changes": [
+        {
+          "layer": 11,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 16,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,2_3,2",
+      "changes": [
+        {
+          "layer": 12,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 17,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,3_3,3",
+      "changes": [
+        {
+          "layer": 13,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 18,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "move_2,4_3,4",
+      "changes": [
+        {
+          "layer": 14,
+          "before": 0,
+          "after": 1
+        },
+        {
+          "layer": 19,
+          "before": 0,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "end",
+      "changes": []
+    }
+  ],
+  "edges": [
+    {
+      "edge": "begin to move_0,0_0,1",
+      "from": "begin",
+      "to": "move_0,0_0,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,0_0,1 to end",
+      "from": "move_0,0_0,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,1_0,2",
+      "from": "begin",
+      "to": "move_0,1_0,2",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,1_0,2 to end",
+      "from": "move_0,1_0,2",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,2_0,3",
+      "from": "begin",
+      "to": "move_0,2_0,3",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,2_0,3 to end",
+      "from": "move_0,2_0,3",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,3_0,4",
+      "from": "begin",
+      "to": "move_0,3_0,4",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,3_0,4 to end",
+      "from": "move_0,3_0,4",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,0_1,1",
+      "from": "begin",
+      "to": "move_1,0_1,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,0_1,1 to end",
+      "from": "move_1,0_1,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,1_1,2",
+      "from": "begin",
+      "to": "move_1,1_1,2",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,1_1,2 to end",
+      "from": "move_1,1_1,2",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,2_1,3",
+      "from": "begin",
+      "to": "move_1,2_1,3",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,2_1,3 to end",
+      "from": "move_1,2_1,3",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,3_1,4",
+      "from": "begin",
+      "to": "move_1,3_1,4",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,3_1,4 to end",
+      "from": "move_1,3_1,4",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,0_2,1",
+      "from": "begin",
+      "to": "move_2,0_2,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,0_2,1 to end",
+      "from": "move_2,0_2,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,1_2,2",
+      "from": "begin",
+      "to": "move_2,1_2,2",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,1_2,2 to end",
+      "from": "move_2,1_2,2",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,2_2,3",
+      "from": "begin",
+      "to": "move_2,2_2,3",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,2_2,3 to end",
+      "from": "move_2,2_2,3",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,3_2,4",
+      "from": "begin",
+      "to": "move_2,3_2,4",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,3_2,4 to end",
+      "from": "move_2,3_2,4",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_3,0_3,1",
+      "from": "begin",
+      "to": "move_3,0_3,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_3,0_3,1 to end",
+      "from": "move_3,0_3,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_3,1_3,2",
+      "from": "begin",
+      "to": "move_3,1_3,2",
+      "conditions": []
+    },
+    {
+      "edge": "move_3,1_3,2 to end",
+      "from": "move_3,1_3,2",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_3,2_3,3",
+      "from": "begin",
+      "to": "move_3,2_3,3",
+      "conditions": []
+    },
+    {
+      "edge": "move_3,2_3,3 to end",
+      "from": "move_3,2_3,3",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_3,3_3,4",
+      "from": "begin",
+      "to": "move_3,3_3,4",
+      "conditions": []
+    },
+    {
+      "edge": "move_3,3_3,4 to end",
+      "from": "move_3,3_3,4",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,0_1,0",
+      "from": "begin",
+      "to": "move_0,0_1,0",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,0_1,0 to end",
+      "from": "move_0,0_1,0",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,1_1,1",
+      "from": "begin",
+      "to": "move_0,1_1,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,1_1,1 to end",
+      "from": "move_0,1_1,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,2_1,2",
+      "from": "begin",
+      "to": "move_0,2_1,2",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,2_1,2 to end",
+      "from": "move_0,2_1,2",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,3_1,3",
+      "from": "begin",
+      "to": "move_0,3_1,3",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,3_1,3 to end",
+      "from": "move_0,3_1,3",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_0,4_1,4",
+      "from": "begin",
+      "to": "move_0,4_1,4",
+      "conditions": []
+    },
+    {
+      "edge": "move_0,4_1,4 to end",
+      "from": "move_0,4_1,4",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,0_2,0",
+      "from": "begin",
+      "to": "move_1,0_2,0",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,0_2,0 to end",
+      "from": "move_1,0_2,0",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,1_2,1",
+      "from": "begin",
+      "to": "move_1,1_2,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,1_2,1 to end",
+      "from": "move_1,1_2,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,2_2,2",
+      "from": "begin",
+      "to": "move_1,2_2,2",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,2_2,2 to end",
+      "from": "move_1,2_2,2",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,3_2,3",
+      "from": "begin",
+      "to": "move_1,3_2,3",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,3_2,3 to end",
+      "from": "move_1,3_2,3",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_1,4_2,4",
+      "from": "begin",
+      "to": "move_1,4_2,4",
+      "conditions": []
+    },
+    {
+      "edge": "move_1,4_2,4 to end",
+      "from": "move_1,4_2,4",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,0_3,0",
+      "from": "begin",
+      "to": "move_2,0_3,0",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,0_3,0 to end",
+      "from": "move_2,0_3,0",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,1_3,1",
+      "from": "begin",
+      "to": "move_2,1_3,1",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,1_3,1 to end",
+      "from": "move_2,1_3,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,2_3,2",
+      "from": "begin",
+      "to": "move_2,2_3,2",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,2_3,2 to end",
+      "from": "move_2,2_3,2",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,3_3,3",
+      "from": "begin",
+      "to": "move_2,3_3,3",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,3_3,3 to end",
+      "from": "move_2,3_3,3",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to move_2,4_3,4",
+      "from": "begin",
+      "to": "move_2,4_3,4",
+      "conditions": []
+    },
+    {
+      "edge": "move_2,4_3,4 to end",
+      "from": "move_2,4_3,4",
+      "to": "end",
+      "conditions": []
+    }
+  ]
+}

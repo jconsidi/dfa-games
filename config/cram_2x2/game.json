@@ -1,0 +1,15 @@
+{
+  "game": "cram_2x2",
+  "shape": [
+    2,
+    2,
+    2,
+    2
+  ],
+  "initial_position": [
+    0,
+    0,
+    0,
+    0
+  ]
+}
