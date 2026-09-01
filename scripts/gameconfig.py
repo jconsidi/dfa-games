@@ -98,8 +98,7 @@ class GameConfig(object):
 
         save_config("game.json", self.game_data, sort_keys=False)
 
-        if self.components_data["components"]:
-            save_config("components.json", self.components_data)
+        save_config("components.json", self.components_data)
 
         for side_to_move in range(2):
             if self.move_graph_data[side_to_move]["nodes"]:
