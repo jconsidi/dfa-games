@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "build_utils.h"
 #include "test_utils.h"
 
 int main(int argc, char **argv)
@@ -23,15 +24,7 @@ int main(int argc, char **argv)
 
   std::cout << game->position_to_string(game->get_position_initial()) << std::endl;
 
-  for(int ply = 0; ply <= ply_max; ++ply)
-    {
-      shared_dfa_ptr positions = game->get_positions_forward(ply);
-      std::cout << positions->size() << " positions after " << ply << " ply." << std::endl;
-      if(positions->size() == 0)
-	{
-	  break;
-	}
-    }
+  build_forward(*game, ply_max);
 
   return 0;
 }
