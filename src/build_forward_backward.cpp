@@ -1,7 +1,7 @@
-// solve_forward_backward.cpp
+// build_forward_backward.cpp
 
 #include <cstdlib>
-#include <iomanip>
+#include <format>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -13,21 +13,15 @@
 
 std::string get_name(int forward_ply_max, int backward_ply_max, int ply, std::string result)
 {
-  std::ostringstream output;
-  output << "forward_backward";
-  output << ",forward_ply_max=" << std::setfill('0') << std::setw(3) << forward_ply_max;
-  output << ",backward_ply_max=" << std::setfill('0') << std::setw(3) << backward_ply_max;
-  output << ",ply=" << std::setfill('0') << std::setw(3) << ply;
-  output << "," << result;
-
-  return output.str();
+  return std::format("forward_backward,forward_ply_max={:03d},backward_ply_max={:03d},ply={:03d},{:s}",
+                     forward_ply_max, backward_ply_max, ply, result);
 }
 
 int main(int argc, char **argv)
 {
   if(argc < 2)
     {
-      std::cerr << "usage: solve_forward_backward test_forward GAME_NAME [FORWARD_PLY] [BACKWARD_PLY]\n";
+      std::cerr << "usage: build_forward_backward GAME_NAME [FORWARD_PLY] [BACKWARD_PLY]\n";
       return 1;
     }
 
