@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "DFAUtil.h"
+#include "build_utils.h"
 #include "test_utils.h"
 
 std::string get_name(int forward_ply_max, int backward_ply_max, int ply, std::string result)
@@ -51,7 +52,6 @@ int main(int argc, char **argv)
   winning_by_ply[forward_ply_max + 1] = reject;
   unknown_by_ply[forward_ply_max + 1] = DFAUtil::get_accept(game->get_shape());
 
-  bool complete_expected = false;
   for(int ply = forward_ply_max; ply >= 0; --ply)
     {
       std::cout << "PLY " << ply << std::endl;
@@ -62,8 +62,6 @@ int main(int argc, char **argv)
       assert(positions);
       if(positions->is_constant(false))
 	{
-	  complete_expected = true;
-
 	  assert(ply == forward_ply_max);
 
 	  // no positions, so trivial solution
@@ -82,69 +80,47 @@ int main(int argc, char **argv)
       double positions_size = positions->size();
       std::cout << "PLY " << ply << " POSITIONS " << positions_size << std::endl;
 
-      winning_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "winning"), [&]()
-      {
-	shared_dfa_ptr backward_winning =
-	  (ply == forward_ply_max)
-	  ? game->get_positions_winning(side_to_move, backward_ply_max)
-	  : game->get_positions_won(side_to_move);
+      // after first intersecting with the backward_ply_max solution,
+      // then we can just use the terminal case for speed. any use of
+      // backward_ply_max at the current ply is only
+      // backward_ply_max-1 at the next ply, so we would get it
+      // through the next DFAs.
 
-	shared_dfa_ptr will_win = game->get_moves_backward(side_to_move, losing_by_ply[ply + 1]);
+      shared_dfa_ptr winning_base =
+        (ply == forward_ply_max)
+        ? game->get_positions_winning(side_to_move, backward_ply_max)
+        : game->get_positions_won(side_to_move);
 
-	return DFAUtil::get_intersection(DFAUtil::get_union(backward_winning, will_win),
-					 positions);
-      });
+      shared_dfa_ptr losing_base =
+        (ply == forward_ply_max)
+        ? game->get_positions_losing(side_to_move, backward_ply_max)
+        : game->get_positions_lost(side_to_move);
+
+      build_triple built =
+        build_backward(*game,
+                       side_to_move,
+                       positions,
+                       get_name(forward_ply_max, backward_ply_max, ply, "winning"),
+                       get_name(forward_ply_max, backward_ply_max, ply, "losing"),
+                       get_name(forward_ply_max, backward_ply_max, ply, "unknown"),
+                       winning_by_ply[ply + 1],
+                       losing_by_ply[ply + 1],
+                       unknown_by_ply[ply + 1],
+                       winning_base,
+                       losing_base);
+
+      winning_by_ply[ply] = std::get<0>(built);
+      losing_by_ply[ply] = std::get<1>(built);
+      unknown_by_ply[ply] = std::get<2>(built);
+
       double winning_size = winning_by_ply[ply]->size();
       std::cout << "PLY " << ply << " WINNING " << winning_size << std::endl;
 
-#ifndef PARANOIA
-      bool next_ply_complete = unknown_by_ply[ply + 1]->is_constant(0);
-#endif
-
-      losing_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "losing"), [&]()
-      {
-#ifndef PARANOIA
-	if(next_ply_complete)
-	  {
-	    // if next ply was completely solved, then we can just do
-	    // set subtraction.
-	    return DFAUtil::get_difference(positions, winning_by_ply[ply]);
-	  }
-#endif
-
-	shared_dfa_ptr backward_losing =
-	  (ply == forward_ply_max)
-	  ? game->get_positions_losing(side_to_move, backward_ply_max)
-	  : game->get_positions_lost(side_to_move);
-
-	shared_dfa_ptr could_lose = game->get_moves_backward(side_to_move, winning_by_ply[ply + 1]);
-	shared_dfa_ptr wont_lose = game->get_moves_backward(side_to_move, DFAUtil::get_inverse(winning_by_ply[ply + 1]));
-	shared_dfa_ptr will_lose = DFAUtil::get_difference(could_lose, wont_lose);
-
-	return DFAUtil::get_intersection(DFAUtil::get_union(backward_losing, will_lose),
-					 positions);
-      });
       double losing_size = losing_by_ply[ply]->size();
       std::cout << "PLY " << ply << " LOSING " << losing_size << std::endl;
 
-      unknown_by_ply[ply] = game->load_or_build(get_name(forward_ply_max, backward_ply_max, ply, "unknown"), [&]()
-      {
-#ifndef PARANOIA
-	if(next_ply_complete)
-	  {
-	    return DFAUtil::get_reject(game->get_shape());
-	  }
-#endif
-
-	shared_dfa_ptr winning_or_losing = DFAUtil::get_union(winning_by_ply[ply], losing_by_ply[ply]);
-	return DFAUtil::get_difference(positions, winning_or_losing);
-      });
       double unknown_size = unknown_by_ply[ply]->size();
       std::cout << "PLY " << ply << " UNKNOWN " << unknown_size << std::endl;
-      if(complete_expected)
-	{
-	  assert(unknown_by_ply[ply]->is_constant(false));
-	}
 
       auto summarize_result = [&](std::string result, double result_size)
       {

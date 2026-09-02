@@ -51,7 +51,7 @@ test_chess : all
 time : all
 	time ./test_perft
 
-build_% : build_%.o test_utils.o dfagames.a
+build_% : build_%.o build_utils.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 divide : divide.o dfagames.a
