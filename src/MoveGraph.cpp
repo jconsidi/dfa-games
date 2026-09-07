@@ -240,8 +240,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
   assert(node_names.size() >= 2);
   assert(positions_in);
 
-  if((positions_in->size() <= 1048576) &&
-     (positions_in->size() / double(positions_in->states() / shape.size()) <= 100))
+  if(positions_in->size() <= double(positions_in->states()))
     {
       std::vector<DFAString> positions_staging;
       for(auto iter = positions_in->cbegin();
