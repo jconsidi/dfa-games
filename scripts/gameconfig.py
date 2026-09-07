@@ -101,6 +101,9 @@ class GameConfig(object):
 
         save_config("game.json", self.game_data, sort_keys=False)
 
+        if "bound,ply=001" in self.components_data["components"] and "bound,ply=000" not in self.components_data["components"] and "initial_position" in self.game_data:
+            self.add_component("bound,ply=000", "fixed", {i : v for (i, v) in enumerate(self.game_data["initial_position"])})
+
         save_config("components.json", self.components_data)
 
         for side_to_move in range(self.game_data["sides"]):
