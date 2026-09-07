@@ -15,6 +15,23 @@ def generate_size(width, height):
         f"cram_{width}x{height}", shape=[2] * ndim, initial_position=initial_position
     )
 
+    # components
+
+    for ply in range(1, ndim // 2 + 1):
+        game_config.add_component(
+            f"bound,ply={ply:03d}",
+            "count",
+            {
+                "c": 1,
+                "count_min": ply * 2,
+                "count_max": ply * 2,
+                "layer_min": 0,
+                "layer_max": ndim - 1,
+            },
+        )
+
+    # move graphs
+
     for side_to_move in range(2):
         # tests - perft_u from initial position
 
@@ -35,10 +52,11 @@ def generate_size(width, height):
 
         def calculate_layer(r, c):
             return r * width + c
-        
+
         game_config.add_move_node(side_to_move, "begin", changes=[])
 
         move_node_names = []
+
         def add_move_node(layer1, layer2):
             assert 0 <= layer1
             assert layer1 < layer2
@@ -51,15 +69,19 @@ def generate_size(width, height):
             col2 = layer2 % width
 
             move_node_name = f"move_{row1},{col1}_{row2},{col2}"
-            game_config.add_move_node(side_to_move,
-                                      move_node_name,
-                                      changes = [{"layer": layer1, "before": 0, "after": 1},
-                                                 {"layer": layer2, "before": 0, "after": 1}])
+            game_config.add_move_node(
+                side_to_move,
+                move_node_name,
+                changes=[
+                    {"layer": layer1, "before": 0, "after": 1},
+                    {"layer": layer2, "before": 0, "after": 1},
+                ],
+            )
             move_node_names.append(move_node_name)
 
         # horizontal moves
         for row in range(height):
-            for col in range(width-1):
+            for col in range(width - 1):
                 layer = calculate_layer(row, col)
                 add_move_node(layer, layer + 1)
 
@@ -68,15 +90,15 @@ def generate_size(width, height):
             for col in range(width):
                 layer = calculate_layer(row, col)
                 add_move_node(layer, layer + width)
-                                      
-        game_config.add_move_node(side_to_move, "end", changes = [])
+
+        game_config.add_move_node(side_to_move, "end", changes=[])
 
         # edges
 
         for move_node_name in move_node_names:
             game_config.add_move_edge(side_to_move, "begin", move_node_name, [])
             game_config.add_move_edge(side_to_move, move_node_name, "end", [])
-        
+
     game_config.save()
 
 

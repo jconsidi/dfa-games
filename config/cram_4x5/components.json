@@ -1,4 +1,105 @@
 {
-  "components": {},
+  "components": {
+    "bound,ply=001": {
+      "inputs": {
+        "c": 1,
+        "count_max": 2,
+        "count_min": 2,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=002": {
+      "inputs": {
+        "c": 1,
+        "count_max": 4,
+        "count_min": 4,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=003": {
+      "inputs": {
+        "c": 1,
+        "count_max": 6,
+        "count_min": 6,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=004": {
+      "inputs": {
+        "c": 1,
+        "count_max": 8,
+        "count_min": 8,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=005": {
+      "inputs": {
+        "c": 1,
+        "count_max": 10,
+        "count_min": 10,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=006": {
+      "inputs": {
+        "c": 1,
+        "count_max": 12,
+        "count_min": 12,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=007": {
+      "inputs": {
+        "c": 1,
+        "count_max": 14,
+        "count_min": 14,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=008": {
+      "inputs": {
+        "c": 1,
+        "count_max": 16,
+        "count_min": 16,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=009": {
+      "inputs": {
+        "c": 1,
+        "count_max": 18,
+        "count_min": 18,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=010": {
+      "inputs": {
+        "c": 1,
+        "count_max": 20,
+        "count_min": 20,
+        "layer_max": 19,
+        "layer_min": 0
+      },
+      "type": "count"
+    }
+  },
   "game": "cram_4x5"
 }

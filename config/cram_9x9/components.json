@@ -1,4 +1,405 @@
 {
-  "components": {},
+  "components": {
+    "bound,ply=001": {
+      "inputs": {
+        "c": 1,
+        "count_max": 2,
+        "count_min": 2,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=002": {
+      "inputs": {
+        "c": 1,
+        "count_max": 4,
+        "count_min": 4,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=003": {
+      "inputs": {
+        "c": 1,
+        "count_max": 6,
+        "count_min": 6,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=004": {
+      "inputs": {
+        "c": 1,
+        "count_max": 8,
+        "count_min": 8,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=005": {
+      "inputs": {
+        "c": 1,
+        "count_max": 10,
+        "count_min": 10,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=006": {
+      "inputs": {
+        "c": 1,
+        "count_max": 12,
+        "count_min": 12,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=007": {
+      "inputs": {
+        "c": 1,
+        "count_max": 14,
+        "count_min": 14,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=008": {
+      "inputs": {
+        "c": 1,
+        "count_max": 16,
+        "count_min": 16,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=009": {
+      "inputs": {
+        "c": 1,
+        "count_max": 18,
+        "count_min": 18,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=010": {
+      "inputs": {
+        "c": 1,
+        "count_max": 20,
+        "count_min": 20,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=011": {
+      "inputs": {
+        "c": 1,
+        "count_max": 22,
+        "count_min": 22,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=012": {
+      "inputs": {
+        "c": 1,
+        "count_max": 24,
+        "count_min": 24,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=013": {
+      "inputs": {
+        "c": 1,
+        "count_max": 26,
+        "count_min": 26,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=014": {
+      "inputs": {
+        "c": 1,
+        "count_max": 28,
+        "count_min": 28,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=015": {
+      "inputs": {
+        "c": 1,
+        "count_max": 30,
+        "count_min": 30,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=016": {
+      "inputs": {
+        "c": 1,
+        "count_max": 32,
+        "count_min": 32,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=017": {
+      "inputs": {
+        "c": 1,
+        "count_max": 34,
+        "count_min": 34,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=018": {
+      "inputs": {
+        "c": 1,
+        "count_max": 36,
+        "count_min": 36,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=019": {
+      "inputs": {
+        "c": 1,
+        "count_max": 38,
+        "count_min": 38,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=020": {
+      "inputs": {
+        "c": 1,
+        "count_max": 40,
+        "count_min": 40,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=021": {
+      "inputs": {
+        "c": 1,
+        "count_max": 42,
+        "count_min": 42,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=022": {
+      "inputs": {
+        "c": 1,
+        "count_max": 44,
+        "count_min": 44,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=023": {
+      "inputs": {
+        "c": 1,
+        "count_max": 46,
+        "count_min": 46,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=024": {
+      "inputs": {
+        "c": 1,
+        "count_max": 48,
+        "count_min": 48,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=025": {
+      "inputs": {
+        "c": 1,
+        "count_max": 50,
+        "count_min": 50,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=026": {
+      "inputs": {
+        "c": 1,
+        "count_max": 52,
+        "count_min": 52,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=027": {
+      "inputs": {
+        "c": 1,
+        "count_max": 54,
+        "count_min": 54,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=028": {
+      "inputs": {
+        "c": 1,
+        "count_max": 56,
+        "count_min": 56,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=029": {
+      "inputs": {
+        "c": 1,
+        "count_max": 58,
+        "count_min": 58,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=030": {
+      "inputs": {
+        "c": 1,
+        "count_max": 60,
+        "count_min": 60,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=031": {
+      "inputs": {
+        "c": 1,
+        "count_max": 62,
+        "count_min": 62,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=032": {
+      "inputs": {
+        "c": 1,
+        "count_max": 64,
+        "count_min": 64,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=033": {
+      "inputs": {
+        "c": 1,
+        "count_max": 66,
+        "count_min": 66,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=034": {
+      "inputs": {
+        "c": 1,
+        "count_max": 68,
+        "count_min": 68,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=035": {
+      "inputs": {
+        "c": 1,
+        "count_max": 70,
+        "count_min": 70,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=036": {
+      "inputs": {
+        "c": 1,
+        "count_max": 72,
+        "count_min": 72,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=037": {
+      "inputs": {
+        "c": 1,
+        "count_max": 74,
+        "count_min": 74,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=038": {
+      "inputs": {
+        "c": 1,
+        "count_max": 76,
+        "count_min": 76,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=039": {
+      "inputs": {
+        "c": 1,
+        "count_max": 78,
+        "count_min": 78,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=040": {
+      "inputs": {
+        "c": 1,
+        "count_max": 80,
+        "count_min": 80,
+        "layer_max": 80,
+        "layer_min": 0
+      },
+      "type": "count"
+    }
+  },
   "game": "cram_9x9"
 }
