@@ -5,21 +5,24 @@ import pathlib
 
 
 class GameConfig(object):
-    def __init__(self, game, shape, initial_position):
+    def __init__(self, game, shape, initial_position=None, sides=2):
         self.game = game
 
         self.game_data = {
             "game": game,
             "shape": list(shape),
-            "initial_position": list(initial_position),
+            "sides": sides
         }
+
+        if initial_position:
+            self.game_data["initial_position"] = list(initial_position)
 
         self.components_data = {"game": game, "components": {}}
 
         self.move_graph_data = []
         self.move_graph_edges = []
         self.move_graph_nodes = []
-        for side_to_move in range(2):
+        for side_to_move in range(sides):
             self.move_graph_data.append({"game": game, "nodes": [], "edges": []})
             self.move_graph_edges.append({})
             self.move_graph_nodes.append({})
@@ -100,7 +103,7 @@ class GameConfig(object):
 
         save_config("components.json", self.components_data)
 
-        for side_to_move in range(2):
+        for side_to_move in range(self.game_data["sides"]):
             if self.move_graph_data[side_to_move]["nodes"]:
                 save_config(
                     f"move_graph_{side_to_move}.json",
