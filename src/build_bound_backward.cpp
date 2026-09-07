@@ -38,8 +38,8 @@ int main(int argc, char **argv)
 
   std::cout << game->position_to_string(game->get_position_initial()) << std::endl;
 
-  std::vector<shared_dfa_ptr> forward_positions = {initial_positions};
-  for(int ply = 1; ply <= forward_ply_max; ++ply)
+  std::vector<shared_dfa_ptr> forward_positions;
+  for(int ply = 0; ply <= forward_ply_max; ++ply)
     {
       forward_positions.push_back(config_game->get_component(*game, std::format("bound,ply={:03d}", ply)));
     }
