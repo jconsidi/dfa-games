@@ -2,6 +2,7 @@
 *.o
 .depend
 build_backward
+build_bound_backward
 build_chess_database
 build_forward
 build_forward_backward
