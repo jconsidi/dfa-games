@@ -25,7 +25,7 @@ int main()
           size_new -= positions.at(ply - 2)->size();
         }
       
-      std::cout << "PLY: " << ply << ", POSITIONS: " << positions_new->size() << ", NEW: " << size_new << ", STATES: " << positions_new->states() << std::endl;
+      std::cout << "PLY: " << ply << ", POSITIONS: " << positions_new->size() << ", NEW: " << size_new << ", STATES: " << positions_new->states() << ", POSITIONS/STATE: " << (positions_new->size() / double(positions_new->states())) << std::endl;
 
       if((ply >= 2) && (positions_new->get_hash() == positions.at(ply - 2)->get_hash()))
         {
