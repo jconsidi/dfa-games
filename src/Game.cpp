@@ -2,8 +2,6 @@
 
 #include "Game.h"
 
-#include <sys/stat.h>
-
 #include <algorithm>
 #include <format>
 #include <iomanip>
@@ -17,31 +15,8 @@
 #include "Profile.h"
 
 Game::Game(std::string name_in, const dfa_shape_t& shape_in)
-  : name(name_in),
-    shape(shape_in)
+  : GameBase(name_in, shape_in, 2)
 {
-  std::string directory = std::string("scratch/") + name_in;
-  mkdir(directory.c_str(), 0700);
-}
-
-Game::~Game()
-{
-}
-
-void Game::build_move_graphs(int side_to_move) const
-{
-  Profile profile("build_move_graphs");
-
-  assert((0 <= side_to_move) && (side_to_move < 2));
-
-  if(move_graphs_ready[side_to_move])
-    {
-      return;
-    }
-
-  move_graphs_forward[side_to_move] = build_move_graph(side_to_move).optimize();
-  move_graphs_backward[side_to_move] = move_graphs_forward[side_to_move].reverse().optimize();
-  move_graphs_ready[side_to_move] = true;
 }
 
 shared_dfa_ptr Game::build_positions_losing(int side_to_move, int ply_max) const
@@ -148,61 +123,12 @@ shared_dfa_ptr Game::get_has_moves(int side_to_move) const
 	load_or_build("has_moves-side=" + std::to_string(side_to_move),
 		      [&]()
 		      {
-			shared_dfa_ptr all_positions = DFAUtil::get_accept(shape);
+			shared_dfa_ptr all_positions = DFAUtil::get_accept(get_shape());
 			return this->get_moves_backward(side_to_move, all_positions);
 		      });
     }
 
   return this->singleton_has_moves[side_to_move];
-}
-
-const MoveGraph& Game::get_move_graph_forward(int side_to_move) const
-{
-  build_move_graphs(side_to_move);
-  return move_graphs_forward[side_to_move];
-}
-
-shared_dfa_ptr Game::get_moves_backward(int side_to_move, shared_dfa_ptr positions_in) const
-{
-  Profile profile("get_moves_backward");
-
-  assert(0 <= side_to_move);
-  assert(side_to_move < 2);
-  assert(positions_in);
-
-  build_move_graphs(side_to_move);
-
-  std::string name_prefix = std::format("{:s},backward,side_to_move={:d}", name, side_to_move);
-  return move_graphs_backward[side_to_move].get_moves(name_prefix, positions_in);
-}
-
-std::vector<DFAString> Game::get_moves_forward(int side_to_move, const DFAString& position_in) const
-{
-  assert(0 <= side_to_move);
-  assert(side_to_move < 2);
-
-  build_move_graphs(side_to_move);
-
-  return move_graphs_forward[side_to_move].get_moves(position_in);
-}
-
-shared_dfa_ptr Game::get_moves_forward(int side_to_move, shared_dfa_ptr positions_in) const
-{
-  Profile profile("get_moves_forward");
-
-  assert(0 <= side_to_move);
-  assert(side_to_move < 2);
-  assert(positions_in);
-
-  build_move_graphs(side_to_move);
-
-  std::string name_prefix = std::format("{:s},forward,side_to_move={:d}", name, side_to_move);
-  return move_graphs_forward[side_to_move].get_moves(name_prefix, positions_in);
-}
-
-std::string Game::get_name() const
-{
-  return name;
 }
 
 std::string Game::get_name_losing(int side_to_move, int ply_max) const
@@ -254,7 +180,7 @@ shared_dfa_ptr Game::get_positions_forward(int ply) const
 
 shared_dfa_ptr Game::get_positions_initial() const
 {
-  return DFAUtil::from_string(shape, get_position_initial());
+  return DFAUtil::from_string(get_shape(), get_position_initial());
 }
 
 shared_dfa_ptr Game::get_positions_losing(int side_to_move, int ply_max) const
@@ -292,7 +218,7 @@ shared_dfa_ptr Game::get_positions_reachable(int side_to_move, int ply) const
 
   if(ply == 0)
     {
-      return DFAUtil::get_accept(shape);
+      return DFAUtil::get_accept(get_shape());
     }
 
   std::ostringstream dfa_name_builder;
@@ -383,52 +309,4 @@ shared_dfa_ptr Game::get_positions_won(int side_to_move) const
 			     {
 			       return build_positions_won(side_to_move);
 			     });
-}
-
-const dfa_shape_t& Game::get_shape() const
-{
-  return shape;
-}
-
-shared_dfa_ptr Game::load(std::string dfa_name_in) const
-{
-  std::string dfa_name = name + "/" + dfa_name_in;
-  return DFAUtil::load_by_name(shape, dfa_name);
-}
-
-shared_dfa_ptr Game::load_by_hash(std::string hash_in) const
-{
-  return DFAUtil::load_by_hash(get_shape(), hash_in);
-}
-
-shared_dfa_ptr Game::load_by_name(std::string dfa_name_in) const
-{
-  // load by name, but return NULL when there's an issue
-  try
-    {
-      std::string dfa_name = name + "/" + dfa_name_in;
-      return DFAUtil::load_by_name(shape, dfa_name);
-    }
-  catch(const std::runtime_error& e)
-    {
-      return shared_dfa_ptr(0);
-    }
-}
-
-shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr ()> build_func) const
-{
-  Profile profile("load_or_build " + dfa_name_in);
-
-  std::string dfa_name = name + "/" + dfa_name_in;
-  return DFAUtil::load_or_build(shape, dfa_name, build_func);
-}
-
-std::vector<DFAString> Game::validate_moves(int, const DFAString&) const
-{
-  throw std::logic_error(name + " did not implement validate_moves()");
-}
-
-std::optional<int> Game::validate_result(int, const DFAString&) const
-{
-  throw std::logic_error(name + "did not implement validate_result()");
 }

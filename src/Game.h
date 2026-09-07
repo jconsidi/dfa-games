@@ -3,40 +3,26 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <memory>
 #include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
-#include "DFA.h"
-#include "MoveGraph.h"
+#include "GameBase.h"
 
 class Game
+  : public GameBase
 {
 private:
 
-  std::string name;
-  dfa_shape_t shape;
-
-  mutable MoveGraph move_graphs_forward[2] = {dfa_shape_t(), dfa_shape_t()};
-  mutable MoveGraph move_graphs_backward[2] = {dfa_shape_t(), dfa_shape_t()};
-  mutable bool move_graphs_ready[2] = {false, false};
-
   mutable std::optional<bool> reverse_implemented;
-
-  virtual MoveGraph build_move_graph(int) const = 0;
-  void build_move_graphs(int) const;
 
   mutable shared_dfa_ptr singleton_has_moves[2] = {0, 0};
 
 protected:
 
   Game(std::string, const dfa_shape_t&);
-
-  int get_shape_size() const {return int(shape.size());}
-  void save(std::string, shared_dfa_ptr) const;
 
   // move generation
 
@@ -48,21 +34,12 @@ protected:
 
 public:
 
-  virtual ~Game();
-
   // move generation
 
   bool can_reverse() const;
 
   shared_dfa_ptr get_has_moves(int) const;
 
-  const MoveGraph& get_move_graph_forward(int) const;
-
-  shared_dfa_ptr get_moves_backward(int, shared_dfa_ptr) const;
-  std::vector<DFAString> get_moves_forward(int, const DFAString&) const;
-  shared_dfa_ptr get_moves_forward(int, shared_dfa_ptr) const;
-
-  std::string get_name() const;
   std::string get_name_losing(int, int) const;
   std::string get_name_lost(int) const;
   std::string get_name_unknown(int, int) const;
@@ -79,24 +56,6 @@ public:
   shared_dfa_ptr get_positions_unknown(int, int) const; // side to move does not have win or loss within given ply
   shared_dfa_ptr get_positions_winning(int, int) const; // side to move wins in at most given ply
   shared_dfa_ptr get_positions_won(int) const; // side to move has won, no moves available
-
-  const dfa_shape_t& get_shape() const;
-
-  // saved position access
-
-  shared_dfa_ptr load(std::string dfa_name_in) const;
-  shared_dfa_ptr load_by_hash(std::string) const;
-  shared_dfa_ptr load_by_name(std::string dfa_name_in) const;
-  shared_dfa_ptr load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr()> build_func) const;
-
-  // position evaluation
-
-  virtual std::string position_to_string(const DFAString&) const = 0;
-
-  // validation
-
-  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
-  virtual std::optional<int> validate_result(int, const DFAString&) const;
 };
 
 #endif
