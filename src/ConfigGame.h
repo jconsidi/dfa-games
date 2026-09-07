@@ -12,7 +12,7 @@
 #include "NormalPlayGame.h"
 
 class ConfigGameBase
-: protected ConfigBase
+: public ConfigBase
 {
  protected:
 

@@ -30,7 +30,6 @@ class ConfigBase
   bool check_component_config(std::string) const;
   bool check_game_config(std::string) const;
 
-  shared_dfa_ptr get_component(const GameBase&, std::string) const;
   const nlohmann::json& get_component_config(std::string) const;
   const nlohmann::json& get_game_config(std::string) const;
   dfa_shape_t get_shape() const {return shape;}
@@ -38,6 +37,10 @@ class ConfigBase
 
   static nlohmann::json read_config(std::string, std::string);
   nlohmann::json read_config(std::string) const;
+
+ public:
+
+  shared_dfa_ptr get_component(const GameBase&, std::string) const;
 };
 
 #endif
