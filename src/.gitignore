@@ -20,6 +20,7 @@ restart_union
 solve_backward
 stats
 stats_backward
+stats_bound_backward
 stats_forward
 stats_forward_backward
 test_backward
