@@ -1,0 +1,24 @@
+{
+  "game": "slidingtile_3x3",
+  "positions": [
+    {
+      "comment": "won position",
+      "position": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        0
+      ],
+      "side_to_move": 0,
+      "expected_perft_u": [
+        2,
+        4
+      ]
+    }
+  ]
+}

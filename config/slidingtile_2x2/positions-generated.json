@@ -1,0 +1,19 @@
+{
+  "game": "slidingtile_2x2",
+  "positions": [
+    {
+      "comment": "won position",
+      "position": [
+        1,
+        2,
+        3,
+        0
+      ],
+      "side_to_move": 0,
+      "expected_perft_u": [
+        2,
+        2
+      ]
+    }
+  ]
+}
