@@ -13,6 +13,7 @@
 
 ConfigBase::ConfigBase(std::string name_in)
   : game_name(name_in),
+    shape(get_shape_config(name_in)),
     game_config(read_config(name_in, "game.json")),
     components_config(read_config(name_in, "components.json"))
 {
@@ -88,8 +89,7 @@ dfa_shape_t ConfigBase::get_shape_config(std::string game_name_in)
 }
 
 ConfigGameBase::ConfigGameBase(std::string name_in)
-  : ConfigBase(name_in),
-    shape(get_shape_config(name_in))
+  : ConfigBase(name_in)
 {
 }
 
@@ -100,13 +100,13 @@ MoveGraph ConfigGameBase::build_move_graph(const Game& game, int side_to_move) c
   std::string config_file = std::format("move_graph_{:d}.json", side_to_move);
   auto config = read_config(config_file);
 
-  MoveGraph move_graph(shape);
+  MoveGraph move_graph(get_shape());
 
   for(auto node_config : config.at("nodes"))
     {
       std::string node_name = node_config.at("node").get<std::string>();
 
-      change_vector changes(shape.size());
+      change_vector changes(get_shape().size());
       for(auto change : node_config.at("changes"))
         {
           int layer = change.at("layer").get<int>();
@@ -142,15 +142,15 @@ void ConfigGameBase::check_game(const Game& game) const
 {
   const dfa_shape_t& game_shape = game.get_shape();
 
-  if(game_shape.size() != shape.size())
+  if(game_shape.size() != get_shape().size())
     {
       throw std::logic_error(std::format("incompatible game shape length ({:d} game vs {:d} expected)",
-                                         game_shape.size(), shape.size()));
+                                         game_shape.size(), get_shape().size()));
     }
 
-  for(int layer = 0; layer < shape.size(); ++layer)
+  for(int layer = 0; layer < get_shape().size(); ++layer)
     {
-      if(game_shape[layer] != shape[layer])
+      if(game_shape[layer] != get_shape()[layer])
         {
           throw std::logic_error("incompatible game shape");
         }
@@ -183,10 +183,10 @@ shared_dfa_ptr ConfigGameBase::get_component(const Game& game, std::string key_i
             int k = std::stoi(it.key());
             int v = it.value().get<int>();
 
-            dfa_inputs.push_back(DFAUtil::get_fixed(shape, k, v));
+            dfa_inputs.push_back(DFAUtil::get_fixed(get_shape(), k, v));
           }
 
-        return DFAUtil::get_intersection_vector(shape, dfa_inputs);
+        return DFAUtil::get_intersection_vector(get_shape(), dfa_inputs);
       }
 
     if(component_type == "inverse")
@@ -202,7 +202,7 @@ shared_dfa_ptr ConfigGameBase::get_component(const Game& game, std::string key_i
             dfa_inputs.push_back(get_component(game, input_name));
           }
 
-        return DFAUtil::get_union_vector(shape, dfa_inputs);
+        return DFAUtil::get_union_vector(get_shape(), dfa_inputs);
       }
 
     throw std::runtime_error("unrecognized component type " + component_type);
@@ -213,7 +213,7 @@ DFAString ConfigGameBase::get_position_initial() const
 {
   std::vector<int> characters = get_game_config("initial_position").get<std::vector<int>>();
 
-  return DFAString(shape, characters);
+  return DFAString(get_shape(), characters);
 }
 
 ConfigExplicitOutcomeGame::ConfigExplicitOutcomeGame(std::string name_in)

@@ -8,6 +8,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "DFA.h"
 #include "Game.h"
 #include "NormalPlayGame.h"
 
@@ -16,6 +17,8 @@ class ConfigBase
  private:
 
   std::string game_name;
+  dfa_shape_t shape;
+
   nlohmann::json game_config;
   nlohmann::json components_config;
 
@@ -23,6 +26,7 @@ class ConfigBase
 
   ConfigBase(std::string);
 
+  dfa_shape_t get_shape() const {return shape;}
   static dfa_shape_t get_shape_config(std::string);
   static nlohmann::json read_config(std::string, std::string);
 
@@ -37,8 +41,6 @@ class ConfigGameBase
 : protected ConfigBase
 {
 private:
-
-  dfa_shape_t shape;
 
   void check_game(const Game& game) const;
 
@@ -65,6 +67,7 @@ protected:
   virtual shared_dfa_ptr build_positions_lost(int) const;
 
   virtual DFAString get_position_initial() const;
+  dfa_shape_t get_shape() const {return Game::get_shape();}
 
 public:
 
@@ -80,6 +83,7 @@ protected:
   virtual MoveGraph build_move_graph(int) const;
 
   virtual DFAString get_position_initial() const;
+  dfa_shape_t get_shape() const {return Game::get_shape();}
 
 public:
 
