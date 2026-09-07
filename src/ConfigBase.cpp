@@ -123,6 +123,20 @@ shared_dfa_ptr ConfigBase::get_component(const GameBase& game, std::string key_i
     std::string component_type = component_config.at("type").get<std::string>();
     const nlohmann::json component_inputs = component_config.at("inputs");
 
+    if(component_type == "count")
+      {
+        int c_in = component_inputs.at("c").get<int>();
+        int count_min = component_inputs.at("count_min").get<int>();
+        int count_max = component_inputs.at("count_max").get<int>();
+        int layer_min = component_inputs.at("layer_min").get<int>();
+        int layer_max = component_inputs.at("layer_max").get<int>();
+
+        return DFAUtil::get_count_character(get_shape(),
+                                            c_in,
+                                            count_min, count_max,
+                                            layer_min, layer_max);
+      }
+
     if(component_type == "fixed")
       {
         std::vector<shared_dfa_ptr> dfa_inputs;
