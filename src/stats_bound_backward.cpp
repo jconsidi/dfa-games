@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     return load_helper(dfa_name);
   };
 
-  std::cout << "ply\treachable_states\treachable_positions\twinning_states\twinning_positions\tlosing_states\tlosing_positions\tunknown_states\tunknown_positions" << std::endl;
+  std::cout << "ply\tbound_states\tbound_positions\twinning_states\twinning_positions\tlosing_states\tlosing_positions\tunknown_states\tunknown_positions" << std::endl;
   for(int ply = 0; ply <= forward_ply_max; ++ply)
     {
       std::string reachable_name = std::format("components/bound,ply={:03d}", ply);
