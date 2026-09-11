@@ -142,6 +142,13 @@ class DFA
   void save_impl(std::string name_in, const std::string& root) const;
   std::string serialize(std::string) const;
 
+  // A DFA already published under a different root legitimately needs a
+  // second copy there too (e.g. a config component reused as durable
+  // solver output). Copies the already-saved file's bytes into root's
+  // dfas_by_hash, reverifying the digest from the copy before linking it
+  // in under the shared hash name.
+  void publish_copy(const std::string& root) const;
+
  protected:
 
   DFA(const dfa_shape_t&);
