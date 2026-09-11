@@ -1196,13 +1196,28 @@ void DFA::save(std::string name_in) const
 	}
     }
 
-  unlink(symlink_path.c_str());
+  // Publish the symlink atomically: symlink under a private temporary name
+  // in the same directory, then rename it over the target. rename(2)
+  // replaces the destination indivisibly, so there is never a window where
+  // symlink_path names nothing, unlike unlink() then symlink(), which briefly
+  // deletes the name before recreating it.
+  static int next_symlink_id = 0;
+  std::string symlink_temp_path = (symlink_path + ".tmp-" +
+				    std::to_string(getpid()) + "-" +
+				    std::to_string(next_symlink_id++));
 
-  int ret = symlink(symlink_target.c_str(), symlink_path.c_str());
-  if(ret)
+  int symlink_ret = symlink(symlink_target.c_str(), symlink_temp_path.c_str());
+  if(symlink_ret)
     {
-      perror(("DFA save symlink " + symlink_path).c_str());
+      perror(("DFA save symlink " + symlink_temp_path).c_str());
       throw std::runtime_error("DFA save symlink failed");
+    }
+
+  int rename_ret = rename(symlink_temp_path.c_str(), symlink_path.c_str());
+  if(rename_ret)
+    {
+      perror(("DFA save rename " + symlink_temp_path + " to " + symlink_path).c_str());
+      throw std::runtime_error("DFA save rename failed");
     }
 
   name = name_in;
