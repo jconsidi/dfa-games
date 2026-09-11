@@ -36,15 +36,6 @@ Ordered by how wrong the resulting behaviour is.
     `check_reachability` bounds-check what it decodes, or run the entry bounds
     check whenever reachability runs regardless of the flag.
 
-- `dfa-format/src/write.rs:237-238` — the directory sync that makes a
-  published file survive a crash is entirely best effort:
-  `if let Ok(dir) = File::open(out_dir) { let _ = dir.sync_all(); }`. Both the
-  open and the sync can fail without a word, and `write_automaton` still
-  reports success, so the content addressed store can lose an entry it claims
-  to hold.
-  A durability guarantee that reports success when it did not happen is not a
-  guarantee.
-
 - `dfa-format/src/sample.rs:121` — `let (c, next) = chosen?` returns `None`
   when a state has a positive suffix count but no successor with any weight.
   That is impossible unless the counts are inconsistent or floating point has

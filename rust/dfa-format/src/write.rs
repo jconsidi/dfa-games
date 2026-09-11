@@ -233,10 +233,11 @@ fn write_and_publish(
     };
     fs::remove_file(tmp).map_err(|e| FormatError::io(tmp, e))?;
 
-    // Make the new name durable, not just the bytes behind it.
-    if let Ok(dir) = File::open(out_dir) {
-        let _ = dir.sync_all();
-    }
+    // Make the new name durable, not just the bytes behind it. A durability
+    // guarantee that reports success when it did not happen is not a
+    // guarantee, so propagate a failure here instead of swallowing it.
+    let dir = File::open(out_dir).map_err(|e| FormatError::io(out_dir, e))?;
+    dir.sync_all().map_err(|e| FormatError::io(out_dir, e))?;
 
     Ok(Converted {
         path: final_path,

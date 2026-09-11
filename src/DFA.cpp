@@ -1259,6 +1259,26 @@ void DFA::save_by_hash() const
       throw std::runtime_error("DFA save unlink failed");
     }
 
+  // Make the directory entry durable, not just the file's own bytes: without
+  // this, a crash could leave file_name_new written and fsynced but the
+  // link that names it not yet on disk as far as the directory is concerned.
+  int dir_fildes = open("scratch/dfas_by_hash", O_RDONLY);
+  if(dir_fildes == -1)
+    {
+      perror("DFA save directory open");
+      throw std::runtime_error("DFA save directory open failed");
+    }
+  if(fsync(dir_fildes))
+    {
+      perror("DFA save directory fsync");
+      throw std::runtime_error("DFA save directory fsync failed");
+    }
+  if(close(dir_fildes))
+    {
+      perror("DFA save directory close");
+      throw std::runtime_error("DFA save directory close failed");
+    }
+
   hash = digest;
 
   // Switch this object over to the file, and drop the staging directory.
