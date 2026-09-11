@@ -36,7 +36,7 @@ static int next_dfa_id = 0;
 // this process holds it.
 static std::string get_temp_directory()
 {
-  return (ScratchConfig::get_local_dir() + "/temp/" +
+  return (ScratchConfig::get_local_dir() + "/build/" +
 	  std::to_string(getpid()) + "-" +
 	  std::to_string(next_dfa_id++));
 }
