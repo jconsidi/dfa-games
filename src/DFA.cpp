@@ -1388,67 +1388,90 @@ void DFA::save_by_hash(const std::string& root) const
   temporary = false;
 }
 
-// Copies an already-published DFA's bytes into a second root under the
-// same content-addressed name. Mirrors save_by_hash's own publish
-// discipline (temp name, write, link, unlink, directory fsync), but keeps
-// a separate staging counter -- next_copy_id, not save_by_hash's own
-// next_serialize_id -- since the two can be in flight on the same object
-// at once, and reverifies the digest from the bytes just written to root
-// rather than trusting *hash, since a corrupted copy that reported success
-// is exactly the failure mode this whole codebase exists to avoid.
+// Publishes an already-published DFA's bytes under a second root, under
+// the same content-addressed name.
+//
+// Tries a direct hardlink from the file already on disk first: local and
+// archive are often configured as distinct directories that nonetheless
+// share a filesystem, and link() there costs nothing and stores the bytes
+// once, with nothing to reverify since it is the very inode rather than a
+// new write of it. Only when that fails with EXDEV -- local and archive
+// really are different filesystems, e.g. one of them is networked -- does
+// this fall back to a byte copy: write to a temporary name under root's
+// dfas_by_hash (its own staging counter, next_copy_id, kept separate from
+// save_by_hash's own next_serialize_id since the two can be in flight on
+// the same object at once), then reverify the digest from the bytes just
+// written to root rather than trusting *hash, since a corrupted copy that
+// reported success is exactly the failure mode this whole codebase exists
+// to avoid, then link that into place and fsync the directory -- the same
+// publish discipline save_by_hash itself uses.
 void DFA::publish_copy(const std::string& root) const
 {
   assert(!temporary);
   assert(hash);
 
   std::string dfas_by_hash_dir = root + "/dfas_by_hash";
-
-  static int next_copy_id = 0;
-  std::string temporary_name = (dfas_by_hash_dir + "/.tmp-copy-" +
-				std::to_string(getpid()) + "-" +
-				std::to_string(next_copy_id++) + ".dfa");
-
-  ensure_parent_directories(root, temporary_name);
-
-  file_map->mmap();
-
-  int fildes = open(temporary_name.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
-  if(fildes == -1)
-    {
-      perror("DFA publish_copy open");
-      throw std::runtime_error("DFA publish_copy open failed");
-    }
-  write_buffer(fildes, file_map->begin(), file_map->size());
-  if(fsync(fildes) || close(fildes))
-    {
-      perror("DFA publish_copy close");
-      throw std::runtime_error("DFA publish_copy close failed");
-    }
-
-  std::string copy_digest = digest_of_file(temporary_name);
-  if(copy_digest != *hash)
-    {
-      throw std::runtime_error("DFA publish_copy digest mismatch copying to " + root);
-    }
-
   std::string file_name_new = dfas_by_hash_dir + "/" + *hash + ".dfa";
 
-  // link() fails with EEXIST rather than replacing, same reasoning as
-  // save_by_hash: a file of this name already holds these exact bytes, and
-  // a reader may have it open.
-  int link_ret = link(temporary_name.c_str(), file_name_new.c_str());
+  ensure_parent_directories(root, file_name_new);
+
+  int link_ret = link(file_name.c_str(), file_name_new.c_str());
   if(link_ret && (errno != EEXIST))
     {
-      perror("DFA publish_copy link");
-      throw std::runtime_error("DFA publish_copy link failed");
+      if(errno != EXDEV)
+	{
+	  perror("DFA publish_copy link");
+	  throw std::runtime_error("DFA publish_copy link failed");
+	}
+
+      static int next_copy_id = 0;
+      std::string temporary_name = (dfas_by_hash_dir + "/.tmp-copy-" +
+				    std::to_string(getpid()) + "-" +
+				    std::to_string(next_copy_id++) + ".dfa");
+
+      ensure_parent_directories(root, temporary_name);
+
+      file_map->mmap();
+
+      int fildes = open(temporary_name.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+      if(fildes == -1)
+	{
+	  perror("DFA publish_copy open");
+	  throw std::runtime_error("DFA publish_copy open failed");
+	}
+      write_buffer(fildes, file_map->begin(), file_map->size());
+      if(fsync(fildes) || close(fildes))
+	{
+	  perror("DFA publish_copy close");
+	  throw std::runtime_error("DFA publish_copy close failed");
+	}
+
+      std::string copy_digest = digest_of_file(temporary_name);
+      if(copy_digest != *hash)
+	{
+	  throw std::runtime_error("DFA publish_copy digest mismatch copying to " + root);
+	}
+
+      // link() fails with EEXIST rather than replacing, same reasoning as
+      // save_by_hash: a file of this name already holds these exact bytes,
+      // and a reader may have it open.
+      int copy_link_ret = link(temporary_name.c_str(), file_name_new.c_str());
+      if(copy_link_ret && (errno != EEXIST))
+	{
+	  perror("DFA publish_copy link");
+	  throw std::runtime_error("DFA publish_copy link failed");
+	}
+
+      if(unlink(temporary_name.c_str()))
+	{
+	  perror("DFA publish_copy unlink");
+	  throw std::runtime_error("DFA publish_copy unlink failed");
+	}
     }
 
-  if(unlink(temporary_name.c_str()))
-    {
-      perror("DFA publish_copy unlink");
-      throw std::runtime_error("DFA publish_copy unlink failed");
-    }
-
+  // Make the directory entry durable, same reasoning as save_by_hash: a
+  // crash could otherwise leave the link (or the copy above) written and
+  // fsynced but not yet durable as far as the directory is concerned.
   int dir_fildes = open(dfas_by_hash_dir.c_str(), O_RDONLY);
   if(dir_fildes == -1)
     {
