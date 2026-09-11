@@ -53,14 +53,30 @@ static std::vector<std::string> get_layer_file_names(int ndim, std::string direc
   return output;
 }
 
-// Ensure every directory component of path exists, tolerating EEXIST at each
-// level, so a save (or the staging directory below) never has to trust that
-// some other constructor already created the right directory under the
-// right root ahead of time. path's own last "/"-separated component (the
-// file, symlink, or directory about to be created) is left alone.
-static void ensure_parent_directories(const std::string& path)
+// Ensure every directory component of path below root exists, tolerating
+// EEXIST at each level, so a save (or the staging directory below) never has
+// to trust that some other constructor already created the right directory
+// ahead of time. path's own last "/"-separated component (the file,
+// symlink, or directory about to be created) is left alone.
+//
+// root itself -- ScratchConfig::get_local_dir() or get_archive_dir() -- is
+// never created here, only checked: it is configuration the operator is
+// responsible for provisioning (a mount point, a path that may not exist
+// because of a typo), not something this codebase should conjure into
+// existence. Without that boundary, a mistyped or unmounted
+// DFA_LOCAL_DIR/DFA_ARCHIVE_DIR would silently build a whole directory tree
+// wherever it happened to point instead of failing loudly.
+static void ensure_parent_directories(const std::string& root, const std::string& path)
 {
-  size_t pos = 0;
+  assert(path.starts_with(root + "/"));
+
+  struct stat root_stat;
+  if(stat(root.c_str(), &root_stat) || !S_ISDIR(root_stat.st_mode))
+    {
+      throw std::runtime_error(root + " does not exist or is not a directory");
+    }
+
+  size_t pos = root.length();
   while((pos = path.find('/', pos + 1)) != std::string::npos)
     {
       std::string prefix = path.substr(0, pos);
@@ -76,7 +92,8 @@ static std::string create_directory(std::string directory)
 {
   // Placeholder trailing component so ensure_parent_directories treats
   // directory itself as a prefix to create, not just directory's parents.
-  ensure_parent_directories(directory + "/x");
+  // Staging is always local -- never durable -- so the root is fixed here.
+  ensure_parent_directories(ScratchConfig::get_local_dir(), directory + "/x");
   mkdir(directory.c_str(), 0700);
   return directory;
 }
@@ -1235,7 +1252,7 @@ void DFA::save_impl(std::string name_in, const std::string& root) const
 				    std::to_string(getpid()) + "-" +
 				    std::to_string(next_symlink_id++));
 
-  ensure_parent_directories(symlink_temp_path);
+  ensure_parent_directories(root, symlink_temp_path);
 
   int symlink_ret = symlink(symlink_target.c_str(), symlink_temp_path.c_str());
   if(symlink_ret)
@@ -1289,7 +1306,7 @@ void DFA::save_by_hash(const std::string& root) const
 				std::to_string(getpid()) + "-" +
 				std::to_string(next_serialize_id++) + ".dfa");
 
-  ensure_parent_directories(temporary_name);
+  ensure_parent_directories(root, temporary_name);
 
   std::string digest = serialize(temporary_name);
   std::string file_name_new = dfas_by_hash_dir + "/" + digest + ".dfa";
