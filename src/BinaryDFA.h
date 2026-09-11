@@ -102,6 +102,12 @@ class BinaryDFA : public DFA
   // arbitrary order, which is what costs this DFA its canonical numbering.
   bool hashed_any_layer = false;
 
+  // This instance's own staging directory under binarydfa/, created by
+  // create_binary_directory below. Empty until then -- most BinaryDFA
+  // instances (constant, sink, and other early-return cases in the public
+  // constructor) never touch it at all.
+  std::string binary_directory;
+
   void build_linear(const DFA&, const DFA&);
 
   void build_quadratic(const DFA&, const DFA&);
@@ -110,9 +116,45 @@ class BinaryDFA : public DFA
   std::function<bool(dfa_state_t, dfa_state_t)> get_filter_func() const;
   std::function<dfa_state_t(dfa_state_t, dfa_state_t)> get_shortcircuit_func() const;
 
+  std::string binary_dir() const;
+  std::string binary_build_file_prefix(int layer) const;
+  std::string memory_map_name(int layer, std::string suffix) const;
+  template<class T>
+  MemoryMap<T> memory_map_helper(int layer, std::string suffix, size_t size_in) const;
+
 protected:
 
   BinaryDFA(const dfa_shape_t&, const BinaryFunction&);
+
+  // binarydfa/ staging is scoped per BinaryDFA instance -- pid and a
+  // counter, like DFA's own build/ staging -- since two constructions,
+  // even in the same process, must never share one: they would race
+  // through the same fixed filenames (transitions, layer=00-pairs, ...)
+  // and corrupt each other.
+  //
+  // build_linear and build_quadratic each call create_binary_directory
+  // themselves, once, before using binary_dir(). BinaryRestartDFA resumes
+  // by calling build_quadratic_forward/backward directly instead, so it
+  // must call create_binary_directory itself first.
+  //
+  // The returned guard removes the directory, and anything still in it,
+  // when it goes out of scope -- covering both a normal return and an
+  // exception unwinding through it, the same as DFA's own destructor does
+  // for its build/ staging, but scoped to one call instead of the whole
+  // object, since binarydfa/ is needed only while inside one of these.
+  class DirectoryGuard
+  {
+    std::string directory;
+
+  public:
+
+    explicit DirectoryGuard(std::string);
+    ~DirectoryGuard() noexcept(false);
+
+    DirectoryGuard(const DirectoryGuard&) = delete;
+    DirectoryGuard& operator=(const DirectoryGuard&) = delete;
+  };
+  DirectoryGuard create_binary_directory();
 
   void build_quadratic_backward(const DFA&, const DFA&, int);
   MemoryMap<dfa_state_t> build_quadratic_backward_layer(const DFA&, const DFA&, int, const MemoryMap<dfa_state_t>&);

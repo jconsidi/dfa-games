@@ -21,6 +21,16 @@ typedef std::vector<dfa_state_t> DFATransitionsStaging;
 
 typedef std::vector<int> dfa_shape_t;
 
+// Bounded staging-directory lifecycle for construction scratch that is
+// never durable. create_directory makes directory (and any missing
+// parents strictly below the local root) and returns it; remove_directory
+// empties and removes one already made this way. Shared with BinaryDFA's
+// own, separate binarydfa/ staging area -- both need exactly this, a
+// directory that is safe to create under the local root and later tear
+// down entirely.
+std::string create_directory(std::string directory);
+void remove_directory(std::string directory);
+
 class DFAString
 {
   // The shape is not stored. Every string of a given DFA has the same one,

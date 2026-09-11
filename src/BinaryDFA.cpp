@@ -89,14 +89,41 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
 }
 
 // Working files for the BFS/quadratic construction below: pure scratch,
-// unlinked within the same construction pass that writes them, so they
-// always belong on the fast local tier, never the archive.
-static std::string binary_dir()
+// unlinked within the same construction pass that writes them (or by
+// DirectoryGuard if that pass throws instead), so they always belong on
+// the fast local tier, never the archive.
+static int next_binary_id = 0;
+
+static std::string get_binary_directory()
 {
-  return ScratchConfig::get_local_dir() + "/binarydfa";
+  return (ScratchConfig::get_local_dir() + "/binarydfa/" +
+	  std::to_string(getpid()) + "-" +
+	  std::to_string(next_binary_id++));
 }
 
-static std::string binary_build_file_prefix(int layer)
+BinaryDFA::DirectoryGuard::DirectoryGuard(std::string directory_in)
+  : directory(std::move(directory_in))
+{
+}
+
+BinaryDFA::DirectoryGuard::~DirectoryGuard() noexcept(false)
+{
+  remove_directory(directory);
+}
+
+BinaryDFA::DirectoryGuard BinaryDFA::create_binary_directory()
+{
+  assert(binary_directory.empty());
+  binary_directory = create_directory(get_binary_directory());
+  return DirectoryGuard(binary_directory);
+}
+
+std::string BinaryDFA::binary_dir() const
+{
+  return binary_directory;
+}
+
+std::string BinaryDFA::binary_build_file_prefix(int layer) const
 {
   std::ostringstream filename_builder;
   filename_builder << binary_dir() << "/layer=" << (layer < 10 ? "0" : "") << layer;
@@ -107,6 +134,7 @@ void BinaryDFA::build_linear(const DFA& left_in,
                              const DFA& right_in)
 {
   Profile profile("build_linear");
+  DirectoryGuard binary_directory_guard = create_binary_directory();
 
   assert(left_in.is_linear());
   assert(leaf_func.has_left_sink(0));
@@ -286,13 +314,13 @@ void BinaryDFA::build_linear(const DFA& left_in,
   this->set_initial_state(changed_states[0][0]);
 }
 
-static std::string memory_map_name(int layer, std::string suffix)
+std::string BinaryDFA::memory_map_name(int layer, std::string suffix) const
 {
   return binary_build_file_prefix(layer) + "-" + suffix;
 }
 
 template<class T>
-static MemoryMap<T> memory_map_helper(int layer, std::string suffix, size_t size_in)
+MemoryMap<T> BinaryDFA::memory_map_helper(int layer, std::string suffix, size_t size_in) const
 {
   return MemoryMap<T>(memory_map_name(layer, suffix), size_in);
 }
@@ -301,6 +329,7 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
                                 const DFA& right_in)
 {
   Profile profile("build_quadratic");
+  DirectoryGuard binary_directory_guard = create_binary_directory();
 
   // identify cases where leaf_func allows full evaluation without
   // going to leaves...
