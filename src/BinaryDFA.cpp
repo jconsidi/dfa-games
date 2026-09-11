@@ -21,6 +21,7 @@
 #include "Flashsort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
+#include "ScratchConfig.h"
 #include "VectorBitSet.h"
 #include "parallel.h"
 
@@ -87,10 +88,18 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
   build_quadratic(left_in, right_in);
 }
 
+// Working files for the BFS/quadratic construction below: pure scratch,
+// unlinked within the same construction pass that writes them, so they
+// always belong on the fast local tier, never the archive.
+static std::string binary_dir()
+{
+  return ScratchConfig::get_local_dir() + "/binarydfa";
+}
+
 static std::string binary_build_file_prefix(int layer)
 {
   std::ostringstream filename_builder;
-  filename_builder << "scratch/binarydfa/layer=" << (layer < 10 ? "0" : "") << layer;
+  filename_builder << binary_dir() << "/layer=" << (layer < 10 ? "0" : "") << layer;
   return filename_builder.str();
 }
 
@@ -392,7 +401,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
   next_pairs_index.reserve(3);
   auto add_next_pairs_index = [&](const MemoryMap<dfa_state_pair_t>& previous_pairs)
   {
-    std::string index_name = "scratch/binarydfa/next_pairs_index-" + std::to_string(next_pairs_index.size());
+    std::string index_name = binary_dir() + "/next_pairs_index-" + std::to_string(next_pairs_index.size());
     size_t index_length = (previous_pairs.size() + 511) / 512;
     next_pairs_index.emplace_back(index_name, index_length, [&](size_t i)
     {
@@ -439,7 +448,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
   auto filter_func = get_filter_func();
   auto shortcircuit_func = get_shortcircuit_func();
 
-  MemoryMap<dfa_state_t> curr_transitions("scratch/binarydfa/transitions", curr_layer_count * curr_layer_shape, [&](size_t next_pair_index)
+  MemoryMap<dfa_state_t> curr_transitions(binary_dir() + "/transitions", curr_layer_count * curr_layer_shape, [&](size_t next_pair_index)
   {
     dfa_state_pair_t next_pair = curr_transition_pairs[next_pair_index];
 
@@ -509,7 +518,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
       hashed_any_layer = true;
     }
 
-  MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed("scratch/binarydfa/transitions_hashed", curr_layer_count, [&](size_t i)
+  MemoryMap<BinaryDFATransitionsHashPlusIndex> curr_transitions_hashed(binary_dir() + "/transitions_hashed", curr_layer_count, [&](size_t i)
   {
     BinaryDFATransitionsHashPlusIndex output;
     if(curr_layer_shape + 1 <= binary_dfa_hash_width)
@@ -578,14 +587,14 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   profile.tic("sort permutation");
 
-  MemoryMap<dfa_state_t> curr_pairs_permutation("scratch/binarydfa/pairs_permutation", curr_layer_count, [&](size_t i)
+  MemoryMap<dfa_state_t> curr_pairs_permutation(binary_dir() + "/pairs_permutation", curr_layer_count, [&](size_t i)
   {
     return curr_transitions_hashed[i].get_pair_rank();
   });
 
   profile.tic("states identification");
 
-  MemoryMap<dfa_state_t> curr_pairs_permutation_to_output("scratch/binarydfa/pairs_permutation_to_output", curr_layer_count);
+  MemoryMap<dfa_state_t> curr_pairs_permutation_to_output(binary_dir() + "/pairs_permutation_to_output", curr_layer_count);
 
   auto check_constant = [&](size_t curr_pair_rank)
   {
@@ -676,7 +685,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   // invert permutation so we can write pair_rank_to_output in order
 
-  MemoryMap<dfa_state_t> curr_pairs_permutation_inverse("scratch/binarydfa/pairs_permutation_inverse", curr_layer_count);
+  MemoryMap<dfa_state_t> curr_pairs_permutation_inverse(binary_dir() + "/pairs_permutation_inverse", curr_layer_count);
   // contents are indexes into curr_pairs_permutation
   std::iota(curr_pairs_permutation_inverse.begin(),
             curr_pairs_permutation_inverse.end(),
@@ -922,7 +931,7 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DF
   profile2.tic("left");
 
   left_in.get_transitions(layer, 0);
-  MemoryMap<dfa_state_t> transition_pairs_left("scratch/binarydfa/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
+  MemoryMap<dfa_state_t> transition_pairs_left(binary_dir() + "/transition_pairs_left", transition_pairs_size, [&](size_t transition_index)
   {
     size_t curr_i = transition_index / curr_layer_shape;
     size_t curr_j = transition_index % curr_layer_shape;
@@ -940,7 +949,7 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DF
 
   right_in.get_transitions(layer, 0);
 
-  MemoryMap<dfa_state_pair_t> curr_transition_pairs("scratch/binarydfa/transition_pairs", transition_pairs_size, [&](size_t transition_index)
+  MemoryMap<dfa_state_pair_t> curr_transition_pairs(binary_dir() + "/transition_pairs", transition_pairs_size, [&](size_t transition_index)
   {
     size_t curr_i = transition_index / curr_layer_shape;
     size_t curr_j = transition_index % curr_layer_shape;

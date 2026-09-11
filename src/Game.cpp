@@ -13,6 +13,7 @@
 #include "DFAUtil.h"
 #include "DNFBuilder.h"
 #include "Profile.h"
+#include "ScratchConfig.h"
 
 Game::Game(std::string name_in, const dfa_shape_t& shape_in)
   : GameBase(name_in, shape_in, 2)

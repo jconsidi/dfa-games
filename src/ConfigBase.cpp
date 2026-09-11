@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include "DFAUtil.h"
+#include "ScratchConfig.h"
 
 ConfigBase::ConfigBase(std::string name_in)
   : game_name(name_in),
@@ -21,7 +22,7 @@ ConfigBase::ConfigBase(std::string name_in)
       throw std::runtime_error("game config is for " + std::string(game_config.at("game")) + " instead of " + game_name);
     }
 
-  std::string scratch_directory = "scratch/" + name_in;
+  std::string scratch_directory = ScratchConfig::get_archive_dir() + "/" + name_in;
   int scratch_ret = mkdir(scratch_directory.c_str(), 0700);
   if(scratch_ret && (errno != EEXIST))
     {

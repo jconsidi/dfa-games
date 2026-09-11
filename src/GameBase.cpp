@@ -6,6 +6,7 @@
 
 #include "DFAUtil.h"
 #include "Profile.h"
+#include "ScratchConfig.h"
 
 GameBase::GameBase(std::string name_in, const dfa_shape_t& shape_in, int sides_in)
   : name(name_in),
@@ -14,7 +15,7 @@ GameBase::GameBase(std::string name_in, const dfa_shape_t& shape_in, int sides_i
     move_graphs_forward(sides_in, 0),
     move_graphs_backward(sides_in, 0)
 {
-  std::string directory = std::string("scratch/") + name_in;
+  std::string directory = ScratchConfig::get_archive_dir() + "/" + name_in;
   mkdir(directory.c_str(), 0700);
 }
 
