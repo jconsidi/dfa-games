@@ -144,9 +144,10 @@ class DFA
 
   // A DFA already published under a different root legitimately needs a
   // second copy there too (e.g. a config component reused as durable
-  // solver output). Copies the already-saved file's bytes into root's
-  // dfas_by_hash, reverifying the digest from the copy before linking it
-  // in under the shared hash name.
+  // solver output). Hardlinks into root's dfas_by_hash when possible, so
+  // distinct local/archive roots sharing a filesystem store the bytes
+  // once; falls back to a copy, reverified from the bytes on disk, only
+  // when root is a genuinely different filesystem (EXDEV).
   void publish_copy(const std::string& root) const;
 
  protected:
