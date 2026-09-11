@@ -328,7 +328,8 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
       return DFAUtil::get_change(node_positions_input,
 				 node_changes[node_index]);
-    });
+    },
+    false); // move-graph node: self-cleaning intermediate, not solver output
   };
 
   std::vector<bool> node_todo(node_names.size(), false);
@@ -363,7 +364,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
       try
 	{
-	  shared_dfa_ptr previous = DFAUtil::load_by_name(shape, output_names.at(node_index));
+	  shared_dfa_ptr previous = DFAUtil::load_by_name(shape, output_names.at(node_index), false);
 	  if(previous)
 	    {
 #ifdef VERBOSE
@@ -391,7 +392,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
       for(int cleanup_node_index : cleanup_schedule.at(node_index))
 	{
-	  std::string cleanup_link = ScratchConfig::get_archive_dir() + "/" + output_names.at(cleanup_node_index);
+	  std::string cleanup_link = ScratchConfig::get_local_dir() + "/" + output_names.at(cleanup_node_index);
 	  unlink(cleanup_link.c_str());
 	}
     }

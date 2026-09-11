@@ -130,18 +130,21 @@ DFA::DFA(const dfa_shape_t& shape_in)
 }
 
 // Path of a saved DFA. A name under dfas_by_hash/ addresses the file
-// directly; any other name is a symbolic link to one.
-static std::string get_file_name(std::string name_in)
+// directly; any other name is a symbolic link to one. durable resolves
+// under the archive root, non-durable (cache) under the local root.
+static std::string get_file_name(std::string name_in, bool durable)
 {
+  std::string root = durable ? ScratchConfig::get_archive_dir() : ScratchConfig::get_local_dir();
+
   if(name_in.starts_with("dfas_by_hash/"))
     {
-      return ScratchConfig::get_archive_dir() + "/" + name_in + ".dfa";
+      return root + "/" + name_in + ".dfa";
     }
 
-  return ScratchConfig::get_archive_dir() + "/" + name_in;
+  return root + "/" + name_in;
 }
 
-DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
+DFA::DFA(const dfa_shape_t& shape_in, std::string name_in, bool durable)
   : shape(),
     ndim(0),
     name(name_in),
@@ -151,7 +154,7 @@ DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
     layer_transitions(),
     temporary(false)
 {
-  load_file(get_file_name(name_in));
+  load_file(get_file_name(name_in, durable));
 
   // The file carries its own shape, so this is a cross check rather than an
   // input: a name that resolves to a DFA of the wrong shape is a mistake
@@ -840,10 +843,13 @@ std::string DFA::get_hash() const
   assert(ready());
 
   // The hash is the file's own digest, so it does not exist until the DFA has
-  // been written.
+  // been written. Nothing here has a name yet to say whether the result is
+  // meant to be durable, so this is a bare content-addressed publish, and it
+  // defaults to the local root -- the common case is an operand being hashed
+  // to build some other DFA's cache key, not a result anyone asked to keep.
   if(!hash)
     {
-      save_by_hash();
+      save_by_hash(ScratchConfig::get_local_dir());
     }
 
   assert(hash);
@@ -1127,7 +1133,7 @@ void DFA::munmap() const
     }
 }
 
-std::optional<std::string> DFA::parse_hash(std::string name_in)
+std::optional<std::string> DFA::parse_hash(std::string name_in, bool durable)
 {
   std::string hash_prefix = "dfas_by_hash/";
   std::string hash_suffix = ".dfa";
@@ -1142,7 +1148,7 @@ std::optional<std::string> DFA::parse_hash(std::string name_in)
 
   // Any other name is a symbolic link to a file in dfas_by_hash/.
 
-  std::string symlink_path = ScratchConfig::get_archive_dir() + "/" + name_in;
+  std::string symlink_path = (durable ? ScratchConfig::get_archive_dir() : ScratchConfig::get_local_dir()) + "/" + name_in;
   char link_target[1024] = {0};
   ssize_t ret = readlink(symlink_path.c_str(), link_target, sizeof(link_target) - 1);
   if(ret >= 0)
@@ -1179,13 +1185,13 @@ bool DFA::ready() const
   return initial_state != ~dfa_state_t(0);
 }
 
-void DFA::save(std::string name_in) const
+void DFA::save_impl(std::string name_in, const std::string& root) const
 {
   assert(!name_in.starts_with("dfas_by_hash/"));
 
-  save_by_hash();
+  save_by_hash(root);
 
-  std::string symlink_path = ScratchConfig::get_archive_dir() + "/" + name_in;
+  std::string symlink_path = root + "/" + name_in;
 
   // add symbolic link to the existing file in dfas_by_hash/
   std::string symlink_target = "dfas_by_hash/" + get_hash() + ".dfa";
@@ -1224,15 +1230,33 @@ void DFA::save(std::string name_in) const
   name = name_in;
 }
 
-void DFA::save_by_hash() const
+void DFA::save_cache(std::string name_in) const
+{
+  save_impl(name_in, ScratchConfig::get_local_dir());
+}
+
+void DFA::save_durable(std::string name_in) const
+{
+  save_impl(name_in, ScratchConfig::get_archive_dir());
+}
+
+void DFA::save_by_hash(const std::string& root) const
 {
   assert(ready());
   if(!temporary)
     {
+      // A DFA is published to exactly one root; asking it to also publish
+      // under a different root would either silently duplicate the blob or
+      // silently do nothing, neither of which the caller likely intends.
+      std::string expected_prefix = root + "/dfas_by_hash/";
+      if(!file_name.starts_with(expected_prefix))
+	{
+	  throw std::runtime_error("DFA already saved under a different root than " + root);
+	}
       return;
     }
 
-  std::string dfas_by_hash_dir = ScratchConfig::get_archive_dir() + "/dfas_by_hash";
+  std::string dfas_by_hash_dir = root + "/dfas_by_hash";
   mkdir(dfas_by_hash_dir.c_str(), 0700);
 
   // Write under a temporary name, since the final name is the digest of the

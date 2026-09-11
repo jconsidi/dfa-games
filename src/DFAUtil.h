@@ -39,9 +39,11 @@ public:
   static shared_dfa_ptr get_reject(const dfa_shape_t&);
   static shared_dfa_ptr get_union(shared_dfa_ptr, shared_dfa_ptr);
   static shared_dfa_ptr get_union_vector(const dfa_shape_t&, const std::vector<shared_dfa_ptr>&);
-  static shared_dfa_ptr load_by_hash(const dfa_shape_t&, std::string);
-  static shared_dfa_ptr load_by_name(const dfa_shape_t&, std::string);
-  static shared_dfa_ptr load_or_build(const dfa_shape_t&, std::string, std::function<shared_dfa_ptr()>);
+  // durable resolves the name under the archive root, non-durable (cache,
+  // the default) under the local root. See DFA::save_durable/save_cache.
+  static shared_dfa_ptr load_by_hash(const dfa_shape_t&, std::string, bool durable = true);
+  static shared_dfa_ptr load_by_name(const dfa_shape_t&, std::string, bool durable = true);
+  static shared_dfa_ptr load_or_build(const dfa_shape_t&, std::string, std::function<shared_dfa_ptr()>, bool durable = false);
   static std::string quick_stats(shared_dfa_ptr);
 };
 

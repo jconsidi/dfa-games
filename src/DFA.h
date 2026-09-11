@@ -138,6 +138,8 @@ class DFA
   void attach_file(std::string) const;
   void close_file() const;
   void load_file(std::string);
+  void save_by_hash(const std::string& root) const;
+  void save_impl(std::string name_in, const std::string& root) const;
   std::string serialize(std::string) const;
 
  protected:
@@ -159,7 +161,9 @@ class DFA
 
  public:
 
-  DFA(const dfa_shape_t&, std::string);
+  // durable resolves the name under the archive root, non-durable (cache)
+  // under the local root. See save_durable/save_cache below.
+  DFA(const dfa_shape_t&, std::string, bool durable);
   virtual ~DFA() noexcept(false);
 
   DFAIterator cbegin() const;
@@ -187,10 +191,16 @@ class DFA
   void mmap() const;
   void munmap() const;
 
-  static std::optional<std::string> parse_hash(std::string);
+  static std::optional<std::string> parse_hash(std::string, bool durable);
   bool ready() const;
-  void save(std::string) const;
-  void save_by_hash() const;
+
+  // save_durable publishes into the archive root, meant to survive and be
+  // shared: named game results, the actual solver output. save_cache
+  // publishes into the local root, meant to be freely disposable: op-cache
+  // and move-graph-node style memoization that nothing durable depends on.
+  void save_cache(std::string) const;
+  void save_durable(std::string) const;
+
   void set_name(std::string) const;
   double size() const;
   size_t states() const;

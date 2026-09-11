@@ -56,6 +56,17 @@ public:
   shared_dfa_ptr get_positions_unknown(int, int) const; // side to move does not have win or loss within given ply
   shared_dfa_ptr get_positions_winning(int, int) const; // side to move wins in at most given ply
   shared_dfa_ptr get_positions_won(int) const; // side to move has won, no moves available
+
+  // saved position access
+
+  // durable defaults true here (unlike GameBase's/DFAUtil's own default of
+  // false): most names a Game asks for by hand are meaningful solver
+  // results (lost, won, backward,ply_max=*, ...), so the common case at
+  // this layer should not have to say so, and the rare cache-like
+  // exception should. Hides GameBase's own (durable-less) overloads.
+  shared_dfa_ptr load_by_hash(std::string, bool durable = true) const;
+  shared_dfa_ptr load_by_name(std::string dfa_name_in, bool durable = true) const;
+  shared_dfa_ptr load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr()> build_func, bool durable = true) const;
 };
 
 #endif

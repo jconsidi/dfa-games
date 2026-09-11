@@ -2,6 +2,8 @@
 
 #include "Game.h"
 
+#include <sys/stat.h>
+
 #include <algorithm>
 #include <format>
 #include <iomanip>
@@ -18,6 +20,13 @@
 Game::Game(std::string name_in, const dfa_shape_t& shape_in)
   : GameBase(name_in, shape_in, 2)
 {
+  // Rule derived helper caches (get_has_moves, ChessGame/OthelloGame's move
+  // generation helpers) save non-durable under this same "<game>/<name>"
+  // shape, so the local root needs this game's directory too -- GameBase's
+  // own constructor already created the archive one for durable results
+  // (lost, won, ...).
+  std::string local_directory = ScratchConfig::get_local_dir() + "/" + name_in;
+  mkdir(local_directory.c_str(), 0700);
 }
 
 shared_dfa_ptr Game::build_positions_losing(int side_to_move, int ply_max) const
@@ -126,7 +135,8 @@ shared_dfa_ptr Game::get_has_moves(int side_to_move) const
 		      {
 			shared_dfa_ptr all_positions = DFAUtil::get_accept(get_shape());
 			return this->get_moves_backward(side_to_move, all_positions);
-		      });
+		      },
+		      false); // internal helper predicate, not solver output
     }
 
   return this->singleton_has_moves[side_to_move];
@@ -310,4 +320,31 @@ shared_dfa_ptr Game::get_positions_won(int side_to_move) const
 			     {
 			       return build_positions_won(side_to_move);
 			     });
+}
+
+shared_dfa_ptr Game::load_by_hash(std::string hash_in, bool durable) const
+{
+  return DFAUtil::load_by_hash(get_shape(), hash_in, durable);
+}
+
+shared_dfa_ptr Game::load_by_name(std::string dfa_name_in, bool durable) const
+{
+  // load by name, but return NULL when there's an issue
+  try
+    {
+      std::string dfa_name = get_name() + "/" + dfa_name_in;
+      return DFAUtil::load_by_name(get_shape(), dfa_name, durable);
+    }
+  catch(const std::runtime_error& e)
+    {
+      return shared_dfa_ptr(0);
+    }
+}
+
+shared_dfa_ptr Game::load_or_build(std::string dfa_name_in, std::function<shared_dfa_ptr ()> build_func, bool durable) const
+{
+  Profile profile("load_or_build " + dfa_name_in);
+
+  std::string dfa_name = get_name() + "/" + dfa_name_in;
+  return DFAUtil::load_or_build(get_shape(), dfa_name, build_func, durable);
 }

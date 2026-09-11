@@ -248,11 +248,11 @@ shared_dfa_ptr _singleton_if_constant(shared_dfa_ptr dfa_in)
   return dfa_in;
 }
 
-shared_dfa_ptr _try_load(const dfa_shape_t& shape_in, std::string name_in)
+shared_dfa_ptr _try_load(const dfa_shape_t& shape_in, std::string name_in, bool durable)
 {
   try
     {
-      return shared_dfa_ptr(new DFA(shape_in, name_in));
+      return shared_dfa_ptr(new DFA(shape_in, name_in, durable));
     }
   catch(const std::runtime_error& e)
     {
@@ -743,12 +743,19 @@ shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std:
   return _reduce_aci(get_union, dfas_in);
 }
 
-shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string hash_in)
+shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string hash_in, bool durable)
 {
 #if 1
+  // Keyed by root as well as hash: the same hash can legitimately exist
+  // under both roots (content addressing gives identical bytes either way),
+  // but a cache hit here must not let a durable=false lookup silently
+  // succeed off the back of an archive-only copy, or vice versa -- the two
+  // roots are meant to be checkable independently of one another.
   static std::unordered_map<std::string, std::weak_ptr<const DFA>> _dfas_by_hash;
 
-  auto search = _dfas_by_hash.find(hash_in);
+  std::string cache_key = (durable ? "durable:" : "cache:") + hash_in;
+
+  auto search = _dfas_by_hash.find(cache_key);
   if(search != _dfas_by_hash.end())
     {
       std::weak_ptr<const DFA> weak_dfa = search->second;
@@ -759,10 +766,10 @@ shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string ha
     }
 
   std::string name = "dfas_by_hash/" + hash_in;
-  shared_dfa_ptr dfa = _try_load(shape_in, name);
+  shared_dfa_ptr dfa = _try_load(shape_in, name, durable);
   if(dfa)
     {
-      _dfas_by_hash[hash_in] = dfa;
+      _dfas_by_hash[cache_key] = dfa;
     }
   return dfa;
 #else
@@ -771,27 +778,27 @@ shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string ha
 #endif
 }
 
-shared_dfa_ptr DFAUtil::load_by_name(const dfa_shape_t& shape_in, std::string name_in)
+shared_dfa_ptr DFAUtil::load_by_name(const dfa_shape_t& shape_in, std::string name_in, bool durable)
 {
   Profile profile("load " + name_in);
 
-  std::optional<std::string> hash = DFA::parse_hash(name_in);
+  std::optional<std::string> hash = DFA::parse_hash(name_in, durable);
   if(hash)
     {
-      return load_by_hash(shape_in, *hash);
+      return load_by_hash(shape_in, *hash, durable);
     }
 
-  return shared_dfa_ptr(new DFA(shape_in, name_in));
+  return shared_dfa_ptr(new DFA(shape_in, name_in, durable));
 }
 
-shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string name_in, std::function<shared_dfa_ptr()> build_func)
+shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string name_in, std::function<shared_dfa_ptr()> build_func, bool durable)
 {
   Profile profile("load_or_build " + name_in);
 
   profile.tic("load");
   try
     {
-      shared_dfa_ptr output = load_by_name(shape_in, name_in);
+      shared_dfa_ptr output = load_by_name(shape_in, name_in, durable);
       if(output)
 	{
 	  output->set_name("saved(\"" + name_in + "\")");
@@ -813,7 +820,14 @@ shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string n
   std::cout << "built " << name_in << " => " << output->states() << " states" << std::endl;
 
   profile.tic("save");
-  output->save(name_in);
+  if(durable)
+    {
+      output->save_durable(name_in);
+    }
+  else
+    {
+      output->save_cache(name_in);
+    }
   return output;
 }
 
