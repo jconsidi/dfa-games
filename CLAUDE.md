@@ -253,6 +253,12 @@ first run and a second run of the same command produce different output
 (`building …` vs `loaded …`). Warm the caches with both binaries before
 comparing.
 
+## Platforms
+
+This project is actively developed and run on both macOS and Linux.
+Do not assume Linux-only behavior (or macOS-only behavior) without checking it actually holds on both, or guarding for the platform where it does not.
+`Makefile`'s `LDFLAGS_SHARED` already points at a Homebrew-style OpenSSL path (`/usr/local/opt/openssl`) for exactly this reason.
+
 ## Shell
 
 The interactive shell is zsh, which does **not** word-split unquoted parameters.
