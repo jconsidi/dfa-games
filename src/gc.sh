@@ -2,9 +2,7 @@
 
 set -e
 
-./gc.pl $*
-
-cd scratch
-
-# find -L ... -type l returns symlinks with missing targets
-find -L *_cache -type l | xargs rm
+# gc.pl now handles cache pruning itself, scoped to whichever directory it
+# is given, so there is nothing left for this wrapper to do beyond passing
+# the arguments through.
+./gc.pl "$@"
