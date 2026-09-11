@@ -1,5 +1,22 @@
 # TODO
 
+## BinaryRestartDFA is broken
+
+`binarydfa/` used to be one directory shared by every `BinaryDFA`, so
+`BinaryRestartDFA` could resume a previous process's progress by finding its
+fixed-name layer files still there. It is now scoped per instance --
+pid-and-counter, like `DFA`'s own `build/` staging -- so that two concurrent
+builds (even in the same process) cannot race through the same filenames and
+corrupt each other. `BinaryRestartDFA`'s constructor now creates its own,
+empty `binarydfa/<pid>-<n>` directory before its restart scan, so it always
+finds zero pairs and throws "previous pairs not found" immediately.
+
+This is a deliberate, known regression, not an oversight: restarting from a
+previous process's on-disk progress needs a different mechanism now (passing
+the specific directory to resume from explicitly, rather than discovering it
+by a shared fixed name) and that redesign is out of scope for pid-scoping
+`binarydfa/` itself.
+
 ## tests
 
 - solution tests

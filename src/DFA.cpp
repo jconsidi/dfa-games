@@ -88,7 +88,7 @@ static void ensure_parent_directories(const std::string& root, const std::string
     }
 }
 
-static std::string create_directory(std::string directory)
+std::string create_directory(std::string directory)
 {
   // Placeholder trailing component so ensure_parent_directories treats
   // directory itself as a prefix to create, not just directory's parents.
@@ -100,7 +100,7 @@ static std::string create_directory(std::string directory)
 
 // Empty and remove a staging directory. Reached from ~DFA for a DFA that was
 // never saved, and from save_by_hash once the .dfa file has taken over.
-static void remove_directory(std::string directory)
+void remove_directory(std::string directory)
 {
   DIR *dir = opendir(directory.c_str());
   if(dir)
