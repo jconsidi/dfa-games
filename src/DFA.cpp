@@ -877,6 +877,33 @@ std::string DFA::calculate_digest() const
   return ss.str();
 }
 
+// Independent digest computation over an arbitrary file path, for
+// reverifying a copy just written to a second root rather than trusting the
+// write happened correctly. Deliberately separate from calculate_digest(),
+// which hashes this->file_map and must not be disturbed by this.
+static std::string digest_of_file(const std::string& file_name)
+{
+  MemoryMap<uint8_t> file_map(file_name, true);
+  file_map.mmap();
+
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+  static const EVP_MD *hash_implementation = EVP_sha256();
+  EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+  EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
+  EVP_DigestUpdate(hash_context,
+		   file_map.begin() + dfa_format::digest_coverage_start,
+		   file_map.size() - dfa_format::digest_coverage_start);
+  EVP_DigestFinal_ex(hash_context, digest, 0);
+  EVP_MD_CTX_destroy(hash_context);
+
+  std::stringstream ss;
+  for(size_t i = 0; i < SHA256_DIGEST_LENGTH; ++i)
+    {
+      ss << std::hex << std::setw(2) << std::setfill('0') << int(digest[i]);
+    }
+  return ss.str();
+}
+
 std::string DFA::get_hash() const
 {
   assert(ready());
@@ -1286,13 +1313,15 @@ void DFA::save_by_hash(const std::string& root) const
   assert(ready());
   if(!temporary)
     {
-      // A DFA is published to exactly one root; asking it to also publish
-      // under a different root would either silently duplicate the blob or
-      // silently do nothing, neither of which the caller likely intends.
+      // Already published somewhere. If that happens to be root, there is
+      // nothing to do. Otherwise this DFA legitimately needs a second name
+      // under root too -- a config-driven component reused as durable
+      // solver output is the case that came up -- so copy it there rather
+      // than refuse: refusing here was itself the bug.
       std::string expected_prefix = root + "/dfas_by_hash/";
       if(!file_name.starts_with(expected_prefix))
 	{
-	  throw std::runtime_error("DFA already saved under a different root than " + root);
+	  publish_copy(root);
 	}
       return;
     }
@@ -1357,6 +1386,85 @@ void DFA::save_by_hash(const std::string& root) const
   remove_directory(directory);
   directory = "";
   temporary = false;
+}
+
+// Copies an already-published DFA's bytes into a second root under the
+// same content-addressed name. Mirrors save_by_hash's own publish
+// discipline (temp name, write, link, unlink, directory fsync), but keeps
+// a separate staging counter -- next_copy_id, not save_by_hash's own
+// next_serialize_id -- since the two can be in flight on the same object
+// at once, and reverifies the digest from the bytes just written to root
+// rather than trusting *hash, since a corrupted copy that reported success
+// is exactly the failure mode this whole codebase exists to avoid.
+void DFA::publish_copy(const std::string& root) const
+{
+  assert(!temporary);
+  assert(hash);
+
+  std::string dfas_by_hash_dir = root + "/dfas_by_hash";
+
+  static int next_copy_id = 0;
+  std::string temporary_name = (dfas_by_hash_dir + "/.tmp-copy-" +
+				std::to_string(getpid()) + "-" +
+				std::to_string(next_copy_id++) + ".dfa");
+
+  ensure_parent_directories(root, temporary_name);
+
+  file_map->mmap();
+
+  int fildes = open(temporary_name.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+  if(fildes == -1)
+    {
+      perror("DFA publish_copy open");
+      throw std::runtime_error("DFA publish_copy open failed");
+    }
+  write_buffer(fildes, file_map->begin(), file_map->size());
+  if(fsync(fildes) || close(fildes))
+    {
+      perror("DFA publish_copy close");
+      throw std::runtime_error("DFA publish_copy close failed");
+    }
+
+  std::string copy_digest = digest_of_file(temporary_name);
+  if(copy_digest != *hash)
+    {
+      throw std::runtime_error("DFA publish_copy digest mismatch copying to " + root);
+    }
+
+  std::string file_name_new = dfas_by_hash_dir + "/" + *hash + ".dfa";
+
+  // link() fails with EEXIST rather than replacing, same reasoning as
+  // save_by_hash: a file of this name already holds these exact bytes, and
+  // a reader may have it open.
+  int link_ret = link(temporary_name.c_str(), file_name_new.c_str());
+  if(link_ret && (errno != EEXIST))
+    {
+      perror("DFA publish_copy link");
+      throw std::runtime_error("DFA publish_copy link failed");
+    }
+
+  if(unlink(temporary_name.c_str()))
+    {
+      perror("DFA publish_copy unlink");
+      throw std::runtime_error("DFA publish_copy unlink failed");
+    }
+
+  int dir_fildes = open(dfas_by_hash_dir.c_str(), O_RDONLY);
+  if(dir_fildes == -1)
+    {
+      perror("DFA publish_copy directory open");
+      throw std::runtime_error("DFA publish_copy directory open failed");
+    }
+  if(fsync(dir_fildes))
+    {
+      perror("DFA publish_copy directory fsync");
+      throw std::runtime_error("DFA publish_copy directory fsync failed");
+    }
+  if(close(dir_fildes))
+    {
+      perror("DFA publish_copy directory close");
+      throw std::runtime_error("DFA publish_copy directory close failed");
+    }
 }
 
 void DFA::set_name(std::string name_in) const
