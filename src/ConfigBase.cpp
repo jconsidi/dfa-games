@@ -33,22 +33,14 @@ ConfigBase::ConfigBase(std::string name_in)
     }
 
   // Components are config-driven rule constraints, not solver output, so
-  // get_component saves them non-durable (local) -- their directory has to
-  // be created under the same root they are actually saved to.
-  std::string components_game_directory = ScratchConfig::get_local_dir() + "/" + name_in;
-  int components_game_ret = mkdir(components_game_directory.c_str(), 0700);
-  if(components_game_ret && (errno != EEXIST))
+  // get_component saves them non-durable (local), flat as component_<key>
+  // alongside this game's other local names -- no subdirectory needed.
+  std::string local_directory = ScratchConfig::get_local_dir() + "/" + name_in;
+  int local_ret = mkdir(local_directory.c_str(), 0700);
+  if(local_ret && (errno != EEXIST))
     {
-      perror("components game mkdir");
-      throw std::runtime_error("components game mkdir failed");
-    }
-
-  std::string components_directory = components_game_directory + "/components";
-  int components_ret = mkdir(components_directory.c_str(), 0700);
-  if(components_ret && (errno != EEXIST))
-    {
-      perror("components mkdir");
-      throw std::runtime_error("components mkdir failed");
+      perror("local mkdir");
+      throw std::runtime_error("local mkdir failed");
     }
 }
 
@@ -131,7 +123,7 @@ shared_dfa_ptr ConfigBase::get_component(const GameBase& game, std::string key_i
     }
 
   const nlohmann::json component_config = components.at(key_in);
-  std::string dfa_name = "components/" + key_in;
+  std::string dfa_name = "component_" + key_in;
   return game.load_or_build(dfa_name, [&]()
   {
     std::string component_type = component_config.at("type").get<std::string>();
