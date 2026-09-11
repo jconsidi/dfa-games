@@ -476,6 +476,43 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
 
   int layer_shape = get_layer_shape(layer);
 
+  // Small enough to build entirely in memory: skip the file altogether
+  // rather than write it out only to immediately mmap it back in. Bounded
+  // (anon_bytes_max), not unconditional -- a dirty anonymous page can only
+  // be reclaimed by the kernel via swap, unlike a file-backed one, which
+  // it can just write back to the already-local, already-fast backing
+  // file, so an unbounded version of this would trade a graceful page-out
+  // for a harder OOM risk on a layer big enough to matter.
+  size_t anon_bytes_max = size_t(1) << 20; // 1MB
+  size_t total_bytes = size_t(layer_size_in) * size_t(layer_shape) * sizeof(dfa_state_t);
+  if(total_bytes <= anon_bytes_max)
+    {
+      MemoryMap<dfa_state_t> anon_transitions(size_t(layer_size_in) * size_t(layer_shape));
+
+      std::vector<dfa_state_t> state_iota(layer_size_in);
+      std::iota(state_iota.begin(), state_iota.end(), 0);
+
+      auto populate_row = [&](dfa_state_t state_id)
+      {
+        populate_func(state_id, anon_transitions.begin() + size_t(state_id) * size_t(layer_shape));
+      };
+
+      // constant state handling
+      std::fill_n(anon_transitions.begin(), layer_shape, 0);
+      std::fill_n(anon_transitions.begin() + layer_shape, layer_shape, 1);
+
+      TRY_PARALLEL_3(std::for_each,
+                     state_iota.begin() + 2,
+                     state_iota.end(),
+                     populate_row);
+
+      layer_transitions[layer] = std::move(anon_transitions);
+      layer_sizes[layer] = layer_size_in;
+
+      assert(layer_transitions[layer].size() == size_t(layer_size_in) * size_t(get_layer_shape(layer)));
+      return;
+    }
+
   // close memory map and open file directly
 
   layer_transitions[layer].munmap();
