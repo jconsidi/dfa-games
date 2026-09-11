@@ -1256,6 +1256,16 @@ void DFA::save_impl(std::string name_in, const std::string& root) const
   assert(!name_in.starts_with("dfas_by_hash/"));
 
   save_by_hash(root);
+  publish_symlink(name_in, root);
+}
+
+// Points root/name_in at this DFA's already-published dfas_by_hash file.
+// Split out of save_impl so save_durable can publish by hash locally first
+// and only then symlink under archive, without saving by hash under
+// archive a second time.
+void DFA::publish_symlink(std::string name_in, const std::string& root) const
+{
+  assert(!name_in.starts_with("dfas_by_hash/"));
 
   std::string symlink_path = root + "/" + name_in;
 
@@ -1305,7 +1315,18 @@ void DFA::save_cache(std::string name_in) const
 
 void DFA::save_durable(std::string name_in) const
 {
-  save_impl(name_in, ScratchConfig::get_archive_dir());
+  // Build and hash against local, fast storage first -- the write and the
+  // read back to compute the digest, exactly what save_cache alone does --
+  // so a slow or networked archive only ever sees a single publish of the
+  // already-finished bytes (save_by_hash's own cross-root publish: a
+  // hardlink when local and archive share a filesystem, a copy reverified
+  // from the bytes on disk otherwise), never an in-progress build. This is
+  // a no-op the second time when local and archive are the same root.
+  save_by_hash(ScratchConfig::get_local_dir());
+
+  std::string archive_dir = ScratchConfig::get_archive_dir();
+  save_by_hash(archive_dir);
+  publish_symlink(name_in, archive_dir);
 }
 
 void DFA::save_by_hash(const std::string& root) const
