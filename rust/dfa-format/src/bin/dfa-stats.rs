@@ -19,7 +19,7 @@ use dfa_format::{is_hash, Dfa, Stats};
 )]
 struct Args {
     /// Scratch directory holding dfas_by_hash/
-    #[arg(long, default_value = "scratch")]
+    #[arg(long, env = "DFA_ARCHIVE_DIR", default_value = "scratch")]
     scratch: PathBuf,
 
     /// Break the report down by layer

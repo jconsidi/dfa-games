@@ -13,7 +13,7 @@ use dfa_format::{is_hash, validate, Dfa, ValidateOptions};
 )]
 struct Args {
     /// Scratch directory holding dfas_by_hash/
-    #[arg(long, default_value = "scratch")]
+    #[arg(long, env = "DFA_ARCHIVE_DIR", default_value = "scratch")]
     scratch: PathBuf,
 
     /// Skip verifying the SHA-256 digest in the header
