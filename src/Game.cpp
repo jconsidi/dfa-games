@@ -2,8 +2,6 @@
 
 #include "Game.h"
 
-#include <sys/stat.h>
-
 #include <algorithm>
 #include <format>
 #include <iomanip>
@@ -15,18 +13,15 @@
 #include "DFAUtil.h"
 #include "DNFBuilder.h"
 #include "Profile.h"
-#include "ScratchConfig.h"
 
+// Directory creation for whatever this game ends up saving is handled by
+// DFA::save_impl/save_by_hash at the point of the actual save (see
+// ensure_parent_directories in DFA.cpp), not here: this constructor no
+// longer has to guess which roots and which names some subclass's
+// load_or_build calls will eventually need.
 Game::Game(std::string name_in, const dfa_shape_t& shape_in)
   : GameBase(name_in, shape_in, 2)
 {
-  // Rule derived helper caches (get_has_moves, ChessGame/OthelloGame's move
-  // generation helpers) save non-durable under this same "<game>/<name>"
-  // shape, so the local root needs this game's directory too -- GameBase's
-  // own constructor already created the archive one for durable results
-  // (lost, won, ...).
-  std::string local_directory = ScratchConfig::get_local_dir() + "/" + name_in;
-  mkdir(local_directory.c_str(), 0700);
 }
 
 shared_dfa_ptr Game::build_positions_losing(int side_to_move, int ply_max) const

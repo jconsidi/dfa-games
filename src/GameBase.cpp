@@ -2,12 +2,12 @@
 
 #include "GameBase.h"
 
-#include <sys/stat.h>
-
 #include "DFAUtil.h"
 #include "Profile.h"
-#include "ScratchConfig.h"
 
+// Directory creation for whatever this game ends up saving is handled by
+// DFA::save_impl/save_by_hash at the point of the actual save (see
+// ensure_parent_directories in DFA.cpp), not here.
 GameBase::GameBase(std::string name_in, const dfa_shape_t& shape_in, int sides_in)
   : name(name_in),
     shape(shape_in),
@@ -15,8 +15,6 @@ GameBase::GameBase(std::string name_in, const dfa_shape_t& shape_in, int sides_i
     move_graphs_forward(sides_in, 0),
     move_graphs_backward(sides_in, 0)
 {
-  std::string directory = ScratchConfig::get_archive_dir() + "/" + name_in;
-  mkdir(directory.c_str(), 0700);
 }
 
 GameBase::~GameBase()
