@@ -36,10 +36,10 @@ int main(int argc, char **argv)
 
   DifferenceRestartDFA difference_dfa(*left, *right);
   std::string difference_name = "difference_cache/" + left->get_hash() + "_" + right->get_hash();
-  difference_dfa.save(difference_name);
+  difference_dfa.save_cache(difference_name);
 
   std::string restart_name = "difference_cache/" + left->get_hash() + "_" + right->get_hash() + "_restart";
-  difference_dfa.save(restart_name);
+  difference_dfa.save_cache(restart_name);
 
   return 0;
 }

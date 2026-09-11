@@ -22,6 +22,8 @@ ConfigBase::ConfigBase(std::string name_in)
       throw std::runtime_error("game config is for " + std::string(game_config.at("game")) + " instead of " + game_name);
     }
 
+  // Durable per-game results (lost, won, ...) live under the archive root,
+  // same as any other Game subclass.
   std::string scratch_directory = ScratchConfig::get_archive_dir() + "/" + name_in;
   int scratch_ret = mkdir(scratch_directory.c_str(), 0700);
   if(scratch_ret && (errno != EEXIST))
@@ -30,7 +32,18 @@ ConfigBase::ConfigBase(std::string name_in)
       throw std::runtime_error("scratch mkdir failed");
     }
 
-  std::string components_directory = scratch_directory + "/components";
+  // Components are config-driven rule constraints, not solver output, so
+  // get_component saves them non-durable (local) -- their directory has to
+  // be created under the same root they are actually saved to.
+  std::string components_game_directory = ScratchConfig::get_local_dir() + "/" + name_in;
+  int components_game_ret = mkdir(components_game_directory.c_str(), 0700);
+  if(components_game_ret && (errno != EEXIST))
+    {
+      perror("components game mkdir");
+      throw std::runtime_error("components game mkdir failed");
+    }
+
+  std::string components_directory = components_game_directory + "/components";
   int components_ret = mkdir(components_directory.c_str(), 0700);
   if(components_ret && (errno != EEXIST))
     {

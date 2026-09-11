@@ -296,7 +296,8 @@ shared_dfa_ptr OthelloGame::get_positions_can_place(int side_to_move) const
 	  }
       }
     return DFAUtil::get_union_vector(get_shape(), place_choices);
-  });
+  },
+  false); // rule-derived move-generation helper, not solver output
 }
 
 shared_dfa_ptr OthelloGame::get_positions_can_place(int side_to_move, int x_begin, int y_begin) const
@@ -326,7 +327,8 @@ shared_dfa_ptr OthelloGame::get_positions_can_place(int side_to_move, int x_begi
     shared_dfa_ptr flip_condition = DFAUtil::get_union_vector(get_shape(), flip_choices);
 
     return DFAUtil::get_intersection(empty_condition, flip_condition);
-  });
+  },
+  false); // rule-derived move-generation helper, not solver output
 }
 
 shared_dfa_ptr OthelloGame::get_positions_end() const
@@ -336,7 +338,8 @@ shared_dfa_ptr OthelloGame::get_positions_end() const
     // game ends if neither side can place a piece
     return DFAUtil::get_inverse(DFAUtil::get_union(get_positions_can_place(0),
 						   get_positions_can_place(1)));
-  });
+  },
+  false); // rule-derived move-generation helper, not solver output
 }
 
 shared_dfa_ptr OthelloGame::get_positions_legal() const
@@ -364,7 +367,8 @@ shared_dfa_ptr OthelloGame::get_positions_legal() const
       };
 
     return DFAUtil::get_intersection_vector(get_shape(), conditions);
-  });
+  },
+  false); // rule-derived move-generation helper, not solver output
 }
 
 std::string OthelloGame::position_to_string(const DFAString& string_in) const

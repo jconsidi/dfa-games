@@ -225,15 +225,15 @@ void test_suite(const dfa_shape_t& shape)
   // save tests
 
   std::shared_ptr<DFA> save(new CountDFA(shape, 0));
-  save->save("test");
+  save->save_durable("test");
   save = 0; // trigger destructor
 
-  std::shared_ptr<const DFA> load(new DFA(shape, "test"));
+  std::shared_ptr<const DFA> load(new DFA(shape, "test", true));
   test_helper("load", *load, 1);
 
   std::shared_ptr<DFA> save2(new AcceptDFA(shape));
   // overwrite save
-  save2->save("test");
+  save2->save_durable("test");
 
   // intersection tests
 

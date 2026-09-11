@@ -36,10 +36,10 @@ int main(int argc, char **argv)
 
   UnionRestartDFA union_dfa(*left, *right);
   std::string union_name = "union_cache/" + left->get_hash() + "_" + right->get_hash();
-  union_dfa.save(union_name);
+  union_dfa.save_cache(union_name);
 
   std::string restart_name = "union_cache/" + left->get_hash() + "_" + right->get_hash() + "_restart";
-  union_dfa.save(restart_name);
+  union_dfa.save_cache(restart_name);
 
   return 0;
 }
