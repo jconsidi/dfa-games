@@ -24,17 +24,6 @@
 #include "VectorBitSet.h"
 #include "parallel.h"
 
-static const size_t SYNC_THRESHOLD_BYTES = 1ULL << 25;
-
-template<class T>
-static void sync_if_big(MemoryMap<T>& memory_map)
-{
-  if(memory_map.length() >= SYNC_THRESHOLD_BYTES)
-    {
-      memory_map.msync();
-    }
-}
-
 BinaryDFA::BinaryDFA(const dfa_shape_t& shape_in, const BinaryFunction& leaf_func_in)
   : DFA(shape_in),
     leaf_func(leaf_func_in)
