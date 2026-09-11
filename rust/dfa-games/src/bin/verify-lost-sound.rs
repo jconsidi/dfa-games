@@ -11,7 +11,7 @@ use dfa_games::{get_game, load, parse_side_to_move, verify};
 #[command(about = "Verify that a DFA holds only terminal lost positions", long_about = None)]
 struct Args {
     /// Scratch directory holding <game>/ and dfas_by_hash/
-    #[arg(long, default_value = "scratch")]
+    #[arg(long, env = "DFA_ARCHIVE_DIR", default_value = "scratch")]
     scratch: PathBuf,
 
     /// Game the DFA belongs to, e.g. breakthrough_4x4

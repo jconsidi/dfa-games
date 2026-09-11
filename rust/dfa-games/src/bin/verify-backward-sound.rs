@@ -16,7 +16,7 @@ use dfa_games::{get_game, load, verify};
 #[command(about = "Verify every ply of a backward solve", long_about = None)]
 struct Args {
     /// Scratch directory holding <game>/ and dfas_by_hash/
-    #[arg(long, default_value = "scratch")]
+    #[arg(long, env = "DFA_ARCHIVE_DIR", default_value = "scratch")]
     scratch: PathBuf,
 
     /// Game to verify, e.g. breakthrough_4x4

@@ -18,7 +18,7 @@ use dfa_format::{is_hash, Dfa};
 )]
 struct Args {
     /// Scratch directory holding dfas_by_hash/ and the per game directories
-    #[arg(long, default_value = "scratch")]
+    #[arg(long, env = "DFA_ARCHIVE_DIR", default_value = "scratch")]
     scratch: PathBuf,
 
     /// Resolve bare DFA names under <scratch>/<game>/. Pure path joining: this

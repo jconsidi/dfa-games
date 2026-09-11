@@ -7,7 +7,7 @@ description = "Game rules and the verifiers that check solver output against the
 [dependencies]
 dfa-format = { path = "../dfa-format" }
 anyhow = "1"
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "env"] }
 rayon = "1"
 
 [dev-dependencies]
