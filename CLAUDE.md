@@ -255,7 +255,8 @@ comparing.
 
 ## Platforms
 
-This project is actively developed and run on both macOS and Linux.
+This project is actively developed and run on both macOS and Linux, but historical development has been about 99.9% on Mac.
+Treat macOS as the well-trodden path and Linux as comparatively untested: a Linux-specific bug is more likely to be latent and undiscovered than a macOS-specific one.
 Do not assume Linux-only behavior (or macOS-only behavior) without checking it actually holds on both, or guarding for the platform where it does not.
 `Makefile`'s `LDFLAGS_SHARED` already points at a Homebrew-style OpenSSL path (`/usr/local/opt/openssl`) for exactly this reason.
 
