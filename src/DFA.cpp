@@ -265,6 +265,7 @@ void DFA::attach_file(std::string file_name_in) const
 
   file_name = file_name_in;
   file_map = new MemoryMap<uint8_t>(file_name_in, true);
+  digest_verified = true;
 
   std::vector<uint64_t> file_layer_sizes;
   for(int layer = 0; layer < ndim; ++layer)
@@ -277,12 +278,15 @@ void DFA::attach_file(std::string file_name_in) const
 // Map a saved DFA and take the shape, layer sizes, initial state and flags
 // from its header.
 //
-// Every check FORMAT-DFA.md section 7 requires of a reader is done here.
-// Failures throw, which is what DFAUtil::_try_load turns into "not found".
+// Every check FORMAT-DFA.md section 7 requires ("must") of a reader is
+// done here. Failures throw, which is what DFAUtil::_try_load turns into
+// "not found". Section 7's one recommended ("may") check, the digest, is
+// deliberately not done here -- see mmap() for why and where.
 void DFA::load_file(std::string file_name_in)
 {
   file_name = file_name_in;
   file_map = new MemoryMap<uint8_t>(file_name_in, true);
+  digest_verified = false;
 
   size_t file_length = file_map->size();
   if(file_length < dfa_format::header_bytes)
@@ -1089,8 +1093,13 @@ DFATransitionsReference DFA::get_transitions(int layer, size_t state_index) cons
 
   if(file_map)
     {
-      // Saved: entries are stored at the width the format derives.
-      file_map->mmap();
+      // Saved: entries are stored at the width the format derives. Routed
+      // through this->mmap(), not file_map->mmap() directly, so the first
+      // real access to a loaded DFA's data -- which this is, for most
+      // callers -- runs (and every access after the first skips) the
+      // digest check mmap() does for a loaded file. See mmap() and
+      // digest_verified.
+      this->mmap();
       size_t offset = size_t(file_layout->row_offset(layer, uint64_t(state_index)));
       return DFATransitionsReference(file_map->begin() + offset,
 				     layer_shape,
@@ -1176,6 +1185,24 @@ void DFA::mmap() const
   if(file_map)
     {
       file_map->mmap();
+
+      // FORMAT-DFA.md section 7's recommended (not required) digest check,
+      // done here rather than in load_file so a loaded-but-never-used DFA
+      // never pays for it, and once per object (not on every mmap() --
+      // get_transitions calls this on every transition lookup) so a DFA
+      // that is actually used does not pay for it repeatedly.
+      if(!digest_verified)
+	{
+	  assert(hash);
+	  std::string digest = calculate_digest();
+	  if(digest != *hash)
+	    {
+	      throw std::runtime_error(file_name + " failed digest verification: expected " +
+					*hash + ", got " + digest);
+	    }
+	  digest_verified = true;
+	}
+
       return;
     }
 
@@ -1452,7 +1479,14 @@ void DFA::publish_copy(const std::string& root) const
 
       ensure_parent_directories(root, temporary_name);
 
-      file_map->mmap();
+      // this->mmap(), not file_map->mmap() directly: a DFA reaching
+      // publish_copy may have been loaded rather than built in this
+      // process (e.g. a config component reused as durable output), so
+      // its bytes may not be digest-verified yet. Copying unverified
+      // bytes to a second root and reverifying only the copy would prove
+      // the copy matches the source, not that the source itself is
+      // sound.
+      this->mmap();
 
       int fildes = open(temporary_name.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
       if(fildes == -1)

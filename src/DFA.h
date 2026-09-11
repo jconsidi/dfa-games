@@ -131,6 +131,18 @@ class DFA
   mutable MemoryMap<uint8_t> *file_map = 0;
   mutable dfa_format::Layout *file_layout = 0;
 
+  // Whether this file's bytes have been checked against their own stored
+  // digest since being mapped. attach_file sets this true immediately --
+  // bytes this process just wrote and hashed itself need no recheck --
+  // and load_file leaves it false, so a loaded DFA is verified once,
+  // lazily, on the first mmap() that actually needs its transition data
+  // rather than at load time: a loaded-but-never-used DFA (a restart
+  // reloading many cached, already-solved results only to find each one
+  // unneeded) never pays for a check whose result is never used, and
+  // get_transitions calling mmap() on every lookup never re-verifies the
+  // same bytes twice.
+  mutable bool digest_verified = false;
+
   // Whether this DFA's construction guarantees canonical state numbering
   // (FORMAT-DFA.md section 8). Left false unless a subclass knows better,
   // since claiming it wrongly produces a file readers will reject.
