@@ -53,8 +53,30 @@ static std::vector<std::string> get_layer_file_names(int ndim, std::string direc
   return output;
 }
 
+// Ensure every directory component of path exists, tolerating EEXIST at each
+// level, so a save (or the staging directory below) never has to trust that
+// some other constructor already created the right directory under the
+// right root ahead of time. path's own last "/"-separated component (the
+// file, symlink, or directory about to be created) is left alone.
+static void ensure_parent_directories(const std::string& path)
+{
+  size_t pos = 0;
+  while((pos = path.find('/', pos + 1)) != std::string::npos)
+    {
+      std::string prefix = path.substr(0, pos);
+      if(mkdir(prefix.c_str(), 0700) && (errno != EEXIST))
+	{
+	  perror(("DFA save mkdir " + prefix).c_str());
+	  throw std::runtime_error("DFA save mkdir failed");
+	}
+    }
+}
+
 static std::string create_directory(std::string directory)
 {
+  // Placeholder trailing component so ensure_parent_directories treats
+  // directory itself as a prefix to create, not just directory's parents.
+  ensure_parent_directories(directory + "/x");
   mkdir(directory.c_str(), 0700);
   return directory;
 }
@@ -1213,6 +1235,8 @@ void DFA::save_impl(std::string name_in, const std::string& root) const
 				    std::to_string(getpid()) + "-" +
 				    std::to_string(next_symlink_id++));
 
+  ensure_parent_directories(symlink_temp_path);
+
   int symlink_ret = symlink(symlink_target.c_str(), symlink_temp_path.c_str());
   if(symlink_ret)
     {
@@ -1257,7 +1281,6 @@ void DFA::save_by_hash(const std::string& root) const
     }
 
   std::string dfas_by_hash_dir = root + "/dfas_by_hash";
-  mkdir(dfas_by_hash_dir.c_str(), 0700);
 
   // Write under a temporary name, since the final name is the digest of the
   // bytes and is not known until they have all been written.
@@ -1265,6 +1288,8 @@ void DFA::save_by_hash(const std::string& root) const
   std::string temporary_name = (dfas_by_hash_dir + "/.tmp-" +
 				std::to_string(getpid()) + "-" +
 				std::to_string(next_serialize_id++) + ".dfa");
+
+  ensure_parent_directories(temporary_name);
 
   std::string digest = serialize(temporary_name);
   std::string file_name_new = dfas_by_hash_dir + "/" + digest + ".dfa";

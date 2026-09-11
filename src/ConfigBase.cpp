@@ -2,15 +2,16 @@
 
 #include "ConfigBase.h"
 
-#include <sys/stat.h>
-
 #include <format>
 #include <fstream>
 #include <stdexcept>
 
 #include "DFAUtil.h"
-#include "ScratchConfig.h"
 
+// Directory creation for whatever this game ends up saving -- durable
+// results under the archive root, component_<key> under the local root --
+// is handled by DFA::save_impl/save_by_hash at the point of the actual
+// save, not here.
 ConfigBase::ConfigBase(std::string name_in)
   : game_name(name_in),
     shape(get_shape_config(name_in)),
@@ -20,27 +21,6 @@ ConfigBase::ConfigBase(std::string name_in)
   if(game_config.at("game") != game_name)
     {
       throw std::runtime_error("game config is for " + std::string(game_config.at("game")) + " instead of " + game_name);
-    }
-
-  // Durable per-game results (lost, won, ...) live under the archive root,
-  // same as any other Game subclass.
-  std::string scratch_directory = ScratchConfig::get_archive_dir() + "/" + name_in;
-  int scratch_ret = mkdir(scratch_directory.c_str(), 0700);
-  if(scratch_ret && (errno != EEXIST))
-    {
-      perror("scratch mkdir");
-      throw std::runtime_error("scratch mkdir failed");
-    }
-
-  // Components are config-driven rule constraints, not solver output, so
-  // get_component saves them non-durable (local), flat as component_<key>
-  // alongside this game's other local names -- no subdirectory needed.
-  std::string local_directory = ScratchConfig::get_local_dir() + "/" + name_in;
-  int local_ret = mkdir(local_directory.c_str(), 0700);
-  if(local_ret && (errno != EEXIST))
-    {
-      perror("local mkdir");
-      throw std::runtime_error("local mkdir failed");
     }
 }
 
