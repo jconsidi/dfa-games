@@ -21,6 +21,7 @@
 #include "DFA.h"
 #include "DFAFormat.h"
 #include "Profile.h"
+#include "ScratchConfig.h"
 #include "parallel.h"
 #include "utils.h"
 
@@ -35,7 +36,7 @@ static int next_dfa_id = 0;
 // this process holds it.
 static std::string get_temp_directory()
 {
-  return ("scratch/temp/" +
+  return (ScratchConfig::get_local_dir() + "/temp/" +
 	  std::to_string(getpid()) + "-" +
 	  std::to_string(next_dfa_id++));
 }
@@ -134,10 +135,10 @@ static std::string get_file_name(std::string name_in)
 {
   if(name_in.starts_with("dfas_by_hash/"))
     {
-      return "scratch/" + name_in + ".dfa";
+      return ScratchConfig::get_archive_dir() + "/" + name_in + ".dfa";
     }
 
-  return "scratch/" + name_in;
+  return ScratchConfig::get_archive_dir() + "/" + name_in;
 }
 
 DFA::DFA(const dfa_shape_t& shape_in, std::string name_in)
@@ -1141,7 +1142,7 @@ std::optional<std::string> DFA::parse_hash(std::string name_in)
 
   // Any other name is a symbolic link to a file in dfas_by_hash/.
 
-  std::string symlink_path = "scratch/" + name_in;
+  std::string symlink_path = ScratchConfig::get_archive_dir() + "/" + name_in;
   char link_target[1024] = {0};
   ssize_t ret = readlink(symlink_path.c_str(), link_target, sizeof(link_target) - 1);
   if(ret >= 0)
@@ -1184,7 +1185,7 @@ void DFA::save(std::string name_in) const
 
   save_by_hash();
 
-  std::string symlink_path = std::string("scratch/") + name_in;
+  std::string symlink_path = ScratchConfig::get_archive_dir() + "/" + name_in;
 
   // add symbolic link to the existing file in dfas_by_hash/
   std::string symlink_target = "dfas_by_hash/" + get_hash() + ".dfa";
@@ -1231,17 +1232,18 @@ void DFA::save_by_hash() const
       return;
     }
 
-  mkdir("scratch/dfas_by_hash", 0700);
+  std::string dfas_by_hash_dir = ScratchConfig::get_archive_dir() + "/dfas_by_hash";
+  mkdir(dfas_by_hash_dir.c_str(), 0700);
 
   // Write under a temporary name, since the final name is the digest of the
   // bytes and is not known until they have all been written.
   static int next_serialize_id = 0;
-  std::string temporary_name = ("scratch/dfas_by_hash/.tmp-" +
+  std::string temporary_name = (dfas_by_hash_dir + "/.tmp-" +
 				std::to_string(getpid()) + "-" +
 				std::to_string(next_serialize_id++) + ".dfa");
 
   std::string digest = serialize(temporary_name);
-  std::string file_name_new = "scratch/dfas_by_hash/" + digest + ".dfa";
+  std::string file_name_new = dfas_by_hash_dir + "/" + digest + ".dfa";
 
   // link() fails with EEXIST rather than replacing, which is what section 10
   // asks for: a file of this name already holds these exact bytes, and a
@@ -1262,7 +1264,7 @@ void DFA::save_by_hash() const
   // Make the directory entry durable, not just the file's own bytes: without
   // this, a crash could leave file_name_new written and fsynced but the
   // link that names it not yet on disk as far as the directory is concerned.
-  int dir_fildes = open("scratch/dfas_by_hash", O_RDONLY);
+  int dir_fildes = open(dfas_by_hash_dir.c_str(), O_RDONLY);
   if(dir_fildes == -1)
     {
       perror("DFA save directory open");
@@ -1301,7 +1303,7 @@ void DFA::set_name(std::string name_in) const
 // readers must be able to treat the file as immutable.
 static std::string get_size_file_name(std::string hash_in)
 {
-  return "scratch/sizes/" + hash_in;
+  return ScratchConfig::get_local_dir() + "/sizes/" + hash_in;
 }
 
 double DFA::size() const
@@ -1363,7 +1365,7 @@ double DFA::size() const
 
       if(hash)
 	{
-	  mkdir("scratch/sizes", 0700);
+	  mkdir((ScratchConfig::get_local_dir() + "/sizes").c_str(), 0700);
 	  MemoryMap<double> cached(get_size_file_name(*hash), size_t(1));
 	  cached[0] = size_cache;
 	  cached.msync();

@@ -7,6 +7,7 @@
 
 #include "DFA.h"
 #include "DFAUtil.h"
+#include "ScratchConfig.h"
 
 ConfigGameBase::ConfigGameBase(std::string name_in)
   : ConfigBase(name_in)

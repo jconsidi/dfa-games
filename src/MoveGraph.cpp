@@ -15,6 +15,7 @@
 #include "DFAUtil.h"
 #include "DNFBuilder.h"
 #include "Profile.h"
+#include "ScratchConfig.h"
 
 static change_vector reverse_changes(const change_vector& changes_in);
 
@@ -390,7 +391,7 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
       for(int cleanup_node_index : cleanup_schedule.at(node_index))
 	{
-	  std::string cleanup_link = "scratch/" + output_names.at(cleanup_node_index);
+	  std::string cleanup_link = ScratchConfig::get_archive_dir() + "/" + output_names.at(cleanup_node_index);
 	  unlink(cleanup_link.c_str());
 	}
     }
