@@ -138,6 +138,7 @@ class DFA
   void attach_file(std::string) const;
   void close_file() const;
   void load_file(std::string);
+  void publish_symlink(std::string name_in, const std::string& root) const;
   void save_by_hash(const std::string& root) const;
   void save_impl(std::string name_in, const std::string& root) const;
   std::string serialize(std::string) const;
@@ -206,6 +207,14 @@ class DFA
   // shared: named game results, the actual solver output. save_cache
   // publishes into the local root, meant to be freely disposable: op-cache
   // and move-graph-node style memoization that nothing durable depends on.
+  //
+  // save_durable builds and hashes on the local root first -- the write and
+  // the read back to compute the digest, exactly what save_cache alone
+  // does -- and only then asks save_by_hash for the archive root, so a
+  // slow or networked archive only ever sees the already-finished bytes
+  // (a hardlink when local and archive share a filesystem, a copy
+  // reverified from the bytes on disk otherwise; see publish_copy), never
+  // an in-progress build.
   void save_cache(std::string) const;
   void save_durable(std::string) const;
 
