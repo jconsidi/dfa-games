@@ -24,7 +24,7 @@
       "side_to_move": 0,
       "expected_perft_u": [
         2,
-        4
+        5
       ]
     }
   ]

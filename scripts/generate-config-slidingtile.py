@@ -27,7 +27,7 @@ def generate_size(width, height):
     # tests - perft_u from won position
 
     positions_expected = [2]
-    positions_expected.append(2 + (1 if width > 2 else 0) + (1 if height > 2 else 0))
+    positions_expected.append(3 + (1 if width > 2 else 0) + (1 if height > 2 else 0))
 
     game_config.add_position(
         {
