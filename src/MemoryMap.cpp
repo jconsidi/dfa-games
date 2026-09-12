@@ -398,11 +398,8 @@ int MemoryMap<T>::open(int flags, int mode) const
   int fildes = ::open(_filename.c_str(), flags, mode);
   if(fildes == -1)
     {
-      if(errno != ENOENT)
-	{
-	  std::cerr << "open " << _filename << " failed" << std::endl;
-	  perror("open");
-	}
+      std::cerr << "open " << _filename << " failed" << std::endl;
+      perror("open");
       throw std::runtime_error("open() failed");
     }
 
