@@ -51,19 +51,14 @@ one directory needs a real design, not just a flag.
 
 `binarydfa/` used to be one directory shared by every `BinaryDFA`, so
 `BinaryRestartDFA` could resume a previous process's progress by finding its
-fixed-name layer files still there. It is now scoped per instance --
-pid-and-counter -- so that two concurrent `BinaryDFA` constructions (even in
-the same process) cannot race through the same filenames and corrupt each
-other. (`DFA`'s own `build/` staging used to be pid-and-counter for the same
-reason; it is now bare pid, since `build_in_progress` makes "at most one DFA
-build in flight per process" an asserted invariant there. `binarydfa/` keeps
-its counter for now -- the same argument likely applies, since a
-`BinaryDFA`'s `binarydfa/` guard is always torn down before its own
-`build_in_progress` window closes, but that hasn't been checked through and
-changed the way `build/` was.) `BinaryRestartDFA`'s constructor now
-creates its own, empty `binarydfa/<pid>-<n>` directory before its restart
-scan, so it always finds zero pairs and throws "previous pairs not found"
-immediately.
+fixed-name layer files still there. It is now scoped per instance -- bare
+pid, same as `DFA`'s own `build/` staging -- so that two concurrent
+`BinaryDFA` constructions (even in the same process) cannot race through the
+same filenames and corrupt each other; `binary_build_in_progress`
+(`BinaryDFA.cpp`) makes that an asserted invariant, mirroring `build/`'s own
+`build_in_progress`. `BinaryRestartDFA`'s constructor now creates its own,
+empty `binarydfa/<pid>` directory before its restart scan, so it always
+finds zero pairs and throws "previous pairs not found" immediately.
 
 This is a deliberate, known regression, not an oversight: restarting from a
 previous process's on-disk progress needs a different mechanism now (passing
@@ -73,10 +68,10 @@ by a shared fixed name) and that redesign is out of scope for pid-scoping
 
 **Fixing this** needs at least:
 
-- A way for a new process to *adopt* an existing `binarydfa/<old-pid>-<n>`
+- A way for a new process to *adopt* an existing `binarydfa/<old-pid>`
   directory instead of `create_binary_directory` always making a fresh one --
-  the new process has a different pid and a process-local counter, so it has
-  no way to reconstruct the old path itself; it has to be told.
+  the new process has a different pid, so it has no way to reconstruct the
+  old path itself; it has to be told.
 - Something to tell it: the exact stale directory has to be named explicitly
   (a command line argument, a config value, whatever the restart entry point
   ends up being), which means whatever launches the restart needs to have

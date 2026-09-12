@@ -88,12 +88,6 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
   build_quadratic(left_in, right_in);
 }
 
-// Working files for the BFS/quadratic construction below: pure scratch,
-// unlinked within the same construction pass that writes them (or by
-// DirectoryGuard if that pass throws instead), so they always belong on
-// the fast local tier, never the archive.
-static int next_binary_id = 0;
-
 // Mirrors DFA.cpp's build_in_progress, for the same reason: proves "at most
 // one binarydfa/ staging directory outstanding per process" instead of just
 // observing it. Set when create_binary_directory creates one, cleared when
@@ -105,11 +99,19 @@ static int next_binary_id = 0;
 // directory is no longer needed, full stop).
 static bool binary_build_in_progress = false;
 
+// Working files for the BFS/quadratic construction below: pure scratch,
+// unlinked within the same construction pass that writes them (or by
+// DirectoryGuard if that pass throws instead), so they always belong on
+// the fast local tier, never the archive. Bare pid, no counter -- same
+// reasoning as DFA.cpp's get_temp_directory: binary_build_in_progress
+// above makes it an asserted invariant that this process never has two of
+// these outstanding at once, and a pid cannot be reused while this process
+// holds it, so the pid alone already names a directory nothing else on the
+// machine can collide with.
 static std::string get_binary_directory()
 {
   return (ScratchConfig::get_local_dir() + "/binarydfa/" +
-	  std::to_string(getpid()) + "-" +
-	  std::to_string(next_binary_id++));
+	  std::to_string(getpid()));
 }
 
 BinaryDFA::DirectoryGuard::DirectoryGuard(std::string directory_in)

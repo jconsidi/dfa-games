@@ -126,11 +126,12 @@ protected:
 
   BinaryDFA(const dfa_shape_t&, const BinaryFunction&);
 
-  // binarydfa/ staging is scoped per BinaryDFA instance -- pid and a
-  // counter, like DFA's own build/ staging -- since two constructions,
-  // even in the same process, must never share one: they would race
-  // through the same fixed filenames (transitions, layer=00-pairs, ...)
-  // and corrupt each other.
+  // binarydfa/ staging is scoped per BinaryDFA instance -- bare pid, like
+  // DFA's own build/ staging -- since two constructions, even in the same
+  // process, must never share one: they would race through the same fixed
+  // filenames (transitions, layer=00-pairs, ...) and corrupt each other.
+  // binary_build_in_progress (BinaryDFA.cpp) is what makes that an asserted
+  // invariant rather than just an observed one.
   //
   // build_linear and build_quadratic each call create_binary_directory
   // themselves, once, before using binary_dir(). BinaryRestartDFA resumes
