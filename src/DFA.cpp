@@ -666,6 +666,20 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
     }
 
   assert(ready());
+
+  // Consolidate immediately rather than leaving this DFA temporary until
+  // something else saves or discards it: add_state's growth-path files are
+  // already real, already-written disk files (one or more per layer, from
+  // doubling growth plus the trim just above), not a deferred cost this
+  // introduces -- so folding them into the one canonical dfas_by_hash file
+  // here is a write of roughly the same total data, not a new one. What it
+  // buys back is real: those per-layer files and their mmaps stop
+  // accumulating for as long as whatever holds this DFA does, which for a
+  // process-lifetime cache (DFAUtil's singletons) or a leaked top-level
+  // Game* (every build/solve/verify/validate binary today) is otherwise the
+  // life of the process. set_canonical must run before this -- see its own
+  // comment -- since canonical is part of what gets written below.
+  save_by_hash(ScratchConfig::get_local_dir());
 }
 
 // Write this DFA to file_name_in in the format of FORMAT-DFA.md and return
@@ -1186,6 +1200,12 @@ bool DFA::is_canonical() const
 
 void DFA::set_canonical(bool canonical_in)
 {
+  // canonical is part of what serialize() writes (FORMAT-DFA.md section 8,
+  // flag_canonical), and set_initial_state finalizes -- and may serialize --
+  // this DFA the moment it runs. Deciding canonical after that would either
+  // be silently discarded or (once set_initial_state saves eagerly) land in
+  // a file already written with the wrong flag, so it must happen first.
+  assert(!ready());
   canonical = canonical_in;
 }
 

@@ -357,20 +357,25 @@ void BinaryDFA::build_quadratic(const DFA& left_in,
 
   profile.tic("backward");
 
-  build_quadratic_backward(left_in, right_in, num_layers_used);
+  dfa_state_t initial_state = build_quadratic_backward(left_in, right_in, num_layers_used);
 
   // Every layer sorted by its raw transitions, so states came out numbered in
   // ascending order of those transitions, with uniform rows folded into the
   // reserved states and duplicates merged. That is canonical and minimal.
+  //
+  // Must be decided before set_initial_state, not after: that call finalizes
+  // (and may immediately serialize) this DFA, and canonical is part of what
+  // gets written.
   this->set_canonical(!hashed_any_layer);
+  this->set_initial_state(initial_state);
 
   assert(this->ready());
   profile.tic("final cleanup");
 }
 
-void BinaryDFA::build_quadratic_backward(const DFA& left_in,
-                                         const DFA& right_in,
-                                         int backward_layers)
+dfa_state_t BinaryDFA::build_quadratic_backward(const DFA& left_in,
+                                                const DFA& right_in,
+                                                int backward_layers)
 {
   Profile profile("build_quadratic_backward");
 
@@ -395,8 +400,9 @@ void BinaryDFA::build_quadratic_backward(const DFA& left_in,
     }
 
   assert(next_pair_rank_to_output.size() == 1);
-  this->set_initial_state(next_pair_rank_to_output[0]);
+  dfa_state_t initial_state = next_pair_rank_to_output[0];
   next_pair_rank_to_output.unlink();
+  return initial_state;
 }
 
 MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
