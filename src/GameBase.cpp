@@ -12,11 +12,18 @@ GameBase::GameBase(std::string name_in, const dfa_shape_t& shape_in, int sides_i
   : name(name_in),
     shape(shape_in),
     sides(sides_in),
-    move_graphs_forward(sides_in, 0),
-    move_graphs_backward(sides_in, 0)
+    move_graphs_forward(size_t(sides_in)),
+    move_graphs_backward(size_t(sides_in))
 {
 }
 
+// Empty, but not removable: move_graphs_forward/backward being
+// unique_ptr is what actually frees each cached MoveGraph (and every DFA
+// it holds in node_pre_conditions/node_post_conditions) when a game
+// object is destroyed. They used to be raw MoveGraph* with nothing ever
+// calling delete on them, which meant any DFA reachable only through a
+// cached MoveGraph -- built but never explicitly saved -- leaked its
+// build/ staging directory for the life of the process, success or not.
 GameBase::~GameBase()
 {
 }
@@ -25,10 +32,10 @@ const MoveGraph& GameBase::get_move_graph_forward(int side_to_move) const
 {
   assert(0 <= side_to_move);
   assert(side_to_move < sides);
-  
-  if(move_graphs_forward[side_to_move] == 0)
+
+  if(!move_graphs_forward[side_to_move])
     {
-      move_graphs_forward[side_to_move] = new MoveGraph(build_move_graph(side_to_move).optimize());
+      move_graphs_forward[side_to_move] = std::make_unique<MoveGraph>(build_move_graph(side_to_move).optimize());
     }
 
   return *move_graphs_forward.at(side_to_move);
@@ -38,11 +45,11 @@ const MoveGraph& GameBase::get_move_graph_backward(int side_to_move) const
 {
   assert(0 <= side_to_move);
   assert(side_to_move < sides);
-  
-  if(move_graphs_backward[side_to_move] == 0)
+
+  if(!move_graphs_backward[side_to_move])
     {
       const MoveGraph& forward = get_move_graph_forward(side_to_move);
-      move_graphs_backward[side_to_move] = new MoveGraph(forward.reverse().optimize());
+      move_graphs_backward[side_to_move] = std::make_unique<MoveGraph>(forward.reverse().optimize());
     }
 
   return *move_graphs_backward.at(side_to_move);
