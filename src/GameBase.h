@@ -40,6 +40,7 @@ public:
 
   std::string get_name() const {return name;}
   const dfa_shape_t& get_shape() const {return shape;}
+  int get_sides() const {return sides;}
 
   // saved position access
 

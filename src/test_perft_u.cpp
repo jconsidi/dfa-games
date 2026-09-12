@@ -18,7 +18,7 @@ void test_perft_u_case(const GameBase& game, const DFAString& position, const nl
   for(int ply = 0; ply < expected.size(); ++ply)
     {
       int depth = ply + 1;
-      positions = game.get_moves_forward((side_to_move + ply) % 2, positions);
+      positions = game.get_moves_forward((side_to_move + ply) % game.get_sides(), positions);
 
       std::cout << "DEPTH: " << depth << ", POSITIONS: " << positions->size() << ", EXPECTED: " << expected[ply] << std::endl;
 
