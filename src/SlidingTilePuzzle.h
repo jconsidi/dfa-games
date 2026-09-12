@@ -15,6 +15,8 @@ class SlidingTilePuzzle
   SlidingTilePuzzle(int, int);
 
   virtual std::string position_to_string(const DFAString&) const;
+
+  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
 };
 
 #endif
