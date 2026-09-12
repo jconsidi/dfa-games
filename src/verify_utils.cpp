@@ -108,7 +108,7 @@ void verify_lost_position(const Game& game, int side_to_move, const DFAString& p
   std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
   bool moves_mismatch = moves.size() > 0;
 
-  std::optional<int> result_actual = game.validate_result(side_to_move, position);
+  std::optional<int> result_actual = game.validate_outcome(side_to_move, position);
   bool result_mismatch = !result_actual || (*result_actual != -1);
 
   if(result_mismatch || moves_mismatch)
@@ -270,7 +270,7 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
   std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
   bool moves_mismatch = moves.size() > 0;
 
-  std::optional<int> result_actual = game.validate_result(side_to_move, position);
+  std::optional<int> result_actual = game.validate_outcome(side_to_move, position);
   bool result_mismatch = !result_actual || (*result_actual != 1);
 
   if(result_mismatch || moves_mismatch)

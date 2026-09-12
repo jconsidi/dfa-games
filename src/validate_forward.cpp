@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 	  DFAString position(*iter);
 
 	  std::vector<DFAString> moves = game->validate_moves(side_to_move, position);
-          std::optional<int> result = game->validate_result(side_to_move, position);
+          std::optional<int> result = game->validate_outcome(side_to_move, position);
 
 	  // should not have both moves and a final result
 	  if((moves.size() > 0) && result)

@@ -35,7 +35,7 @@ public:
 
   shared_dfa_ptr get_positions_won() const;
 
-  virtual std::optional<int> validate_result(int, const DFAString&) const;
+  virtual std::optional<int> validate_outcome(int, const DFAString&) const;
 };
 
 #endif

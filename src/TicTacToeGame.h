@@ -25,7 +25,7 @@ private:
   // validation
 
   virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
-  virtual std::optional<int> validate_result(int, const DFAString&) const;
+  virtual std::optional<int> validate_outcome(int, const DFAString&) const;
 };
 
 #endif

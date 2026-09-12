@@ -9,7 +9,7 @@
   `tests/positions_manual.rs`. The file holds hand written positions with
   `expected_moves` and `expected_result` in the same envelope `tests.json`
   uses, so `run_test_cases` can read it with a new case type and check
-  `validate_moves` / `validate_result` the way `test_perft_u` checks position
+  `validate_moves` / `validate_outcome` the way `test_perft_u` checks position
   counts. Today only the Rust rules are held to those positions, which is half
   the point of writing them down: the same file should pin both
   implementations. Merging it into `tests.json` outright would work too, and is

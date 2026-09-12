@@ -94,7 +94,7 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
           continue;
         }
 
-      std::optional<int> result = game.validate_result(side_to_move, position);
+      std::optional<int> result = game.validate_outcome(side_to_move, position);
       if(!result)
         {
           std::cerr << "# LOSING EXAMPLE WITHOUT RESULT" << std::endl;
@@ -152,7 +152,7 @@ bool validate_nonterminal(const Game& game, int side_to_move, shared_dfa_ptr pos
       std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
       bool moves_mismatch = moves.size() == 0;
 
-      std::optional<int> result_actual = game.validate_result(side_to_move, position);
+      std::optional<int> result_actual = game.validate_outcome(side_to_move, position);
       bool result_mismatch = bool(result_actual);
 
       if(result_mismatch || moves_mismatch)
@@ -222,7 +222,7 @@ bool validate_partition(shared_dfa_ptr target, std::vector<shared_dfa_ptr> parti
   return true;
 }
 
-bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr positions, int result_expected, int max_examples)
+bool validate_outcome(const Game& game, int side_to_move, shared_dfa_ptr positions, int result_expected, int max_examples)
 {
   // verify these are terminal positions according to the DFA move
   // generator.
@@ -246,7 +246,7 @@ bool validate_result(const Game& game, int side_to_move, shared_dfa_ptr position
     {
       DFAString position(*iter);
 
-      std::optional<int> result_actual = game.validate_result(side_to_move, position);
+      std::optional<int> result_actual = game.validate_outcome(side_to_move, position);
       if(!result_actual)
         {
           std::cerr << "# RESULT MISSING: expected " << result_expected << std::endl;
@@ -318,7 +318,7 @@ bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_wi
           continue;
         }
 
-      std::optional<int> result = game.validate_result(side_to_move, position);
+      std::optional<int> result = game.validate_outcome(side_to_move, position);
       if(!result)
         {
           std::cerr << "# WINNING EXAMPLE WITHOUT RESULT" << std::endl;

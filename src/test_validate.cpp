@@ -15,30 +15,30 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
   std::cout << "SIDE TO MOVE: " << side_to_move << std::endl;
 
   const auto validate_moves = game.validate_moves(side_to_move, position);
-  const auto validate_result = game.validate_result(side_to_move, position);
+  const auto validate_outcome = game.validate_outcome(side_to_move, position);
 
   std::cout << "validate_moves() returned " << validate_moves.size() << " moves." << std::endl;
-  if(validate_result)
+  if(validate_outcome)
     {
-      std::cout << "validate_result() returned " << *validate_result << std::endl;
+      std::cout << "validate_outcome() returned " << *validate_outcome << std::endl;
     }
   else
     {
-      std::cout << "validate_result() returned none." << std::endl;
+      std::cout << "validate_outcome() returned none." << std::endl;
     }
   
   if(validate_moves.size() == 0)
     {
-      if(!validate_result)
+      if(!validate_outcome)
         {
-          throw std::logic_error("validate_moves() returned zero moves, but validate_result() returned none.");
+          throw std::logic_error("validate_moves() returned zero moves, but validate_outcome() returned none.");
         }
     }
   else
     {
-      if(validate_result)
+      if(validate_outcome)
         {
-          throw std::logic_error(std::format("validate_moves() returned {:d} moves, but validate_result returned {:d}.", validate_moves.size(), *validate_result));
+          throw std::logic_error(std::format("validate_moves() returned {:d} moves, but validate_outcome returned {:d}.", validate_moves.size(), *validate_outcome));
         }
     }
 
@@ -48,17 +48,17 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
       if(expected_result.is_null())
         {
           std::cout << "expected result none" << std::endl;
-          if(validate_result)
+          if(validate_outcome)
             {
-              throw std::logic_error(std::format("validate_result() returned {:d}, but expected none", *validate_result));
+              throw std::logic_error(std::format("validate_outcome() returned {:d}, but expected none", *validate_outcome));
             }
         }
       else
         {
           std::cout << "expected result " << expected_result.get<int>() << std::endl;
-          if(!validate_result)
+          if(!validate_outcome)
             {
-              throw std::logic_error(std::format("validate_result() returned none, but expected {:d}", expected_result.get<int>()));
+              throw std::logic_error(std::format("validate_outcome() returned none, but expected {:d}", expected_result.get<int>()));
             }
         }
     }

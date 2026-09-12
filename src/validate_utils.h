@@ -17,7 +17,7 @@ bool validate_equal(const Game&, std::string, shared_dfa_ptr, std::string, share
 bool validate_nonterminal(const Game&, int, shared_dfa_ptr, int);
 bool validate_losing(const Game&, int, shared_dfa_ptr, shared_dfa_ptr, shared_dfa_ptr, int);
 bool validate_partition(shared_dfa_ptr, std::vector<shared_dfa_ptr>, int);
-bool validate_result(const Game&, int, shared_dfa_ptr, int, int);
+bool validate_outcome(const Game&, int, shared_dfa_ptr, int, int);
 bool validate_subset(shared_dfa_ptr, shared_dfa_ptr, int);
 bool validate_winning(const Game&, int, shared_dfa_ptr, shared_dfa_ptr, shared_dfa_ptr, int);
 

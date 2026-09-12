@@ -1480,7 +1480,7 @@ std::vector<DFAString> ChessGame::validate_moves(int side_to_move, const DFAStri
   return output;
 }
 
-std::optional<int> ChessGame::validate_result(int side_to_move, const DFAString& position) const
+std::optional<int> ChessGame::validate_outcome(int side_to_move, const DFAString& position) const
 {
   Board board = position_to_board(side_to_move, position);
 
