@@ -5,6 +5,8 @@
 
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufWriter, ErrorKind, Read, Seek, SeekFrom, Write};
+#[cfg(target_os = "macos")]
+use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
@@ -158,6 +160,27 @@ pub fn write_automaton(src: &Automaton, out_dir: &Path, verify: bool) -> Result<
     outcome
 }
 
+/// `File::sync_all` is `fsync(2)`, a real barrier down to the device on
+/// Linux. On macOS it only flushes the OS's own buffers -- per Apple's own
+/// fsync(2) documentation, it does not necessarily flush the drive's write
+/// cache -- and `F_FULLFSYNC` is Apple's stronger barrier for exactly
+/// this. Every fsync in the publish path goes through here rather than
+/// risking the weaker guarantee on macOS, which is where nearly all
+/// development on this project happens (see `CLAUDE.md` **Platforms**).
+/// Falls back to `sync_all` when `F_FULLFSYNC` is unavailable (not macOS)
+/// or fails at run time, since that is still strictly better than nothing.
+fn fsync_durable(file: &File, path: &Path) -> Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let ret = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_FULLFSYNC, 0) };
+        if ret == 0 {
+            return Ok(());
+        }
+    }
+
+    file.sync_all().map_err(|e| FormatError::io(path, e))
+}
+
 fn write_and_publish(
     src: &Automaton,
     lay: &Layout,
@@ -201,7 +224,7 @@ fn write_and_publish(
         .map_err(|e| FormatError::io(tmp, e))?;
     file.write_all(&digest)
         .map_err(|e| FormatError::io(tmp, e))?;
-    file.sync_all().map_err(|e| FormatError::io(tmp, e))?;
+    fsync_durable(&file, tmp)?;
     drop(file);
 
     if verify {
@@ -237,7 +260,7 @@ fn write_and_publish(
     // guarantee that reports success when it did not happen is not a
     // guarantee, so propagate a failure here instead of swallowing it.
     let dir = File::open(out_dir).map_err(|e| FormatError::io(out_dir, e))?;
-    dir.sync_all().map_err(|e| FormatError::io(out_dir, e))?;
+    fsync_durable(&dir, out_dir)?;
 
     Ok(Converted {
         path: final_path,
