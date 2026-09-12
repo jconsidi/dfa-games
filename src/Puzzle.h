@@ -34,6 +34,8 @@ public:
   shared_dfa_ptr get_moves_forward(shared_dfa_ptr positions_in) const {return GameBase::get_moves_forward(0, positions_in);}
 
   shared_dfa_ptr get_positions_won() const;
+
+  virtual std::optional<int> validate_result(int, const DFAString&) const;
 };
 
 #endif

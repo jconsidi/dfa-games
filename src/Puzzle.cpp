@@ -18,3 +18,8 @@ shared_dfa_ptr Puzzle::get_positions_won() const
     return build_positions_won();
   });
 }
+
+std::optional<int> Puzzle::validate_result(int, const DFAString&) const
+{
+  return std::optional<int>();
+}
