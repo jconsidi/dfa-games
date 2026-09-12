@@ -9,7 +9,7 @@
 #include "DFAUtil.h"
 #include "test_utils.h"
 
-void test_validate_case(const Game& game, const DFAString& position, const nlohmann::json& test_case)
+void test_validate_case(const GameBase& game, const DFAString& position, const nlohmann::json& test_case)
 {
   int side_to_move = test_case.at("side_to_move").get<int>();
   std::cout << "SIDE TO MOVE: " << side_to_move << std::endl;

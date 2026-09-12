@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include "Game.h"
+#include "GameBase.h"
 
 struct TestGroup
 {
@@ -22,12 +23,13 @@ bool check_win(const Game& game, int ply_max);
 
 shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name);
 Game *get_game(std::string game_name);
+GameBase *get_gamebase(std::string game_name);
 // game_name == "" means every game with a config/<game>/tests.json
 std::vector<TestGroup> get_test_cases(std::string config_filename, std::string cases_key, std::string game_name = "");
-void run_test_positions(std::string game_name, std::function<void(const Game&, const DFAString&, const nlohmann::json&)> test_case_func, std::string required_key = "");
+void run_test_positions(std::string game_name, std::function<void(const GameBase&, const DFAString&, const nlohmann::json&)> test_case_func, std::string required_key = "");
 void test_backward(const Game& game_in, int ply_max, bool initial_win_expected);
 void test_forward(const Game& game_in, const std::vector<size_t>& positions_expected);
 void test_game(const Game& game_in, const std::vector<size_t>& positions_expected, int ply_max, bool initial_win_expected);
-void test_moves(const Game& game_in, const std::set<DFAString>& actual_moves, const std::set<DFAString>& expected_moves);
+void test_moves(const GameBase& game_in, const std::set<DFAString>& actual_moves, const std::set<DFAString>& expected_moves);
 
 #endif

@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     }
 
   std::string game_name(argv[1]);
-  Game *game = get_game(game_name);
+  GameBase *game = get_gamebase(game_name);
 
   std::string left_hash(argv[2]);
   shared_dfa_ptr left = game->load_by_hash(left_hash);

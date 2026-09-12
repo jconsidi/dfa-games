@@ -20,6 +20,7 @@
 #include "DFAUtil.h"
 #include "NormalNimGame.h"
 #include "OthelloGame.h"
+#include "SlidingTilePuzzle.h"
 #include "TicTacToeGame.h"
 
 bool check_loss(const Game& game, int ply_max)
@@ -38,7 +39,7 @@ bool check_win(const Game& game, int ply_max)
 
 shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name)
 {
-  const std::unique_ptr<Game> game(get_game(game_name));
+  const std::unique_ptr<GameBase> game(get_gamebase(game_name));
 
   if(hash_or_name.length() == 64)
     {
@@ -75,7 +76,13 @@ shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name)
 
 Game *get_game(std::string game_name)
 {
-  Game *output = 0;
+  GameBase *output = get_gamebase(game_name);
+  return dynamic_cast<Game *>(output);
+}
+
+GameBase *get_gamebase(std::string game_name)
+{
+  GameBase *output = 0;
 
   if(game_name.starts_with("amazons_"))
     {
@@ -163,6 +170,16 @@ Game *get_game(std::string game_name)
 	  throw std::logic_error("get_name() failed parsing othello game name");
 	}
       output = new OthelloGame(width, height);
+    }
+  else if(game_name.starts_with("slidingtile_"))
+    {
+      int width = 0;
+      int height = 0;
+      if(std::sscanf(game_name.c_str(), "slidingtile_%dx%d", &width, &height) != 2)
+	{
+	  throw std::logic_error("get_name() failed parsing slidingtile game name");
+	}
+      output = new SlidingTilePuzzle(width, height);
     }
   else if(game_name.starts_with("tictactoe_"))
     {
@@ -254,7 +271,7 @@ std::vector<TestGroup> get_test_cases(std::string config_filename, std::string c
   return output;
 }
 
-void run_test_positions(std::string game_name, std::function<void(const Game&, const DFAString&, const nlohmann::json&)> test_case_func, std::string required_key)
+void run_test_positions(std::string game_name, std::function<void(const GameBase&, const DFAString&, const nlohmann::json&)> test_case_func, std::string required_key)
 {
   std::vector<std::string> test_filenames = {
     "positions-generated.json",
@@ -289,7 +306,7 @@ void run_test_positions(std::string game_name, std::function<void(const Game&, c
       std::cout << "############################################################" << std::endl;
       std::cout << "GAME: " << current_game_name << std::endl;
 
-      const std::unique_ptr<Game> game(get_game(current_game_name));
+      const std::unique_ptr<GameBase> game(get_gamebase(current_game_name));
 
       for(const auto& test_case : test_group)
         {
@@ -370,7 +387,7 @@ void test_game(const Game& game_in, const std::vector<size_t>& positions_expecte
   test_backward(game_in, ply_max, initial_win_expected);
 }
 
-void test_moves(const Game& game, const std::set<DFAString>& actual_moves, const std::set<DFAString>& expected_moves)
+void test_moves(const GameBase& game, const std::set<DFAString>& actual_moves, const std::set<DFAString>& expected_moves)
 {
   std::cout << "actual moves: " << actual_moves.size() << ", expected moves: " << expected_moves.size() << std::endl;
 

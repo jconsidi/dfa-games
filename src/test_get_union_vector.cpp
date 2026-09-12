@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     }
 
   std::string game_name(argv[1]);
-  Game *game = get_game(game_name);
+  GameBase *game = get_gamebase(game_name);
 
   std::vector<shared_dfa_ptr> dfas;
   for(int i = 2; i < argc; ++i)

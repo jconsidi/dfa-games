@@ -18,7 +18,7 @@ int main(int argc, char **argv)
   // args = game, DFA name
   std::string game_name(argv[1]);
 
-  Game *game = get_game(game_name);
+  GameBase *game = get_gamebase(game_name);
   const MoveGraph& move_graph = game->get_move_graph_forward(0);
 
   std::cout << "move graph size = " << move_graph.size() << std::endl;
