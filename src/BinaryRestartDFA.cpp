@@ -14,11 +14,11 @@ BinaryRestartDFA::BinaryRestartDFA(const DFA& left_in,
 {
   // binarydfa/ used to be one directory shared by every BinaryDFA, so a
   // restart could find a previous process's progress there by fixed
-  // filename. It is now scoped per instance (pid and a counter) so
-  // concurrent builds cannot corrupt each other, which means this always
-  // creates its own, empty directory and so always finds zero pairs
-  // below, throwing "previous pairs not found". Restart is left broken
-  // here deliberately rather than worked around; see src/TODO.md.
+  // filename. It is now scoped per instance (bare pid) so concurrent
+  // builds cannot corrupt each other, which means this always creates its
+  // own, empty directory and so always finds zero pairs below, throwing
+  // "previous pairs not found". Restart is left broken here deliberately
+  // rather than worked around; see src/TODO.md.
   DirectoryGuard binary_directory_guard = create_binary_directory();
 
   int ndim = get_shape_size();
