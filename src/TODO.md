@@ -64,6 +64,25 @@ the specific directory to resume from explicitly, rather than discovering it
 by a shared fixed name) and that redesign is out of scope for pid-scoping
 `binarydfa/` itself.
 
+**Fixing this** needs at least:
+
+- A way for a new process to *adopt* an existing `binarydfa/<old-pid>-<n>`
+  directory instead of `create_binary_directory` always making a fresh one --
+  the new process has a different pid and a process-local counter, so it has
+  no way to reconstruct the old path itself; it has to be told.
+- Something to tell it: the exact stale directory has to be named explicitly
+  (a command line argument, a config value, whatever the restart entry point
+  ends up being), which means whatever launches the restart needs to have
+  recorded it, since the crashed process cannot clean up after itself to
+  leave a note.
+- A race against `gc.pl`'s own pid-liveness sweep, which is what this
+  project now relies on to reclaim a crashed build's staging directory. Once
+  a crash leaves a dead pid behind, that directory is fair game for the next
+  `gc.pl` run. A restart mechanism has to grab (or otherwise protect) the
+  directory before gc gets to it, or the resumable state is just gone -- gc
+  cannot be expected to know a directory is "still wanted" by a restart that
+  has not happened yet.
+
 ## tests
 
 - solution tests
