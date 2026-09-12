@@ -169,8 +169,12 @@ if(-d "$directory/dfas_by_hash")
   }
 }
 
-# Stale construction staging: build/<pid>-<n> always, binarydfa/<pid>-<n>
-# once binarydfa is pid-scoped. Swept by pid liveness, not age or reference
+# Stale construction staging: build/<pid> (a process builds at most one DFA
+# at a time, asserted by DFA.cpp's build_in_progress, so the pid alone names
+# it) and binarydfa/<pid>-<n> (still counted -- a BinaryDFA construction's
+# own working directory, unrelated to that invariant). build/<pid>-<n> is
+# also still matched, for any directory left by a binary built before the
+# counter was dropped there. Swept by pid liveness, not age or reference
 # counting -- a legitimately long-running build must never lose its own
 # working directory out from under it, which an age cutoff cannot promise
 # but a liveness check can.
@@ -182,7 +186,7 @@ for my $staging_dir ("build", "binarydfa")
   opendir(STAGING_DIR, $staging_full) || die("error opening $staging_full : $!\n");
   for my $entry (readdir(STAGING_DIR))
   {
-    next unless $entry =~ /^(\d+)-\d+$/;
+    next unless $entry =~ /^(\d+)(?:-\d+)?$/;
     next unless pid_is_gone($1);
 
     my $entry_full = "$staging_full/$entry";

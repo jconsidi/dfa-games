@@ -25,8 +25,6 @@
 #include "parallel.h"
 #include "utils.h"
 
-static int next_dfa_id = 0;
-
 // True from the moment a "building" DFA (the constructor below that creates
 // a staging directory, never the one that loads a saved file) starts until
 // set_initial_state finishes -- it now saves by hash immediately, see
@@ -48,16 +46,14 @@ static bool build_in_progress = false;
 
 // Staging directory for a DFA under construction.
 //
-// The counter is per process, so it alone does not make the name unique:
-// two concurrent processes both start at zero and march through the same
-// directories, overwriting each other's layer files. Mixing in the pid is
-// what makes the name actually unique, and a pid cannot be reused while
-// this process holds it.
+// Bare pid, no counter: build_in_progress (above) makes it an asserted
+// invariant that this process never has two of these outstanding at once,
+// and a pid cannot be reused while this process holds it, so the pid alone
+// already names a directory nothing else on the machine can collide with.
 static std::string get_temp_directory()
 {
   return (ScratchConfig::get_local_dir() + "/build/" +
-	  std::to_string(getpid()) + "-" +
-	  std::to_string(next_dfa_id++));
+	  std::to_string(getpid()));
 }
 
 static std::vector<std::string> get_layer_file_names(int ndim, std::string directory)
