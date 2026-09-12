@@ -94,6 +94,17 @@ BinaryDFA::BinaryDFA(const DFA& left_in,
 // the fast local tier, never the archive.
 static int next_binary_id = 0;
 
+// Mirrors DFA.cpp's build_in_progress, for the same reason: proves "at most
+// one binarydfa/ staging directory outstanding per process" instead of just
+// observing it. Set when create_binary_directory creates one, cleared when
+// DirectoryGuard's destructor removes it -- the guard's own scope already
+// is this resource's entire lifetime, covering both a normal return and an
+// exception unwinding through it, so one clear in the destructor is enough
+// (unlike DFA's build_in_progress, which has two distinct fates -- saved vs
+// abandoned -- this doesn't: every DirectoryGuard destruction means the
+// directory is no longer needed, full stop).
+static bool binary_build_in_progress = false;
+
 static std::string get_binary_directory()
 {
   return (ScratchConfig::get_local_dir() + "/binarydfa/" +
@@ -108,12 +119,17 @@ BinaryDFA::DirectoryGuard::DirectoryGuard(std::string directory_in)
 
 BinaryDFA::DirectoryGuard::~DirectoryGuard() noexcept(false)
 {
+  binary_build_in_progress = false;
   remove_directory(directory);
 }
 
 BinaryDFA::DirectoryGuard BinaryDFA::create_binary_directory()
 {
   assert(binary_directory.empty());
+
+  assert(!binary_build_in_progress);
+  binary_build_in_progress = true;
+
   binary_directory = create_directory(get_binary_directory());
   return DirectoryGuard(binary_directory);
 }
