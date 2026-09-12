@@ -1,5 +1,52 @@
 # TODO
 
+## local dfas_by_hash read-through cache
+
+Deferred until there is a real networked archive filesystem to test against
+-- everything below is reasoning, not yet a design to build from.
+
+The motivating case is narrower than "local and archive are different
+roots." `save_durable` already does `save_by_hash(local)` then
+`save_by_hash(archive)`, and the latter goes through `publish_copy`, which
+tries a hardlink before a copy. So whenever local and archive share a
+filesystem, every durably saved DFA already ends up in `local_dir/dfas_by_hash`
+for free, as a hardlink, at save time. A separate cache adds nothing there.
+
+What is not covered: `DFAUtil::load_by_hash(shape, hash, durable=true)` on a
+DFA this local scratch never itself published -- built by a different
+process, a different machine, or an earlier scratch lifetime since cleared
+or `gc.pl`'d. That read goes straight to `archive_dir` every time, with
+nothing local to check first, and `load_by_hash`'s weak_ptr cache only
+dedupes within one process's lifetime, not across restarts. This is the
+restart-on-a-shared-archive case, and its payoff is exactly proportional to
+how much slower archive actually is than local: real and recurring when
+archive is genuinely networked, nothing to save when it is not.
+
+Two configurations to keep straight when this gets designed:
+
+- **Local and archive share a filesystem**: no benefit, per above. Caching
+  here would be pure overhead.
+- **Local and archive are distinct filesystems, both local** (e.g. two
+  separate local disks, no network involved): genuinely ambiguous. `publish_copy`
+  already pays a real copy cost here via its `EXDEV` fallback, but whether a
+  *read-through* cache is worth adding depends on the relative speed of the
+  two devices, which nothing in this project currently measures or knows.
+  Default off (opt-in) is the safer call than always-on, since this
+  project's other size/threshold decisions (the 1MB anonymous-mmap cutoff,
+  hardlink-before-copy) all check that something would actually help before
+  doing it, rather than doing it unconditionally on the chance it might.
+
+A design wrinkle to resolve before implementing, not after: `local_dir/dfas_by_hash`
+today already serves two roles gc.pl has to keep straight -- durable-save
+staging (safe to lose once archive has its own copy) and the sole copy of
+`save_cache`-only results (not safe to lose, no reference-counting fallback
+exists for it). A read-through mirror would be a third role, and it behaves
+differently from the other two: by definition it is always recoverable from
+archive, so it should be swept by age like the op-caches
+(`union_cache`, `intersection_cache`, ...), not reference-counted the way
+archive's own `dfas_by_hash` must be. Mixing a third eviction policy into
+one directory needs a real design, not just a flag.
+
 ## BinaryRestartDFA is broken
 
 `binarydfa/` used to be one directory shared by every `BinaryDFA`, so
