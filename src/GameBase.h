@@ -16,8 +16,8 @@ private:
   dfa_shape_t shape;
   int sides;
 
-  mutable std::vector<MoveGraph *> move_graphs_forward;
-  mutable std::vector<MoveGraph *> move_graphs_backward;
+  mutable std::vector<std::unique_ptr<MoveGraph>> move_graphs_forward;
+  mutable std::vector<std::unique_ptr<MoveGraph>> move_graphs_backward;
 
 protected:
 
