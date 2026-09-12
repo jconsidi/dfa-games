@@ -233,6 +233,17 @@ std::string _shape_string(const dfa_shape_t& shape_in)
   return oss.str();
 }
 
+// _shape_string is also used as an in-memory map key with "/" between
+// layers, which is fine there but unusable as a single path component --
+// it would nest one subdirectory per layer. This is the same shape
+// flattened for use in a cache directory name below.
+std::string _shape_path(const dfa_shape_t& shape_in)
+{
+  std::string s = _shape_string(shape_in);
+  std::replace(s.begin(), s.end(), '/', '_');
+  return s;
+}
+
 shared_dfa_ptr _singleton_if_constant(shared_dfa_ptr dfa_in)
 {
   dfa_state_t initial_state = dfa_in->get_initial_state();
@@ -365,7 +376,17 @@ shared_dfa_ptr DFAUtil::get_accept(const dfa_shape_t& shape_in)
       return search->second;
     }
 
-  shared_dfa_ptr output(new AcceptDFA(shape_in));
+  // Saved immediately (cache-style, not durable) rather than built and left
+  // temporary: this map holds every entry for the life of the process, and
+  // a temporary DFA's build/ staging directory stays open for exactly as
+  // long as something holds the DFA -- process lifetime here, which on a
+  // long build is real accumulated disk usage, not a theoretical one.
+  shared_dfa_ptr output = load_or_build(shape_in,
+					 "accept_cache/" + _shape_path(shape_in),
+					 [&]()
+					 {
+					   return shared_dfa_ptr(new AcceptDFA(shape_in));
+					 });
   singletons[singleton_key] = output;
   return output;
 }
@@ -417,32 +438,49 @@ shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& c
 		       });
 }
 
+// Not memoized in memory the way get_accept/get_reject/get_fixed are --
+// callers do not reuse the same (shape, args) enough to be worth an
+// in-memory map -- but still routed through load_or_build rather than
+// built and returned temporary: at least one caller (ChessGame's en
+// passant clearing condition) stores the result directly in a MoveGraph's
+// node conditions, which lives for the life of the game object. Left
+// temporary, that DFA's build/ staging directory would stay open for as
+// long as the game object does.
+
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_in)
 {
-  shared_dfa_ptr output(new CountCharacterDFA(shape_in, c_in, count_in));
-  output->set_name("get_count_character(" + std::to_string(c_in) + ", " + std::to_string(count_in) + ")");
-  return output;
+  std::string name_in = "count_character_cache/" + _shape_path(shape_in) + "_c" + std::to_string(c_in) + "_n" + std::to_string(count_in);
+  return load_or_build(shape_in, name_in, [&]()
+  {
+    return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_in));
+  });
 }
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max)
 {
-  shared_dfa_ptr output(new CountCharacterDFA(shape_in, c_in, count_min, count_max));
-  output->set_name("get_count_character(" + std::to_string(c_in) + ", " + std::to_string(count_min) + ", " + std::to_string(count_max) + ")");
-  return output;
+  std::string name_in = "count_character_cache/" + _shape_path(shape_in) + "_c" + std::to_string(c_in) + "_" + std::to_string(count_min) + "_" + std::to_string(count_max);
+  return load_or_build(shape_in, name_in, [&]()
+  {
+    return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max));
+  });
 }
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min)
 {
-  shared_dfa_ptr output(new CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min));
-  output->set_name("get_count_character(" + std::to_string(c_in) + ", " + std::to_string(count_min) + ", " + std::to_string(count_max) + ", " + std::to_string(layer_min) + ")");
-  return output;
+  std::string name_in = "count_character_cache/" + _shape_path(shape_in) + "_c" + std::to_string(c_in) + "_" + std::to_string(count_min) + "_" + std::to_string(count_max) + "_" + std::to_string(layer_min);
+  return load_or_build(shape_in, name_in, [&]()
+  {
+    return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min));
+  });
 }
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min, int layer_max)
 {
-  shared_dfa_ptr output(new CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min, layer_max));
-  output->set_name("get_count_character(" + std::to_string(c_in) + ", " + std::to_string(count_min) + ", " + std::to_string(count_max) + ", " + std::to_string(layer_min) + ", " + std::to_string(layer_max) + ")");
-  return output;
+  std::string name_in = "count_character_cache/" + _shape_path(shape_in) + "_c" + std::to_string(c_in) + "_" + std::to_string(count_min) + "_" + std::to_string(count_max) + "_" + std::to_string(layer_min) + "_" + std::to_string(layer_max);
+  return load_or_build(shape_in, name_in, [&]()
+  {
+    return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min, layer_max));
+  });
 }
 
 shared_dfa_ptr DFAUtil::get_difference(shared_dfa_ptr left_in, shared_dfa_ptr right_in)
@@ -482,6 +520,11 @@ shared_dfa_ptr DFAUtil::get_difference(shared_dfa_ptr left_in, shared_dfa_ptr ri
 
 shared_dfa_ptr DFAUtil::get_fixed(const dfa_shape_t& shape_in, int fixed_layer, int fixed_character)
 {
+  // returns a singleton per (shape, fixed_layer, fixed_character): this is
+  // MoveGraph's per-edge condition builder (MoveGraph.cpp), called once for
+  // every move in every game's move graph, so the in-memory map matters here
+  // for more than just avoiding a rebuild.
+
   static std::map<std::string, shared_dfa_ptr> singletons;
 
   std::string singleton_key = _shape_string(shape_in) + (" " + std::to_string(fixed_layer) + "/" + std::to_string(fixed_character));
@@ -491,8 +534,16 @@ shared_dfa_ptr DFAUtil::get_fixed(const dfa_shape_t& shape_in, int fixed_layer, 
       return search->second;
     }
 
-  shared_dfa_ptr output = shared_dfa_ptr(new FixedDFA(shape_in, fixed_layer, fixed_character));
-  output->set_name("get_fixed(fixed_layer=" + std::to_string(fixed_layer) + ", fixed_character=" + std::to_string(fixed_character) + ")");
+  // Saved immediately rather than left temporary -- see get_accept above
+  // for why: this map, like that one, holds every entry for the life of
+  // the process.
+  std::string name_in = "fixed_cache/" + _shape_path(shape_in) + "_" + std::to_string(fixed_layer) + "_" + std::to_string(fixed_character);
+  shared_dfa_ptr output = load_or_build(shape_in,
+					 name_in,
+					 [&]()
+					 {
+					   return shared_dfa_ptr(new FixedDFA(shape_in, fixed_layer, fixed_character));
+					 });
   singletons[singleton_key] = output;
   return output;
 }
@@ -651,7 +702,13 @@ shared_dfa_ptr DFAUtil::get_reject(const dfa_shape_t& shape_in)
       return search->second;
     }
 
-  shared_dfa_ptr output(new RejectDFA(shape_in));
+  // Saved immediately -- see get_accept above for why.
+  shared_dfa_ptr output = load_or_build(shape_in,
+					 "reject_cache/" + _shape_path(shape_in),
+					 [&]()
+					 {
+					   return shared_dfa_ptr(new RejectDFA(shape_in));
+					 });
   singletons[singleton_key] = output;
   return output;
 }
