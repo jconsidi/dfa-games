@@ -88,6 +88,33 @@ static void ensure_parent_directories(const std::string& root, const std::string
     }
 }
 
+// fsync() is a real barrier down to the device on Linux. On macOS -- per
+// Apple's own fsync(2) documentation -- it only flushes the OS's own
+// buffers and does not necessarily flush the drive's write cache;
+// F_FULLFSYNC is Apple's stronger barrier for exactly this, and this
+// project is developed almost entirely on macOS (see CLAUDE.md
+// **Platforms**), so every fsync in the publish path goes through here
+// rather than risking the weaker guarantee on the platform that matters
+// most. Falls back to fsync() only when F_FULLFSYNC is unavailable at
+// compile time (not Apple) or fails at run time (e.g. a filesystem that
+// does not support it), since fsync() is still strictly better than
+// nothing.
+static void fsync_durable(int fildes, const std::string& what)
+{
+#ifdef F_FULLFSYNC
+  if(fcntl(fildes, F_FULLFSYNC) == 0)
+    {
+      return;
+    }
+#endif
+
+  if(fsync(fildes))
+    {
+      perror(what.c_str());
+      throw std::runtime_error(what + " failed");
+    }
+}
+
 std::string create_directory(std::string directory)
 {
   // Placeholder trailing component so ensure_parent_directories treats
@@ -819,7 +846,8 @@ std::string DFA::serialize(std::string file_name_in) const
     }
   write_buffer(fildes, digest, sizeof(digest));
 
-  if(fsync(fildes) || close(fildes))
+  fsync_durable(fildes, "DFA serialize fsync");
+  if(close(fildes))
     {
       perror("DFA serialize close");
       throw std::runtime_error("DFA serialize close failed");
@@ -1450,11 +1478,7 @@ void DFA::save_by_hash(const std::string& root) const
       perror("DFA save directory open");
       throw std::runtime_error("DFA save directory open failed");
     }
-  if(fsync(dir_fildes))
-    {
-      perror("DFA save directory fsync");
-      throw std::runtime_error("DFA save directory fsync failed");
-    }
+  fsync_durable(dir_fildes, "DFA save directory fsync");
   if(close(dir_fildes))
     {
       perror("DFA save directory close");
@@ -1532,7 +1556,8 @@ void DFA::publish_copy(const std::string& root) const
 	  throw std::runtime_error("DFA publish_copy open failed");
 	}
       write_buffer(fildes, file_map->begin(), file_map->size());
-      if(fsync(fildes) || close(fildes))
+      fsync_durable(fildes, "DFA publish_copy fsync");
+      if(close(fildes))
 	{
 	  perror("DFA publish_copy close");
 	  throw std::runtime_error("DFA publish_copy close failed");
@@ -1570,11 +1595,7 @@ void DFA::publish_copy(const std::string& root) const
       perror("DFA publish_copy directory open");
       throw std::runtime_error("DFA publish_copy directory open failed");
     }
-  if(fsync(dir_fildes))
-    {
-      perror("DFA publish_copy directory fsync");
-      throw std::runtime_error("DFA publish_copy directory fsync failed");
-    }
+  fsync_durable(dir_fildes, "DFA publish_copy directory fsync");
   if(close(dir_fildes))
     {
       perror("DFA publish_copy directory close");
