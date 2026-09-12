@@ -27,6 +27,25 @@
 
 static int next_dfa_id = 0;
 
+// True from the moment a "building" DFA (the constructor below that creates
+// a staging directory, never the one that loads a saved file) starts until
+// set_initial_state finishes -- it now saves by hash immediately, see
+// there. Nothing in this codebase constructs a second DFA while a first is
+// still temporary (every operand a constructor reads is already ready, and
+// ready now means already saved), so this should never be true when a new
+// build starts; the assert below is what actually proves that instead of
+// just asserting it in a comment.
+//
+// Deliberately never cleared on a failed/abandoned build (an exception
+// during construction, before set_initial_state runs): nothing in this
+// codebase catches such a failure and goes on to build more DFAs -- the one
+// real case on record, an add_state mmap failure, is an uncaught exception
+// straight to std::terminate(), which skips every destructor including
+// this object's. If some future path ever did catch one and try to
+// continue, leaving this stuck true is exactly the outcome wanted: fail
+// loudly on the next build rather than silently pretend nothing happened.
+static bool build_in_progress = false;
+
 // Staging directory for a DFA under construction.
 //
 // The counter is per process, so it alone does not make the name unique:
@@ -169,6 +188,9 @@ DFA::DFA(const dfa_shape_t& shape_in)
     layer_transitions(),
     temporary(true)
 {
+  assert(!build_in_progress);
+  build_in_progress = true;
+
   assert(ndim > 0);
 
   for(int layer = 0; layer < ndim; ++layer)
@@ -1509,6 +1531,7 @@ void DFA::save_by_hash(const std::string& root) const
 
   // Switch this object over to the file, and drop the staging directory.
   attach_file(file_name_new);
+  build_in_progress = false;
 
   layer_transitions.clear();
   layer_file_names.clear();
