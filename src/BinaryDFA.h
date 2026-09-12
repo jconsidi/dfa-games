@@ -156,7 +156,7 @@ protected:
   };
   DirectoryGuard create_binary_directory();
 
-  void build_quadratic_backward(const DFA&, const DFA&, int);
+  dfa_state_t build_quadratic_backward(const DFA&, const DFA&, int);
   MemoryMap<dfa_state_t> build_quadratic_backward_layer(const DFA&, const DFA&, int, const MemoryMap<dfa_state_t>&);
   int build_quadratic_forward(const DFA&, const DFA&);
   int build_quadratic_forward(const DFA&, const DFA&, int);

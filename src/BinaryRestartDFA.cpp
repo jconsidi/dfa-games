@@ -62,5 +62,5 @@ BinaryRestartDFA::BinaryRestartDFA(const DFA& left_in,
 
   // start backward pass from scratch
 
-  build_quadratic_backward(left_in, right_in, ndim);
+  this->set_initial_state(build_quadratic_backward(left_in, right_in, ndim));
 }
