@@ -20,8 +20,8 @@ int main(int argc, char **argv)
   int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 10;
   int backward_ply_max = (argc >= 4) ? atoi(argv[3]) : 0;
 
-  auto load_helper = [&](std::string dfa_name) {
-    shared_dfa_ptr dfa = game->load_by_name(dfa_name);
+  auto load_helper = [&](std::string dfa_name, bool durable = true) {
+    shared_dfa_ptr dfa = game->load_by_name(dfa_name, durable);
     if(!dfa)
       {
 	std::cerr << "DFA " << dfa_name << " not found." << std::endl;
@@ -37,8 +37,12 @@ int main(int argc, char **argv)
   std::cout << "ply\tbound_states\tbound_positions\twinning_states\twinning_positions\tlosing_states\tlosing_positions\tunknown_states\tunknown_positions" << std::endl;
   for(int ply = 0; ply <= forward_ply_max; ++ply)
     {
-      std::string reachable_name = std::format("components/bound,ply={:03d}", ply);
-      shared_dfa_ptr reachable = load_helper(reachable_name);
+      // component_<key>, not a durable result: see ConfigBase::get_component
+      // and its class comment (ConfigBase.cpp) -- it saves under the local
+      // root via a GameBase&-typed load_or_build call, regardless of the
+      // underlying object being a Game.
+      std::string reachable_name = std::format("component_bound,ply={:03d}", ply);
+      shared_dfa_ptr reachable = load_helper(reachable_name, false);
       if(!reachable)
 	{
 	  return 1;
