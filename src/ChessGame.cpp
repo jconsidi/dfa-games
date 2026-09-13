@@ -960,8 +960,7 @@ shared_dfa_ptr ChessGame::get_positions_can_move_basic(int side_to_move, int squ
     shared_dfa_ptr empty = DFAUtil::get_fixed(get_shape(), square + CHESS_SQUARE_OFFSET, DFA_BLANK);
     return DFAUtil::get_union(empty,
 			      get_positions_can_move_capture(side_to_move, square));
-  },
-  false); // rule-derived move-generation helper, not solver output
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_can_move_capture(int side_to_move, int square) const
@@ -980,8 +979,7 @@ shared_dfa_ptr ChessGame::get_positions_can_move_capture(int side_to_move, int s
       }
 
     return DFAUtil::get_union_vector(chess_shape, partials);
-  },
-  false); // rule-derived move-generation helper, not solver output
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_check(int side_to_move) const
@@ -1015,8 +1013,7 @@ shared_dfa_ptr ChessGame::get_positions_check(int side_to_move) const
       }
 
     return DFAUtil::get_union_vector(chess_shape, checks);
-  },
-  false); // rule-derived move-generation helper, not solver output
+  });
 }
 
 #ifdef CHESS_SIDE_TO_MOVE_KING_LAYER
@@ -1049,8 +1046,7 @@ shared_dfa_ptr ChessGame::get_positions_king(int side_to_move) const
       }
 
     return DFAUtil::get_union_vector(chess_shape, king_choices);
-  },
-  false); // rule-derived move-generation helper, not solver output
+  });
 }
 #endif
 
@@ -1105,8 +1101,7 @@ shared_dfa_ptr ChessGame::get_positions_legal(int side_to_move) const
     profile.tic("intersection");
 
     return DFAUtil::get_intersection_vector(chess_shape, requirements);
-  },
-  false); // rule-derived move-generation helper, not solver output
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_legal_shared() const
@@ -1230,8 +1225,7 @@ shared_dfa_ptr ChessGame::get_positions_legal_shared() const
     profile.tic("intersection");
 
     return DFAUtil::get_intersection_vector(chess_shape, requirements);
-  },
-  false); // rule-derived move-generation helper, not solver output
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_not_check(int checked_side) const
@@ -1242,8 +1236,7 @@ shared_dfa_ptr ChessGame::get_positions_not_check(int checked_side) const
   {
     shared_dfa_ptr check_positions = get_positions_check(checked_side);
     return DFAUtil::get_inverse(check_positions);
-  },
-  false); // rule-derived move-generation helper, not solver output
+  });
 }
 
 shared_dfa_ptr ChessGame::get_positions_threat(int threatened_side, int threatened_square) const
@@ -1300,8 +1293,7 @@ shared_dfa_ptr ChessGame::get_positions_threat(int threatened_side, int threaten
       }
 
     return DFAUtil::get_union_vector(chess_shape, threats);
-  },
-  false); // rule-derived move-generation helper, not solver output
+  });
 }
 
 DFAString ChessGame::get_position_initial() const

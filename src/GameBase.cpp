@@ -117,7 +117,7 @@ shared_dfa_ptr GameBase::load_or_build(std::string dfa_name_in, std::function<sh
   Profile profile("load_or_build " + dfa_name_in);
 
   std::string dfa_name = name + "/" + dfa_name_in;
-  return DFAUtil::load_or_build(shape, dfa_name, build_func);
+  return DFAUtil::load_or_build(shape, dfa_name, build_func, true);
 }
 
 std::vector<DFAString> GameBase::validate_moves(int, const DFAString&) const
