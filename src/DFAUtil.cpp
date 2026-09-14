@@ -5,17 +5,19 @@
 #include <algorithm>
 #include <atomic>
 #include <exception>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
-#include <queue>
-#include <set>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 #include <sstream>
 #include <unordered_map>
 
 #include "AcceptDFA.h"
+#include "BinaryDFA.h"
 #include "ChangeDFA.h"
 #include "CountCharacterDFA.h"
 #include "DFA.h"
@@ -29,194 +31,69 @@
 #include "UnionDFA.h"
 #include "parallel.h"
 
-double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
+// Content-addressed cache key for a whole (sorted, deduped) vector of
+// operands: SHA-256 over the concatenation of their own hashes. A single
+// operand hash is 64 hex characters, so joining tens of them into one path
+// component the way get_intersection/get_union join a pair would risk
+// running into filesystem filename length limits; hashing the join keeps
+// the key fixed size regardless of how many operands _reduce_nary sees.
+std::string _hash_join(const std::vector<shared_dfa_ptr>& dfas_in)
 {
-  int ndim = dfa_a->get_shape_size();
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+  static const EVP_MD *hash_implementation = EVP_sha256();
+  EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+  EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
 
-#ifdef BINARY_SCORE_LINEAR_BOUND
-  const DFALinearBound& bound_a = dfa_a->get_linear_bound();
-  const DFALinearBound& bound_b = dfa_b->get_linear_bound();
-  bool might_intersect = true;
-#endif
-
-  std::vector<double> states_max = {1};
-  for(int layer = 1; layer < ndim; ++layer)
+  for(const shared_dfa_ptr& dfa : dfas_in)
     {
-      int layer_shape = dfa_a->get_layer_shape(layer);
-
-      std::vector<double> layer_bounds;
-
-      // fanout bound
-      layer_bounds.push_back(states_max.back() * layer_shape);
-
-      // product bound
-      layer_bounds.push_back(double(dfa_a->get_layer_size(layer)) *
-			     double(dfa_b->get_layer_size(layer)));
-
-#ifdef BINARY_SCORE_LINEAR_BOUND
-      // inference from linear bounds showing potential intersection
-      if(might_intersect)
-	{
-	  bool layer_shares_characters = false;
-	  for(int c = 0; c < layer_shape; ++c)
-	    {
-	      if(bound_a.check_bound(layer, c) &&
-		 bound_b.check_bound(layer, c))
-		{
-		  layer_shares_characters = true;
-		  break;
-		}
-	    }
-	  if(!layer_shares_characters)
-	    {
-	      might_intersect = false;
-	    }
-	}
-      if(!might_intersect)
-	{
-	  layer_bounds.push_back(double(dfa_a->get_layer_size(layer)) +
-				 double(dfa_b->get_layer_size(layer)));
-	}
-#endif
-
-      // done for this layer
-
-      double layer_best = *(std::min_element(layer_bounds.begin(), layer_bounds.end()));
-      states_max.push_back(layer_best);
-    }
-  assert(states_max.size() == ndim);
-
-  double total_max = 0.0;
-  for(int i = 0; i < ndim; ++i)
-    {
-      total_max += states_max[i];
+      std::string hash = dfa->get_hash();
+      EVP_DigestUpdate(hash_context, hash.data(), hash.size());
     }
 
-  return total_max;
+  EVP_DigestFinal_ex(hash_context, digest, 0);
+  EVP_MD_CTX_destroy(hash_context);
+
+  std::ostringstream oss;
+  for(size_t i = 0; i < SHA256_DIGEST_LENGTH; ++i)
+    {
+      oss << std::hex << std::setw(2) << std::setfill('0') << int(digest[i]);
+    }
+
+  return oss.str();
 }
 
-shared_dfa_ptr _reduce_aci(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_dfa_ptr)> reduce_func,
-			   const std::vector<shared_dfa_ptr>& dfas_in)
+// Backend for get_intersection_vector/get_union_vector: BinaryDFA's n-ary
+// constructor, cached under a key built from the whole (sorted, deduped)
+// operand set rather than relying on reuse of pairwise sub-results the way
+// _reduce_aci's fold through get_intersection/get_union did. dfas_in is
+// taken by value since it is sorted and deduped in place -- union and
+// intersection are idempotent, and BinaryDFA's vector constructor does not
+// dedupe on its own (see its declaration in BinaryDFA.h).
+shared_dfa_ptr _reduce_nary(const dfa_shape_t& shape_in, bool is_union_in, std::vector<shared_dfa_ptr> dfas_in)
 {
-  // reduce DFAs assuming reduce function is associative, commutative, and idempotent.
+  Profile profile("_reduce_nary");
 
-  Profile profile("_reduce_aci");
+  assert(dfas_in.size() >= 1);
 
-  if(dfas_in.size() <= 0)
-    {
-      throw std::logic_error("dfas_in is empty");
-    }
+  std::sort(dfas_in.begin(), dfas_in.end(), [](const shared_dfa_ptr& a, const shared_dfa_ptr& b)
+  {
+    return a->get_hash() < b->get_hash();
+  });
+  dfas_in.erase(std::unique(dfas_in.begin(), dfas_in.end(), [](const shared_dfa_ptr& a, const shared_dfa_ptr& b)
+  {
+    return a->get_hash() == b->get_hash();
+  }), dfas_in.end());
 
   if(dfas_in.size() == 1)
     {
       return dfas_in[0];
     }
 
-  // build priority queue to optimize reduce costs
-
-  std::set<shared_dfa_ptr> dfas_todo;
-  std::priority_queue<std::tuple<double, std::string, std::string, shared_dfa_ptr, shared_dfa_ptr>> scored_pairs;
-
-  auto enqueue_pair = [&](shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
+  std::string cache_name = (is_union_in ? "union_vector_cache/" : "intersection_vector_cache/") + _hash_join(dfas_in);
+  return DFAUtil::load_or_build(shape_in, cache_name, [&]()
   {
-    if(dfa_a->get_hash() > dfa_b->get_hash())
-      {
-	std::swap(dfa_a, dfa_b);
-      }
-
-    scored_pairs.emplace(-_binary_score(dfa_a, dfa_b), dfa_a->get_hash(), dfa_b->get_hash(), dfa_a, dfa_b);
-  };
-
-  // add distinct DFAs and queue up pairs
-
-  for(shared_dfa_ptr dfa_i : dfas_in)
-    {
-      if(dfas_todo.contains(dfa_i))
-	{
-	  continue;
-	}
-
-      for(shared_dfa_ptr dfa_j : dfas_todo)
-	{
-	  enqueue_pair(dfa_i, dfa_j);
-	}
-
-      dfas_todo.insert(dfa_i);
-    }
-
-  // unmap DFAs to reduce open files
-
-  for(shared_dfa_ptr dfa : dfas_todo)
-    {
-      dfa->munmap();
-    }
-
-  // work through the priority queue
-
-  while(dfas_todo.size() > 1)
-    {
-      size_t start_size = dfas_todo.size();
-
-      std::tuple<double, std::string, std::string, shared_dfa_ptr, shared_dfa_ptr> scored_pair = scored_pairs.top();
-      scored_pairs.pop();
-
-      // check if both DFAs are still around because we lazy cleaning up scored pairs.
-
-      shared_dfa_ptr dfa_i = std::get<3>(scored_pair);
-      shared_dfa_ptr dfa_j = std::get<4>(scored_pair);
-      assert(dfa_i != dfa_j);
-      if(!dfas_todo.contains(dfa_i) || !dfas_todo.contains(dfa_j))
-	{
-	  continue;
-	}
-
-      // remove both DFAs from remaining set
-
-      dfas_todo.erase(dfa_i);
-      dfas_todo.erase(dfa_j);
-
-      assert(dfas_todo.size() == start_size - 2);
-
-      // combine these DFAs and add to remaining set and score pairs
-
-      if((dfa_i->states() >= 1024) || (dfa_j->states() >= 1024))
-	{
-	  std::cout << "  merging DFAs with " << dfa_i->states() << " states and " << dfa_j->states() << " states (" << dfas_todo.size() << " remaining)" << std::endl;
-	}
-
-      shared_dfa_ptr dfa_reduced = reduce_func(dfa_i, dfa_j);
-      if(!dfas_todo.contains(dfa_reduced))
-	{
-	  for(shared_dfa_ptr dfa_k : dfas_todo)
-	    {
-	      enqueue_pair(dfa_reduced, dfa_k);
-	    }
-
-	  dfas_todo.insert(dfa_reduced);
-	  assert(dfas_todo.size() == start_size - 1);
-	}
-
-      // unmap the DFAs just accessed
-      dfa_i->munmap();
-      dfa_j->munmap();
-      dfa_reduced->munmap();
-    }
-
-  // done
-
-  assert(dfas_todo.size() == 1);
-
-  for(shared_dfa_ptr output : dfas_todo)
-    {
-      if(output->states() >= 1024)
-	{
-	  std::cout << "  merged DFA has " << DFAUtil::quick_stats(output) << std::endl;
-	}
-
-      return output;
-    }
-
-  assert(0);
+    return shared_dfa_ptr(new BinaryDFA(dfas_in, is_union_in));
+  });
 }
 
 std::string _shape_string(const dfa_shape_t& shape_in)
@@ -674,7 +551,7 @@ shared_dfa_ptr DFAUtil::get_intersection_vector(const dfa_shape_t& shape_in, con
       nonlinear_staging[i] = get_intersection(nonlinear_staging[i], linear_staging);
     }
 
-  return _reduce_aci(get_intersection, nonlinear_staging);
+  return _reduce_nary(shape_in, false, nonlinear_staging);
 }
 
 shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
@@ -797,7 +674,7 @@ shared_dfa_ptr DFAUtil::get_union_vector(const dfa_shape_t& shape_in, const std:
       std::cout << std::endl;
     }
 
-  return _reduce_aci(get_union, dfas_in);
+  return _reduce_nary(shape_in, true, dfas_in);
 }
 
 shared_dfa_ptr DFAUtil::load_by_hash(const dfa_shape_t& shape_in, std::string hash_in, bool durable)
