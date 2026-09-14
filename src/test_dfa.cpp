@@ -5,6 +5,7 @@
 #include <string>
 
 #include "AcceptDFA.h"
+#include "BinaryDFA.h"
 #include "CountCharacterDFA.h"
 #include "CountDFA.h"
 #include "DFA.h"
@@ -90,6 +91,75 @@ void test_union_pair(std::string test_name, const DFA& left, const DFA& right, s
 void test_union_pair(std::string test_name, const DFA& left, const DFA& right, double expected_boards)
 {
   return test_union_pair(test_name, left, right, size_t(expected_boards));
+}
+
+// Checks BinaryDFA's n-ary constructor (the "vector" constructor) two ways:
+// against an independently known position count, the same as the pairwise
+// checks above, and against the *language* (not just the digest -- the
+// pairwise reduction being compared against need not itself be canonical,
+// e.g. once a layer is wide enough that get_intersection/get_union fall
+// back to a hashed sort key) computed by folding the raw, two-input
+// IntersectionDFA/UnionDFA constructor over the same inputs one at a time.
+//
+// Deliberately not DFAUtil::get_intersection/get_union: those take a
+// shortcut when one operand is_linear() that assumes get_linear_bound()
+// only ever sees states reachable from the initial state, which is false
+// for at least one DedupedDFA-built shape (see the CLAUDE.md-flagged
+// report on this) -- folding through DFAUtil here would make this cross
+// check depend on that same bug instead of independently verifying against
+// it.
+void test_intersection_vector(std::string test_name, const std::vector<shared_dfa_ptr>& dfas_in, size_t expected_boards)
+{
+  std::cout << "checking intersection vector " << test_name << std::endl;
+  std::cout.flush();
+
+  shared_dfa_ptr test_dfa(new BinaryDFA(dfas_in, false));
+  test_helper("intersection vector " + test_name, *test_dfa, expected_boards);
+
+  if(!test_dfa->is_canonical())
+    {
+      throw std::logic_error("intersection vector " + test_name + ": not canonical");
+    }
+
+  shared_dfa_ptr expected = dfas_in.at(0);
+  for(size_t i = 1; i < dfas_in.size(); ++i)
+    {
+      expected = shared_dfa_ptr(new IntersectionDFA(*expected, *dfas_in[i]));
+    }
+
+  shared_dfa_ptr diff_forward = DFAUtil::get_difference(test_dfa, expected);
+  shared_dfa_ptr diff_backward = DFAUtil::get_difference(expected, test_dfa);
+  if(!diff_forward->is_constant(false) || !diff_backward->is_constant(false))
+    {
+      throw std::logic_error("intersection vector " + test_name + ": language mismatch vs pairwise reduction");
+    }
+}
+
+void test_union_vector(std::string test_name, const std::vector<shared_dfa_ptr>& dfas_in, size_t expected_boards)
+{
+  std::cout << "checking union vector " << test_name << std::endl;
+  std::cout.flush();
+
+  shared_dfa_ptr test_dfa(new BinaryDFA(dfas_in, true));
+  test_helper("union vector " + test_name, *test_dfa, expected_boards);
+
+  if(!test_dfa->is_canonical())
+    {
+      throw std::logic_error("union vector " + test_name + ": not canonical");
+    }
+
+  shared_dfa_ptr expected = dfas_in.at(0);
+  for(size_t i = 1; i < dfas_in.size(); ++i)
+    {
+      expected = shared_dfa_ptr(new UnionDFA(*expected, *dfas_in[i]));
+    }
+
+  shared_dfa_ptr diff_forward = DFAUtil::get_difference(test_dfa, expected);
+  shared_dfa_ptr diff_backward = DFAUtil::get_difference(expected, test_dfa);
+  if(!diff_forward->is_constant(false) || !diff_backward->is_constant(false))
+    {
+      throw std::logic_error("union vector " + test_name + ": language mismatch vs pairwise reduction");
+    }
 }
 
 std::vector<DFAString> get_all_positions(const dfa_shape_t& shape)
@@ -322,6 +392,26 @@ void test_suite(const dfa_shape_t& shape)
 	}
     }
   test_intersection_pair("one1 + count1", *one1, *count1, one1_count1_expected);
+
+  // vector (n-ary) union/intersection tests -- the BinaryDFA constructor
+  // meant to replace get_intersection_vector/get_union_vector's pairwise
+  // reduction. size 1, and duplicate entries, exercise n=1 and idempotence
+  // directly; the rest reuse the disjointness/overlap facts the pairwise
+  // tests above already established for count0..count3, zero0 and one1.
+
+  test_intersection_vector("count2 x1", std::vector<shared_dfa_ptr>({count2}), size_t(count2->size()));
+  test_intersection_vector("count1 x3 (idempotent)", std::vector<shared_dfa_ptr>({count1, count1, count1}), size_t(count1->size()));
+  test_intersection_vector("count0+count1+count2 (disjoint)", std::vector<shared_dfa_ptr>({count0, count1, count2}), size_t(0));
+  test_intersection_vector("count2+count2+count3 (disjoint)", std::vector<shared_dfa_ptr>({count2, count2, count3}), size_t(0));
+  test_intersection_vector("zero0+count1+one1", std::vector<shared_dfa_ptr>({zero0, count1, one1}), size_t(0));
+
+  test_union_vector("count2 x1", std::vector<shared_dfa_ptr>({count2}), size_t(count2->size()));
+  test_union_vector("count1 x3 (idempotent)", std::vector<shared_dfa_ptr>({count1, count1, count1}), size_t(count1->size()));
+  test_union_vector("count0+count1+count2+count3 (disjoint)",
+                    std::vector<shared_dfa_ptr>({count0, count1, count2, count3}),
+                    size_t(count0->size() + count1->size() + count2->size() + count3->size()));
+  test_union_vector("count1+count1+count2", std::vector<shared_dfa_ptr>({count1, count1, count2}), size_t(count1->size() + count2->size()));
+  test_union_vector("accept+count1", std::vector<shared_dfa_ptr>({accept, count1}), accept_expected);
 }
 
 int main()
