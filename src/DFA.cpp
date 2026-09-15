@@ -11,11 +11,13 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <iomanip>
 #include <numeric>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #include "DFA.h"
 #include "DFAFormat.h"
@@ -171,14 +173,38 @@ std::string create_directory(std::string directory)
 // save_by_hash once the .dfa file has taken over, and from create_directory
 // itself before reusing a pid-named path. A missing directory is not an
 // error -- the common case, since most construction paths never need this.
+//
+// Still observed failing intermittently on a GPFS-backed cluster mount even
+// after MemoryMap::munmap started msyncing writable mappings before
+// unmapping them: that fix targets a file's own data reaching storage, but
+// "directory not empty" here is about a directory *entry* (this unlink's
+// own removal) becoming visible to the very next metadata check on the same
+// path, which is a different layer msync has no say over. Rather than block
+// on a root cause this codebase cannot reproduce or fix from the client
+// side, retry a few times with a short backoff before treating it as real:
+// a genuinely stuck directory (unexpected content, an actual bug) keeps
+// failing every attempt and is still reported exactly as before.
 void remove_directory(std::string directory)
 {
+  const int max_attempts = 5;
+
   std::error_code ec;
-  std::filesystem::remove_all(directory, ec);
-  if(ec)
+  for(int attempt = 0; attempt < max_attempts; ++attempt)
     {
-      throw std::runtime_error("DFA staging remove_all failed for " + directory + ": " + ec.message());
+      if(attempt > 0)
+	{
+	  std::this_thread::sleep_for(std::chrono::milliseconds(50 << (attempt - 1)));
+	}
+
+      ec.clear();
+      std::filesystem::remove_all(directory, ec);
+      if(!ec)
+	{
+	  return;
+	}
     }
+
+  throw std::runtime_error("DFA staging remove_all failed for " + directory + ": " + ec.message());
 }
 
 DFA::DFA(const dfa_shape_t& shape_in)
