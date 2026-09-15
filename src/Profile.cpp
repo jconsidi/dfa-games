@@ -33,7 +33,13 @@ Profile::Profile(std::string name_in)
 Profile::Profile(const std::ostringstream& oss)
   : Profile(oss.str())
 {
-  profile_stack.push_back(this);
+  // Delegating to Profile(std::string) above already pushed this once;
+  // pushing again here left a second, dangling entry in profile_stack
+  // once this object was destroyed (the destructor only pops once),
+  // corrupting bookkeeping for every later Profile on the stack. Currently
+  // unused by any caller in this codebase, so nothing exercises it, but
+  // fixing a latent double-push in a currently-dead overload beats leaving
+  // it for whoever reaches for it next.
 }
 
 Profile::~Profile()
