@@ -1,7 +1,6 @@
 // DFA.cpp
 
 #include <assert.h>
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <openssl/evp.h>
@@ -12,6 +11,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <iomanip>
 #include <numeric>
 #include <sstream>
@@ -136,42 +136,48 @@ std::string create_directory(std::string directory)
   // directory itself as a prefix to create, not just directory's parents.
   // Staging is always local -- never durable -- so the root is fixed here.
   ensure_parent_directories(ScratchConfig::get_local_dir(), directory + "/x");
-  mkdir(directory.c_str(), 0700);
+
+  // ensure_parent_directories above tolerates directory itself already
+  // existing (it is just the last prefix in its walk, EEXIST and all) --
+  // deliberately, since two concurrent builds racing to create the exact
+  // same path is not a real scenario here (bare-pid naming plus
+  // build_in_progress / binary_build_in_progress already make "at most one
+  // per live process" an asserted invariant). But a pid *can* be reused
+  // across processes once the old one has exited, and if that old process
+  // never got to clean up (a crash partway through, e.g. ENOSPC/EDQUOT
+  // mid-build), its leftover directory is still sitting at this exact
+  // path. Silently building on top of unknown leftover content is exactly
+  // the kind of silence this project's own priorities rule out -- and it
+  // is what eventually surfaces, confusingly, as a "directory not empty"
+  // failure later, once something in the old leftovers or the new build's
+  // own files can't be removed cleanly together. Reclaim it here instead,
+  // before it can be mistaken for this build's own fresh staging area.
+  remove_directory(directory);
+
+  if(mkdir(directory.c_str(), 0700))
+    {
+      perror(("DFA staging mkdir " + directory).c_str());
+      throw std::runtime_error("DFA staging mkdir failed");
+    }
+
   return directory;
 }
 
-// Empty and remove a staging directory. Reached from ~DFA for a DFA that was
-// never saved, and from save_by_hash once the .dfa file has taken over.
+// Empty and remove a staging directory, including anything unexpected left
+// in it (a subdirectory should never occur from this project's own code,
+// but a leftover from a differently-shaped previous build reusing this pid
+// is exactly the case create_directory above now guards against by calling
+// this first). Reached from ~DFA for a DFA that was never saved, from
+// save_by_hash once the .dfa file has taken over, and from create_directory
+// itself before reusing a pid-named path. A missing directory is not an
+// error -- the common case, since most construction paths never need this.
 void remove_directory(std::string directory)
 {
-  DIR *dir = opendir(directory.c_str());
-  if(dir)
+  std::error_code ec;
+  std::filesystem::remove_all(directory, ec);
+  if(ec)
     {
-      for(struct dirent *dirent = readdir(dir);
-	  dirent;
-	  dirent = readdir(dir))
-	{
-	  if(strncmp(dirent->d_name, ".", sizeof(dirent->d_name)) &&
-	     strncmp(dirent->d_name, "..", sizeof(dirent->d_name)))
-	    {
-	      std::string old_file_name = directory + "/" + dirent->d_name;
-	      int unlink_ret = unlink(old_file_name.c_str());
-	      if(unlink_ret)
-		{
-		  perror("DFA staging unlink");
-		  throw std::runtime_error("DFA staging unlink failed");
-		}
-	    }
-	}
-
-      closedir(dir);
-
-      int rmdir_ret = rmdir(directory.c_str());
-      if(rmdir_ret)
-	{
-	  perror("DFA staging rmdir");
-	  throw std::runtime_error("DFA staging rmdir failed");
-	}
+      throw std::runtime_error("DFA staging remove_all failed for " + directory + ": " + ec.message());
     }
 }
 
