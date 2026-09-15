@@ -51,7 +51,7 @@ public:
   void rename(std::string);
   size_t size() const;
   void truncate(size_t);
-  void unlink();
+  void unlink() const;
 };
 
 #endif

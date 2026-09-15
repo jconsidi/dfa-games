@@ -1396,6 +1396,14 @@ dfa_state_t BinaryDFA::build_nary_backward(const std::vector<shared_dfa_ptr>& df
   assert(next_rank_to_output.size() == 1);
   dfa_state_t initial_state = next_rank_to_output[0];
   next_rank_to_output.unlink();
+
+  // tuples(0) (the initial tuple, written before the forward loop even
+  // starts) is read as curr_tuples during the layer=0 iteration above, but
+  // it is never anyone's next_tuples -- there is no layer -1 -- so
+  // build_nary_backward_layer's own cleanup never reaches it. Free it here
+  // instead of leaving it for binary_directory_guard's final teardown.
+  build_nary_read_tuples(0).unlink();
+
   return initial_state;
 }
 
@@ -1479,6 +1487,17 @@ MemoryMap<dfa_state_t> BinaryDFA::build_nary_backward_layer(const std::vector<sh
   profile.tic("unlink transition_tuples");
 
   curr_transition_tuples.unlink();
+
+  // next_tuples (nary_tuples_name(layer + 1)) has no more readers. The only
+  // other place any tuples file gets read is as curr_tuples, inside
+  // build_nary_transition_tuples, one call to this function per layer; the
+  // backward loop runs from backward_layers - 1 down to 0, so tuples(layer
+  // + 1) was already consumed that way during the previous (higher-layer)
+  // call and is not needed again. Without this, every layer's tuples file
+  // -- one per layer, all written by the forward pass before backward ever
+  // starts freeing any -- would sit in binarydfa/<pid> for the entire
+  // backward pass instead of shrinking as it goes.
+  next_tuples.unlink();
 
   // Below, sort curr_transitions's rows -- each of width curr_layer_shape,
   // this layer's own alphabet size, unrelated to dfas_in.size() -- directly

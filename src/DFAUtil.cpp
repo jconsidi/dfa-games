@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
+#include <cstdlib>
 #include <exception>
 #include <iomanip>
 #include <iostream>
@@ -62,6 +64,61 @@ std::string _hash_join(const std::vector<shared_dfa_ptr>& dfas_in)
   return oss.str();
 }
 
+// A single BinaryDFA n-ary build keeps one tuples file per layer on disk
+// for its entire forward pass (see BinaryDFA.cpp's build_nary_forward), and
+// each row of every one of those files is one dfa_state_t per operand --
+// so peak disk footprint grows with operand count, on top of however many
+// layers the shape has. A single call over the 50+ operands this function
+// targets can outrun local scratch before the forward pass even finishes:
+// solving cram_7x7's move graph did exactly that, 880GB in by layer 30 of
+// 49. Cap how many operands reach one BinaryDFA build directly; beyond
+// that, reduce in batches and then reduce the batch results -- a shallow
+// tree instead of one wide call. Still far fewer BinaryDFA builds than the
+// fully pairwise fold this constructor replaced, and union/intersection
+// are associative and idempotent, so the tree shape cannot change the
+// result -- only how much operand-file width is ever live in one build.
+//
+// There is no single right value, so this is overridable via
+// DFA_REDUCE_NARY_WIDTH_MAX rather than fixed: too high and a single
+// build's own forward pass can still exhaust scratch, which is the
+// failure this cap exists to avoid in the first place; too low and the
+// *batch results* -- each one a real, cached DFA under
+// union_vector_cache/intersection_vector_cache, not scratch that gets
+// cleaned up when one build finishes -- accumulate across more tree nodes
+// before enough of them exist to fold together. It is a tradeoff between
+// two ways of running out of the same disk, shaped by how many layers the
+// game's shape has and how much scratch is actually available, neither of
+// which this code can know on its own. Read fresh on every call (like
+// ScratchConfig's env vars) rather than cached once, so a test -- or a
+// long-running process -- can change it without a restart.
+static const char *env_reduce_nary_width_max = "DFA_REDUCE_NARY_WIDTH_MAX";
+
+static size_t get_reduce_nary_width_max()
+{
+  const size_t default_width_max = 16;
+
+  const char *env_value = std::getenv(env_reduce_nary_width_max);
+  if((env_value == 0) || (env_value[0] == '\0'))
+    {
+      return default_width_max;
+    }
+
+  errno = 0;
+  char *end = 0;
+  long parsed = std::strtol(env_value, &end, 10);
+  if(errno || (*end != '\0') || (parsed < 2))
+    {
+      // < 2 is rejected, not just <= 0: a cap of 1 would still see
+      // dfas_in.size() > width_max for any real call, batch into
+      // single-operand groups that each return unchanged (the size == 1
+      // early return above), and recurse on an unshrunk vector forever.
+      throw std::runtime_error(std::string(env_reduce_nary_width_max) +
+                                " must be an integer >= 2, got \"" + env_value + "\"");
+    }
+
+  return size_t(parsed);
+}
+
 // Backend for get_intersection_vector/get_union_vector: BinaryDFA's n-ary
 // constructor, cached under a key built from the whole (sorted, deduped)
 // operand set rather than relying on reuse of pairwise sub-results the way
@@ -87,6 +144,26 @@ shared_dfa_ptr _reduce_nary(const dfa_shape_t& shape_in, bool is_union_in, std::
   if(dfas_in.size() == 1)
     {
       return dfas_in[0];
+    }
+
+  size_t width_max = get_reduce_nary_width_max();
+  if(dfas_in.size() > width_max)
+    {
+      std::vector<shared_dfa_ptr> batch_results;
+      for(size_t batch_start = 0; batch_start < dfas_in.size(); batch_start += width_max)
+        {
+          size_t batch_end = std::min(batch_start + width_max, dfas_in.size());
+
+          std::vector<shared_dfa_ptr> batch;
+          for(size_t i = batch_start; i < batch_end; ++i)
+            {
+              batch.push_back(dfas_in[i]);
+            }
+
+          batch_results.push_back(_reduce_nary(shape_in, is_union_in, std::move(batch)));
+        }
+
+      return _reduce_nary(shape_in, is_union_in, std::move(batch_results));
     }
 
   std::string cache_name = (is_union_in ? "union_vector_cache/" : "intersection_vector_cache/") + _hash_join(dfas_in);
