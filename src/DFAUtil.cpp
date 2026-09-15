@@ -62,6 +62,21 @@ std::string _hash_join(const std::vector<shared_dfa_ptr>& dfas_in)
   return oss.str();
 }
 
+// A single BinaryDFA n-ary build keeps one tuples file per layer on disk
+// for its entire forward pass (see BinaryDFA.cpp's build_nary_forward), and
+// each row of every one of those files is one dfa_state_t per operand --
+// so peak disk footprint grows with operand count, on top of however many
+// layers the shape has. A single call over the 50+ operands this function
+// targets can outrun local scratch before the forward pass even finishes:
+// solving cram_7x7's move graph did exactly that, 880GB in by layer 30 of
+// 49. Cap how many operands reach one BinaryDFA build directly; beyond
+// that, reduce in batches and then reduce the batch results -- a shallow
+// tree instead of one wide call. Still far fewer BinaryDFA builds than the
+// fully pairwise fold this constructor replaced, and union/intersection
+// are associative and idempotent, so the tree shape cannot change the
+// result -- only how much operand-file width is ever live in one build.
+static const size_t reduce_nary_width_max = 16;
+
 // Backend for get_intersection_vector/get_union_vector: BinaryDFA's n-ary
 // constructor, cached under a key built from the whole (sorted, deduped)
 // operand set rather than relying on reuse of pairwise sub-results the way
@@ -87,6 +102,25 @@ shared_dfa_ptr _reduce_nary(const dfa_shape_t& shape_in, bool is_union_in, std::
   if(dfas_in.size() == 1)
     {
       return dfas_in[0];
+    }
+
+  if(dfas_in.size() > reduce_nary_width_max)
+    {
+      std::vector<shared_dfa_ptr> batch_results;
+      for(size_t batch_start = 0; batch_start < dfas_in.size(); batch_start += reduce_nary_width_max)
+        {
+          size_t batch_end = std::min(batch_start + reduce_nary_width_max, dfas_in.size());
+
+          std::vector<shared_dfa_ptr> batch;
+          for(size_t i = batch_start; i < batch_end; ++i)
+            {
+              batch.push_back(dfas_in[i]);
+            }
+
+          batch_results.push_back(_reduce_nary(shape_in, is_union_in, std::move(batch)));
+        }
+
+      return _reduce_nary(shape_in, is_union_in, std::move(batch_results));
     }
 
   std::string cache_name = (is_union_in ? "union_vector_cache/" : "intersection_vector_cache/") + _hash_join(dfas_in);

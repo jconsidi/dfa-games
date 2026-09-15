@@ -13,6 +13,7 @@
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "RejectDFA.h"
+#include "StringDFA.h"
 #include "TestDFAParams.h"
 #include "UnionDFA.h"
 
@@ -287,6 +288,62 @@ std::vector<DFAString> get_all_positions(const dfa_shape_t& shape)
   return output;
 }
 
+// _reduce_nary (DFAUtil.cpp) folds operand counts above
+// reduce_nary_width_max through a shallow tree of smaller BinaryDFA builds
+// instead of one wide one, to bound peak disk usage -- see its own
+// comment. Force that path here (more operands than the cap) and check
+// the DFAUtil-level result against the same pairwise fold used elsewhere
+// in this file for the flat, single-build case, so tree-shaped reduction
+// is confirmed to produce the exact same language as flat reduction, not
+// just a plausible-looking one.
+void test_reduce_nary_chunking(const dfa_shape_t& shape)
+{
+  std::cout << "checking reduce_nary chunking" << std::endl;
+  std::cout.flush();
+
+  std::vector<DFAString> positions = get_all_positions(shape);
+
+  const size_t width = 40; // more than one _reduce_nary batch (16 operands)
+  assert(width <= positions.size());
+
+  shared_dfa_ptr accept(new AcceptDFA(shape));
+
+  std::vector<shared_dfa_ptr> singletons;
+  std::vector<shared_dfa_ptr> accept_minus_one;
+  for(size_t i = 0; i < width; ++i)
+    {
+      shared_dfa_ptr singleton(new StringDFA(shape, std::vector<DFAString>({positions[i]})));
+      singletons.push_back(singleton);
+      accept_minus_one.push_back(DFAUtil::get_difference(accept, singleton));
+    }
+
+  shared_dfa_ptr union_actual = DFAUtil::get_union_vector(shape, singletons);
+  shared_dfa_ptr union_expected = singletons[0];
+  for(size_t i = 1; i < singletons.size(); ++i)
+    {
+      union_expected = shared_dfa_ptr(new UnionDFA(*union_expected, *singletons[i]));
+    }
+  if(!DFAUtil::get_difference(union_actual, union_expected)->is_constant(false) ||
+     !DFAUtil::get_difference(union_expected, union_actual)->is_constant(false))
+    {
+      throw std::logic_error("reduce_nary chunking: union language mismatch vs pairwise reduction");
+    }
+  test_helper("reduce_nary chunking union", *union_actual, width);
+
+  shared_dfa_ptr intersection_actual = DFAUtil::get_intersection_vector(shape, accept_minus_one);
+  shared_dfa_ptr intersection_expected = accept_minus_one[0];
+  for(size_t i = 1; i < accept_minus_one.size(); ++i)
+    {
+      intersection_expected = shared_dfa_ptr(new IntersectionDFA(*intersection_expected, *accept_minus_one[i]));
+    }
+  if(!DFAUtil::get_difference(intersection_actual, intersection_expected)->is_constant(false) ||
+     !DFAUtil::get_difference(intersection_expected, intersection_actual)->is_constant(false))
+    {
+      throw std::logic_error("reduce_nary chunking: intersection language mismatch vs pairwise reduction");
+    }
+  test_helper("reduce_nary chunking intersection", *intersection_actual, positions.size() - width);
+}
+
 void test_states(std::string test_name, const DFA& test_dfa, size_t expected_states)
 {
   size_t actual_states = test_dfa.states();
@@ -537,6 +594,7 @@ int main()
       test_suite(dfa_shape_t({TEST5_DFA_SHAPE}));
 
       test_linear_bound();
+      test_reduce_nary_chunking(dfa_shape_t({TEST5_DFA_SHAPE}));
     }
   catch(const std::logic_error& e)
     {
