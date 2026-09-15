@@ -22,8 +22,6 @@ if [ -x "../scripts/generate-config-${BASE}.py" ] ; then
     "../scripts/generate-config-${BASE}.py"
 fi
 
-find scratch/move_nodes -type l -exec rm {} \;
-
 if [ -d "scratch/${GAME}" ] ; then
     find "scratch/${GAME}" -type l -exec rm {} \;
 fi
