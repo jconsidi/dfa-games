@@ -46,7 +46,7 @@ public:
   std::string filename() const {return _filename;}
   size_t length() const;
   void mmap() const;
-  void msync();
+  void msync() const;
   void munmap() const;
   void rename(std::string);
   size_t size() const;
