@@ -471,6 +471,15 @@ shared_dfa_ptr DFAUtil::get_intersection(shared_dfa_ptr left_in, shared_dfa_ptr 
 	// use linear bounds to check if either DFA is a subset of the
 	// other DFA. in that case, we can immediately return the
 	// subset.
+	//
+	// This is only sound because get_linear_bound() is documented (see
+	// DFA.h) to return a *tight* bound -- exactly the characters some
+	// accepted string uses at each layer, not merely a sound
+	// over-approximation -- for any DFA without dead states, which
+	// is_linear()==true implies here. A <= comparison against a loose
+	// bound would only be sound reasoning about the bounds themselves,
+	// not about the languages one of these branches returns instead of
+	// actually computing.
 
 	const DFALinearBound& left_bound = left_in->get_linear_bound();
 	const DFALinearBound& right_bound = right_in->get_linear_bound();
