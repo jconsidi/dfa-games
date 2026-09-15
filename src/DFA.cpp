@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <iomanip>
 #include <numeric>
-#include <ranges>
 #include <sstream>
 #include <string>
 
@@ -22,6 +21,7 @@
 #include "DFAFormat.h"
 #include "Profile.h"
 #include "ScratchConfig.h"
+#include "VectorBitSet.h"
 #include "parallel.h"
 #include "utils.h"
 
@@ -1058,14 +1058,28 @@ const DFALinearBound& DFA::get_linear_bound() const
     {
       assert(ready());
 
+      mmap();
+
       std::vector<std::vector<bool>> bounds;
       bool reached_accept_all = initial_state == 1;
 
-      mmap();
+      // States reachable from initial_state, tracked layer by layer, so the
+      // aggregation below reflects only characters some accepted string can
+      // actually use at that layer -- not every ordinary state this DFA's
+      // construction happened to leave in the layer regardless of whether
+      // anything reaches it. reachable[layer] holds the states entering
+      // that layer; reachable.size() only ever grows as far as needed,
+      // since layers past the point reached_accept_all goes true never
+      // consult it (see the header comment on get_linear_bound).
+      std::vector<VectorBitSet> reachable;
+      reachable.emplace_back(get_layer_size(0));
+      if(!reached_accept_all && (initial_state >= 2))
+	{
+	  reachable[0].add(initial_state);
+	}
 
       for(int layer = 0; layer < ndim; ++layer)
 	{
-	  size_t layer_size = get_layer_size(layer);
 	  int layer_shape = get_layer_shape(layer);
 	  if(reached_accept_all)
 	    {
@@ -1074,13 +1088,32 @@ const DFALinearBound& DFA::get_linear_bound() const
 	    }
 
 	  bounds.emplace_back(layer_shape, false);
-
 	  std::vector<bool>& curr_bounds = bounds[layer];
 
-	  // narrow shape case
+	  bool have_next_layer = (layer + 1 < ndim);
+	  if(have_next_layer)
+	    {
+	      reachable.emplace_back(get_layer_size(layer + 1));
+	    }
+	  VectorBitSet *next_reachable = have_next_layer ? &reachable.back() : 0;
+
+	  // narrow shape case: pack this layer's alphabet into one uint32 per
+	  // state and reduce in parallel. VectorBitSetIterator does not
+	  // satisfy std::random_access_iterator (see BinaryDFA::build_linear
+	  // for the same restriction), so materialize the reachable state ids
+	  // into a plain array first.
 
 	  if(layer_shape <= 32)
 	    {
+	      MemoryMap<dfa_state_t> curr_reachable_ids(reachable[layer].count());
+	      {
+		dfa_state_t i = 0;
+		for(auto iter = reachable[layer].begin(); iter < reachable[layer].end(); ++iter, ++i)
+		  {
+		    curr_reachable_ids[i] = dfa_state_t(*iter);
+		  }
+	      }
+
 	      auto get_local = [&](dfa_state_t state_id)
 		{
 		  bool local_accept_all = false;
@@ -1108,15 +1141,22 @@ const DFALinearBound& DFA::get_linear_bound() const
 						 std::get<1>(a) | std::get<1>(b));
 	      };
 
-	      std::ranges::iota_view state_view(size_t(2), layer_size);
-
-	      std::pair<bool, uint32_t> combined_bounds =
-		TRY_PARALLEL_5(std::transform_reduce,
-			       state_view.begin(),
-			       state_view.end(),
-			       (std::pair<bool, uint32_t>(false, 0)),
-			       reduce_local,
-			       get_local);
+	      // curr_reachable_ids.begin()/.end() assert the map is mapped,
+	      // which a zero-length MemoryMap never is (no reachable states
+	      // at this layer -- e.g. this DFA is constant reject) -- so
+	      // this must stay conditional rather than always calling
+	      // through to transform_reduce.
+	      std::pair<bool, uint32_t> combined_bounds(false, 0);
+	      if(curr_reachable_ids.size() > 0)
+		{
+		  combined_bounds =
+		    TRY_PARALLEL_5(std::transform_reduce,
+				   curr_reachable_ids.begin(),
+				   curr_reachable_ids.end(),
+				   (std::pair<bool, uint32_t>(false, 0)),
+				   reduce_local,
+				   get_local);
+		}
 
 	      if(std::get<0>(combined_bounds))
 		{
@@ -1124,19 +1164,36 @@ const DFALinearBound& DFA::get_linear_bound() const
 		}
 	      for(int i = 0; i < 32; ++i)
 		{
-		  if(std::get<1>(combined_bounds) & (1 << i))
+		  if(std::get<1>(combined_bounds) & (uint32_t(1) << i))
 		    {
 		      curr_bounds[i] = true;
+		    }
+		}
+
+	      if(next_reachable)
+		{
+		  for(size_t idx = 0; idx < curr_reachable_ids.size(); ++idx)
+		    {
+		      DFATransitionsReference transitions = this->get_transitions(layer, curr_reachable_ids[idx]);
+		      for(int i = 0; i < layer_shape; ++i)
+			{
+			  dfa_state_t t = transitions[i];
+			  if(t >= 2)
+			    {
+			      next_reachable->add(t);
+			    }
+			}
 		    }
 		}
 
 	      continue;
 	    }
 
-	  // general shape case
+	  // general shape case: not parallelized, same as before this fix.
 
-	  for(size_t state_id = 2; state_id < layer_size; ++state_id)
+	  for(auto iter = reachable[layer].begin(); iter < reachable[layer].end(); ++iter)
 	    {
+	      dfa_state_t state_id = dfa_state_t(*iter);
 	      DFATransitionsReference transitions = this->get_transitions(layer, state_id);
 	      for(int i = 0; i < layer_shape; ++i)
 		{
@@ -1148,6 +1205,10 @@ const DFALinearBound& DFA::get_linear_bound() const
 		  if(t)
 		    {
 		      curr_bounds[i] = true;
+		    }
+		  if(next_reachable && (t >= 2))
+		    {
+		      next_reachable->add(t);
 		    }
 		}
 	    }
