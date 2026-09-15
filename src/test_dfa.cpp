@@ -57,6 +57,106 @@ void test_intersection_pair(std::string test_name, const DFA& left, const DFA& r
   test_intersection_pair(test_name, left, right, size_t(expected_boards));
 }
 
+// Checks DFAUtil::get_intersection's is_linear() shortcut directly, against
+// the always-correct pairwise IntersectionDFA constructor. This is the
+// actual code path that was wrong before get_linear_bound() was fixed to
+// aggregate only states reachable from initial_state: is_linear()==true
+// does not by itself mean get_linear_bound() has no unreachable-but-live
+// state polluting some layer's bound (DedupedDFA-built DFAs, CountDFA
+// among them, do not prune unreachable states), so the shortcut's
+// left_bound <= right_bound check could wrongly treat one operand as a
+// subset of the other. See DFA.h's comment on get_linear_bound() for the
+// invariant this now depends on.
+void test_intersection_via_util(std::string test_name, shared_dfa_ptr left, shared_dfa_ptr right, size_t expected_boards)
+{
+  std::cout << "checking intersection via util " << test_name << std::endl;
+  std::cout.flush();
+
+  shared_dfa_ptr test_dfa = DFAUtil::get_intersection(left, right);
+  test_helper("intersection via util " + test_name, *test_dfa, expected_boards);
+
+  IntersectionDFA expected(*left, *right);
+  if(size_t(test_dfa->size()) != size_t(expected.size()))
+    {
+      throw std::logic_error("intersection via util " + test_name + ": disagrees with IntersectionDFA");
+    }
+}
+
+// Checks get_linear_bound()'s own contract (DFA.h) directly, rather than
+// only through get_intersection's use of it: for a DFA with no dead states,
+// the bound at each layer is exactly the set of characters some accepted
+// string uses there, not merely a sound superset of it.
+//
+// Shape (1, 2, 3, 4) forces this: layer 0 can never hold a piece (shape 1),
+// so a position with exactly 3 pieces (the maximum possible, since layers
+// 1-3 can hold at most one piece each) must have *every* one of layers 1-3
+// non-blank -- there is no choice of which layer is blank, unlike (say)
+// "exactly 2 of 3". CountDFA's construction still creates a state at layer
+// 1 for "1 piece already, entering layer 1", even though that is
+// impossible before any counting layer has been read; before
+// get_linear_bound() was restricted to states reachable from
+// initial_state, that unreachable state's own (non-uniform) row leaked
+// blank into layer 1's bound as if some accepted count-3 position could
+// have layer 1 blank, which none can.
+void test_linear_bound()
+{
+  std::cout << "checking linear bound" << std::endl;
+  std::cout.flush();
+
+  dfa_shape_t shape({TEST4_DFA_SHAPE});
+
+  shared_dfa_ptr count2(new CountDFA(shape, 2));
+  shared_dfa_ptr count3(new CountDFA(shape, 3));
+
+  if(!count3->is_linear())
+    {
+      throw std::logic_error("linear bound: count3 expected to be linear for this test to be meaningful");
+    }
+
+  const DFALinearBound& bound3 = count3->get_linear_bound();
+
+  // layer 0: shape 1, the only character there is always used.
+  if(!bound3.check_bound(0, 0))
+    {
+      throw std::logic_error("linear bound: count3 layer 0 character 0 should be possible");
+    }
+
+  // layers 1-3: every count3 position needs blank (character 0) excluded
+  // and some non-blank character included, since all three must be
+  // non-blank.
+  for(int layer = 1; layer <= 3; ++layer)
+    {
+      if(bound3.check_bound(layer, 0))
+	{
+	  throw std::logic_error("linear bound: count3 layer " + std::to_string(layer) + " character 0 (blank) should not be possible");
+	}
+
+      bool found_nonblank = false;
+      for(int c = 1; c < shape[layer]; ++c)
+	{
+	  found_nonblank = found_nonblank || bound3.check_bound(layer, c);
+	}
+      if(!found_nonblank)
+	{
+	  throw std::logic_error("linear bound: count3 layer " + std::to_string(layer) + " should have some non-blank character possible");
+	}
+    }
+
+  // contrast: count2 allows exactly one of layers 1-3 to be blank, so
+  // (unlike count3) blank *is* possible at each of them.
+  const DFALinearBound& bound2 = count2->get_linear_bound();
+  for(int layer = 1; layer <= 3; ++layer)
+    {
+      if(!bound2.check_bound(layer, 0))
+	{
+	  throw std::logic_error("linear bound: count2 layer " + std::to_string(layer) + " character 0 (blank) should be possible");
+	}
+    }
+
+  std::cout << "linear bound: passed" << std::endl;
+  std::cout.flush();
+}
+
 void test_inverse(std::string test_name, const DFA& dfa_in)
 {
   std::cout << "checking inverse " << test_name << std::endl;
@@ -247,6 +347,19 @@ void test_suite(const dfa_shape_t& shape)
   test_intersection_pair("count3+count2", *count3, *count2, size_t(0));
   test_intersection_pair("count3+count3", *count3, *count3, count3->size());
 
+  // DFAUtil::get_intersection's is_linear() shortcut specifically -- see
+  // test_intersection_via_util's comment. count2/count3 is the regression
+  // case (count3 is_linear() but, before the get_linear_bound() fix, had an
+  // unreachable state inflating its bound whenever an earlier layer's
+  // shape restricted which counts could actually be reached yet).
+
+  test_intersection_via_util("count0+count0", count0, count0, size_t(count0->size()));
+  test_intersection_via_util("count1+count2", count1, count2, size_t(0));
+  test_intersection_via_util("count2+count2", count2, count2, size_t(count2->size()));
+  test_intersection_via_util("count2+count3", count2, count3, size_t(0));
+  test_intersection_via_util("count3+count2", count3, count2, size_t(0));
+  test_intersection_via_util("count3+count3", count3, count3, size_t(count3->size()));
+
   // union tests
 
   test_union_pair("count0+count0", *count0, *count0, count0->size());
@@ -333,6 +446,8 @@ int main()
       test_suite(dfa_shape_t({TEST3_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST4_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST5_DFA_SHAPE}));
+
+      test_linear_bound();
     }
   catch(const std::logic_error& e)
     {
