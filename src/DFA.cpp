@@ -265,13 +265,9 @@ DFA::~DFA() noexcept(false)
     {
       // layer_transitions still holds this build's staging maps here --
       // member destructors only run after this body finishes. Release them
-      // (same msync-then-clear as save_by_hash) before removing the
-      // directory they live in, rather than unlinking files still mapped
-      // underneath a live MemoryMap.
-      for(MemoryMap<dfa_state_t>& layer_transition : layer_transitions)
-	{
-	  layer_transition.msync();
-	}
+      // (each MemoryMap's own destructor msyncs before unmapping) before
+      // removing the directory they live in, rather than unlinking files
+      // still mapped underneath a live MemoryMap.
       layer_transitions.clear();
 
       remove_directory(directory);
@@ -1607,18 +1603,9 @@ void DFA::save_by_hash(const std::string& root) const
   attach_file(file_name_new);
   build_in_progress = false;
 
-  // munmap() (run by ~MemoryMap, below) does not imply a flush -- dirty
-  // pages of a MAP_SHARED mapping stay in the page cache and are written
-  // back on the kernel's own schedule, same as an un-fsynced write(). On a
-  // networked filesystem, unlinking (via remove_directory, below) a file
-  // whose writeback is still pending can make the client treat it as still
-  // busy, which is exactly what "directory not empty" during staging
-  // cleanup looks like. msync(MS_SYNC) each mapping first so the data is
-  // actually out before anything tries to remove the file it lives in.
-  for(MemoryMap<dfa_state_t>& layer_transition : layer_transitions)
-    {
-      layer_transition.msync();
-    }
+  // Each MemoryMap's own destructor msyncs before unmapping (see
+  // MemoryMap::munmap), so this leaves nothing dirty behind for
+  // remove_directory's unlink, below, to race against.
   layer_transitions.clear();
   layer_file_names.clear();
   remove_directory(directory);
