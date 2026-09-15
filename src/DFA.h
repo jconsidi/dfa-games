@@ -90,6 +90,14 @@ public:
 
 class DFAIterator;
 
+// Per-layer bound on which characters an accepted string can use: bit c of
+// layer i is set iff some accepted string could use character c at layer i.
+// See DFA::get_linear_bound() for how it is computed and exactly when that
+// bound is tight (equal to the true per-layer character set) rather than a
+// looser over-approximation. A comparison via operator<= is sound reasoning
+// about the *bound*, but is only sound reasoning about the *languages*
+// themselves when at least one side is tight -- see DFAUtil::get_intersection
+// for the one place in this codebase that depends on that.
 class DFALinearBound
 {
 private:
@@ -209,6 +217,19 @@ class DFA
   dfa_state_t get_initial_state() const;
   int get_layer_shape(int) const;
   size_t get_layer_size(int) const;
+  // Tight whenever this DFA has no dead ordinary states -- none whose every
+  // path leads only to reject, at any distance -- since a dead state would
+  // fold into the reserved reject state 0 by the time it is added (every
+  // add_state call here checks for an all-reject row), and every path this
+  // touches is otherwise reachable from initial_state by construction.
+  // Every DFA class in this codebase satisfies that today, but it is a
+  // property of how a DFA was built, not one checked here, so a class that
+  // ever added a state without going through that collapse would silently
+  // get a merely-sound-but-loose bound instead of a wrong one -- looser,
+  // never wider than the true set, so still safe to intersect against, just
+  // not necessarily tight. DFAUtil::get_intersection's is_linear() shortcut
+  // is the one place in this codebase that requires tightness rather than
+  // just soundness; see its comment.
   const DFALinearBound& get_linear_bound() const;
   std::string get_name() const;
   const dfa_shape_t& get_shape() const;

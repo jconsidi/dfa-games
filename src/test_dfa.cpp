@@ -58,6 +58,31 @@ void test_intersection_pair(std::string test_name, const DFA& left, const DFA& r
   test_intersection_pair(test_name, left, right, size_t(expected_boards));
 }
 
+// Checks DFAUtil::get_intersection's is_linear() shortcut directly, against
+// the always-correct pairwise IntersectionDFA constructor. This is the
+// actual code path that was wrong before get_linear_bound() was fixed to
+// aggregate only states reachable from initial_state: is_linear()==true
+// does not by itself mean get_linear_bound() has no unreachable-but-live
+// state polluting some layer's bound (DedupedDFA-built DFAs, CountDFA
+// among them, do not prune unreachable states), so the shortcut's
+// left_bound <= right_bound check could wrongly treat one operand as a
+// subset of the other. See DFA.h's comment on get_linear_bound() for the
+// invariant this now depends on.
+void test_intersection_via_util(std::string test_name, shared_dfa_ptr left, shared_dfa_ptr right, size_t expected_boards)
+{
+  std::cout << "checking intersection via util " << test_name << std::endl;
+  std::cout.flush();
+
+  shared_dfa_ptr test_dfa = DFAUtil::get_intersection(left, right);
+  test_helper("intersection via util " + test_name, *test_dfa, expected_boards);
+
+  IntersectionDFA expected(*left, *right);
+  if(size_t(test_dfa->size()) != size_t(expected.size()))
+    {
+      throw std::logic_error("intersection via util " + test_name + ": disagrees with IntersectionDFA");
+    }
+}
+
 void test_inverse(std::string test_name, const DFA& dfa_in)
 {
   std::cout << "checking inverse " << test_name << std::endl;
@@ -102,12 +127,11 @@ void test_union_pair(std::string test_name, const DFA& left, const DFA& right, d
 // IntersectionDFA/UnionDFA constructor over the same inputs one at a time.
 //
 // Deliberately not DFAUtil::get_intersection/get_union: those take a
-// shortcut when one operand is_linear() that assumes get_linear_bound()
-// only ever sees states reachable from the initial state, which is false
-// for at least one DedupedDFA-built shape (see the CLAUDE.md-flagged
-// report on this) -- folding through DFAUtil here would make this cross
-// check depend on that same bug instead of independently verifying against
-// it.
+// shortcut when one operand is_linear(), trusting get_linear_bound() to be
+// tight for it (see the comment on get_linear_bound() in DFA.h, and
+// test_intersection_via_util below, which checks that shortcut directly).
+// Folding through DFAUtil here would make this cross check depend on that
+// same code path instead of independently verifying against it.
 void test_intersection_vector(std::string test_name, const std::vector<shared_dfa_ptr>& dfas_in, size_t expected_boards)
 {
   std::cout << "checking intersection vector " << test_name << std::endl;
@@ -316,6 +340,19 @@ void test_suite(const dfa_shape_t& shape)
   test_intersection_pair("count2+count3", *count2, *count3, size_t(0));
   test_intersection_pair("count3+count2", *count3, *count2, size_t(0));
   test_intersection_pair("count3+count3", *count3, *count3, count3->size());
+
+  // DFAUtil::get_intersection's is_linear() shortcut specifically -- see
+  // test_intersection_via_util's comment. count2/count3 is the regression
+  // case (count3 is_linear() but, before the get_linear_bound() fix, had an
+  // unreachable state inflating its bound whenever an earlier layer's
+  // shape restricted which counts could actually be reached yet).
+
+  test_intersection_via_util("count0+count0", count0, count0, size_t(count0->size()));
+  test_intersection_via_util("count1+count2", count1, count2, size_t(0));
+  test_intersection_via_util("count2+count2", count2, count2, size_t(count2->size()));
+  test_intersection_via_util("count2+count3", count2, count3, size_t(0));
+  test_intersection_via_util("count3+count2", count3, count2, size_t(0));
+  test_intersection_via_util("count3+count3", count3, count3, size_t(count3->size()));
 
   // union tests
 
