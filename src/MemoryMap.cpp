@@ -352,7 +352,7 @@ void MemoryMap<T>::mmap(int fildes) const
 }
 
 template<class T>
-void MemoryMap<T>::msync()
+void MemoryMap<T>::msync() const
 {
   if(!_mapped)
     {
@@ -373,6 +373,18 @@ void MemoryMap<T>::munmap() const
   if(!_mapped)
     {
       return;
+    }
+
+  if((_flags != MAP_ANONYMOUS) && !_readonly)
+    {
+      // munmap() does not imply a flush -- dirty pages of a MAP_SHARED
+      // mapping stay in the page cache for the kernel's own writeback
+      // schedule, same as an un-fsynced write(). A caller that removes the
+      // underlying file soon after (staging cleanup, in particular) can
+      // otherwise race that writeback on a networked filesystem. Read-only
+      // and anonymous mappings have nothing dirty to flush, so this only
+      // costs anything where flushing can actually matter.
+      this->msync();
     }
 
   if(::munmap(_mapped, _length))
