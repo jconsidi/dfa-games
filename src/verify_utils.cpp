@@ -62,7 +62,16 @@ void verify_losing_sound(const Game& game, int side_to_move, shared_dfa_ptr losi
   std::cout << "VERIFYING " << losing_curr->size() << " LOSING POSITIONS" << std::endl;
 
   shared_dfa_ptr lost = game.get_positions_lost(side_to_move);
-  
+
+  // for_each_position below only mmaps losing_curr, the DFA it enumerates
+  // (see its own comment) -- DFA::mmap() is not safe to call concurrently
+  // the first time (it does a one-time digest check), and
+  // verify_losing_position calls ->contains() on lost and winning_prev
+  // from inside that parallel callback. Warm both up here, serially,
+  // before any worker thread can reach them.
+  lost->mmap();
+  winning_prev->mmap();
+
   uint64_t verified_count = 0;
   try
     {
@@ -224,7 +233,13 @@ void verify_winning_sound(const Game& game, int side_to_move, shared_dfa_ptr win
   std::cout << "VERIFYING " << winning_curr->size() << " WINNING POSITIONS" << std::endl;
 
   shared_dfa_ptr won = game.get_positions_won(side_to_move);
-  
+
+  // See the matching comment in verify_losing_sound: for_each_position only
+  // mmaps winning_curr, but verify_winning_position calls ->contains() on
+  // won and losing_prev from inside its parallel callback.
+  won->mmap();
+  losing_prev->mmap();
+
   uint64_t verified_count = 0;
   try
     {
