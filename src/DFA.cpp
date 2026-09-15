@@ -263,6 +263,17 @@ DFA::~DFA() noexcept(false)
 {
   if(temporary)
     {
+      // layer_transitions still holds this build's staging maps here --
+      // member destructors only run after this body finishes. Release them
+      // (same msync-then-clear as save_by_hash) before removing the
+      // directory they live in, rather than unlinking files still mapped
+      // underneath a live MemoryMap.
+      for(MemoryMap<dfa_state_t>& layer_transition : layer_transitions)
+	{
+	  layer_transition.msync();
+	}
+      layer_transitions.clear();
+
       remove_directory(directory);
     }
 
