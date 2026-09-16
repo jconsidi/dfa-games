@@ -21,7 +21,6 @@ struct TestGroup
 bool check_loss(const Game& game, int ply_max);
 bool check_win(const Game& game, int ply_max);
 
-shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name);
 // game_name == "" means every game with a config/<game>/tests.json
 std::vector<TestGroup> get_test_cases(std::string config_filename, std::string cases_key, std::string game_name = "");
 void run_test_positions(std::string game_name, std::function<void(const GameBase&, const DFAString&, const nlohmann::json&)> test_case_func, std::string required_key = "");
