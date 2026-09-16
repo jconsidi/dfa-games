@@ -149,19 +149,38 @@ shared_dfa_ptr _reduce_nary(const dfa_shape_t& shape_in, bool is_union_in, std::
   size_t width_max = get_reduce_nary_width_max();
   if(dfas_in.size() > width_max)
     {
+      size_t n = dfas_in.size();
+
+      // Batch count is the fewest batches that fit within width_max each;
+      // splitting n that evenly across exactly that many batches (some get
+      // one extra operand, since n need not divide evenly) keeps every
+      // batch close to n / num_batches wide instead of width_max wide with
+      // one small leftover batch soaking up whatever didn't divide evenly.
+      // 84 operands at width_max 8 is 11 batches either way, but width_max,
+      // width_max, ..., 4 stacks all the size-8 peak disk cost onto ten
+      // batches and gets nothing back for the eleventh being small; 7, 7,
+      // 7, 7, 8, 8, ..., 8 (four 7s, seven 8s) spreads it out instead, and
+      // the same evening applies one level up, over the batch results.
+      size_t num_batches = (n + width_max - 1) / width_max;
+      size_t base_batch_size = n / num_batches;
+      size_t remainder = n % num_batches;
+
       std::vector<shared_dfa_ptr> batch_results;
-      for(size_t batch_start = 0; batch_start < dfas_in.size(); batch_start += width_max)
+      size_t batch_start = 0;
+      for(size_t batch_index = 0; batch_index < num_batches; ++batch_index)
         {
-          size_t batch_end = std::min(batch_start + width_max, dfas_in.size());
+          size_t batch_size = base_batch_size + ((batch_index < remainder) ? 1 : 0);
 
           std::vector<shared_dfa_ptr> batch;
-          for(size_t i = batch_start; i < batch_end; ++i)
+          for(size_t i = batch_start; i < batch_start + batch_size; ++i)
             {
               batch.push_back(dfas_in[i]);
             }
+          batch_start += batch_size;
 
           batch_results.push_back(_reduce_nary(shape_in, is_union_in, std::move(batch)));
         }
+      assert(batch_start == n);
 
       return _reduce_nary(shape_in, is_union_in, std::move(batch_results));
     }
