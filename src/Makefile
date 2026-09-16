@@ -79,9 +79,6 @@ play_breakthrough : play_breakthrough.o test_utils.o dfagames.a
 print: print.o test_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-prototype: prototype.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
 random : random.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
