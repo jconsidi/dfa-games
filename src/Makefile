@@ -61,7 +61,7 @@ divide : divide.o dfagames.a
 generate_moves : generate_moves.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-get_intersection : get_intersection.o test_utils.o game_utils.o dfagames.a
+get_intersection : get_intersection.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 get_union : get_union.o game_utils.o dfagames.a
@@ -73,7 +73,7 @@ get_union_vector : get_union_vector.o game_utils.o dfagames.a
 play_breakthrough : play_breakthrough.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-print: print.o test_utils.o game_utils.o dfagames.a
+print: print.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 random : random.o dfagames.a
@@ -91,7 +91,7 @@ restart_union : restart_union.o game_utils.o dfagames.a
 solve_backward : solve_backward.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-stats : stats.o test_utils.o game_utils.o dfagames.a
+stats : stats.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 stats_% : stats_%.o game_utils.o dfagames.a
@@ -102,7 +102,7 @@ test_perft : test_perft.o dfagames.a PerftTestCases.o
 test_% : test_%.o test_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-validate_% : validate_%.o test_utils.o game_utils.o validate_utils.o dfagames.a
+validate_% : validate_%.o game_utils.o validate_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 verify_% : verify_%.o verify_utils.o game_utils.o dfagames.a

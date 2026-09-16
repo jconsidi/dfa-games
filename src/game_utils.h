@@ -8,6 +8,7 @@
 #include "Game.h"
 #include "GameBase.h"
 
+shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name);
 Game *get_game(std::string game_name);
 GameBase *get_gamebase(std::string game_name);
 

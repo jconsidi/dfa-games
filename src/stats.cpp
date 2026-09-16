@@ -5,7 +5,7 @@
 #include "DFA.h"
 #include "Game.h"
 #include "utils.h"
-#include "test_utils.h"
+#include "game_utils.h"
 
 int main(int argc, char **argv)
 {
