@@ -14,7 +14,7 @@ CXXFLAGS=$(CXXFLAGS_SHARED)
 LDFLAGS=$(LDFLAGS_SHARED)
 endif
 
-TARGETS=build_backward build_bound_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof build_puzzle divide generate_moves get_intersection get_union get_union_vector move_graph_stats play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_bound_backward stats_forward stats_forward_backward test_bitset test_change_dfa test_chess_game test_dfa test_move_graph test_normal_nim_game test_perft test_perft_u test_scratch_config test_solved test_validate validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal verify_backward_sound verify_forward_backward_sound verify_losing_sound verify_lost_sound verify_winning_sound verify_won_sound
+TARGETS=build_backward build_bound_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof build_puzzle divide generate_moves get_intersection get_union get_union_vector play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_bound_backward stats_forward stats_forward_backward stats_move_graph test_bitset test_change_dfa test_chess_game test_dfa test_move_graph test_normal_nim_game test_perft test_perft_u test_scratch_config test_solved test_validate validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal verify_backward_sound verify_forward_backward_sound verify_losing_sound verify_lost_sound verify_winning_sound verify_won_sound
 
 all : $(TARGETS)
 
@@ -68,9 +68,6 @@ get_union : get_union.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 get_union_vector : get_union_vector.o game_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-move_graph_stats : move_graph_stats.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 play_breakthrough : play_breakthrough.o game_utils.o dfagames.a
