@@ -1,4 +1,4 @@
-// test_get_intersection.cpp
+// get_intersection.cpp
 
 #include <cstdlib>
 #include <iostream>
@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
   if(argc < 4)
     {
-      std::cerr << "usage: test_get_intersection GAME_NAME LEFT_HASH RIGHT_HASH\n";
+      std::cerr << "usage: get_intersection GAME_NAME LEFT_HASH RIGHT_HASH\n";
       return 1;
     }
 

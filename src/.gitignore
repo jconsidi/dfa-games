@@ -10,6 +10,9 @@ build_forward_backward_proof
 build_puzzle
 divide
 generate_moves
+get_intersection
+get_union
+get_union_vector
 move_graph_stats
 play_breakthrough
 print
@@ -29,9 +32,6 @@ test_change_dfa
 test_chess_game
 test_chess_limited
 test_dfa
-test_get_intersection
-test_get_union
-test_get_union_vector
 test_memorymap
 test_move_graph
 test_normal_nim_game
