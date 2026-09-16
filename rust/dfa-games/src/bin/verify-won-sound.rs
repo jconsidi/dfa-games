@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Parser;
-use dfa_games::{get_game, load, parse_side_to_move, verify};
+use dfa_games::{cap_thread_pool_from_environment, get_game, load, parse_side_to_move, verify};
 
 #[derive(Parser, Debug)]
 #[command(about = "Verify that a DFA holds only terminal won positions", long_about = None)]
@@ -33,6 +33,8 @@ fn main() -> ExitCode {
 }
 
 fn run(args: &Args) -> anyhow::Result<()> {
+    cap_thread_pool_from_environment()?;
+
     let game = get_game(&args.game)?;
     let side_to_move = parse_side_to_move(&args.dfa_name)?;
     let dfa = load::load(&args.scratch, game.as_ref(), &args.dfa_name)?;
