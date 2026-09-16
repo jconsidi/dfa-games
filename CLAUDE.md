@@ -40,6 +40,14 @@ the solver has no other way to justify.
 
 ## Building
 
+nlohmann/json is vendored as a git submodule at `third_party/nlohmann_json`
+rather than installed system-wide (previously `brew install nlohmann-json` on
+macOS, `apt-get install nlohmann-json3-dev` on Linux/Docker). Clone with
+`git clone --recurse-submodules`, or after a plain clone run
+`git submodule update --init --recursive`. `src/Makefile` adds it to the
+include path with `-isystem ../third_party/nlohmann_json/include`, so no
+separate install step is needed on either platform.
+
     cd src && make -j8
 
 **Always pass `-j`.** A header change invalidates nearly every translation unit
