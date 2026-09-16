@@ -16,7 +16,6 @@ RUN apt-get update --fix-missing \
   libtbb-dev \
   lldb \
   make \
-  nlohmann-json3-dev \
   openssl \
   tzdata
 
@@ -27,6 +26,10 @@ ENV LC_ALL C.UTF-8
 ENV HOME /dfa-games
 ENV TZ US/Eastern
 WORKDIR $HOME
+
+# vendored header-only dependency. src/Makefile expects it as a sibling of $HOME.
+
+ADD third_party/nlohmann_json/include /third_party/nlohmann_json/include
 
 # real content here. changes frequently.
 
