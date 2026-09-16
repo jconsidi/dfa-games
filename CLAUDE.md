@@ -50,6 +50,12 @@ separate install step is needed on either platform.
 
     cd src && make -j8
 
+**In Claude Code's online/remote execution environment (claude.ai/code, not a local checkout), the container starts with neither of the above satisfied.**
+The `third_party/nlohmann_json` submodule is registered but not checked out, so `#include <nlohmann/json.hpp>` fails until `git submodule update --init --recursive` is run from the repo root.
+Separately, `libtbb` is not preinstalled, so every link step fails with `cannot find -ltbb` until `apt-get install -y libtbb-dev` is run.
+Both are one-time per session.
+The submodule step is just the plain-clone case above; the `libtbb` gap is specific to this sandbox's starting state — `Dockerfile` already installs `libtbb-dev` for a container build, and `-ltbb` is only linked in on the `ifeq ($(CXX), g++)` branch of `src/Makefile` (macOS default builds don't hit it).
+
 **Always pass `-j`.** A header change invalidates nearly every translation unit
 (`DFA.h` is reached through `Game.h` by almost everything), so a full rebuild is
 ~86 objects plus ~40 links. Serially that is 10+ minutes; with `-j8` it is a
