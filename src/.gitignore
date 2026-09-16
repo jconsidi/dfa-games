@@ -13,7 +13,6 @@ generate_moves
 get_intersection
 get_union
 get_union_vector
-move_graph_stats
 play_breakthrough
 print
 random
@@ -26,6 +25,7 @@ stats_backward
 stats_bound_backward
 stats_forward
 stats_forward_backward
+stats_move_graph
 test_backward
 test_bitset
 test_change_dfa
