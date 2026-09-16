@@ -1,4 +1,4 @@
-// test_get_union.cpp
+// get_union.cpp
 
 #include <cstdlib>
 #include <iostream>
@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
   if(argc < 4)
     {
-      std::cerr << "usage: test_forward GAME_NAME LEFT_HASH RIGHT_HASH\n";
+      std::cerr << "usage: get_union GAME_NAME LEFT_HASH RIGHT_HASH\n";
       return 1;
     }
 
