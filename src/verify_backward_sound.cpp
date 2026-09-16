@@ -3,7 +3,7 @@
 #include <format>
 #include <iostream>
 
-#include "test_utils.h"
+#include "game_utils.h"
 #include "verify_utils.h"
 
 std::string get_losing_name(int side_to_move, int ply)

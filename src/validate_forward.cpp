@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "DFAUtil.h"
-#include "test_utils.h"
+#include "game_utils.h"
 #include "validate_utils.h"
 
 int main(int argc, char **argv)
