@@ -5,7 +5,7 @@
 
 #include "DFAUtil.h"
 #include "DifferenceRestartDFA.h"
-#include "test_utils.h"
+#include "game_utils.h"
 
 int main(int argc, char **argv)
 {

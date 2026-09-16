@@ -4,7 +4,7 @@
 
 #include "DFAUtil.h"
 #include "Game.h"
-#include "test_utils.h"
+#include "game_utils.h"
 #include "validate_utils.h"
 
 //static std::format_string<int&, int&, std::string&> backward_format("backward,ply_max={:03d},side_to_move={:d},{:s}");

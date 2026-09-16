@@ -4,7 +4,7 @@
 #include <map>
 #include <string>
 
-#include "test_utils.h"
+#include "game_utils.h"
 
 int main(int argc, char **argv)
 {

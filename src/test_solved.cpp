@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 
+#include "game_utils.h"
 #include "test_utils.h"
 
 static std::map<std::string, std::pair<int, int>> solved_games;

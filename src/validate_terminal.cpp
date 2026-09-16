@@ -6,7 +6,7 @@
 
 #include "DFAUtil.h"
 #include "Game.h"
-#include "test_utils.h"
+#include "game_utils.h"
 #include "validate_utils.h"
 
 bool validate_side_to_move(const Game& game, int side_to_move, int max_examples)
