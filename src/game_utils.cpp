@@ -3,6 +3,7 @@
 #include "game_utils.h"
 
 #include <charconv>
+#include <memory>
 #include <stdexcept>
 #include <string_view>
 
@@ -53,6 +54,43 @@ static int parse_int_after(const std::string& game_name, std::string_view prefix
   std::string_view rest(game_name);
   rest.remove_prefix(prefix.size());
   return parse_int(game_name, rest);
+}
+
+shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name)
+{
+  const std::unique_ptr<GameBase> game(get_gamebase(game_name));
+
+  if(hash_or_name.length() == 64)
+    {
+      shared_dfa_ptr hash_dfa = game->load_by_hash(hash_or_name);
+      if(hash_dfa)
+	{
+	  return hash_dfa;
+	}
+    }
+
+  // Callers dereference what they get back without checking, and the load
+  // path only reports a missing file as "open() failed" with no indication
+  // of which DFA was wanted.
+
+  shared_dfa_ptr output;
+  try
+    {
+      output = game->load(hash_or_name);
+    }
+  catch(const std::runtime_error& e)
+    {
+      throw std::runtime_error("could not load DFA \"" + hash_or_name +
+			       "\" for game \"" + game_name + "\": " + e.what());
+    }
+
+  if(!output)
+    {
+      throw std::runtime_error("no DFA named \"" + hash_or_name +
+			       "\" for game \"" + game_name + "\"");
+    }
+
+  return output;
 }
 
 Game *get_game(std::string game_name)
