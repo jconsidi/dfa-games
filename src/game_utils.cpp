@@ -2,8 +2,9 @@
 
 #include "game_utils.h"
 
-#include <cstdio>
+#include <charconv>
 #include <stdexcept>
+#include <string_view>
 
 #include "AmazonsGame.h"
 #include "BreakthroughGame.h"
@@ -14,6 +15,45 @@
 #include "OthelloGame.h"
 #include "SlidingTilePuzzle.h"
 #include "TicTacToeGame.h"
+
+static int parse_int(const std::string& game_name, std::string_view field)
+{
+  int value = 0;
+  auto result = std::from_chars(field.data(), field.data() + field.size(), value);
+  if((result.ec != std::errc()) || (result.ptr != field.data() + field.size()))
+    {
+      throw std::logic_error("could not parse game name \"" + game_name + "\"");
+    }
+
+  return value;
+}
+
+// Parses the part of game_name after prefix as "<int>x<int>", requiring
+// every remaining character to be consumed. sscanf's "%dx%d" would accept
+// trailing garbage like "breakthrough_4x4xyz" silently, leaving that case
+// to be caught later (if at all) by the get_name() cross-check below with
+// a message that doesn't say what was actually wrong.
+static void parse_dims(const std::string& game_name, std::string_view prefix, int& width, int& height)
+{
+  std::string_view rest(game_name);
+  rest.remove_prefix(prefix.size());
+
+  size_t x_pos = rest.find('x');
+  if(x_pos == std::string_view::npos)
+    {
+      throw std::logic_error("could not parse game name \"" + game_name + "\"");
+    }
+
+  width = parse_int(game_name, rest.substr(0, x_pos));
+  height = parse_int(game_name, rest.substr(x_pos + 1));
+}
+
+static int parse_int_after(const std::string& game_name, std::string_view prefix)
+{
+  std::string_view rest(game_name);
+  rest.remove_prefix(prefix.size());
+  return parse_int(game_name, rest);
+}
 
 Game *get_game(std::string game_name)
 {
@@ -29,30 +69,21 @@ GameBase *get_gamebase(std::string game_name)
     {
       int width = 0;
       int height = 0;
-      if(std::sscanf(game_name.c_str(), "amazons_%dx%d", &width, &height) != 2)
-	{
-	  throw std::logic_error("get_name() failed parsing amazons game name");
-	}
+      parse_dims(game_name, "amazons_", width, height);
       output = new AmazonsGame(width, height);
     }
   else if(game_name.starts_with("breakthrough_"))
     {
       int width = 0;
       int height = 0;
-      if(std::sscanf(game_name.c_str(), "breakthrough_%dx%d", &width, &height) != 2)
-	{
-	  throw std::logic_error("get_name() failed parsing breakthrough game name");
-	}
+      parse_dims(game_name, "breakthrough_", width, height);
       output = new BreakthroughGame(width, height);
     }
   else if(game_name.starts_with("breakthroughcw_"))
     {
       int width = 0;
       int height = 0;
-      if(std::sscanf(game_name.c_str(), "breakthroughcw_%dx%d", &width, &height) != 2)
-	{
-	  throw std::logic_error("get_name() failed parsing breakthroughcw game name");
-	}
+      parse_dims(game_name, "breakthroughcw_", width, height);
       output = new BreakthroughColumnWiseGame(width, height);
     }
 #if CHESS_SQUARE_OFFSET == 0
@@ -75,66 +106,44 @@ GameBase *get_gamebase(std::string game_name)
     {
       int width = 0;
       int height = 0;
-      if(std::sscanf(game_name.c_str(), "clobber_%dx%d", &width, &height) != 2)
-	{
-	  throw std::logic_error("get_name() failed parsing clobber game name");
-	}
+      parse_dims(game_name, "clobber_", width, height);
       output = new ClobberGame(width, height);
     }
   else if(game_name.starts_with("cram_"))
     {
       int width = 0;
       int height = 0;
-      if(std::sscanf(game_name.c_str(), "cram_%dx%d", &width, &height) != 2)
-	{
-	  throw std::logic_error("get_name() failed parsing cram game name");
-	}
+      parse_dims(game_name, "cram_", width, height);
       output = new CramGame(width, height);
     }
   else if(game_name.starts_with("normalnim_"))
     {
       int num_heaps = 0;
       int heap_max = 0;
-      if(std::sscanf(game_name.c_str(), "normalnim_%dx%d", &num_heaps, &heap_max) != 2)
-	{
-	  throw std::logic_error("get_name() failed parsing normalnim game name");
-	}
-
+      parse_dims(game_name, "normalnim_", num_heaps, heap_max);
       output = new NormalNimGame(num_heaps, heap_max);
     }
   else if(game_name.starts_with("othello_"))
     {
       int width = 0;
       int height = 0;
-      if(std::sscanf(game_name.c_str(), "othello_%dx%d", &width, &height) != 2)
-	{
-	  throw std::logic_error("get_name() failed parsing othello game name");
-	}
+      parse_dims(game_name, "othello_", width, height);
       output = new OthelloGame(width, height);
     }
   else if(game_name.starts_with("slidingtile_"))
     {
       int width = 0;
       int height = 0;
-      if(std::sscanf(game_name.c_str(), "slidingtile_%dx%d", &width, &height) != 2)
-	{
-	  throw std::logic_error("get_name() failed parsing slidingtile game name");
-	}
+      parse_dims(game_name, "slidingtile_", width, height);
       output = new SlidingTilePuzzle(width, height);
     }
   else if(game_name.starts_with("tictactoe_"))
     {
-      int n = 0;
-      if(std::sscanf(game_name.c_str(), "tictactoe_%d", &n) != 1)
-	{
-	  throw std::logic_error("get_name() failed parsing tictactoe game name");
-	}
-
-      output = new TicTacToeGame(n);
+      output = new TicTacToeGame(parse_int_after(game_name, "tictactoe_"));
     }
   else
     {
-      throw std::logic_error("get_name() did not recognize game name");
+      throw std::logic_error("get_gamebase() did not recognize game name \"" + game_name + "\"");
     }
 
   assert(output->get_name() == game_name);
