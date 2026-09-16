@@ -7,7 +7,7 @@
 
 #include "DFAUtil.h"
 #include "Game.h"
-#include "test_utils.h"
+#include "game_utils.h"
 #include "validate_utils.h"
 
 static std::format_string<int&> positions_format("forward,ply={:03d}");

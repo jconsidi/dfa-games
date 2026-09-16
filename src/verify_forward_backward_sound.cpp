@@ -3,7 +3,7 @@
 #include <format>
 #include <iostream>
 
-#include "test_utils.h"
+#include "game_utils.h"
 #include "verify_utils.h"
 
 std::string get_name(int forward_ply_max, int backward_ply_max, int ply, std::string outcome)

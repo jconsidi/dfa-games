@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "test_utils.h"
+#include "game_utils.h"
 #include "verify_utils.h"
 
 int main(int argc, char **argv)

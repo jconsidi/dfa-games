@@ -52,7 +52,7 @@ test_chess : all
 time : all
 	time ./test_perft
 
-build_% : build_%.o build_utils.o test_utils.o dfagames.a
+build_% : build_%.o build_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 divide : divide.o dfagames.a
@@ -61,22 +61,22 @@ divide : divide.o dfagames.a
 generate_moves : generate_moves.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-get_intersection : get_intersection.o test_utils.o dfagames.a
+get_intersection : get_intersection.o test_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-get_union : get_union.o test_utils.o dfagames.a
+get_union : get_union.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-get_union_vector : get_union_vector.o test_utils.o dfagames.a
+get_union_vector : get_union_vector.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-move_graph_stats : move_graph_stats.o test_utils.o dfagames.a
+move_graph_stats : move_graph_stats.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-play_breakthrough : play_breakthrough.o test_utils.o dfagames.a
+play_breakthrough : play_breakthrough.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-print: print.o test_utils.o dfagames.a
+print: print.o test_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 random : random.o dfagames.a
@@ -85,30 +85,30 @@ random : random.o dfagames.a
 random_uci : random_uci.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-restart_difference : restart_difference.o test_utils.o dfagames.a
+restart_difference : restart_difference.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-restart_union : restart_union.o test_utils.o dfagames.a
+restart_union : restart_union.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-solve_backward : solve_backward.o test_utils.o dfagames.a
+solve_backward : solve_backward.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-stats : stats.o test_utils.o dfagames.a
+stats : stats.o test_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-stats_% : stats_%.o test_utils.o dfagames.a
+stats_% : stats_%.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 test_perft : test_perft.o dfagames.a PerftTestCases.o
 
-test_% : test_%.o test_utils.o dfagames.a
+test_% : test_%.o test_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-validate_% : validate_%.o test_utils.o validate_utils.o dfagames.a
+validate_% : validate_%.o test_utils.o game_utils.o validate_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-verify_% : verify_%.o verify_utils.o test_utils.o dfagames.a
+verify_% : verify_%.o verify_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 dfagames.a : AcceptDFA.o AmazonsGame.o BetweenMasks.o BinaryDFA.o BinaryFunction.o BinaryRestartDFA.o Board.o BreakthroughGame.o ChangeDFA.o ChessGame.o ClobberGame.o ColumnMajorOrderBase.o CompactBitSet.o ConfigBase.o ConfigGame.o ConfigPuzzle.o CountCharacterDFA.o CountDFA.o CountManager.o CramGame.o DFA.o DFAFormat.o DFAUtil.o DNFBuilder.o DedupedDFA.o DifferenceDFA.o DifferenceRestartDFA.o FixedDFA.o Flashsort.o FlexBitSet.o Game.o GameBase.o GameUtil.o IntersectionDFA.o InverseDFA.o MemoryMap.o MoveGraph.o MoveSet.o NormalNimGame.o NormalPlayGame.o OrderedBitSet.o OthelloGame.o Profile.o Puzzle.o RectangularBase.o RejectDFA.o RowMajorOrderBase.o ScratchConfig.o SlidingTilePuzzle.o StringDFA.o TicTacToeGame.o UnionDFA.o UnionRestartDFA.o UnorderedBitSet.o VectorBitSet.o utils.o
