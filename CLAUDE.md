@@ -280,6 +280,12 @@ The interactive shell is zsh, which does **not** word-split unquoted parameters.
 `$FLAGS` passes as a single argument where bash would split it. Use arrays or
 write flags literally.
 
+## Commits
+
+Prefer more, smaller commits over one large one, provided each is self-contained: it builds on its own and, where practical, passes `make test` on its own.
+Split by concern — a rename, a Makefile fix, a behavior change — rather than squashing a session's work into a single commit at the end.
+A commit that mixes an unrelated cleanup with a behavior change makes both harder to review and harder to `git bisect` later, which matters more here than in most projects given the correctness bar in **Priorities**.
+
 ## Markdown Usage
 
 When writing Markdown, write each sentence on a separate line.
