@@ -169,6 +169,18 @@ shared_dfa_ptr _reduce_nary(const dfa_shape_t& shape_in, bool is_union_in, std::
       // happened to fall. batch_results ends up exactly width_max entries,
       // at or under the cap, so combining them needs no further splitting.
       size_t num_batches = width_max;
+      // n just over width_max would otherwise split into one non-trivial
+      // batch plus width_max - 1 singleton pass-throughs (n = width_max +
+      // 1 is the extreme case). Shrink num_batches while one fewer would
+      // still, after this same rule reapplies to each of its batches one
+      // level down, cover n: (num_batches - 1) batches of up to
+      // (num_batches - 1) each cover (num_batches - 1)^2 operands in two
+      // levels, so if that already reaches n there is no need for the
+      // extra top-level batch.
+      while((num_batches - 1) * (num_batches - 1) >= n)
+        {
+          --num_batches;
+        }
       size_t base_batch_size = n / num_batches;
       size_t remainder = n % num_batches;
 
