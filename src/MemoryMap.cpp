@@ -463,7 +463,7 @@ void MemoryMap<T>::truncate(size_t size_in)
 }
 
 template <class T>
-void MemoryMap<T>::unlink()
+void MemoryMap<T>::unlink() const
 {
   munmap();
 

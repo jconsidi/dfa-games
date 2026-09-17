@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
+#include <cstdlib>
 #include <exception>
 #include <iomanip>
 #include <iostream>
@@ -62,6 +64,105 @@ std::string _hash_join(const std::vector<shared_dfa_ptr>& dfas_in)
   return oss.str();
 }
 
+// A single BinaryDFA n-ary build keeps one tuples file per layer on disk
+// for its entire forward pass (see BinaryDFA.cpp's build_nary_forward), and
+// each row of every one of those files is one dfa_state_t per operand --
+// so peak disk footprint grows with operand count, on top of however many
+// layers the shape has. A single call over the 50+ operands this function
+// targets can outrun local scratch before the forward pass even finishes:
+// solving cram_7x7's move graph did exactly that, 880GB in by layer 30 of
+// 49. Cap how many operands reach one BinaryDFA build directly; beyond
+// that, reduce in batches and then reduce the batch results. Still far
+// fewer BinaryDFA builds than the fully pairwise fold this constructor
+// replaced, and union/intersection are associative and idempotent, so
+// which operands land in which batch cannot change the result -- only how
+// much operand-file width is ever live in one build.
+//
+// There is no single right value, so this is overridable via
+// DFA_REDUCE_NARY_WIDTH_MAX rather than fixed: too high and a single
+// build's own forward pass can still exhaust scratch, which is the
+// failure this cap exists to avoid in the first place; too low and the
+// *batch results* -- each one a real, cached DFA under
+// union_vector_cache/intersection_vector_cache, not scratch that gets
+// cleaned up when one build finishes -- accumulate across more tree nodes
+// before enough of them exist to fold together. It is a tradeoff between
+// two ways of running out of the same disk, shaped by how many layers the
+// game's shape has and how much scratch is actually available, neither of
+// which this code can know on its own. Read fresh on every call (like
+// ScratchConfig's env vars) rather than cached once, so a test -- or a
+// long-running process -- can change it without a restart.
+static const char *env_reduce_nary_width_max = "DFA_REDUCE_NARY_WIDTH_MAX";
+
+static size_t get_reduce_nary_width_max()
+{
+  const size_t default_width_max = 16;
+
+  const char *env_value = std::getenv(env_reduce_nary_width_max);
+  if((env_value == 0) || (env_value[0] == '\0'))
+    {
+      return default_width_max;
+    }
+
+  errno = 0;
+  char *end = 0;
+  long parsed = std::strtol(env_value, &end, 10);
+  if(errno || (*end != '\0') || (parsed < 2))
+    {
+      // < 2 is rejected, not just <= 0: a cap of 1 would still see
+      // dfas_in.size() > width_max for any real call, batch into
+      // single-operand groups that each return unchanged (the size == 1
+      // early return above), and recurse on an unshrunk vector forever.
+      throw std::runtime_error(std::string(env_reduce_nary_width_max) +
+                                " must be an integer >= 2, got \"" + env_value + "\"");
+    }
+
+  return size_t(parsed);
+}
+
+// Upper bound on the number of states BinaryDFA's n-ary constructor would
+// produce combining dfas_in directly. Generalizes _binary_score, deleted
+// when the n-ary constructor replaced _reduce_aci's pairwise fold (see git
+// history), from pairs to arbitrary-sized groups: same two bounds per
+// layer, just taking the product bound over every operand instead of two.
+// The tighter of: the fanout bound (the previous layer's bound times this
+// layer's branching factor -- how many states a set that size could reach)
+// and the product bound (the product of every operand's own state count at
+// that layer, the standard worst case for combining automata by product
+// construction). Summed across layers, this approximates the real cost of
+// combining dfas_in directly -- used only to decide which operands to
+// combine first, never to build anything.
+double _nary_score(const std::vector<shared_dfa_ptr>& dfas_in)
+{
+  assert(dfas_in.size() >= 1);
+
+  int ndim = dfas_in.at(0)->get_shape_size();
+
+  std::vector<double> states_max = {1};
+  for(int layer = 1; layer < ndim; ++layer)
+    {
+      int layer_shape = dfas_in.at(0)->get_layer_shape(layer);
+
+      double fanout_bound = states_max.back() * double(layer_shape);
+
+      double product_bound = 1.0;
+      for(const shared_dfa_ptr& dfa : dfas_in)
+        {
+          product_bound *= double(dfa->get_layer_size(layer));
+        }
+
+      states_max.push_back(std::min(fanout_bound, product_bound));
+    }
+  assert(states_max.size() == size_t(ndim));
+
+  double total_max = 0.0;
+  for(double layer_max : states_max)
+    {
+      total_max += layer_max;
+    }
+
+  return total_max;
+}
+
 // Backend for get_intersection_vector/get_union_vector: BinaryDFA's n-ary
 // constructor, cached under a key built from the whole (sorted, deduped)
 // operand set rather than relying on reuse of pairwise sub-results the way
@@ -89,10 +190,55 @@ shared_dfa_ptr _reduce_nary(const dfa_shape_t& shape_in, bool is_union_in, std::
       return dfas_in[0];
     }
 
+  // Validated unconditionally, not from inside the load_or_build below:
+  // that call skips its build_func entirely on a cache hit, and an unread
+  // env var is not the same as one that was checked and found fine --
+  // this still needs to fail loudly on a bad override even when the
+  // answer was already sitting in cache from a previous, valid run.
+  size_t width_max = get_reduce_nary_width_max();
+
   std::string cache_name = (is_union_in ? "union_vector_cache/" : "intersection_vector_cache/") + _hash_join(dfas_in);
   return DFAUtil::load_or_build(shape_in, cache_name, [&]()
   {
-    return shared_dfa_ptr(new BinaryDFA(dfas_in, is_union_in));
+    // Greedy, cost-aware batching instead of a fixed tree shape blind to
+    // what is actually being combined: repeatedly take the width_max
+    // currently-cheapest operands (by _nary_score) and combine them,
+    // feeding the result back in scored the same way, until one remains.
+    // This is _reduce_aci's old priority-queue-of-pairs (see git history)
+    // generalized from always combining 2 at a time to combining up to
+    // width_max at a time -- keeping the n-ary constructor's build-count
+    // win while restoring the property a fixed-shape tree does not have:
+    // several already-complex intermediate results never get combined
+    // together just because a balanced split put them in the same batch.
+    // A batch of raw, simple leaf operands scores low and tends to fill
+    // out to width_max; a batch that would combine a few already-broad
+    // partial unions scores high and gets deferred, or combined in a
+    // smaller group, for as long as cheaper options remain.
+    std::multimap<double, shared_dfa_ptr> scored;
+    for(const shared_dfa_ptr& dfa : dfas_in)
+      {
+        scored.emplace(_nary_score({dfa}), dfa);
+      }
+
+    while(scored.size() > 1)
+      {
+        std::vector<shared_dfa_ptr> batch;
+        while((batch.size() < width_max) && (scored.size() > 0))
+          {
+            batch.push_back(scored.begin()->second);
+            scored.erase(scored.begin());
+          }
+
+        std::string batch_cache_name = (is_union_in ? "union_vector_cache/" : "intersection_vector_cache/") + _hash_join(batch);
+        shared_dfa_ptr batch_result = DFAUtil::load_or_build(shape_in, batch_cache_name, [&]()
+        {
+          return shared_dfa_ptr(new BinaryDFA(batch, is_union_in));
+        });
+
+        scored.emplace(_nary_score({batch_result}), batch_result);
+      }
+
+    return scored.begin()->second;
   });
 }
 
