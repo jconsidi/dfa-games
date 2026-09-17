@@ -151,17 +151,24 @@ shared_dfa_ptr _reduce_nary(const dfa_shape_t& shape_in, bool is_union_in, std::
     {
       size_t n = dfas_in.size();
 
-      // Batch count is the fewest batches that fit within width_max each;
-      // splitting n that evenly across exactly that many batches (some get
-      // one extra operand, since n need not divide evenly) keeps every
-      // batch close to n / num_batches wide instead of width_max wide with
-      // one small leftover batch soaking up whatever didn't divide evenly.
-      // 84 operands at width_max 8 is 11 batches either way, but width_max,
-      // width_max, ..., 4 stacks all the size-8 peak disk cost onto ten
-      // batches and gets nothing back for the eleventh being small; 7, 7,
-      // 7, 7, 8, 8, ..., 8 (four 7s, seven 8s) spreads it out instead, and
-      // the same evening applies one level up, over the batch results.
-      size_t num_batches = (n + width_max - 1) / width_max;
+      // Top-down, not bottom-up: always split into width_max batches (n is
+      // already known to exceed width_max here), sized as evenly as
+      // possible, and recurse into each -- rather than choosing the fewest
+      // batches that individually fit within width_max and only then
+      // evening those out. The two agree once n fits in two levels, but
+      // bottom-up's batch count depends on n / width_max, so as n grows the
+      // resulting batches keep landing at very different widths from one
+      // call to the next (a change in n by one operand can change how many
+      // batches result, and by how much they need to be evened, in a way
+      // that has nothing to do with disk safety). Fixing the branching
+      // factor at width_max makes every internal node of the recursion
+      // split its input the same way regardless of n, and each recursive
+      // call re-applies the same rule to its own share -- so a batch that
+      // is itself still over width_max keeps dividing by width_max again
+      // until it is not, rather than landing wherever n / num_batches
+      // happened to fall. batch_results ends up exactly width_max entries,
+      // at or under the cap, so combining them needs no further splitting.
+      size_t num_batches = width_max;
       size_t base_batch_size = n / num_batches;
       size_t remainder = n % num_batches;
 
