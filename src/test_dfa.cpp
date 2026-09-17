@@ -290,13 +290,13 @@ std::vector<DFAString> get_all_positions(const dfa_shape_t& shape)
 }
 
 // _reduce_nary (DFAUtil.cpp) folds operand counts above
-// reduce_nary_width_max through a shallow tree of smaller BinaryDFA builds
-// instead of one wide one, to bound peak disk usage -- see its own
-// comment. Force that path here (more operands than the cap) and check
-// the DFAUtil-level result against the same pairwise fold used elsewhere
-// in this file for the flat, single-build case, so tree-shaped reduction
-// is confirmed to produce the exact same language as flat reduction, not
-// just a plausible-looking one.
+// reduce_nary_width_max through repeated smaller BinaryDFA builds instead
+// of one wide one, to bound peak disk usage -- see its own comment. Force
+// that path here (more operands than the cap) and check the DFAUtil-level
+// result against the same pairwise fold used elsewhere in this file for
+// the flat, single-build case, so batched reduction is confirmed to
+// produce the exact same language as flat reduction, not just a
+// plausible-looking one.
 void test_reduce_nary_chunking(const dfa_shape_t& shape)
 {
   std::cout << "checking reduce_nary chunking" << std::endl;
@@ -406,15 +406,16 @@ void test_reduce_nary_width_max_override(const dfa_shape_t& shape)
   std::cout.flush();
 }
 
-// _reduce_nary picks its top-level batch count based on how many levels of
-// width_max-wide splitting n actually needs (see its own comment), not a
-// fixed 2 -- both test_reduce_nary_chunking and
-// test_reduce_nary_width_max_override stay within 2 levels (40 operands at
-// the default cap of 16, or 10 at an override of 4), so neither exercises
-// that generalization. Force a deep tree here instead: a small enough
-// override relative to the operand count needs several levels before any
-// batch is small enough for a direct build, checked against the same
-// pairwise fold used everywhere else in this file.
+// _reduce_nary's greedy batching (see its own comment) combines up to
+// width_max currently-cheapest operands per round, feeding each result
+// back in for further rounds until one remains -- both
+// test_reduce_nary_chunking and test_reduce_nary_width_max_override stay
+// within a single round (40 operands at the default cap of 16, or 10 at an
+// override of 4), so neither exercises more than one merge. Force several
+// rounds here instead: a small enough override relative to the operand
+// count needs repeated rounds before anything is small enough to finish,
+// checked against the same pairwise fold used everywhere else in this
+// file.
 void test_reduce_nary_deep_levels(const dfa_shape_t& shape)
 {
   std::cout << "checking DFA_REDUCE_NARY_WIDTH_MAX deep recursion" << std::endl;
@@ -422,7 +423,7 @@ void test_reduce_nary_deep_levels(const dfa_shape_t& shape)
 
   std::vector<DFAString> positions = get_all_positions(shape);
 
-  const size_t width = 40; // width_max^3 (27) < 40 <= width_max^4 (81) below
+  const size_t width = 40; // well over the override below (3), several merge rounds
   assert(width <= positions.size());
 
   std::vector<shared_dfa_ptr> singletons;
