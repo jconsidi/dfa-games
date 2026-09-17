@@ -406,6 +406,48 @@ void test_reduce_nary_width_max_override(const dfa_shape_t& shape)
   std::cout.flush();
 }
 
+// _reduce_nary picks its top-level batch count based on how many levels of
+// width_max-wide splitting n actually needs (see its own comment), not a
+// fixed 2 -- both test_reduce_nary_chunking and
+// test_reduce_nary_width_max_override stay within 2 levels (40 operands at
+// the default cap of 16, or 10 at an override of 4), so neither exercises
+// that generalization. Force a deep tree here instead: a small enough
+// override relative to the operand count needs several levels before any
+// batch is small enough for a direct build, checked against the same
+// pairwise fold used everywhere else in this file.
+void test_reduce_nary_deep_levels(const dfa_shape_t& shape)
+{
+  std::cout << "checking DFA_REDUCE_NARY_WIDTH_MAX deep recursion" << std::endl;
+  std::cout.flush();
+
+  std::vector<DFAString> positions = get_all_positions(shape);
+
+  const size_t width = 40; // width_max^3 (27) < 40 <= width_max^4 (81) below
+  assert(width <= positions.size());
+
+  std::vector<shared_dfa_ptr> singletons;
+  for(size_t i = 0; i < width; ++i)
+    {
+      singletons.push_back(shared_dfa_ptr(new StringDFA(shape, std::vector<DFAString>({positions[i]}))));
+    }
+
+  setenv("DFA_REDUCE_NARY_WIDTH_MAX", "3", 1);
+  shared_dfa_ptr union_actual = DFAUtil::get_union_vector(shape, singletons);
+  unsetenv("DFA_REDUCE_NARY_WIDTH_MAX");
+
+  shared_dfa_ptr union_expected = singletons[0];
+  for(size_t i = 1; i < singletons.size(); ++i)
+    {
+      union_expected = shared_dfa_ptr(new UnionDFA(*union_expected, *singletons[i]));
+    }
+  if(!DFAUtil::get_difference(union_actual, union_expected)->is_constant(false) ||
+     !DFAUtil::get_difference(union_expected, union_actual)->is_constant(false))
+    {
+      throw std::logic_error("DFA_REDUCE_NARY_WIDTH_MAX=3 deep recursion: union language mismatch vs pairwise reduction");
+    }
+  test_helper("DFA_REDUCE_NARY_WIDTH_MAX=3 deep recursion union", *union_actual, width);
+}
+
 void test_states(std::string test_name, const DFA& test_dfa, size_t expected_states)
 {
   size_t actual_states = test_dfa.states();
@@ -658,6 +700,7 @@ int main()
       test_linear_bound();
       test_reduce_nary_chunking(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_reduce_nary_width_max_override(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_reduce_nary_deep_levels(dfa_shape_t({TEST5_DFA_SHAPE}));
     }
   catch(const std::logic_error& e)
     {

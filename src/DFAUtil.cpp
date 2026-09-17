@@ -169,18 +169,44 @@ shared_dfa_ptr _reduce_nary(const dfa_shape_t& shape_in, bool is_union_in, std::
       // happened to fall. batch_results ends up exactly width_max entries,
       // at or under the cap, so combining them needs no further splitting.
       size_t num_batches = width_max;
-      // n just over width_max would otherwise split into one non-trivial
-      // batch plus width_max - 1 singleton pass-throughs (n = width_max +
-      // 1 is the extreme case). Shrink num_batches while one fewer would
-      // still, after this same rule reapplies to each of its batches one
-      // level down, cover n: (num_batches - 1) batches of up to
-      // (num_batches - 1) each cover (num_batches - 1)^2 operands in two
-      // levels, so if that already reaches n there is no need for the
-      // extra top-level batch.
-      while((num_batches - 1) * (num_batches - 1) >= n)
+
+      // How many levels of width_max-wide splitting n actually needs: the
+      // smallest levels with width_max^levels >= n. Checking only whether
+      // one fewer batch still covers n two levels down (levels fixed at 2)
+      // catches the near-width_max degenerate case (n just over width_max
+      // splitting into one non-trivial batch plus width_max - 1 singleton
+      // pass-throughs), but for n well beyond width_max^2 the recursion
+      // needs more than 2 levels regardless, so fixing 2 leaves num_batches
+      // at width_max long after a narrower top level would still finish in
+      // the same number of levels for substantially less total work (every
+      // build is still bounded by width_max operands either way -- this
+      // only changes how many builds there are, not disk safety).
+      size_t levels = 1;
+      size_t levels_capacity = width_max;
+      while(levels_capacity < n)
         {
+          ++levels;
+          levels_capacity *= width_max;
+        }
+
+      // Shrink num_batches while one fewer batch still covers n within
+      // that many levels: (num_batches - 1) batches of up to
+      // (num_batches - 1) each, applied `levels` times, reaches
+      // (num_batches - 1)^levels operands.
+      while(true)
+        {
+          size_t shrunk_capacity = 1;
+          for(size_t level = 0; level < levels; ++level)
+            {
+              shrunk_capacity *= (num_batches - 1);
+            }
+          if(shrunk_capacity < n)
+            {
+              break;
+            }
           --num_batches;
         }
+
       size_t base_batch_size = n / num_batches;
       size_t remainder = n % num_batches;
 
