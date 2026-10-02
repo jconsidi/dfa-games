@@ -50,8 +50,13 @@ all : $(TARGETS)
 clean :
 	$(RM) $(TARGETS) *.a *.o
 
+# makedepend does not understand -isysroot and tries to read the SDK
+# directory as a source file. -Y skips system headers anyway, so drop it.
+# Write to a temporary file so a failure leaves the old .depend intact
+# rather than truncating it.
 depend :
-	makedepend -Y -f - -- $(subst -isystem ,-I,$(CXXFLAGS)) -- *.cpp > .depend 2> /dev/null
+	makedepend -Y -f - -- $(subst -isystem ,-I,$(filter-out -isysroot $(SDK_PATH),$(CXXFLAGS))) -- *.cpp > .depend.tmp 2> /dev/null
+	mv .depend.tmp .depend
 
 test : all
 	./test_bitset
