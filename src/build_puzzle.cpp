@@ -3,11 +3,17 @@
 #include <iostream>
 
 #include "Puzzle.h"
-#include "SlidingTilePuzzle.h"
+#include "game_utils.h"
 
-int main()
+int main(int argc, char **argv)
 {
-  Puzzle *puzzle = new SlidingTilePuzzle(4, 4);
+  if(argc != 2)
+    {
+      std::cerr << "usage: build_puzzle PUZZLE_NAME\n";
+      return 1;
+    }
+
+  Puzzle *puzzle = get_puzzle(argv[1]);
 
   shared_dfa_ptr won = puzzle->get_positions_won();
   std::cout << "WON: " << won->size() << " positions." << std::endl;
