@@ -1,18 +1,47 @@
 # Makefile
 
-CXX=g++
+# GCC is required: the warning flags below include GCC-only
+# -Warith-conversion, and libstdc++ + TBB is what provides the parallel
+# algorithms behind parallel.h. On macOS, g++ is Apple clang, so use the
+# newest Homebrew g++-NN instead (brew install gcc tbb openssl@3).
 
-CXXFLAGS_SHARED=-Wall -Warith-conversion -Wconversion -Wextra -Werror -Wno-c++11-extensions --pedantic -std=c++20 -g -O2 -isystem ../third_party/nlohmann_json/include
-LDFLAGS_SHARED=-L/usr/local/opt/openssl/lib -lcrypto
+UNAME_S := $(shell uname -s)
 
-ifeq ($(CXX), g++)
-# enable parallel execution when using g++ since available in libstdc++
-CXXFLAGS=$(CXXFLAGS_SHARED) -isystem /usr/local/include -Wno-sign-compare
-LDFLAGS=$(LDFLAGS_SHARED) -L/usr/local/lib -ltbb
-else
-CXXFLAGS=$(CXXFLAGS_SHARED)
-LDFLAGS=$(LDFLAGS_SHARED)
+ifeq ($(UNAME_S), Darwin)
+BREW := $(firstword $(shell command -v brew) $(wildcard /opt/homebrew/bin/brew /usr/local/bin/brew))
+BREW_PREFIX := $(if $(BREW),$(shell $(BREW) --prefix 2>/dev/null))
+ifeq ($(BREW_PREFIX),)
+$(error brew not found; macOS builds need Homebrew gcc, tbb and openssl@3)
 endif
+ifneq ($(filter default file,$(origin CXX)),)
+CXX := $(shell ls $(BREW_PREFIX)/bin | grep -E '^g\+\+-[0-9]+$$' | sort -t- -k2 -n | tail -1)
+ifeq ($(CXX),)
+$(error no g++-NN in $(BREW_PREFIX)/bin; run brew install gcc tbb openssl@3)
+endif
+CXX := $(BREW_PREFIX)/bin/$(CXX)
+endif
+# Homebrew GCC's built-in sysroot names a versioned SDK that Command Line Tools
+# updates can remove, so always pass the current one explicitly.
+SDK_PATH := $(shell xcrun --show-sdk-path 2>/dev/null)
+ifeq ($(SDK_PATH),)
+$(error xcrun --show-sdk-path failed; install the Xcode Command Line Tools)
+endif
+PLATFORM_CXXFLAGS=-isysroot $(SDK_PATH) -isystem $(BREW_PREFIX)/include -isystem $(BREW_PREFIX)/opt/openssl@3/include
+PLATFORM_LDFLAGS=-isysroot $(SDK_PATH) -L$(BREW_PREFIX)/lib -L$(BREW_PREFIX)/opt/openssl@3/lib
+else
+CXX=g++
+PLATFORM_CXXFLAGS=-isystem /usr/local/include
+PLATFORM_LDFLAGS=-L/usr/local/opt/openssl/lib -L/usr/local/lib
+endif
+
+ifneq ($(MAKECMDGOALS),clean)
+ifeq ($(shell $(CXX) --version 2>/dev/null | grep -q 'Free Software Foundation' && echo yes),)
+$(error CXX=$(CXX) is not GCC ($(firstword $(shell $(CXX) --version 2>&1))); this build requires GCC)
+endif
+endif
+
+CXXFLAGS=-Wall -Warith-conversion -Wconversion -Wextra -Werror -Wno-c++11-extensions -Wno-sign-compare --pedantic -std=c++20 -g -O2 -isystem ../third_party/nlohmann_json/include $(PLATFORM_CXXFLAGS)
+LDFLAGS=$(PLATFORM_LDFLAGS) -lcrypto -ltbb
 
 TARGETS=build_backward build_bound_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof build_puzzle divide generate_moves get_intersection get_union get_union_vector play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_bound_backward stats_forward stats_forward_backward stats_move_graph test_bitset test_change_dfa test_chess_game test_dfa test_move_graph test_normal_nim_game test_perft test_perft_u test_scratch_config test_solved test_validate validate_backward validate_dfa validate_forward validate_forward_backward validate_terminal verify_backward_sound verify_forward_backward_sound verify_losing_sound verify_lost_sound verify_winning_sound verify_won_sound
 
@@ -56,7 +85,7 @@ build_% : build_%.o build_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 divide : divide.o dfagames.a
-	$(CXX) -o $@ $^
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 generate_moves : generate_moves.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
