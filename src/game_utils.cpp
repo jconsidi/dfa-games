@@ -99,6 +99,19 @@ Game *get_game(std::string game_name)
   return dynamic_cast<Game *>(output);
 }
 
+Puzzle *get_puzzle(std::string game_name)
+{
+  std::unique_ptr<GameBase> output(get_gamebase(game_name));
+  Puzzle *puzzle = dynamic_cast<Puzzle *>(output.get());
+  if(!puzzle)
+    {
+      throw std::logic_error("get_puzzle() game name \"" + game_name + "\" is not a puzzle");
+    }
+
+  output.release();
+  return puzzle;
+}
+
 GameBase *get_gamebase(std::string game_name)
 {
   GameBase *output = 0;
