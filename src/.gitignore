@@ -1,6 +1,7 @@
 *.a
 *.o
 .depend
+.depend.tmp
 build_backward
 build_bound_backward
 build_chess_database
