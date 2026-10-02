@@ -54,14 +54,30 @@ separate install step is needed on either platform.
 The `third_party/nlohmann_json` submodule is registered but not checked out, so `#include <nlohmann/json.hpp>` fails until `git submodule update --init --recursive` is run from the repo root.
 Separately, `libtbb` is not preinstalled, so every link step fails with `cannot find -ltbb` until `apt-get install -y libtbb-dev` is run.
 Both are one-time per session.
-The submodule step is just the plain-clone case above; the `libtbb` gap is specific to this sandbox's starting state — `Dockerfile` already installs `libtbb-dev` for a container build, and `-ltbb` is only linked in on the `ifeq ($(CXX), g++)` branch of `src/Makefile` (macOS default builds don't hit it).
+The submodule step is just the plain-clone case above; the `libtbb` gap is specific to this sandbox's starting state — `Dockerfile` already installs `libtbb-dev` for a container build, and every `src/Makefile` build links `-ltbb`, on macOS as well.
+
+**The build requires GCC with libstdc++ and TBB, on both platforms.**
+`src/Makefile` stops with an error if `$(CXX) --version` is not GCC.
+On macOS, `g++` is Apple clang, so install `brew install gcc tbb openssl@3`.
+The Makefile then picks the newest `$(brew --prefix)/bin/g++-NN`.
+It finds `brew` on `PATH` or in `/opt/homebrew` and `/usr/local`, and adds the Homebrew include and lib paths.
+It also passes `-isysroot $(xcrun --show-sdk-path)`.
+Homebrew GCC's built-in sysroot names a versioned SDK such as `MacOSX26.sdk`, and a Command Line Tools update can remove or repoint that SDK.
+When that happens, every compile fails with `stdlib.h: No such file or directory`.
+
+Clang is not supported, and making it work would mean weakening checks:
+- It rejects the GCC-only `-Warith-conversion`.
+- Its `-Wconversion` includes `-Wsign-conversion`, which GCC's C++ `-Wconversion` does not (about 670 errors as of this writing).
+- Apple libc++ only offers parallel algorithms under `-fexperimental-library`.
+  Even then it does not define `__cpp_lib_parallel_algorithm`, so `parallel.h` would silently run serially.
+  It also lacks policy overloads of `is_sorted`, `unique`, `adjacent_find`, `remove_if` and `transform_inclusive_scan`, all of which this code uses.
 
 **Always pass `-j`.** A header change invalidates nearly every translation unit
 (`DFA.h` is reached through `Game.h` by almost everything), so a full rebuild is
 ~86 objects plus ~40 links. Serially that is 10+ minutes; with `-j8` it is a
 couple of minutes.
 
-Flags to know, from `Makefile:5`:
+Flags to know, from `CXXFLAGS` in `src/Makefile`:
 
 - `-Werror -Wall -Wextra -Wconversion -Warith-conversion --pedantic` — warnings
   are hard failures, so a clean build is a real signal
@@ -272,7 +288,7 @@ comparing.
 This project is actively developed and run on both macOS and Linux, but historical development has been about 99.9% on Mac.
 Treat macOS as the well-trodden path and Linux as comparatively untested: a Linux-specific bug is more likely to be latent and undiscovered than a macOS-specific one.
 Do not assume Linux-only behavior (or macOS-only behavior) without checking it actually holds on both, or guarding for the platform where it does not.
-`Makefile`'s `LDFLAGS_SHARED` already points at a Homebrew-style OpenSSL path (`/usr/local/opt/openssl`) for exactly this reason.
+`src/Makefile` already branches on `uname -s` for exactly this reason: Homebrew paths and `-isysroot` on macOS, system paths on Linux.
 
 ## Shell
 
