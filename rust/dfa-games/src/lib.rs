@@ -13,9 +13,11 @@ pub mod clobber;
 pub mod game;
 pub mod load;
 pub mod normalnim;
+pub mod parallel;
 pub mod registry;
 pub mod tictactoe;
 pub mod verify;
 
 pub use game::Game;
+pub use parallel::cap_thread_pool_from_environment;
 pub use registry::{get_game, parse_side_to_move};

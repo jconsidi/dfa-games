@@ -165,9 +165,48 @@ protected:
 
   MemoryMap<dfa_state_pair_t> build_quadratic_read_pairs(int layer);
 
+private:
+
+  // n-ary union/intersection construction, used by the public vector
+  // constructor below. Generalizes the pairwise machinery above from
+  // dfa_state_pair_t (width 2) to a flat row of dfa_state_t of width
+  // dfas_in.size(), one state per input DFA. See BinaryDFA.cpp for the
+  // design notes on why this can always claim canonical numbering, unlike
+  // build_quadratic. Private, unlike the build_quadratic_* family above:
+  // nothing outside the vector constructor itself (in particular, no
+  // BinaryRestartDFA-style resume) needs these.
+  bool nary_is_union = false;
+
+  void build_nary(const std::vector<shared_dfa_ptr>&);
+  int build_nary_forward(const std::vector<shared_dfa_ptr>&);
+  MemoryMap<dfa_state_t> build_nary_forward_layer(const std::vector<shared_dfa_ptr>&, int layer);
+  dfa_state_t build_nary_backward(const std::vector<shared_dfa_ptr>&, int backward_layers);
+  MemoryMap<dfa_state_t> build_nary_backward_layer(const std::vector<shared_dfa_ptr>&, int layer, const MemoryMap<dfa_state_t>&);
+  MemoryMap<dfa_state_t> build_nary_transition_tuples(const std::vector<shared_dfa_ptr>&, int layer);
+  MemoryMap<dfa_state_t> build_nary_read_tuples(int layer) const;
+  std::string nary_tuples_name(int layer) const;
+
+  // True iff every element of a width-wide tuple can be resolved to a state
+  // in the terminal pseudo-layer ({0, 1}) without looking at the next layer:
+  // either every element is already itself 0 or 1, or at least one equals
+  // the sink value for this DFA's function (1 for union, 0 for
+  // intersection). Mirrors get_filter_func's two-input version.
+  bool nary_filter(const dfa_state_t *tuple, size_t width) const;
+  // Valid only where nary_filter is true. Mirrors get_shortcircuit_func.
+  dfa_state_t nary_shortcircuit(const dfa_state_t *tuple, size_t width) const;
+
 public:
 
   BinaryDFA(const DFA&, const DFA&, const BinaryFunction&);
+
+  // n-ary union (is_union_in true) or intersection (false) of dfas_in, all
+  // sharing one shape. Correct for any dfas_in.size() >= 1, including
+  // duplicates (union/intersection are idempotent), but callers combining
+  // many DFAs should still dedupe identical hashes and pull out any
+  // constant/absorbing element themselves first -- this constructor makes
+  // no attempt to special case those, unlike the two-input constructor
+  // above.
+  BinaryDFA(const std::vector<shared_dfa_ptr>& dfas_in, bool is_union_in);
 };
 
 const int binary_dfa_hash_bytes = 16;

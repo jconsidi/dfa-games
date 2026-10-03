@@ -10,7 +10,7 @@ use std::process::ExitCode;
 
 use clap::Parser;
 use dfa_format::{union, Dfa};
-use dfa_games::{get_game, load, verify};
+use dfa_games::{cap_thread_pool_from_environment, get_game, load, verify};
 
 #[derive(Parser, Debug)]
 #[command(about = "Verify every ply of a backward solve", long_about = None)]
@@ -55,6 +55,8 @@ fn main() -> ExitCode {
 }
 
 fn run(args: &Args) -> anyhow::Result<()> {
+    cap_thread_pool_from_environment()?;
+
     let game = get_game(&args.game)?;
     let game = game.as_ref();
 
