@@ -504,8 +504,8 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
   size_t current_size = current_transitions.size();
   if(next_offset > current_size)
     {
-      size_t next_size = current_size * 2;
-      assert(next_size <= size_t(DFA_STATE_MAX));
+      size_t next_size = std::min(current_size * 2, size_t(DFA_STATE_MAX) * size_t(layer_shape));
+      assert(next_offset <= next_size);
       current_transitions = MemoryMap<dfa_state_t>(layer_file_names[layer], next_size);
     }
 
