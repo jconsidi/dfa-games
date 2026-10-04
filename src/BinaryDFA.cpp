@@ -15,6 +15,7 @@
 #include <queue>
 #include <ranges>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unistd.h>
 
@@ -436,8 +437,13 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
   int curr_layer_shape = this->get_layer_shape(layer);
   const MemoryMap<dfa_state_pair_t> curr_pairs = build_quadratic_read_pairs(layer);
   size_t curr_layer_count = curr_pairs.size();
-  // not long term necessary, but guarantees that final DFA will fit within current limit.
-  assert(curr_layer_count <= DFA_STATE_MAX);
+  // Pair ranks are stored as dfa_state_t, and output ids are numbered from
+  // 2 by a dfa_state_t scan, so bounding the pair count here also keeps the
+  // last output id below DFA_STATE_MAX and layer_size from wrapping below.
+  if(curr_layer_count > DFA_STATE_MAX - 2)
+    {
+      throw std::overflow_error("BinaryDFA: layer " + std::to_string(layer) + " has " + std::to_string(curr_layer_count) + " pairs, more than dfa_state_t can number");
+    }
 
   size_t next_left_size = left_in.get_layer_size(layer + 1);
   size_t next_right_size = right_in.get_layer_size(layer + 1);
