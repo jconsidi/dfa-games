@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <numeric>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <thread>
 
@@ -495,7 +496,10 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
 
   // add new state
 
-  assert(layer_sizes[layer] < DFA_STATE_MAX);
+  if(layer_sizes[layer] >= DFA_STATE_MAX)
+    {
+      throw std::overflow_error("DFA::add_state: layer " + std::to_string(layer) + " is full at DFA_STATE_MAX states");
+    }
 
   size_t current_offset = size_t(layer_sizes[layer]) * size_t(layer_shape);
   size_t next_offset = current_offset + size_t(layer_shape);
@@ -556,7 +560,10 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
 
   assert(layer_sizes[layer] == 2);
   assert(2 <= layer_size_in);
-  assert(layer_size_in < ~dfa_state_t(0));
+  if(layer_size_in > DFA_STATE_MAX)
+    {
+      throw std::overflow_error("DFA::build_layer: layer " + std::to_string(layer) + " size " + std::to_string(layer_size_in) + " exceeds DFA_STATE_MAX");
+    }
 
   int layer_shape = get_layer_shape(layer);
 

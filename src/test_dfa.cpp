@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include "AcceptDFA.h"
@@ -437,6 +438,36 @@ void test_suite(const dfa_shape_t& shape)
   test_intersection_pair("one1 + count1", *one1, *count1, one1_count1_expected);
 }
 
+// Asks build_layer for one state more than dfa_state_t can name. The
+// check fires before anything is allocated, so this is cheap.
+class OversizedLayerDFA : public DFA
+{
+public:
+  OversizedLayerDFA()
+    : DFA(dfa_shape_t({2}))
+  {
+    build_layer(0, size_t(DFA_STATE_MAX) + 1, [](dfa_state_t, dfa_state_t *)
+    {
+      throw std::logic_error("oversized layer: populate_func should not run");
+    });
+  }
+};
+
+void test_oversized_layer()
+{
+  try
+    {
+      OversizedLayerDFA dfa;
+    }
+  catch(const std::overflow_error& e)
+    {
+      std::cout << "oversized layer: rejected: " << e.what() << std::endl;
+      return;
+    }
+
+  throw std::logic_error("oversized layer: build_layer accepted DFA_STATE_MAX + 1 states");
+}
+
 int main()
 {
   try
@@ -448,6 +479,11 @@ int main()
       test_suite(dfa_shape_t({TEST5_DFA_SHAPE}));
 
       test_linear_bound();
+
+      // Must run last: a build abandoned by an exception deliberately
+      // leaves build_in_progress set (see DFA.cpp), so any later DFA
+      // construction in this process would assert.
+      test_oversized_layer();
     }
   catch(const std::logic_error& e)
     {
