@@ -1,11 +1,13 @@
 // test_union_dfa.cpp
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 
 #include "AcceptDFA.h"
+#include "BinaryDFA.h"
 #include "CountCharacterDFA.h"
 #include "CountDFA.h"
 #include "DFA.h"
@@ -231,6 +233,86 @@ void test_states(std::string test_name, const DFA& test_dfa, size_t expected_sta
     }
   std::cout << get_parameter_string(test_dfa.get_shape()) << " " << test_name << ": passed" << std::endl;
   std::cout.flush();
+}
+
+// Build the union of left and right with narrow pair ranks and again with
+// every backward layer forced into wide ones, and check they agree. Hashed
+// layers number states identically in both modes, as do direct ones whose
+// transitions fit in wide mode's key, so without a shape 3 layer the DFAs
+// must be byte identical. A shape 3 layer is direct in narrow mode and hashed
+// in wide mode, so there the numbering may differ and only the language and
+// state count are compared.
+void test_wide_pair_ranks_pair(std::string test_name, const DFA& left, const DFA& right)
+{
+  const dfa_shape_t& shape = left.get_shape();
+  std::string full_name = get_parameter_string(shape) + " wide pair ranks " + test_name;
+
+  UnionDFA narrow(left, right);
+
+  size_t narrow_pair_count_max_saved = binary_dfa_narrow_pair_count_max;
+  binary_dfa_narrow_pair_count_max = 0;
+  std::shared_ptr<UnionDFA> wide;
+  try
+    {
+      wide = std::make_shared<UnionDFA>(left, right);
+    }
+  catch(...)
+    {
+      binary_dfa_narrow_pair_count_max = narrow_pair_count_max_saved;
+      throw;
+    }
+  binary_dfa_narrow_pair_count_max = narrow_pair_count_max_saved;
+
+  if(wide->states() != narrow.states())
+    {
+      throw std::logic_error(full_name + ": wide has " + std::to_string(wide->states()) + " states, narrow has " + std::to_string(narrow.states()));
+    }
+
+  size_t positions_checked = 0;
+  for(const DFAString& position : get_all_positions(shape))
+    {
+      if(wide->contains(position) != narrow.contains(position))
+        {
+          throw std::logic_error(full_name + ": wide and narrow disagree on a position");
+        }
+      ++positions_checked;
+    }
+
+  bool has_shape_3 = false;
+  for(int layer_shape : shape)
+    {
+      has_shape_3 = has_shape_3 || (layer_shape == 3);
+    }
+
+  if(has_shape_3)
+    {
+      std::cout << full_name << ": passed (" << narrow.states() << " states, " << positions_checked << " positions; shape 3 layer, bytes not compared)" << std::endl;
+    }
+  else
+    {
+      if(wide->get_hash() != narrow.get_hash())
+        {
+          throw std::logic_error(full_name + ": wide and narrow DFAs are not byte identical");
+        }
+      std::cout << full_name << ": passed (" << narrow.states() << " states, " << positions_checked << " positions, byte identical)" << std::endl;
+    }
+  std::cout.flush();
+}
+
+void test_wide_pair_ranks(const dfa_shape_t& shape)
+{
+  CountDFA count1(shape, 1);
+  CountDFA count2(shape, 2);
+  CountDFA count3(shape, 3);
+  CountCharacterDFA zero1(shape, 0, 1);
+  CountCharacterDFA one1(shape, 1, 1);
+
+  test_wide_pair_ranks_pair("count1+count2", count1, count2);
+  test_wide_pair_ranks_pair("count2+count3", count2, count3);
+  test_wide_pair_ranks_pair("zero1+one1", zero1, one1);
+
+  UnionDFA count12(count1, count2);
+  test_wide_pair_ranks_pair("count12+zero1", count12, zero1);
 }
 
 void test_string_dfa(const dfa_shape_t& shape)
@@ -477,6 +559,12 @@ int main()
       test_suite(dfa_shape_t({TEST3_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST4_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST5_DFA_SHAPE}));
+
+      test_wide_pair_ranks(dfa_shape_t({TEST2_DFA_SHAPE}));
+      test_wide_pair_ranks(dfa_shape_t({TEST3_DFA_SHAPE}));
+      test_wide_pair_ranks(dfa_shape_t({TEST4_DFA_SHAPE}));
+      test_wide_pair_ranks(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_wide_pair_ranks(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
 
       test_linear_bound();
 

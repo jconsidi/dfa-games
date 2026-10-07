@@ -132,7 +132,8 @@ void write_buffer(int fildes, const T *buffer, size_t elements)
 
 #define INSTANTIATE(T) template void write_buffer(int fildes, const T *buffer, size_t elements);
 
-INSTANTIATE(BinaryDFATransitionsHashPlusIndex);
+INSTANTIATE(BinaryDFATransitionsHashPlusIndex<false>);
+INSTANTIATE(BinaryDFATransitionsHashPlusIndex<true>);
 INSTANTIATE(double);
 INSTANTIATE(int);
 INSTANTIATE(long long unsigned int);

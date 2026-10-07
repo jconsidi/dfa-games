@@ -3,6 +3,8 @@
 #ifndef BINARY_DFA_H
 #define BINARY_DFA_H
 
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <map>
@@ -159,6 +161,8 @@ protected:
 
   dfa_state_t build_quadratic_backward(const DFA&, const DFA&, int);
   MemoryMap<dfa_state_t> build_quadratic_backward_layer(const DFA&, const DFA&, int, const MemoryMap<dfa_state_t>&);
+  template <bool wide>
+  MemoryMap<dfa_state_t> build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<dfa_state_t>&);
   int build_quadratic_forward(const DFA&, const DFA&);
   int build_quadratic_forward(const DFA&, const DFA&, int);
   MemoryMap<dfa_state_pair_t> build_quadratic_forward_layer(const DFA&, const DFA& right_in, int layer);
@@ -172,19 +176,52 @@ public:
 
 const int binary_dfa_hash_bytes = 16;
 const int binary_dfa_hash_width = binary_dfa_hash_bytes / sizeof(dfa_state_t);
+
+// Sort record for one pair in build_quadratic_backward_layer: a sort key
+// (the pair's transitions, or a hash of them) plus the pair's rank, in 16
+// bytes either way.
+//
+// Narrow (wide = false), for layers whose pair ranks fit in 32 bits: the key
+// is words 0..2 and the rank is word 3.
+//
+// Wide (wide = true), for larger layers: the rank is 40 bits, its high 8 bits
+// in the low byte of word 2, so the key is words 0, 1 and the high 24 bits of
+// word 2. Truncating word 2 from the bottom keeps the two orders consistent:
+// keys that differ in the wide key compare the same way in the narrow one,
+// and keys that tie in the wide key either have identical transitions or are
+// a hash collision, which the sort hash check rejects. So a hashed layer
+// numbers its states identically in both modes. What wide mode gives up is
+// one direct transition: three 32-bit transitions no longer fit in 88 bits,
+// so a shape 3 layer is hashed instead, and loses canonical numbering.
+template <bool wide>
 struct BinaryDFATransitionsHashPlusIndex
 {
+  static constexpr int key_words = binary_dfa_hash_width - 1;
+  // Layers with at most this many transitions use them as the key directly.
+  static constexpr int direct_max = wide ? key_words - 1 : key_words;
+  static constexpr size_t pair_rank_max = wide ? (size_t(1) << 40) - 1 : size_t(UINT32_MAX);
+
   dfa_state_t data[binary_dfa_hash_width];
+
+  dfa_state_t get_key_word(int i) const
+  {
+    if(wide && (i == key_words - 1))
+      {
+        return data[i] >> 8;
+      }
+
+    return data[i];
+  }
 
   bool operator<(const BinaryDFATransitionsHashPlusIndex& b) const
   {
-    for(int i = 0; i < binary_dfa_hash_width - 1; ++i)
+    for(int i = 0; i < key_words; ++i)
       {
-        if(this->data[i] < b.data[i])
+        if(this->get_key_word(i) < b.get_key_word(i))
           {
             return true;
           }
-        if(this->data[i] > b.data[i])
+        if(this->get_key_word(i) > b.get_key_word(i))
           {
             return false;
           }
@@ -195,9 +232,9 @@ struct BinaryDFATransitionsHashPlusIndex
 
   bool operator==(const BinaryDFATransitionsHashPlusIndex& b) const
   {
-    for(int i = 0; i < binary_dfa_hash_width - 1; ++i)
+    for(int i = 0; i < key_words; ++i)
       {
-        if(this->data[i] != b.data[i])
+        if(this->get_key_word(i) != b.get_key_word(i))
           {
             return false;
           }
@@ -206,11 +243,43 @@ struct BinaryDFATransitionsHashPlusIndex
     return true;
   };
 
-  dfa_state_t get_pair_rank() const
+  size_t get_pair_rank() const
   {
-    return data[binary_dfa_hash_width - 1];
+    size_t pair_rank = data[binary_dfa_hash_width - 1];
+    if(wide)
+      {
+        pair_rank |= size_t(data[key_words - 1] & 0xFF) << 32;
+      }
+
+    return pair_rank;
+  }
+
+  // key_in holds key_words words. In wide mode the low byte of the last one
+  // is overwritten by the rank.
+  void set(const dfa_state_t *key_in, size_t pair_rank)
+  {
+    assert(pair_rank <= pair_rank_max);
+
+    for(int i = 0; i < key_words; ++i)
+      {
+        data[i] = key_in[i];
+      }
+    data[binary_dfa_hash_width - 1] = dfa_state_t(pair_rank);
+    if(wide)
+      {
+        data[key_words - 1] = (data[key_words - 1] & ~dfa_state_t(0xFF)) | dfa_state_t(pair_rank >> 32);
+      }
+
+    assert(get_pair_rank() == pair_rank);
   }
 };
-static_assert(sizeof(BinaryDFATransitionsHashPlusIndex) == binary_dfa_hash_bytes);
+static_assert(sizeof(BinaryDFATransitionsHashPlusIndex<false>) == binary_dfa_hash_bytes);
+static_assert(sizeof(BinaryDFATransitionsHashPlusIndex<true>) == binary_dfa_hash_bytes);
+static_assert(binary_dfa_hash_width == 4);
+
+// Largest pair count build_quadratic_backward_layer handles in narrow mode.
+// Production value is UINT32_MAX. Tests lower it to run the wide path on
+// small inputs, where it must produce the same DFA.
+extern size_t binary_dfa_narrow_pair_count_max;
 
 #endif
