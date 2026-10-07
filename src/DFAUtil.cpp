@@ -303,7 +303,7 @@ uint64_t DFAUtil::for_each_position(shared_dfa_ptr dfa_in, std::function<void(co
 	}
 
       const DFAString *batch_first = batch.data();
-      TRY_PARALLEL_PAR_3(std::for_each, batch.begin(), batch.end(), [&](const DFAString& position)
+      TRY_PARALLEL_3(std::for_each, batch.begin(), batch.end(), [&](const DFAString& position)
       {
 	if(failed.load(std::memory_order_relaxed))
 	  {

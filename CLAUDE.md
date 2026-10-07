@@ -231,10 +231,13 @@ the same trap the C++ benchmarking notes below describe.
 `parallel.h` wraps execution policies so non-libstdc++ builds fall back to
 serial:
 
-- `TRY_PARALLEL_2..6` use `std::execution::par_unseq` — only for callables that
-  neither allocate nor lock.
-- `TRY_PARALLEL_PAR_3` uses `std::execution::par` — for callables that do.
-  Anything calling into `Game` validation or building vectors belongs here.
+- `TRY_PARALLEL_2..6` use `std::execution::par`, so callables may allocate
+  and lock, but must still be free of data races.
+- There is deliberately no `par_unseq` variant.
+  libstdc++ implements unseq as `#pragma omp simd`, which GCC ignores without
+  `-fopenmp` or `-fopenmp-simd`, so it gained nothing here while forbidding
+  allocation and locking in callables, a rule nobody could audit across every
+  caller.
 
 These are macros, so a lambda argument containing a top-level comma (e.g.
 `std::pair<size_t, uint64_t>`) will not compile. Name the lambda first.

@@ -147,7 +147,7 @@ about 1.4 cores. Cut the string space into ranges instead:
   fills forward with the first accepted character at each remaining layer, the
   same scan `cbegin()` does.
 - Consecutive prefixes bound ranges that tile the space exactly. Boundary
-  iterators are built serially, then `TRY_PARALLEL_PAR_3(std::for_each, ...)`
+  iterators are built serially, then `TRY_PARALLEL_3(std::for_each, ...)`
   over range indices, each worker walking its own iterator and calling func
   directly.
 - Batching disappears: no batch buffers, no per batch dispatch. A target of one
