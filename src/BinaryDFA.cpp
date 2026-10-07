@@ -629,10 +629,15 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
         unsigned char hash_output[SHA256_DIGEST_LENGTH];
         static const EVP_MD *hash_implementation = EVP_sha256();
         EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
-
-        EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
-        EVP_DigestUpdate(hash_context, &(curr_transitions[i * curr_layer_shape]), curr_layer_shape * sizeof(dfa_state_t));
-        EVP_DigestFinal_ex(hash_context, hash_output, 0);
+        bool hash_ok = ((hash_context != NULL) &&
+                        (EVP_DigestInit_ex(hash_context, hash_implementation, NULL) == 1) &&
+                        (EVP_DigestUpdate(hash_context, &(curr_transitions[i * curr_layer_shape]), curr_layer_shape * sizeof(dfa_state_t)) == 1) &&
+                        (EVP_DigestFinal_ex(hash_context, hash_output, 0) == 1));
+        EVP_MD_CTX_destroy(hash_context);
+        if(!hash_ok)
+          {
+            throw std::runtime_error("BinaryDFA: SHA-256 of layer " + std::to_string(layer) + " transitions failed");
+          }
 
         static_assert(hash_plus_index_t::key_words * sizeof(dfa_state_t) <= SHA256_DIGEST_LENGTH);
         for(int j = 0; j < hash_plus_index_t::key_words; ++j)
