@@ -1,5 +1,6 @@
 // test_union_dfa.cpp
 
+#include <cstdint>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -16,6 +17,7 @@
 #include "InverseDFA.h"
 #include "RejectDFA.h"
 #include "TestDFAParams.h"
+#include "sort_utils.h"
 #include "UnionDFA.h"
 
 std::string get_parameter_string(const dfa_shape_t& shape)
@@ -299,6 +301,38 @@ void test_wide_pair_ranks_pair(std::string test_name, const DFA& left, const DFA
   std::cout.flush();
 }
 
+// Build the union of left and right with BinaryDFA's sorts on their normal
+// path and again forced through parallel_sort_in_place. The in-place sort is
+// not stable, but elements that compare equal are identical pairs or hash
+// records with identical transitions, so the DFAs must be byte identical.
+void test_in_place_sort_pair(std::string test_name, const DFA& left, const DFA& right)
+{
+  std::string full_name = get_parameter_string(left.get_shape()) + " in-place sort " + test_name;
+
+  UnionDFA normal(left, right);
+
+  size_t divisor_saved = parallel_sort_buffered_memory_divisor;
+  parallel_sort_buffered_memory_divisor = SIZE_MAX;
+  std::shared_ptr<UnionDFA> in_place;
+  try
+    {
+      in_place = std::make_shared<UnionDFA>(left, right);
+    }
+  catch(...)
+    {
+      parallel_sort_buffered_memory_divisor = divisor_saved;
+      throw;
+    }
+  parallel_sort_buffered_memory_divisor = divisor_saved;
+
+  if(in_place->get_hash() != normal.get_hash())
+    {
+      throw std::logic_error(full_name + ": in-place and normal sorts give different DFAs");
+    }
+  std::cout << full_name << ": passed (" << normal.states() << " states, byte identical)" << std::endl;
+  std::cout.flush();
+}
+
 void test_wide_pair_ranks(const dfa_shape_t& shape)
 {
   CountDFA count1(shape, 1);
@@ -313,6 +347,11 @@ void test_wide_pair_ranks(const dfa_shape_t& shape)
 
   UnionDFA count12(count1, count2);
   test_wide_pair_ranks_pair("count12+zero1", count12, zero1);
+
+  test_in_place_sort_pair("count1+count2", count1, count2);
+  test_in_place_sort_pair("count2+count3", count2, count3);
+  test_in_place_sort_pair("zero1+one1", zero1, one1);
+  test_in_place_sort_pair("count12+zero1", count12, zero1);
 }
 
 void test_string_dfa(const dfa_shape_t& shape)

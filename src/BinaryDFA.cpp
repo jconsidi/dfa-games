@@ -27,6 +27,7 @@
 #include "ScratchConfig.h"
 #include "VectorBitSet.h"
 #include "parallel.h"
+#include "sort_utils.h"
 
 BinaryDFA::BinaryDFA(const dfa_shape_t& shape_in, const BinaryFunction& leaf_func_in)
   : DFA(shape_in),
@@ -654,7 +655,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   profile.tic("sort hash");
 
-  TRY_PARALLEL_2(std::sort, curr_transitions_hashed.begin(), curr_transitions_hashed.end());
+  parallel_sort(curr_transitions_hashed.begin(), curr_transitions_hashed.end());
 
   profile.tic("sort hash check");
 
@@ -972,9 +973,7 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& 
 
   profile.tic("sort");
 
-  TRY_PARALLEL_2(std::sort,
-                 working_begin,
-                 working_end);
+  parallel_sort(working_begin, working_end);
 
   profile.tic("post-unique");
 
