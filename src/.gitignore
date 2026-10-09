@@ -39,6 +39,7 @@ test_perft
 test_perft_u
 test_scratch_config
 test_solved
+test_sort_utils
 test_validate
 typescript*
 validate_backward
