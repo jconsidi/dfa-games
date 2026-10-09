@@ -7,9 +7,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <iostream>
-#include <numeric>
 
 #include "Profile.h"
 #include "parallel.h"
@@ -119,24 +120,27 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
   int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
   std::vector<T> chunk_buffer(chunk_elements);
-
-  profile.tic("chunk iota");
-  std::vector<size_t> chunk_iota(chunk_elements);
-  std::iota(chunk_iota.begin(), chunk_iota.end(), size_t(0));
+  T *chunk_data = chunk_buffer.data();
 
   for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
     {
       size_t chunk_end = std::min(chunk_start + chunk_elements, _size);
       size_t chunk_size = chunk_end - chunk_start;
 
+      // Each element's index comes from its address, so there is no index
+      // vector to build. This must stay a parallel algorithm over the
+      // vector's own random-access iterators: a counting iterator such as
+      // std::views::iota reports an input iterator_category, and libstdc++'s
+      // parallel algorithms quietly run serially on anything weaker than
+      // random access.
       profile.tic("chunk populate");
-      TRY_PARALLEL_4(std::transform,
-                     chunk_iota.begin(),
-                     chunk_iota.begin() + chunk_size,
+      TRY_PARALLEL_3(std::for_each,
                      chunk_buffer.begin(),
-                     [&](size_t i)
+                     chunk_buffer.begin() + std::ptrdiff_t(chunk_size),
+                     [&](T& element)
                      {
-                       return populate_func(chunk_start + i);
+                       size_t i = size_t(&element - chunk_data);
+                       element = populate_func(chunk_start + i);
                      });
 
       profile.tic("chunk write");
