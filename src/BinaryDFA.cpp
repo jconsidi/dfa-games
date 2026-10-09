@@ -795,57 +795,62 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   build_layer(layer, layer_size, populate_transitions);
 
-  profile.tic("invert");
+  profile.tic("output");
 
-  // invert permutation so we can write pair_rank_to_output in order
+  // Write pair_rank_to_output by scattering through the permutation:
+  // position i of the sorted order holds pair rank curr_pairs_permutation[i]
+  // and output id curr_pairs_permutation_to_output[i]. Reads are sequential
+  // and every write lands in a distinct slot, since the permutation is a
+  // bijection on pair ranks. Slots start at DFA_STATE_MAX, which no output
+  // id or constant can equal (ids are below layer_size <= DFA_STATE_MAX), so
+  // a slot still holding it afterwards means the permutation missed a rank.
 
-  MemoryMap<pair_rank_t> curr_pairs_permutation_inverse(binary_dir() + "/pairs_permutation_inverse", curr_layer_count);
-  // contents are indexes into curr_pairs_permutation
-  std::iota(curr_pairs_permutation_inverse.begin(),
-            curr_pairs_permutation_inverse.end(),
-            pair_rank_t(0));
-  // sort so curr_pairs_permutation[curr_pairs_permutation_inverse[i]] = i
+  MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count);
+  TRY_PARALLEL_3(std::fill,
+                 curr_pair_rank_to_output.begin(),
+                 curr_pair_rank_to_output.end(),
+                 dfa_state_t(DFA_STATE_MAX));
 
-  TRY_PARALLEL_3(std::sort,
-                 curr_pairs_permutation_inverse.begin(),
-                 curr_pairs_permutation_inverse.end(),
-                 [&](pair_rank_t a, pair_rank_t b) {
-                   return curr_pairs_permutation[a] < curr_pairs_permutation[b];
+  const pair_rank_t *curr_pairs_permutation_data = curr_pairs_permutation.begin();
+  dfa_state_t *curr_pair_rank_to_output_data = curr_pair_rank_to_output.begin();
+  TRY_PARALLEL_3(std::for_each,
+                 curr_pairs_permutation.begin(),
+                 curr_pairs_permutation.end(),
+                 [&](const pair_rank_t& curr_pair_rank_ref)
+                 {
+                   size_t curr_pairs_permutation_index = size_t(&curr_pair_rank_ref - curr_pairs_permutation_data);
+                   size_t curr_pair_rank = curr_pair_rank_ref;
+                   assert(curr_pair_rank < curr_layer_count);
+                   if(check_constant(curr_pair_rank))
+                     {
+                       curr_pair_rank_to_output_data[curr_pair_rank] = curr_transitions[curr_pair_rank * curr_layer_shape];
+                     }
+                   else
+                     {
+                       curr_pair_rank_to_output_data[curr_pair_rank] = curr_pairs_permutation_to_output[curr_pairs_permutation_index];
+                     }
                  });
 
-  for(size_t i : {size_t(0), curr_layer_count - 1})
+  profile.tic("output check");
+
+  auto unwritten = TRY_PARALLEL_3(std::find,
+                                  curr_pair_rank_to_output.begin(),
+                                  curr_pair_rank_to_output.end(),
+                                  dfa_state_t(DFA_STATE_MAX));
+  if(unwritten != curr_pair_rank_to_output.end())
     {
-      assert(curr_pairs_permutation[curr_pairs_permutation_inverse[i]] == i);
+      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " pair rank " + std::to_string(unwritten - curr_pair_rank_to_output.begin()) + " missing from pairs_permutation");
     }
+
+  // shrink state
 
   profile.tic("unlink pairs_permutation");
 
   curr_pairs_permutation.unlink();
 
-  profile.tic("output");
-
-  MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count, [&](size_t curr_pair_rank)
-  {
-    size_t curr_pairs_permutation_index = curr_pairs_permutation_inverse[curr_pair_rank];
-    if(check_constant(curr_pair_rank))
-      {
-        return curr_transitions[size_t(curr_pair_rank) * curr_layer_shape];
-      }
-
-    return curr_pairs_permutation_to_output[curr_pairs_permutation_index];
-  });
-
-  assert(curr_pair_rank_to_output.size() > 0);
-
-  // shrink state
-
   profile.tic("unlink transitions");
 
   curr_transitions.unlink();
-
-  profile.tic("unlink pairs_permutation_inverse");
-
-  curr_pairs_permutation_inverse.unlink();
 
   profile.tic("unlink pairs_permutation_to_output");
 
