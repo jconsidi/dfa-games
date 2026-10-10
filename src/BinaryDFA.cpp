@@ -610,8 +610,66 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
       hashed_any_layer = true;
     }
 
+  auto check_constant = [&](size_t curr_pair_rank)
+  {
+    dfa_state_t possible_constant = curr_transitions[curr_pair_rank * curr_layer_shape];
+    if(possible_constant >= 2)
+      {
+        return false;
+      }
+
+    for(int j = 1; j < curr_layer_shape; ++j)
+      {
+        if(curr_transitions[curr_pair_rank * curr_layer_shape + j] != possible_constant)
+          {
+            return false;
+          }
+      }
+
+    return true;
+  };
+
+  // Constant rows (every transition 0, or every transition 1) get a fixed key
+  // per constant, so the scan below recognizes them from the sorted record
+  // alone instead of reading their rows at random ranks. With direct keys
+  // that is just their transitions, which no non-constant row can share.
+  // With hashed keys it is a reserved value {c, 0, 0}, and a non-constant
+  // row whose hash lands on one is rejected below rather than taken for a
+  // constant.
+  hash_plus_index_t constant_records[2];
+  dfa_state_t constant_keys[2][hash_plus_index_t::key_words];
+  for(dfa_state_t c : {dfa_state_t(0), dfa_state_t(1)})
+    {
+      for(int j = 0; j < hash_plus_index_t::key_words; ++j)
+        {
+          if(direct_key)
+            {
+              constant_keys[c][j] = (j < curr_layer_shape) ? c : 0;
+            }
+          else
+            {
+              constant_keys[c][j] = (j == 0) ? c : 0;
+            }
+        }
+      constant_records[c].set(constant_keys[c], 0);
+    }
+  assert(!(constant_records[0] == constant_records[1]));
+
+  auto is_constant_record = [&](const hash_plus_index_t& record)
+  {
+    return (record == constant_records[0]) || (record == constant_records[1]);
+  };
+
+  std::atomic<bool> reserved_key_collision(false);
   MemoryMap<hash_plus_index_t> curr_transitions_hashed(binary_dir() + "/transitions_hashed", curr_layer_count, [&](size_t i)
   {
+    hash_plus_index_t output;
+    if(check_constant(i))
+      {
+        output.set(constant_keys[curr_transitions[i * curr_layer_shape]], i);
+        return output;
+      }
+
     dfa_state_t key[hash_plus_index_t::key_words];
     if(direct_key)
       {
@@ -650,11 +708,19 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
           }
       }
 
-    hash_plus_index_t output;
     output.set(key, i);
+    if(is_constant_record(output))
+      {
+        reserved_key_collision = true;
+      }
 
     return output;
   });
+
+  if(reserved_key_collision)
+    {
+      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " has a non-constant row whose sort key equals a constant row's");
+    }
 
   profile.tic("sort hash");
 
@@ -694,30 +760,10 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   MemoryMap<dfa_state_t> curr_pairs_permutation_to_output(binary_dir() + "/pairs_permutation_to_output", curr_layer_count);
 
-  auto check_constant = [&](size_t curr_pair_rank)
-  {
-    dfa_state_t possible_constant = curr_transitions[curr_pair_rank * curr_layer_shape];
-    if(possible_constant >= 2)
-      {
-        return false;
-      }
-
-    for(int j = 1; j < curr_layer_shape; ++j)
-      {
-        if(curr_transitions[curr_pair_rank * curr_layer_shape + j] != possible_constant)
-          {
-            return false;
-          }
-      }
-
-    return true;
-  };
-
   auto curr_transitions_hashed_begin = curr_transitions_hashed.begin();
   auto check_new = [&](const hash_plus_index_t& curr_pair_hashed)
   {
-    size_t curr_pair_rank = curr_pair_hashed.get_pair_rank();
-    if(check_constant(curr_pair_rank))
+    if(is_constant_record(curr_pair_hashed))
       {
         return dfa_state_t(0);
       }
