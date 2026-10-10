@@ -963,18 +963,14 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& 
   size_t working_count = size_t(working_end - working_begin);
 
   // Each block is scanned serially, comparing every pair with the original
-  // value of the one before it. The pair before a block's first one belongs
-  // to another block, which may be overwriting it concurrently, so those
-  // values are read before the parallel pass.
+  // value of the one before it. A block's first pair is not compared, since
+  // the pair before it belongs to another block that may be overwriting it.
+  // That misses at most one duplicate per block, which the unique after the
+  // sort removes anyway.
   size_t block_size = std::max(working_count / (8 * std::max(size_t(std::thread::hardware_concurrency()), size_t(1))), size_t(1) << 16);
   size_t block_count = (working_count + block_size - 1) / block_size;
   std::vector<size_t> blocks(block_count);
   std::iota(blocks.begin(), blocks.end(), size_t(0));
-  std::vector<dfa_state_pair_t> block_previous(block_count);
-  for(size_t block = 1; block < block_count; ++block)
-    {
-      block_previous[block] = working_begin[block * block_size - 1];
-    }
 
   std::atomic<bool> found_sentinel(false);
   std::vector<size_t> block_marked(block_count, 0);
@@ -982,8 +978,8 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& 
   {
     size_t i_begin = block * block_size;
     size_t i_end = std::min(i_begin + block_size, working_count);
-    bool has_previous = block > 0;
-    dfa_state_pair_t previous = block_previous[block];
+    bool has_previous = false;
+    dfa_state_pair_t previous;
     size_t marked = 0;
     for(size_t i = i_begin; i < i_end; ++i)
       {
