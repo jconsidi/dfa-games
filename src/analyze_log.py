@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Where does a solver run's time go, and how much of it uses one core?
 
-    ./analyze_log.py <file>
+    ./analyze_log.py [--run N] <file>
 
 <file> is either a Profile trace (written when DFA_PROFILE_TRACE=<path> is set;
 see Profile.cpp) or a solver's captured stdout. The format is detected from
@@ -10,7 +10,10 @@ the first line.
 A trace is the reliable input: per-phase self time (time spent while the phase
 was innermost) and CPU time come straight from the process, so cores in use are
 measured rather than guessed. Phases under the trace's min_us are folded into
-their enclosing phase. A trace may hold several runs, one per restart.
+their enclosing phase. A trace may hold several runs, one per restart. All of
+them are listed, numbered from 1; --run N restricts the time tables to run N
+(negative counts from the end, so --run -1 is the latest). Without it the tables
+add up every run.
 
 Stdout logs are the fallback for runs without a trace. Their limits bound what
 this can say:
@@ -317,9 +320,13 @@ def read_trace(path):
     return runs, truncated
 
 
-def main_trace(path):
+def main_trace(path, run_selected=None):
     runs, truncated = read_trace(path)
     print(f"trace: {path} ({len(runs)} run(s))")
+    if run_selected is not None:
+        if not runs or not (-len(runs) <= run_selected <= len(runs)) or run_selected == 0:
+            raise RuntimeError(f"--run {run_selected}: trace has runs 1..{len(runs)} (or -1..-{len(runs)})")
+        run_selected = run_selected if run_selected > 0 else len(runs) + 1 + run_selected
     if truncated is not None:
         print(f"  final line incomplete ({len(truncated)} bytes), ignored -- process killed mid-write")
     print()
@@ -333,7 +340,8 @@ def main_trace(path):
     ncpu = None
 
     print("== runs ==")
-    for header, phases in runs:
+    for run_number, (header, phases) in enumerate(runs, 1):
+        selected = run_selected is None or run_number == run_selected
         ids = {p["id"] for p in phases}
         orphans = sum(1 for p in phases if p["parent"] and p["parent"] not in ids)
         top_wall = sum(p["wall_us"] for p in phases if p["parent"] == 0)
@@ -342,7 +350,8 @@ def main_trace(path):
         ncpu = ncpu or header["hardware_concurrency"]
         start = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(header["start_epoch_ms"] / 1000))
         last = max((p["start_us"] + p["wall_us"] for p in phases), default=0)
-        print(f"pid {header['pid']} on {header['host']} started {start}: "
+        marker = "*" if run_selected is not None and selected else " "
+        print(f"{marker}{run_number:>3}. pid {header['pid']} on {header['host']} started {start}: "
               f"{len(phases)} phases, last ended at +{fmt_us(last)}, "
               f"completed top-level {fmt_us(top_wall)} wall, "
               f"{top_cpu / top_wall if top_wall else 0:.2f} cores avg")
@@ -354,6 +363,8 @@ def main_trace(path):
         elif abs(sum_self - top_wall) > 1000 * max(1, len(phases) // 1000):
             raise RuntimeError(f"pid {header['pid']}: self time {sum_self}us != top-level {top_wall}us")
 
+        if not selected:
+            continue
         for p in phases:
             key = trace_key(p["name"], p["label"])
             self_wall[key] += p["self_us"]
@@ -362,6 +373,11 @@ def main_trace(path):
             incl_wall[key] += p["wall_us"]
             count[key] += 1
             max_wall[key] = max(max_wall[key], p["wall_us"])
+    print()
+    if run_selected is not None:
+        print(f"tables below: run {run_selected} only")
+    else:
+        print(f"tables below: all {len(runs)} run(s) added together")
     print()
 
     grand = sum(self_wall.values())
@@ -398,7 +414,7 @@ def main_trace(path):
     print("threads; user = user-only cores. Phases under min_us are folded into their parent.")
 
 
-def main(path):
+def main(path, run_selected=None):
     with open(path) as f:
         first = f.readline()
     try:
@@ -406,12 +422,22 @@ def main(path):
     except ValueError:
         is_trace = False
     if is_trace:
-        main_trace(path)
+        main_trace(path, run_selected)
+    elif run_selected is not None:
+        raise RuntimeError(f"{path}: --run needs a Profile trace; stdout logs have no run boundaries")
     else:
         main_log(path)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    run_selected = None
+    if len(args) == 3 and args[0] == "--run":
+        try:
+            run_selected = int(args[1])
+        except ValueError:
+            sys.exit(f"--run takes a run number, not {args[1]!r}\n\n{__doc__}")
+        args = args[2:]
+    if len(args) != 1:
         sys.exit(__doc__)
-    main(sys.argv[1])
+    main(args[0], run_selected)
