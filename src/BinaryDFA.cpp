@@ -3,6 +3,7 @@
 #include "BinaryDFA.h"
 
 #include <algorithm>
+#include <atomic>
 #include <bit>
 #include <cassert>
 #include <cstring>
@@ -18,8 +19,10 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <type_traits>
 #include <unistd.h>
+#include <vector>
 
 #include "Flashsort.h"
 #include "MemoryMap.h"
@@ -939,37 +942,79 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& 
 
   std::cout << "pair count = " << curr_transition_pairs.size() << " (original)" << std::endl;
 
-  // helper functions
+  // Filtering and dropping adjacent duplicates both remove very few pairs
+  // here (0.04% and 0.008% at cram_7x7 layer 40), so compacting for them
+  // would rewrite nearly the whole file to save almost nothing. Instead
+  // overwrite those pairs in place with a sentinel that sorts after every
+  // real pair, which dirties only the pages holding them. The sort moves the
+  // sentinels to the end, where they are cut off before the one compaction,
+  // the unique after the sort, which removes about half the pairs.
 
-  profile.tic("filter");
+  profile.tic("mark");
 
   auto filter_func = get_filter_func();
 
-  auto remove_func = [&](dfa_state_pair_t next_pair)
-  {
-    dfa_state_t next_left_state = next_pair.get_left_state();
-    dfa_state_t next_right_state = next_pair.get_right_state();
-
-    return filter_func(next_left_state, next_right_state);
-  };
+  // No real pair can equal this: next states are below the next layer's
+  // size, which is at most DFA_STATE_MAX.
+  const dfa_state_pair_t sentinel(DFA_STATE_MAX, DFA_STATE_MAX);
 
   auto working_begin = curr_transition_pairs.begin();
   auto working_end = curr_transition_pairs.end();
+  size_t working_count = size_t(working_end - working_begin);
 
-  working_end = TRY_PARALLEL_3(std::remove_if,
-                               working_begin,
-                               working_end,
-                               remove_func);
+  // Each block is scanned serially, comparing every pair with the original
+  // value of the one before it. The pair before a block's first one belongs
+  // to another block, which may be overwriting it concurrently, so those
+  // values are read before the parallel pass.
+  size_t block_size = std::max(working_count / (8 * std::max(size_t(std::thread::hardware_concurrency()), size_t(1))), size_t(1) << 16);
+  size_t block_count = (working_count + block_size - 1) / block_size;
+  std::vector<size_t> blocks(block_count);
+  std::iota(blocks.begin(), blocks.end(), size_t(0));
+  std::vector<dfa_state_pair_t> block_previous(block_count);
+  for(size_t block = 1; block < block_count; ++block)
+    {
+      block_previous[block] = working_begin[block * block_size - 1];
+    }
 
-  std::cout << "pair count = " << (working_end - working_begin) << " (filtered)" << std::endl;
+  std::atomic<bool> found_sentinel(false);
+  std::vector<size_t> block_marked(block_count, 0);
+  auto mark_block = [&](size_t block)
+  {
+    size_t i_begin = block * block_size;
+    size_t i_end = std::min(i_begin + block_size, working_count);
+    bool has_previous = block > 0;
+    dfa_state_pair_t previous = block_previous[block];
+    size_t marked = 0;
+    for(size_t i = i_begin; i < i_end; ++i)
+      {
+        dfa_state_pair_t current = working_begin[i];
+        if(current == sentinel)
+          {
+            found_sentinel = true;
+          }
 
-  profile.tic("pre-unique");
+        bool filtered = filter_func(current.get_left_state(), current.get_right_state());
+        bool duplicate = has_previous && (current == previous);
+        if(filtered || duplicate)
+          {
+            working_begin[i] = sentinel;
+            ++marked;
+          }
 
-  working_end = TRY_PARALLEL_2(std::unique,
-                               working_begin,
-                               working_end);
+        previous = current;
+        has_previous = true;
+      }
+    block_marked[block] = marked;
+  };
+  TRY_PARALLEL_3(std::for_each, blocks.begin(), blocks.end(), mark_block);
 
-  std::cout << "pair count = " << (working_end - working_begin) << " (pre sort unique)" << std::endl;
+  if(found_sentinel)
+    {
+      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " transition pairs include the sentinel pair");
+    }
+
+  size_t marked_count = std::accumulate(block_marked.begin(), block_marked.end(), size_t(0));
+  std::cout << "pair count = " << (working_count - marked_count) << " (filtered and pre sort unique, marked)" << std::endl;
 
   profile.tic("sort");
 
@@ -977,9 +1022,13 @@ MemoryMap<dfa_state_pair_t> BinaryDFA::build_quadratic_forward_layer(const DFA& 
 
   profile.tic("post-unique");
 
-  working_end = TRY_PARALLEL_2(std::unique,
-                               working_begin,
-                               working_end);
+  working_end = std::lower_bound(working_begin, working_end, sentinel);
+  if(size_t(working_end - working_begin) != working_count - marked_count)
+    {
+      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " has " + std::to_string(working_end - working_begin) + " pairs before the sentinels after sorting, expected " + std::to_string(working_count - marked_count));
+    }
+
+  working_end = std::unique(working_begin, working_end);
 
   std::cout << "pair count = " << (working_end - working_begin) << " (post sort unique)" << std::endl;
 
