@@ -808,6 +808,11 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
   // bijection on pair ranks. Slots start at DFA_STATE_MAX, which no output
   // id or constant can equal (ids are below layer_size <= DFA_STATE_MAX), so
   // a slot still holding it afterwards means the permutation missed a rank.
+  //
+  // Constant rows are patched afterwards in a pass over ranks in order, so
+  // their curr_transitions reads are sequential rather than in the sorted
+  // order's random rank order. Until then they hold the id the scan gave
+  // their sorted position, which is never used.
 
   MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count);
   TRY_PARALLEL_3(std::fill,
@@ -825,14 +830,7 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
                    size_t curr_pairs_permutation_index = size_t(&curr_pair_rank_ref - curr_pairs_permutation_data);
                    size_t curr_pair_rank = curr_pair_rank_ref;
                    assert(curr_pair_rank < curr_layer_count);
-                   if(check_constant(curr_pair_rank))
-                     {
-                       curr_pair_rank_to_output_data[curr_pair_rank] = curr_transitions[curr_pair_rank * curr_layer_shape];
-                     }
-                   else
-                     {
-                       curr_pair_rank_to_output_data[curr_pair_rank] = curr_pairs_permutation_to_output[curr_pairs_permutation_index];
-                     }
+                   curr_pair_rank_to_output_data[curr_pair_rank] = curr_pairs_permutation_to_output[curr_pairs_permutation_index];
                  });
 
   profile.tic("output check");
@@ -845,6 +843,20 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
     {
       throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " pair rank " + std::to_string(unwritten - curr_pair_rank_to_output.begin()) + " missing from pairs_permutation");
     }
+
+  profile.tic("output constants");
+
+  TRY_PARALLEL_3(std::for_each,
+                 curr_pair_rank_to_output.begin(),
+                 curr_pair_rank_to_output.end(),
+                 [&](dfa_state_t& output)
+                 {
+                   size_t curr_pair_rank = size_t(&output - curr_pair_rank_to_output_data);
+                   if(check_constant(curr_pair_rank))
+                     {
+                       output = curr_transitions[curr_pair_rank * curr_layer_shape];
+                     }
+                 });
 
   // shrink state
 
