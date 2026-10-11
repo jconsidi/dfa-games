@@ -333,6 +333,38 @@ void test_in_place_sort_pair(std::string test_name, const DFA& left, const DFA& 
   std::cout.flush();
 }
 
+// Build the union of left and right with pair_rank_to_output written in one
+// pass and again split into at least slices_min passes. Each pass writes the
+// same values into its own ranks, so the DFAs must be byte identical. Small
+// layers get more slices than ranks, which runs empty slices too.
+void test_output_slices_pair(std::string test_name, const DFA& left, const DFA& right, size_t slices_min)
+{
+  std::string full_name = get_parameter_string(left.get_shape()) + " output slices>=" + std::to_string(slices_min) + " " + test_name;
+
+  UnionDFA single(left, right);
+
+  size_t slices_min_saved = binary_dfa_output_slices_min;
+  binary_dfa_output_slices_min = slices_min;
+  std::shared_ptr<UnionDFA> sliced;
+  try
+    {
+      sliced = std::make_shared<UnionDFA>(left, right);
+    }
+  catch(...)
+    {
+      binary_dfa_output_slices_min = slices_min_saved;
+      throw;
+    }
+  binary_dfa_output_slices_min = slices_min_saved;
+
+  if(sliced->get_hash() != single.get_hash())
+    {
+      throw std::logic_error(full_name + ": sliced and single pass outputs give different DFAs");
+    }
+  std::cout << full_name << ": passed (" << single.states() << " states, byte identical)" << std::endl;
+  std::cout.flush();
+}
+
 void test_wide_pair_ranks(const dfa_shape_t& shape)
 {
   CountDFA count1(shape, 1);
@@ -352,6 +384,14 @@ void test_wide_pair_ranks(const dfa_shape_t& shape)
   test_in_place_sort_pair("count2+count3", count2, count3);
   test_in_place_sort_pair("zero1+one1", zero1, one1);
   test_in_place_sort_pair("count12+zero1", count12, zero1);
+
+  for(size_t slices_min : {2, 3, 7})
+    {
+      test_output_slices_pair("count1+count2", count1, count2, slices_min);
+      test_output_slices_pair("count2+count3", count2, count3, slices_min);
+      test_output_slices_pair("zero1+one1", zero1, one1, slices_min);
+      test_output_slices_pair("count12+zero1", count12, zero1, slices_min);
+    }
 }
 
 void test_string_dfa(const dfa_shape_t& shape)

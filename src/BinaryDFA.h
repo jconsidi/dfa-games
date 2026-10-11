@@ -282,4 +282,10 @@ static_assert(binary_dfa_hash_width == 4);
 // small inputs, where it must produce the same DFA.
 extern size_t binary_dfa_narrow_pair_count_max;
 
+// Fewest slices build_quadratic_backward_layer splits pair_rank_to_output
+// into, each written in its own pass. Production value is 1, leaving the
+// count to physical memory. Tests raise it to run several passes on small
+// inputs, where it must produce the same DFA.
+extern size_t binary_dfa_output_slices_min;
+
 #endif

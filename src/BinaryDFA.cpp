@@ -431,6 +431,7 @@ dfa_state_t BinaryDFA::build_quadratic_backward(const DFA& left_in,
 }
 
 size_t binary_dfa_narrow_pair_count_max = UINT32_MAX;
+size_t binary_dfa_output_slices_min = 1;
 
 MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
                                                                  const DFA& right_in,
@@ -845,64 +846,99 @@ MemoryMap<dfa_state_t> BinaryDFA::build_quadratic_backward_layer(const DFA& left
 
   build_layer(layer, layer_size, populate_transitions);
 
-  profile.tic("output");
-
   // Write pair_rank_to_output by scattering through the permutation:
   // position i of the sorted order holds pair rank curr_pairs_permutation[i]
   // and output id curr_pairs_permutation_to_output[i]. Reads are sequential
   // and every write lands in a distinct slot, since the permutation is a
-  // bijection on pair ranks. Slots start at DFA_STATE_MAX, which no output
-  // id or constant can equal (ids are below layer_size <= DFA_STATE_MAX), so
-  // a slot still holding it afterwards means the permutation missed a rank.
+  // bijection on pair ranks.
   //
-  // Constant rows are patched afterwards in a pass over ranks in order, so
-  // their curr_transitions reads are sequential rather than in the sorted
-  // order's random rank order. Until then they hold the id the scan gave
-  // their sorted position, which is never used.
+  // The writes are random, so the output is split into slices of ranks and
+  // each slice gets its own pass over both inputs, writing only the ranks in
+  // that slice. A slice is kept to at most 1/8 of physical memory so it stays
+  // resident while the inputs stream past. With the whole output as one
+  // slice, cram_7x7 layer 42 (9.1e9 pairs, 36.5 GB of output next to 110 GB
+  // of streamed input) ran out of free memory, and the kernel wrote each
+  // output page back thousands of times: 35% done after 10 hours. Extra
+  // passes only cost sequential rereads of the inputs.
+  //
+  // Each pass:
+  // 1. Fills its slice with DFA_STATE_MAX, which no output id or constant
+  //    can equal (ids are below layer_size <= DFA_STATE_MAX).
+  // 2. Scatters the ranks in the slice.
+  // 3. Checks no slot in the slice still holds DFA_STATE_MAX, which would
+  //    mean the permutation missed a rank. Across all slices, n writes
+  //    filling n slots also rules out duplicate ranks.
+  // 4. Patches constant rows, in rank order so their curr_transitions reads
+  //    are sequential. Until then they hold the id the scan gave their
+  //    sorted position, which is never used.
+
+  profile.tic("output init");
+
+  size_t output_slice_ranks_max = std::max(physical_memory_bytes() / 8 / sizeof(dfa_state_t), size_t(1));
+  size_t output_slices = std::max((curr_layer_count + output_slice_ranks_max - 1) / output_slice_ranks_max,
+                                  binary_dfa_output_slices_min);
+  size_t output_slice_ranks = (curr_layer_count + output_slices - 1) / output_slices;
+  std::cout << "layer=" << layer << " pair_rank_to_output: " << output_slices << " slice(s) of up to " << output_slice_ranks << " ranks (" << (output_slice_ranks * sizeof(dfa_state_t)) << " bytes each)" << std::endl;
 
   MemoryMap<dfa_state_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count);
-  TRY_PARALLEL_3(std::fill,
-                 curr_pair_rank_to_output.begin(),
-                 curr_pair_rank_to_output.end(),
-                 dfa_state_t(DFA_STATE_MAX));
-
   const pair_rank_t *curr_pairs_permutation_data = curr_pairs_permutation.begin();
   dfa_state_t *curr_pair_rank_to_output_data = curr_pair_rank_to_output.begin();
-  TRY_PARALLEL_3(std::for_each,
-                 curr_pairs_permutation.begin(),
-                 curr_pairs_permutation.end(),
-                 [&](const pair_rank_t& curr_pair_rank_ref)
-                 {
-                   size_t curr_pairs_permutation_index = size_t(&curr_pair_rank_ref - curr_pairs_permutation_data);
-                   size_t curr_pair_rank = curr_pair_rank_ref;
-                   assert(curr_pair_rank < curr_layer_count);
-                   curr_pair_rank_to_output_data[curr_pair_rank] = curr_pairs_permutation_to_output[curr_pairs_permutation_index];
-                 });
 
-  profile.tic("output check");
-
-  auto unwritten = TRY_PARALLEL_3(std::find,
-                                  curr_pair_rank_to_output.begin(),
-                                  curr_pair_rank_to_output.end(),
-                                  dfa_state_t(DFA_STATE_MAX));
-  if(unwritten != curr_pair_rank_to_output.end())
+  for(size_t slice = 0; slice < output_slices; ++slice)
     {
-      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " pair rank " + std::to_string(unwritten - curr_pair_rank_to_output.begin()) + " missing from pairs_permutation");
-    }
+      size_t slice_begin = std::min(slice * output_slice_ranks, curr_layer_count);
+      size_t slice_end = std::min(slice_begin + output_slice_ranks, curr_layer_count);
+      std::cout << "layer=" << layer << " pair_rank_to_output slice " << (slice + 1) << "/" << output_slices << ": ranks [" << slice_begin << ", " << slice_end << ")" << std::endl;
 
-  profile.tic("output constants");
+      profile.tic("output slice fill");
 
-  TRY_PARALLEL_3(std::for_each,
-                 curr_pair_rank_to_output.begin(),
-                 curr_pair_rank_to_output.end(),
-                 [&](dfa_state_t& output)
-                 {
-                   size_t curr_pair_rank = size_t(&output - curr_pair_rank_to_output_data);
-                   if(check_constant(curr_pair_rank))
+      TRY_PARALLEL_3(std::fill,
+                     curr_pair_rank_to_output_data + slice_begin,
+                     curr_pair_rank_to_output_data + slice_end,
+                     dfa_state_t(DFA_STATE_MAX));
+
+      profile.tic("output slice scatter");
+
+      TRY_PARALLEL_3(std::for_each,
+                     curr_pairs_permutation.begin(),
+                     curr_pairs_permutation.end(),
+                     [&](const pair_rank_t& curr_pair_rank_ref)
                      {
-                       output = curr_transitions[curr_pair_rank * curr_layer_shape];
-                     }
-                 });
+                       size_t curr_pair_rank = curr_pair_rank_ref;
+                       assert(curr_pair_rank < curr_layer_count);
+                       if((curr_pair_rank < slice_begin) || (slice_end <= curr_pair_rank))
+                         {
+                           return;
+                         }
+                       size_t curr_pairs_permutation_index = size_t(&curr_pair_rank_ref - curr_pairs_permutation_data);
+                       curr_pair_rank_to_output_data[curr_pair_rank] = curr_pairs_permutation_to_output[curr_pairs_permutation_index];
+                     });
+
+      profile.tic("output slice check");
+
+      dfa_state_t *unwritten = TRY_PARALLEL_3(std::find,
+                                              curr_pair_rank_to_output_data + slice_begin,
+                                              curr_pair_rank_to_output_data + slice_end,
+                                              dfa_state_t(DFA_STATE_MAX));
+      if(unwritten != curr_pair_rank_to_output_data + slice_end)
+        {
+          throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " pair rank " + std::to_string(unwritten - curr_pair_rank_to_output_data) + " missing from pairs_permutation");
+        }
+
+      profile.tic("output slice constants");
+
+      TRY_PARALLEL_3(std::for_each,
+                     curr_pair_rank_to_output_data + slice_begin,
+                     curr_pair_rank_to_output_data + slice_end,
+                     [&](dfa_state_t& output)
+                     {
+                       size_t curr_pair_rank = size_t(&output - curr_pair_rank_to_output_data);
+                       if(check_constant(curr_pair_rank))
+                         {
+                           output = curr_transitions[curr_pair_rank * curr_layer_shape];
+                         }
+                     });
+    }
 
   // shrink state
 
