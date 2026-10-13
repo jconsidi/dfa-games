@@ -134,11 +134,22 @@ if(-d "$directory/dfas_by_hash")
   my $unsaved_count = 0;
 
   my @delete_hashes;
+  my @stale_temps;
   opendir(DFAS_BY_HASH_DIR, "$directory/dfas_by_hash") || die("error opening dfas_by_hash : $!\n");
   for my $dfa_file (readdir(DFAS_BY_HASH_DIR))
   {
-    # Anything else here is not a saved DFA: "." and "..", and the
-    # .tmp-<pid>-<n>.dfa files save_by_hash writes before it knows the digest.
+    # Partial writes: .tmp-<pid>-<n>.dfa from save_by_hash, written before it
+    # knows the digest, and .tmp-copy-<pid>-<n>.dfa from publish_copy. One
+    # left behind belongs to a process that died mid write. Swept by pid
+    # liveness, like the staging directories below, since a live process may
+    # still be writing one however old it is.
+    if($dfa_file =~ /^\.tmp-(?:copy-)?(\d+)-\d+\.dfa$/)
+    {
+      push(@stale_temps, $dfa_file) if pid_is_gone($1);
+      next;
+    }
+
+    # Anything else here that is not a saved DFA: "." and "..".
     my $dfa_hash = dfa_file_hash($dfa_file);
     next unless defined($dfa_hash);
     ++$total_count;
@@ -166,6 +177,14 @@ if(-d "$directory/dfas_by_hash")
   {
     my $dfa_file_full = "$directory/dfas_by_hash/" . $dfa_hash . ".dfa";
     unlink($dfa_file_full) || die("error deleting $dfa_file_full : $!\n");
+  }
+
+  print(scalar(@stale_temps), "stale temporary DFA files to delete");
+  for my $temp_file (@stale_temps)
+  {
+    my $temp_file_full = "$directory/dfas_by_hash/" . $temp_file;
+    print("removing stale", $temp_file_full);
+    unlink($temp_file_full) || die("error deleting $temp_file_full : $!\n");
   }
 }
 
