@@ -88,9 +88,24 @@ void test_split_joins()
       throw std::logic_error(std::format("test_split_joins: unsplit graph gave {:d} moves, expected 48", expected.size()));
     }
 
-  // 12 inputs: fan-in 2 -> 6, 3, 2 joins; 3 -> 4, 2; 4 -> 3; 11 -> 2; 12 -> none.
-  std::vector<std::pair<int, size_t>> cases = {{2, 11}, {3, 6}, {4, 3}, {11, 2}, {12, 0}};
-  for(const auto& [max_fan_in, joins_expected] : cases)
+  // 12 inputs, sorted by edge name. a chunk with a single item gets no
+  // join, so fan-in 2 makes 6 joins of 2, 3 of 4 and end.join_0_8, with
+  // edges 8-11 going up through end.join_8_12 alone. joins over the same
+  // range must have the same name at every fan-in whose chunk sizes reach
+  // that range.
+  struct split_case
+  {
+    int max_fan_in;
+    size_t joins_expected;
+    std::vector<std::string> join_names_expected;
+  };
+  std::vector<split_case> cases = {
+    {2, 10, {"end.join_0_2", "end.join_10_12", "end.join_0_4", "end.join_4_8", "end.join_8_12", "end.join_0_8"}},
+    {3, 5, {"end.join_0_3", "end.join_9_12", "end.join_0_9"}},
+    {4, 3, {"end.join_0_4", "end.join_4_8", "end.join_8_12"}},
+    {11, 1, {"end.join_0_11"}},
+    {12, 0, {}}};
+  for(const auto& [max_fan_in, joins_expected, join_names_expected] : cases)
     {
       std::string test_name = std::format("test_split_joins max_fan_in={:d}", max_fan_in);
       MoveGraph split = graph.split_joins(max_fan_in, test_name + ": ").optimize();
@@ -101,10 +116,14 @@ void test_split_joins()
           throw std::logic_error(std::format("{:s}: {:d} nodes, expected {:d}", test_name, split.size(), size_expected));
         }
 
+      // get_node_pre_conditions throws if the node is missing
       for(const std::string& move_name : move_names)
         {
-          // throws if the node is missing
           split.get_node_pre_conditions(move_name);
+        }
+      for(const std::string& join_name : join_names_expected)
+        {
+          split.get_node_pre_conditions(join_name);
         }
 
       std::vector<DFAString> actual = split.get_moves(positions);

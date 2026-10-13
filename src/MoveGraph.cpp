@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <numeric>
 #include <sstream>
 #include <unistd.h>
 #include <utility>
@@ -550,16 +551,19 @@ size_t MoveGraph::size() const
 }
 
 // Returns a copy of this graph where no node has more than max_fan_in
-// incoming edges. A node over the limit gets join nodes in front of it:
-// its incoming edges, in their existing order, are split into balanced
-// groups of consecutive edges, each group feeding one join node with no
-// change and no conditions, and the joins feed the original node. Levels
-// repeat until the original node's in-degree fits.
+// incoming edges. A node over the limit gets join nodes in front of it.
+// Its incoming edges are sorted by edge name and numbered 0..n-1 in that
+// order. Each level multiplies the chunk size by max_fan_in, and a join
+// at chunk size c covers edges [g*c, min((g+1)*c, n)) for some g, named
+// "<target>.join_<start>_<end>". A chunk holding a single item from the
+// level below gets no join; that item moves up a level as is. Levels
+// repeat until the target's in-degree fits.
 //
 // Each join's output is the union of its inputs, so every original node
 // sees the same input language. Original node names are kept, so cached
-// move node outputs stay valid; joins are named
-// "<target>,join=<level>.<group>".
+// move node outputs stay valid, and a join's name depends only on which
+// sorted edges it covers, so max fan-ins whose chunk sizes coincide
+// produce the same join for the same range.
 MoveGraph MoveGraph::split_joins(int max_fan_in, std::string log_prefix) const
 {
   if(max_fan_in < 2)
@@ -567,54 +571,96 @@ MoveGraph MoveGraph::split_joins(int max_fan_in, std::string log_prefix) const
       throw std::invalid_argument(std::format("split_joins() max_fan_in must be at least 2, got {:d}", max_fan_in));
     }
 
-  // balanced split of count consecutive items into groups of at most
-  // max_fan_in. group g covers [group_begin(count, g), group_begin(count, g + 1)).
-  auto group_count = [&](size_t count)
+  // an item is an input to some level: either an original incoming edge
+  // (join empty, input_index into node_inputs) or a join node. start and
+  // end are its range in the sorted edge order.
+  struct item_type
   {
-    return (count + size_t(max_fan_in) - 1) / size_t(max_fan_in);
-  };
-  auto group_begin = [&](size_t count, size_t group)
-  {
-    return group * count / group_count(count);
-  };
-  auto group_of = [&](size_t count, size_t item)
-  {
-    size_t group = 0;
-    while(group_begin(count, group + 1) <= item)
-      {
-	++group;
-      }
-    return group;
+    size_t start;
+    size_t end;
+    size_t input_index;
+    std::string join;
   };
 
-  // node_levels[i][level] lists the join names of that level in front of
-  // node i. empty for nodes within the limit.
-  std::vector<std::vector<std::vector<std::string>>> node_levels(node_names.size());
+  // a connection from an item to the node it feeds.
+  struct connection_type
+  {
+    item_type from;
+    std::string to;
+  };
+
+  std::vector<std::vector<std::string>> node_joins(node_names.size());
+  std::vector<std::vector<connection_type>> node_connections(node_names.size());
 
   MoveGraph output(shape);
   size_t nodes_split = 0;
 
   for(int i = 0; i < node_names.size(); ++i)
     {
-      size_t level_inputs = node_inputs[i].size();
-      if(level_inputs > size_t(max_fan_in))
+      size_t inputs = node_inputs[i].size();
+      if(inputs > size_t(max_fan_in))
 	{
-	  std::ostringstream summary;
-	  summary << log_prefix << "node " << node_names[i] << " fan-in " << level_inputs << " ->";
+	  std::vector<size_t> sorted_indexes(inputs);
+	  std::iota(sorted_indexes.begin(), sorted_indexes.end(), 0);
+	  std::sort(sorted_indexes.begin(), sorted_indexes.end(), [&](size_t a, size_t b)
+	  {
+	    return std::get<0>(std::get<1>(node_inputs[i][a])) < std::get<0>(std::get<1>(node_inputs[i][b]));
+	  });
 
-	  for(int level = 0; level_inputs > size_t(max_fan_in); ++level)
+	  std::vector<item_type> items;
+	  for(size_t k = 0; k < inputs; ++k)
 	    {
-	      size_t joins = group_count(level_inputs);
-	      node_levels[i].emplace_back();
-	      for(size_t group = 0; group < joins; ++group)
+	      items.push_back(item_type{k, k + 1, sorted_indexes[k], ""});
+	    }
+
+	  std::ostringstream summary;
+	  summary << log_prefix << "node " << node_names[i] << " fan-in " << inputs << " ->";
+
+	  size_t chunk = 1;
+	  while(items.size() > size_t(max_fan_in))
+	    {
+	      chunk *= size_t(max_fan_in);
+
+	      std::vector<item_type> next_items;
+	      size_t joins = 0;
+	      for(size_t begin = 0; begin < items.size();)
 		{
-		  std::string join_name = std::format("{:s},join={:d}.{:d}", node_names[i], level, group);
-		  output.add_node(join_name);
-		  node_levels[i].back().push_back(join_name);
+		  size_t group = items[begin].start / chunk;
+		  size_t end = begin + 1;
+		  while((end < items.size()) && (items[end].start / chunk == group))
+		    {
+		      ++end;
+		    }
+		  assert(end - begin <= size_t(max_fan_in));
+
+		  if(end - begin == 1)
+		    {
+		      next_items.push_back(items[begin]);
+		    }
+		  else
+		    {
+		      item_type join{items[begin].start, items[end - 1].end, 0, ""};
+		      join.join = std::format("{:s}.join_{:d}_{:d}", node_names[i], join.start, join.end);
+		      output.add_node(join.join);
+		      node_joins[i].push_back(join.join);
+		      for(size_t k = begin; k < end; ++k)
+			{
+			  node_connections[i].push_back(connection_type{items[k], join.join});
+			}
+		      next_items.push_back(join);
+		      ++joins;
+		    }
+
+		  begin = end;
 		}
 
-	      summary << (level ? "," : "") << " " << joins << " joins at level " << level;
-	      level_inputs = joins;
+	      summary << (chunk > size_t(max_fan_in) ? "," : "") << " " << joins << " joins of up to " << chunk << " edges";
+	      items = next_items;
+	    }
+
+	  for(const item_type& item : items)
+	    {
+	      node_connections[i].push_back(connection_type{item, node_names[i]});
 	    }
 
 	  summary << " (max fan-in " << max_fan_in << ")";
@@ -635,27 +681,31 @@ MoveGraph MoveGraph::split_joins(int max_fan_in, std::string log_prefix) const
 
   for(int i = 0; i < node_names.size(); ++i)
     {
-      const auto& levels = node_levels[i];
-      size_t inputs = node_inputs[i].size();
-
-      for(size_t k = 0; k < inputs; ++k)
+      if(node_joins[i].size() == 0)
 	{
-	  const auto& [from_node_index, edge] = node_inputs[i][k];
-	  const std::string& to_name = (levels.size() > 0) ? levels[0].at(group_of(inputs, k)) : node_names[i];
-
-	  output.add_edge(std::get<0>(edge),
-			  node_names[from_node_index],
-			  to_name,
-			  std::get<1>(edge));
+	  for(const auto& [from_node_index, edge] : node_inputs[i])
+	    {
+	      output.add_edge(std::get<0>(edge),
+			      node_names[from_node_index],
+			      node_names[i],
+			      std::get<1>(edge));
+	    }
+	  continue;
 	}
 
-      for(size_t level = 0; level < levels.size(); ++level)
+      for(const connection_type& connection : node_connections[i])
 	{
-	  size_t joins = levels[level].size();
-	  for(size_t j = 0; j < joins; ++j)
+	  if(connection.from.join == "")
 	    {
-	      const std::string& to_name = (level + 1 < levels.size()) ? levels[level + 1].at(group_of(joins, j)) : node_names[i];
-	      output.add_edge(levels[level][j], to_name);
+	      const auto& [from_node_index, edge] = node_inputs[i][connection.from.input_index];
+	      output.add_edge(std::get<0>(edge),
+			      node_names[from_node_index],
+			      connection.to,
+			      std::get<1>(edge));
+	    }
+	  else
+	    {
+	      output.add_edge(connection.from.join, connection.to);
 	    }
 	}
     }
@@ -667,7 +717,6 @@ MoveGraph MoveGraph::split_joins(int max_fan_in, std::string log_prefix) const
 	  throw std::logic_error(std::format("split_joins() left node {:s} with fan-in {:d} over {:d}", output.node_names[i], output.node_inputs[i].size(), max_fan_in));
 	}
     }
-
   return output;
 }
 
