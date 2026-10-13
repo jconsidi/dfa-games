@@ -56,6 +56,11 @@ class MoveGraph
   shared_dfa_ptr get_moves(std::string name_prefix, shared_dfa_ptr) const;
   const move_edge_condition_vector& get_node_pre_conditions(std::string) const;
 
+  // read access by node index, for tools that inspect a built graph
+  const std::string& get_node_name(int) const;
+  const change_vector& get_node_changes(int) const;
+  const std::vector<std::pair<int, move_edge>>& get_node_inputs(int) const;
+
   MoveGraph optimize() const;
   MoveGraph reverse() const;
   size_t size() const;

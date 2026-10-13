@@ -420,6 +420,21 @@ const move_edge_condition_vector& MoveGraph::get_node_pre_conditions(std::string
   return node_pre_conditions[get_node_index(node_name_in)];
 }
 
+const std::string& MoveGraph::get_node_name(int node_index) const
+{
+  return node_names.at(size_t(node_index));
+}
+
+const change_vector& MoveGraph::get_node_changes(int node_index) const
+{
+  return node_changes.at(size_t(node_index));
+}
+
+const std::vector<std::pair<int, move_edge>>& MoveGraph::get_node_inputs(int node_index) const
+{
+  return node_inputs.at(size_t(node_index));
+}
+
 MoveGraph MoveGraph::optimize() const
 {
   MoveGraph output(shape);
