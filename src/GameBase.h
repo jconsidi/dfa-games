@@ -19,6 +19,8 @@ private:
   mutable std::vector<std::unique_ptr<MoveGraph>> move_graphs_forward;
   mutable std::vector<std::unique_ptr<MoveGraph>> move_graphs_backward;
 
+  void build_move_graphs(int) const;
+
 protected:
 
   GameBase(std::string, const dfa_shape_t&, int);

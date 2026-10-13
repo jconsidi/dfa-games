@@ -4,10 +4,13 @@
 #include <format>
 #include <iostream>
 #include <set>
+#include <unistd.h>
 
 #include <nlohmann/json.hpp>
 
 #include "DFAUtil.h"
+#include "ScratchConfig.h"
+#include "game_utils.h"
 #include "test_utils.h"
 
 void test_position(const GameBase& game, const DFAString& position, const nlohmann::json& test_case)
@@ -149,6 +152,77 @@ void test_max_fan_in_env()
   std::cout << "test_max_fan_in_env: passed" << std::endl;
 }
 
+// get_moves over DFAs, both directions, must accept the same language
+// whatever the max fan-in. Each fan-in gets its own name prefix so no
+// result is loaded from another fan-in's move_nodes. Graphs are cached per
+// game object, so each fan-in gets a fresh one.
+void test_split_joins_language(std::string game_name)
+{
+  const char *env_name = "DFA_MOVE_GRAPH_MAX_FAN_IN";
+  std::string fan_in_unsplit = "1000000";
+
+  // get_moves leaves the output node's move_nodes link in place, and a
+  // later run would load it instead of building through the joins.
+  auto unlink_output = [](std::string prefix, shared_dfa_ptr input, std::string output_node)
+  {
+    std::string link = ScratchConfig::get_local_dir() + "/move_nodes/" + prefix + "," + input->get_hash() + ",node=" + output_node;
+    if(unlink(link.c_str()) != 0)
+      {
+        throw std::runtime_error("test_split_joins_language: could not unlink " + link);
+      }
+  };
+
+  auto get_outputs = [&](std::string fan_in)
+  {
+    setenv(env_name, fan_in.c_str(), 1);
+    const std::unique_ptr<GameBase> game(get_gamebase(game_name));
+    const dfa_shape_t& shape = game->get_shape();
+
+    std::vector<shared_dfa_ptr> inputs = {DFAUtil::get_accept(shape), DFAUtil::get_fixed(shape, 0, 0)};
+
+    std::vector<shared_dfa_ptr> outputs;
+    for(int side_to_move = 0; side_to_move < game->get_sides(); ++side_to_move)
+      {
+        for(size_t input_index = 0; input_index < inputs.size(); ++input_index)
+          {
+            shared_dfa_ptr input = inputs[input_index];
+            if(input->size() <= double(input->states()))
+              {
+                throw std::logic_error(std::format("test_split_joins_language {:s}: input {:d} would take the string path", game_name, input_index));
+              }
+
+            std::string prefix = std::format("test_move_graph,{:s},fan_in={:s},side_to_move={:d}", game_name, fan_in, side_to_move);
+            outputs.push_back(game->get_move_graph_forward(side_to_move).get_moves(prefix + ",forward", input));
+            unlink_output(prefix + ",forward", input, "end");
+            outputs.push_back(game->get_move_graph_backward(side_to_move).get_moves(prefix + ",backward", input));
+            unlink_output(prefix + ",backward", input, "begin");
+          }
+      }
+
+    unsetenv(env_name);
+    return outputs;
+  };
+
+  std::vector<shared_dfa_ptr> expected = get_outputs(fan_in_unsplit);
+  for(std::string fan_in : {"2", "3"})
+    {
+      std::vector<shared_dfa_ptr> actual = get_outputs(fan_in);
+      assert(actual.size() == expected.size());
+
+      for(size_t i = 0; i < actual.size(); ++i)
+        {
+          std::string test_name = std::format("test_split_joins_language {:s} fan_in={:s} output {:d}", game_name, fan_in, i);
+          if(!DFAUtil::get_difference(actual[i], expected[i])->is_constant(false) ||
+             !DFAUtil::get_difference(expected[i], actual[i])->is_constant(false))
+            {
+              throw std::logic_error(test_name + ": language differs from max fan-in " + fan_in_unsplit);
+            }
+
+          std::cout << test_name << ": " << actual[i]->size() << " positions match: passed" << std::endl;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
   if(argc > 2)
@@ -160,8 +234,20 @@ int main(int argc, char **argv)
   test_split_joins();
   test_max_fan_in_env();
 
-  run_test_positions((argc >= 2) ? std::string(argv[1]) : std::string(""),
-                     test_position);
+  std::string game_name = (argc >= 2) ? std::string(argv[1]) : std::string("");
+
+  run_test_positions(game_name, test_position);
+
+  // again with join nodes in front of every node over fan-in 2
+  setenv("DFA_MOVE_GRAPH_MAX_FAN_IN", "2", 1);
+  run_test_positions(game_name, test_position);
+  unsetenv("DFA_MOVE_GRAPH_MAX_FAN_IN");
+
+  if(game_name == "")
+    {
+      test_split_joins_language("tictactoe_3");
+      test_split_joins_language("tictactoe_4");
+    }
 
   return 0;
 }

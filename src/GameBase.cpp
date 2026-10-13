@@ -2,6 +2,9 @@
 
 #include "GameBase.h"
 
+#include <format>
+#include <iostream>
+
 #include "DFAUtil.h"
 #include "Profile.h"
 
@@ -28,6 +31,26 @@ GameBase::~GameBase()
 {
 }
 
+// Builds the forward and backward graphs for one side from a single
+// build_move_graph call. The backward graph is reversed from the unsplit
+// graph, then each direction gets join nodes for its own high fan-in
+// nodes.
+void GameBase::build_move_graphs(int side_to_move) const
+{
+  assert(0 <= side_to_move);
+  assert(side_to_move < sides);
+
+  MoveGraph base = build_move_graph(side_to_move);
+
+  int max_fan_in = move_graph_max_fan_in();
+  std::cout << std::format("move graph {:s} side_to_move={:d}: max fan-in {:d} ({:s})", name, side_to_move, max_fan_in, move_graph_max_fan_in_is_default() ? "default" : "DFA_MOVE_GRAPH_MAX_FAN_IN") << std::endl;
+
+  std::string log_prefix_forward = std::format("move graph forward side_to_move={:d}: ", side_to_move);
+  std::string log_prefix_backward = std::format("move graph backward side_to_move={:d}: ", side_to_move);
+  move_graphs_backward[side_to_move] = std::make_unique<MoveGraph>(base.reverse().split_joins(max_fan_in, log_prefix_backward).optimize());
+  move_graphs_forward[side_to_move] = std::make_unique<MoveGraph>(base.split_joins(max_fan_in, log_prefix_forward).optimize());
+}
+
 const MoveGraph& GameBase::get_move_graph_forward(int side_to_move) const
 {
   assert(0 <= side_to_move);
@@ -35,7 +58,7 @@ const MoveGraph& GameBase::get_move_graph_forward(int side_to_move) const
 
   if(!move_graphs_forward[side_to_move])
     {
-      move_graphs_forward[side_to_move] = std::make_unique<MoveGraph>(build_move_graph(side_to_move).optimize());
+      build_move_graphs(side_to_move);
     }
 
   return *move_graphs_forward.at(side_to_move);
@@ -48,8 +71,7 @@ const MoveGraph& GameBase::get_move_graph_backward(int side_to_move) const
 
   if(!move_graphs_backward[side_to_move])
     {
-      const MoveGraph& forward = get_move_graph_forward(side_to_move);
-      move_graphs_backward[side_to_move] = std::make_unique<MoveGraph>(forward.reverse().optimize());
+      build_move_graphs(side_to_move);
     }
 
   return *move_graphs_backward.at(side_to_move);
