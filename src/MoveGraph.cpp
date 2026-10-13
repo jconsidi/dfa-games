@@ -579,6 +579,13 @@ size_t MoveGraph::size() const
 // move node outputs stay valid, and a join's name depends only on which
 // sorted edges it covers, so max fan-ins whose chunk sizes coincide
 // produce the same join for the same range.
+//
+// Splitting also shrinks the working space on disk. Unsplit, all n
+// inputs of a union are materialized before the union starts. After
+// optimize() orders the joins depth first, each join's inputs are built
+// just before it and released (their move_nodes links unlinked) once it
+// is built, so with max fan-in k only about k log_k n DFAs from the tree
+// are live at once. Released files are freed by gc.pl.
 MoveGraph MoveGraph::split_joins(int max_fan_in, std::string log_prefix) const
 {
   if(max_fan_in < 2)
