@@ -19,7 +19,11 @@
 #include "MoveGraph.h"
 #include "game_utils.h"
 
-static const char *page_template = R"HTML(<title>Move Graph Joins</title>
+static const char *page_template = R"HTML(<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Move Graph Joins</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600&display=swap">
@@ -55,7 +59,7 @@ static const char *page_template = R"HTML(<title>Move Graph Joins</title>
   --term: #7fb0d1; --term-soft: #1d3140; --hi: #e08a4f; color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.45; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.45; }
 .wrap { padding-inline: 16px; padding-block: 20px 28px; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
 header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; }
 h1 { font-size: 1.6rem; font-weight: 600; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
