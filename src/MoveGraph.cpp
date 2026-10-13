@@ -3,6 +3,9 @@
 #include "MoveGraph.h"
 
 #include <algorithm>
+#include <charconv>
+#include <cstdlib>
+#include <format>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -544,4 +547,152 @@ static change_vector reverse_changes(const change_vector& changes_in)
 size_t MoveGraph::size() const
 {
   return node_names.size();
+}
+
+// Returns a copy of this graph where no node has more than max_fan_in
+// incoming edges. A node over the limit gets join nodes in front of it:
+// its incoming edges, in their existing order, are split into balanced
+// groups of consecutive edges, each group feeding one join node with no
+// change and no conditions, and the joins feed the original node. Levels
+// repeat until the original node's in-degree fits.
+//
+// Each join's output is the union of its inputs, so every original node
+// sees the same input language. Original node names are kept, so cached
+// move node outputs stay valid; joins are named
+// "<target>,join=<level>.<group>".
+MoveGraph MoveGraph::split_joins(int max_fan_in, std::string log_prefix) const
+{
+  if(max_fan_in < 2)
+    {
+      throw std::invalid_argument(std::format("split_joins() max_fan_in must be at least 2, got {:d}", max_fan_in));
+    }
+
+  // balanced split of count consecutive items into groups of at most
+  // max_fan_in. group g covers [group_begin(count, g), group_begin(count, g + 1)).
+  auto group_count = [&](size_t count)
+  {
+    return (count + size_t(max_fan_in) - 1) / size_t(max_fan_in);
+  };
+  auto group_begin = [&](size_t count, size_t group)
+  {
+    return group * count / group_count(count);
+  };
+  auto group_of = [&](size_t count, size_t item)
+  {
+    size_t group = 0;
+    while(group_begin(count, group + 1) <= item)
+      {
+	++group;
+      }
+    return group;
+  };
+
+  // node_levels[i][level] lists the join names of that level in front of
+  // node i. empty for nodes within the limit.
+  std::vector<std::vector<std::vector<std::string>>> node_levels(node_names.size());
+
+  MoveGraph output(shape);
+  size_t nodes_split = 0;
+
+  for(int i = 0; i < node_names.size(); ++i)
+    {
+      size_t level_inputs = node_inputs[i].size();
+      if(level_inputs > size_t(max_fan_in))
+	{
+	  std::ostringstream summary;
+	  summary << log_prefix << "node " << node_names[i] << " fan-in " << level_inputs << " ->";
+
+	  for(int level = 0; level_inputs > size_t(max_fan_in); ++level)
+	    {
+	      size_t joins = group_count(level_inputs);
+	      node_levels[i].emplace_back();
+	      for(size_t group = 0; group < joins; ++group)
+		{
+		  std::string join_name = std::format("{:s},join={:d}.{:d}", node_names[i], level, group);
+		  output.add_node(join_name);
+		  node_levels[i].back().push_back(join_name);
+		}
+
+	      summary << (level ? "," : "") << " " << joins << " joins at level " << level;
+	      level_inputs = joins;
+	    }
+
+	  summary << " (max fan-in " << max_fan_in << ")";
+	  std::cout << summary.str() << std::endl;
+	  ++nodes_split;
+	}
+
+      output.add_node(node_names[i],
+		      node_changes[i],
+		      node_pre_conditions[i],
+		      node_post_conditions[i]);
+    }
+
+  if(nodes_split == 0)
+    {
+      std::cout << log_prefix << "all " << node_names.size() << " nodes within max fan-in " << max_fan_in << std::endl;
+    }
+
+  for(int i = 0; i < node_names.size(); ++i)
+    {
+      const auto& levels = node_levels[i];
+      size_t inputs = node_inputs[i].size();
+
+      for(size_t k = 0; k < inputs; ++k)
+	{
+	  const auto& [from_node_index, edge] = node_inputs[i][k];
+	  const std::string& to_name = (levels.size() > 0) ? levels[0].at(group_of(inputs, k)) : node_names[i];
+
+	  output.add_edge(std::get<0>(edge),
+			  node_names[from_node_index],
+			  to_name,
+			  std::get<1>(edge));
+	}
+
+      for(size_t level = 0; level < levels.size(); ++level)
+	{
+	  size_t joins = levels[level].size();
+	  for(size_t j = 0; j < joins; ++j)
+	    {
+	      const std::string& to_name = (level + 1 < levels.size()) ? levels[level + 1].at(group_of(joins, j)) : node_names[i];
+	      output.add_edge(levels[level][j], to_name);
+	    }
+	}
+    }
+
+  for(int i = 0; i < output.node_names.size(); ++i)
+    {
+      if(output.node_inputs[i].size() > size_t(max_fan_in))
+	{
+	  throw std::logic_error(std::format("split_joins() left node {:s} with fan-in {:d} over {:d}", output.node_names[i], output.node_inputs[i].size(), max_fan_in));
+	}
+    }
+
+  return output;
+}
+
+static const char *env_max_fan_in = "DFA_MOVE_GRAPH_MAX_FAN_IN";
+
+int move_graph_max_fan_in()
+{
+  const char *value = std::getenv(env_max_fan_in);
+  if(!value)
+    {
+      return 8;
+    }
+
+  std::string value_string(value);
+  int parsed = 0;
+  auto [end, error] = std::from_chars(value_string.data(), value_string.data() + value_string.size(), parsed);
+  if(value_string.empty() || (error != std::errc()) || (end != value_string.data() + value_string.size()) || (parsed < 2))
+    {
+      throw std::runtime_error(std::format("{:s}=\"{:s}\" must be an integer of at least 2", env_max_fan_in, value_string));
+    }
+
+  return parsed;
+}
+
+bool move_graph_max_fan_in_is_default()
+{
+  return std::getenv(env_max_fan_in) == nullptr;
 }
