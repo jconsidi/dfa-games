@@ -285,3 +285,21 @@ recurses depth first, so states come out in subtree completion order instead.
   `get_difference` calls, and keeps the content addressed caches from holding
   two files per language. Determinism already bounds that fragmentation, so
   this is a simplification rather than a correctness fix.
+
+## BinaryDFA packed direct keys
+
+When layer i + 1 has more than 2^32 states, `build_quadratic_backward_layer` sorts layer i by SHA-256 of each row (`BinaryDFA.cpp:742-789`), even when the rows would fit the key directly at fewer bits per transition.
+That path creates and destroys an EVP context per row, and it clears the canonical claim via `hashed_any_layer`.
+
+Measured on cram_7x7 ply 10, union 7 of `begin.join_0_8`, on 2026-10-14: `transitions hash` took 64s on layer 41 (direct keys) and 1837s on layer 40 (hashed, next layer 4.48e9 states).
+
+The key is 96 bits with narrow pair ranks and 88 bits with wide ones, since the rest of the 16 byte record holds the rank.
+Two 64 bit transitions do not fit, but at ceil(log2(next layer size)) bits each they often do: layer 40's are 33 bits, 66 of the 88.
+
+- Use direct keys whenever shape * bits fits the key, packing transition 0 into the most significant bits of word 0 and so on, zero filling the rest.
+  Comparing keys word by word then orders rows by their transitions, so the layer stays canonical.
+- The constant rows' reserved keys are the packed form of an all-c row, so they still cannot collide with a non-constant row.
+- For cram's 2 character layers, this covers next layers up to 2^44 states.
+- Narrow layers where today's 32 bit direct keys apply must keep exactly today's keys, so existing DFAs stay byte identical.
+- Test with `binary_dfa_key_narrow_max` lowered: same language and state count as the default, output canonical and reloading with a valid digest.
+  Also test a shape that fits packed but not at 32 bits, and one that needs the hash.
