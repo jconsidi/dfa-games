@@ -31,9 +31,9 @@ The script:
   - `stats_forward GAME`, only when there is no `forward_backward` family, whose reachable column already covers it.
 - Prints Markdown: the family summary, then one table per run.
   The tables give positions and DFA states per ply.
-  They also check that winning + losing + unknown positions equal the total, within the binaries' 6 significant digits.
-  The notes under each table list missing plies, remaining unknowns, and ply 0's verdict when ply 0 is a single position.
-- Exits nonzero with the reason if a binary fails, a binary is not built, the output does not parse, or the partition check fails.
+  Before printing, it checks that winning + losing + unknown positions equal the total at every ply, within the binaries' 6 significant digits.
+  The notes under each table confirm that check, list missing plies and remaining unknowns, and give ply 0's verdict when ply 0 is a single position.
+- Exits nonzero with the reason, and prints no tables, if a binary fails, a binary is not built, the output does not parse, or the positions at some ply do not add up to the total.
 
 The binaries need a DFA's position count.
 `DFA::size()` caches it under `scratch/sizes/`, and gc ages those entries out.
@@ -52,6 +52,5 @@ They do compete for disk bandwidth, so mention that when a solve is running.
   - which solve was run, with its parameters;
   - how far it got, including missing plies or remaining unknown positions;
   - the verdict at ply 0, if the script states one.
-- If the script failed or flagged a mismatch, lead with that and quote its message.
-  Do not present partial tables as a finished report.
+- If the script failed, lead with that and quote its message.
 - A family the script found but did not run, such as an incomplete `backward`, gets one line saying so.

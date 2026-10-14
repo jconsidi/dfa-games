@@ -114,22 +114,25 @@ def partition_ok(total, parts):
 
 
 def solved_table(title, command, rows, total_key, total_label, plies_expected, missing, elapsed):
-    out = [f"### {title}", "", f"`{command}` ({elapsed:.0f}s)", ""]
-    out.append(f"| Ply | {total_label} positions | Winning | Losing | Unknown | {total_label} states | Winning states | Losing states | Unknown states | W+L+U = total |")
-    out.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---:|")
     mismatches = []
     for row in rows:
-        total = row[f"{total_key}_positions"]
-        parts = [row[f"{r}_positions"] for r in RESULTS]
-        ok = partition_ok(total, parts)
-        if not ok:
-            mismatches.append(row["ply"])
+        total = row[total_key + "_positions"]
+        parts = [row[r + "_positions"] for r in RESULTS]
+        if not partition_ok(total, parts):
+            sum_text = " + ".join("%s %g" % (r, p) for r, p in zip(RESULTS, parts))
+            mismatches.append("ply %d: %s != %s %g" % (row["ply"], sum_text, total_key, total))
+    if mismatches:
+        fail(f"{command}: winning + losing + unknown positions do not match the total:\n" + "\n".join(mismatches))
+
+    out = [f"### {title}", "", f"`{command}` ({elapsed:.0f}s)", ""]
+    out.append(f"| Ply | {total_label} positions | Winning | Losing | Unknown | {total_label} states | Winning states | Losing states | Unknown states |")
+    out.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    for row in rows:
         out.append("| " + " | ".join(
-            [str(row["ply"]), fmt_positions(total)]
-            + [fmt_positions(p) for p in parts]
+            [str(row["ply"]), fmt_positions(row[f"{total_key}_positions"])]
+            + [fmt_positions(row[f"{r}_positions"]) for r in RESULTS]
             + [fmt_states(row[f"{total_key}_states"])]
-            + [fmt_states(row[f"{r}_states"]) for r in RESULTS]
-            + ["yes" if ok else "**NO**"]) + " |")
+            + [fmt_states(row[f"{r}_states"]) for r in RESULTS]) + " |")
     out.append("")
 
     present = {row["ply"] for row in rows}
@@ -137,10 +140,7 @@ def solved_table(title, command, rows, total_key, total_label, plies_expected, m
     notes = [f"{len(rows)} plies reported" + (f"; missing plies: {compress(absent)}" if absent else "; no plies missing") + "."]
     if missing:
         notes.append(f"{len(missing)} DFAs reported missing on stderr.")
-    if mismatches:
-        notes.append(f"**Winning + losing + unknown does not match the total at plies {compress(mismatches)}.**")
-    else:
-        notes.append("Winning + losing + unknown positions match the total at every ply shown.")
+    notes.append("Winning + losing + unknown positions match the total at every ply shown.")
     unknown_left = [row["ply"] for row in rows if row["unknown_positions"] > 0]
     notes.append(f"Unknown positions remain at plies {compress(unknown_left)}." if unknown_left else "No unknown positions at any ply shown.")
     if 0 in present:
@@ -151,7 +151,7 @@ def solved_table(title, command, rows, total_key, total_label, plies_expected, m
                 notes.append(f"Ply 0 is a single position, and it is **{verdict[0]}** for the side to move.")
     out += notes
     out.append("")
-    return out, bool(mismatches)
+    return out
 
 
 def compress(plies):
@@ -202,7 +202,6 @@ def main():
         out.append(f"**{sum(dangling.values())} links dangle; the stats binaries will fail on any they need.**")
         out.append("")
 
-    any_mismatch = False
     ran = False
 
     for name, binary, total_key, total_label in (
@@ -210,10 +209,8 @@ def main():
             ("bound_backward", "stats_bound_backward", "bound", "Bound")):
         for f, b in sorted({(int(f), int(b)) for f, b, _, _ in families.get(name, [])}):
             command, rows, missing, elapsed = run_stats(binary, [args.game, f, b])
-            table, mismatch = solved_table(f"{name}, forward_ply_max={f}, backward_ply_max={b}",
-                                           command, rows, total_key, total_label, range(f + 1), missing, elapsed)
-            out += table
-            any_mismatch |= mismatch
+            out += solved_table(f"{name}, forward_ply_max={f}, backward_ply_max={b}",
+                                command, rows, total_key, total_label, range(f + 1), missing, elapsed)
             ran = True
 
     if "backward" in families:
@@ -254,8 +251,6 @@ def main():
         out.append("")
 
     print("\n".join(out))
-    if any_mismatch:
-        fail("winning + losing + unknown positions did not match the total at some ply; see the table above")
 
 
 if __name__ == "__main__":
