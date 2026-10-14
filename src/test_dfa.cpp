@@ -763,34 +763,37 @@ void test_suite(const dfa_shape_t& shape)
   test_intersection_pair("one1 + count1", *one1, *count1, one1_count1_expected);
 }
 
-// Asks build_layer for one state more than dfa_state_t can name. The
-// check fires before anything is allocated, so this is cheap.
-class OversizedLayerDFA : public DFA
+// Gives build_layer a transition to state 2 in a one layer DFA, whose next
+// layer is the terminal pseudo-layer of states 0 and 1 only. build_layer
+// checks every transition against the next layer's size, which is also what
+// makes narrowing them into a 32 bit staging layer safe.
+class OutOfRangeTransitionDFA : public DFA
 {
 public:
-  OversizedLayerDFA()
+  OutOfRangeTransitionDFA()
     : DFA(dfa_shape_t({2}))
   {
-    build_layer(0, size_t(DFA_STATE_MAX) + 1, [](dfa_state_t, dfa_state_t *)
+    build_layer(0, 3, [](dfa_state_t, dfa_state_t *transitions_out)
     {
-      throw std::logic_error("oversized layer: populate_func should not run");
+      transitions_out[0] = 0;
+      transitions_out[1] = 2;
     });
   }
 };
 
-void test_oversized_layer()
+void test_out_of_range_transition()
 {
   try
     {
-      OversizedLayerDFA dfa;
+      OutOfRangeTransitionDFA dfa;
     }
-  catch(const std::overflow_error& e)
+  catch(const std::logic_error& e)
     {
-      std::cout << "oversized layer: rejected: " << e.what() << std::endl;
+      std::cout << "out of range transition: rejected: " << e.what() << std::endl;
       return;
     }
 
-  throw std::logic_error("oversized layer: build_layer accepted DFA_STATE_MAX + 1 states");
+  throw std::logic_error("out of range transition: build_layer accepted a transition to state 2 of 2");
 }
 
 int main()
@@ -822,7 +825,7 @@ int main()
       // Must run last: a build abandoned by an exception deliberately
       // leaves build_in_progress set (see DFA.cpp), so any later DFA
       // construction in this process would assert.
-      test_oversized_layer();
+      test_out_of_range_transition();
     }
   catch(const std::logic_error& e)
     {

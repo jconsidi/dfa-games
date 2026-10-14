@@ -15,8 +15,7 @@
 #include "DFAFormat.h"
 #include "MemoryMap.h"
 
-typedef uint32_t dfa_state_t;
-#define DFA_STATE_MAX UINT32_MAX
+typedef uint64_t dfa_state_t;
 
 typedef std::vector<dfa_state_t> DFATransitionsStaging;
 

@@ -139,7 +139,7 @@ size_t test_hash_records()
               std::vector<record_t> input(n);
               for(size_t i = 0; i < n; ++i)
                 {
-                  dfa_state_t key[record_t::key_words] = {dfa_state_t(raw[i] % 7), dfa_state_t(raw[i] >> 40), dfa_state_t(raw[i] << 8)};
+                  uint32_t key[record_t::key_words] = {uint32_t(raw[i] % 7), uint32_t(raw[i] >> 40), uint32_t(raw[i] << 8)};
                   input[i].set(key, i);
                 }
               std::vector<record_t> actual = input;

@@ -515,10 +515,6 @@ void DFA::load_file(std::string file_name_in)
   for(int layer = 0; layer < ndim; ++layer)
     {
       uint64_t layer_size = read_u64(size_table + 8 * size_t(layer));
-      if(layer_size > DFA_STATE_MAX)
-	{
-	  throw std::runtime_error(file_name_in + " has a layer too large for dfa_state_t");
-	}
       file_layer_sizes.push_back(layer_size);
       layer_sizes.push_back(size_t(layer_size));
 
@@ -586,11 +582,6 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
 
   // add new state
 
-  if(layer_sizes[layer] >= DFA_STATE_MAX)
-    {
-      throw std::overflow_error("DFA::add_state: layer " + std::to_string(layer) + " is full at DFA_STATE_MAX states");
-    }
-
   size_t current_offset = size_t(layer_sizes[layer]) * size_t(layer_shape);
   size_t next_offset = current_offset + size_t(layer_shape);
 
@@ -598,7 +589,7 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
   size_t current_size = current_transitions.size();
   if(next_offset > current_size)
     {
-      size_t next_size = std::min(current_size * 2, size_t(DFA_STATE_MAX) * size_t(layer_shape));
+      size_t next_size = current_size * 2;
       assert(next_offset <= next_size);
       current_transitions.resize(next_size);
     }
@@ -654,10 +645,6 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
 
   assert(layer_sizes[layer] == 2);
   assert(2 <= layer_size_in);
-  if(layer_size_in > DFA_STATE_MAX)
-    {
-      throw std::overflow_error("DFA::build_layer: layer " + std::to_string(layer) + " size " + std::to_string(layer_size_in) + " exceeds DFA_STATE_MAX");
-    }
 
   // Every entry is a state of the next layer, so its size alone decides
   // the staging width.
@@ -706,7 +693,7 @@ void DFA::build_layer_staged(int layer, size_t layer_size_in, const std::functio
   // file, so an unbounded version of this would trade a graceful page-out
   // for a harder OOM risk on a layer big enough to matter.
   size_t anon_bytes_max = size_t(1) << 20; // 1MB
-  size_t total_bytes = size_t(layer_size_in) * size_t(layer_shape) * sizeof(dfa_state_t);
+  size_t total_bytes = size_t(layer_size_in) * size_t(layer_shape) * sizeof(T);
   if(total_bytes <= anon_bytes_max)
     {
       std::vector<dfa_state_t> populated(size_t(layer_size_in) * size_t(layer_shape));
@@ -773,7 +760,6 @@ void DFA::build_layer_staged(int layer, size_t layer_size_in, const std::functio
       auto populate_buffer = [&](size_t i)
       {
         size_t state_id = chunk_start + i;
-        assert(state_id <= DFA_STATE_MAX);
         populate_func(dfa_state_t(state_id), chunk_buffer.data() + i * layer_shape);
       };
 
@@ -833,7 +819,7 @@ void DFA::copy_layer(int layer, const DFA& dfa_in)
   int layer_shape = get_layer_shape(layer);
   assert(dfa_in.get_layer_shape(layer) == layer_shape);
 
-  // The source may be staged as uint32 or saved at whatever width the format
+  // The source may be staged narrow or wide, or saved at whatever width the format
   // derived for it, so copy through get_transitions rather than reading its
   // bytes directly.
   dfa_in.mmap();
@@ -1128,7 +1114,7 @@ DFAIterator DFA::cend() const
 
 bool DFA::contains(const DFAString& string_in) const
 {
-  int current_state = initial_state;
+  dfa_state_t current_state = initial_state;
   for(int layer = 0; layer < ndim; ++layer)
     {
       current_state = this->get_transitions(layer, current_state)[string_in[layer]];
@@ -1499,7 +1485,7 @@ bool DFA::is_linear() const
       int layer_shape = this->get_layer_shape(layer);
       DFATransitionsReference transitions = get_transitions(layer, curr_accept_state);
 
-      int next_accept_state = 0;
+      dfa_state_t next_accept_state = 0;
       int i = 0;
       for(; i < layer_shape; ++i)
 	{

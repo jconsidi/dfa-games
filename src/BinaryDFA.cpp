@@ -873,10 +873,6 @@ BinaryDFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in
                                      std::plus<size_t>(),
                                      check_new_count);
   size_t layer_size_expected = new_states + 2;
-  if(layer_size_expected > DFA_STATE_MAX)
-    {
-      throw std::overflow_error("BinaryDFA: layer " + std::to_string(layer) + " minimizes to " + std::to_string(layer_size_expected) + " states from " + std::to_string(curr_layer_count) + " pairs, more than DFA_STATE_MAX");
-    }
 
   return with_state_type(dfa_state_count_is_wide(layer_size_expected), [&](auto curr_tag) -> BinaryDFAStateIdMap
   {
