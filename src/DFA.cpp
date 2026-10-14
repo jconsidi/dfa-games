@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <iomanip>
@@ -19,6 +20,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <utility>
 
 #include "DFA.h"
 #include "DFAFormat.h"
@@ -208,6 +210,94 @@ void remove_directory(std::string directory)
   throw std::runtime_error("DFA staging remove_all failed for " + directory + ": " + ec.message());
 }
 
+uint64_t dfa_state_narrow_max = UINT32_MAX - 1;
+
+DFAStagingLayer::DFAStagingLayer(MemoryMap<uint32_t>&& transitions_in)
+  : transitions(std::move(transitions_in))
+{
+}
+
+DFAStagingLayer::DFAStagingLayer(MemoryMap<uint64_t>&& transitions_in)
+  : transitions(std::move(transitions_in))
+{
+}
+
+std::string DFAStagingLayer::filename() const
+{
+  return std::visit([](const auto& map) {return map.filename();}, transitions);
+}
+
+size_t DFAStagingLayer::size() const
+{
+  return std::visit([](const auto& map) {return map.size();}, transitions);
+}
+
+dfa_state_t DFAStagingLayer::get(size_t i) const
+{
+  return std::visit([&](const auto& map) {return dfa_state_t(map[i]);}, transitions);
+}
+
+void DFAStagingLayer::set(size_t i, dfa_state_t value)
+{
+  if(is_wide())
+    {
+      std::get<1>(transitions)[i] = uint64_t(value);
+      return;
+    }
+
+  if(!std::in_range<uint32_t>(value))
+    {
+      throw std::overflow_error("DFAStagingLayer: state " + std::to_string(value) + " does not fit a narrow layer");
+    }
+  std::get<0>(transitions)[i] = uint32_t(value);
+}
+
+const uint8_t *DFAStagingLayer::get_bytes(size_t i) const
+{
+  return std::visit([&](const auto& map) {return reinterpret_cast<const uint8_t *>(map.begin() + i);}, transitions);
+}
+
+void DFAStagingLayer::mmap() const
+{
+  std::visit([](const auto& map) {map.mmap();}, transitions);
+}
+
+void DFAStagingLayer::munmap() const
+{
+  std::visit([](const auto& map) {map.munmap();}, transitions);
+}
+
+void DFAStagingLayer::resize(size_t size_in)
+{
+  std::visit([&](auto& map)
+  {
+    typedef typename std::remove_reference_t<decltype(map)> map_t;
+    assert(map.filename() != "");
+    map = map_t(map.filename(), size_in);
+  }, transitions);
+}
+
+void DFAStagingLayer::widen()
+{
+  assert(!is_wide());
+
+  MemoryMap<uint32_t>& narrow = std::get<0>(transitions);
+  narrow.mmap();
+  std::string name = narrow.filename();
+  assert(name != "");
+
+  MemoryMap<uint64_t> wide(name + "-wide", narrow.size(), [&](size_t i)
+  {
+    return uint64_t(narrow[i]);
+  });
+
+  narrow.unlink();
+  // rename unmaps, and add_state writes through this map next.
+  wide.rename(name);
+  wide.mmap();
+  transitions = std::move(wide);
+}
+
 DFA::DFA(const dfa_shape_t& shape_in)
   : shape(shape_in),
     ndim(int(shape.size())),
@@ -229,14 +319,14 @@ DFA::DFA(const dfa_shape_t& shape_in)
       layer_sizes.push_back(2);
       // TODO: make sure initial layer size is big enough for giant
       // layer shapes
-      layer_transitions.emplace_back(layer_file_names.at(layer), size_t(1024));
+      layer_transitions.emplace_back(MemoryMap<uint32_t>(layer_file_names.at(layer), size_t(1024)));
 
       int layer_shape = get_layer_shape(layer);
       for(dfa_state_t state = 0; state < 2; ++state)
 	{
 	  for(int c = 0; c < layer_shape; ++c)
 	    {
-	      layer_transitions[layer][state * layer_shape + c] = state;
+	      layer_transitions[layer].set(state * size_t(layer_shape) + size_t(c), state);
 	    }
 	}
     }
@@ -504,20 +594,24 @@ dfa_state_t DFA::add_state(int layer, const DFATransitionsStaging& transitions)
   size_t current_offset = size_t(layer_sizes[layer]) * size_t(layer_shape);
   size_t next_offset = current_offset + size_t(layer_shape);
 
-  MemoryMap<dfa_state_t>& current_transitions = layer_transitions[layer];
+  DFAStagingLayer& current_transitions = layer_transitions[layer];
   size_t current_size = current_transitions.size();
   if(next_offset > current_size)
     {
       size_t next_size = std::min(current_size * 2, size_t(DFA_STATE_MAX) * size_t(layer_shape));
       assert(next_offset <= next_size);
-      current_transitions = MemoryMap<dfa_state_t>(layer_file_names[layer], next_size);
+      current_transitions.resize(next_size);
     }
 
   size_t transition_bound = this->get_layer_size(layer + 1);
   for(int i = 0; i < layer_shape; ++i)
     {
       assert(transitions[i] < transition_bound);
-      current_transitions[current_offset + i] = transitions[i];
+      if((uint64_t(transitions[i]) > dfa_state_narrow_max) && !current_transitions.is_wide())
+	{
+	  current_transitions.widen();
+	}
+      current_transitions.set(current_offset + size_t(i), transitions[i]);
     }
 
   return dfa_state_t(layer_sizes[layer]++);
@@ -565,7 +659,44 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
       throw std::overflow_error("DFA::build_layer: layer " + std::to_string(layer) + " size " + std::to_string(layer_size_in) + " exceeds DFA_STATE_MAX");
     }
 
+  // Every entry is a state of the next layer, so its size alone decides
+  // the staging width.
+  if(dfa_state_count_is_wide(get_layer_size(layer + 1)))
+    {
+      build_layer_staged<uint64_t>(layer, layer_size_in, populate_func);
+    }
+  else
+    {
+      build_layer_staged<uint32_t>(layer, layer_size_in, populate_func);
+    }
+}
+
+template<class T>
+void DFA::build_layer_staged(int layer, size_t layer_size_in, const std::function<void(dfa_state_t, dfa_state_t *)>& populate_func)
+{
   int layer_shape = get_layer_shape(layer);
+  size_t next_layer_size = get_layer_size(layer + 1);
+
+  // Rows are populated as dfa_state_t, then checked against the next
+  // layer's size and copied out at T. The check is what makes narrowing to
+  // T safe: next_layer_size picked T.
+  std::atomic<bool> out_of_range(false);
+  auto stage = [&](const dfa_state_t *source, T *destination, size_t count)
+  {
+    auto stage_entry = [&](dfa_state_t next_state)
+    {
+      if(next_state >= next_layer_size)
+	{
+	  out_of_range = true;
+	}
+      return T(next_state);
+    };
+    TRY_PARALLEL_4(std::transform, source, source + count, destination, stage_entry);
+    if(out_of_range)
+      {
+	throw std::logic_error("DFA::build_layer: layer " + std::to_string(layer) + " has a transition outside the next layer's " + std::to_string(next_layer_size) + " states");
+      }
+  };
 
   // Small enough to build entirely in memory: skip the file altogether
   // rather than write it out only to immediately mmap it back in. Bounded
@@ -578,26 +709,29 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
   size_t total_bytes = size_t(layer_size_in) * size_t(layer_shape) * sizeof(dfa_state_t);
   if(total_bytes <= anon_bytes_max)
     {
-      MemoryMap<dfa_state_t> anon_transitions(size_t(layer_size_in) * size_t(layer_shape));
+      std::vector<dfa_state_t> populated(size_t(layer_size_in) * size_t(layer_shape));
 
       std::vector<dfa_state_t> state_iota(layer_size_in);
       std::iota(state_iota.begin(), state_iota.end(), 0);
 
       auto populate_row = [&](dfa_state_t state_id)
       {
-        populate_func(state_id, anon_transitions.begin() + size_t(state_id) * size_t(layer_shape));
+        populate_func(state_id, populated.data() + size_t(state_id) * size_t(layer_shape));
       };
 
       // constant state handling
-      std::fill_n(anon_transitions.begin(), layer_shape, 0);
-      std::fill_n(anon_transitions.begin() + layer_shape, layer_shape, 1);
+      std::fill_n(populated.begin(), layer_shape, 0);
+      std::fill_n(populated.begin() + layer_shape, layer_shape, 1);
 
       TRY_PARALLEL_3(std::for_each,
                      state_iota.begin() + 2,
                      state_iota.end(),
                      populate_row);
 
-      layer_transitions[layer] = std::move(anon_transitions);
+      MemoryMap<T> anon_transitions(populated.size());
+      stage(populated.data(), anon_transitions.begin(), populated.size());
+
+      layer_transitions[layer] = DFAStagingLayer(std::move(anon_transitions));
       layer_sizes[layer] = layer_size_in;
 
       assert(layer_transitions[layer].size() == size_t(layer_size_in) * size_t(get_layer_shape(layer)));
@@ -624,6 +758,8 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
 
   std::vector<dfa_state_t> chunk_buffer;
   chunk_buffer.reserve(chunk_states * layer_shape);
+  std::vector<T> chunk_staged;
+  chunk_staged.reserve(chunk_states * layer_shape);
 
   std::vector<dfa_state_t> chunk_iota(chunk_states);
   std::iota(chunk_iota.begin(), chunk_iota.end(), 0);
@@ -660,10 +796,12 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
                          populate_buffer);
         }
 
-      write_buffer(fildes, chunk_buffer.data(), chunk_buffer.size());
+      chunk_staged.resize(chunk_buffer.size());
+      stage(chunk_buffer.data(), chunk_staged.data(), chunk_buffer.size());
+      write_buffer(fildes, chunk_staged.data(), chunk_staged.size());
     }
 
-  if(ftruncate(fildes, size_t(layer_size_in) * size_t(get_layer_shape(layer)) * sizeof(dfa_state_t)))
+  if(ftruncate(fildes, off_t(size_t(layer_size_in) * size_t(get_layer_shape(layer)) * sizeof(T))))
     {
       perror("ftruncate");
       throw std::runtime_error("ftruncate() failed");
@@ -677,7 +815,7 @@ void DFA::build_layer(int layer, size_t layer_size_in, std::function<void(dfa_st
 
   layer_sizes[layer] = layer_size_in;
   // open layer transitions for read only
-  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], true);
+  layer_transitions[layer] = DFAStagingLayer(MemoryMap<T>(layer_file_names[layer], true));
   assert(layer_transitions[layer].size() == size_t(layer_size_in) * size_t(get_layer_shape(layer)));
 }
 
@@ -725,7 +863,7 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
       size_t expected_transitions_size = size_t(layer_sizes[layer]) * size_t(layer_shape);
       if(layer_transitions[layer].size() != expected_transitions_size)
 	{
-	  layer_transitions[layer] = MemoryMap<dfa_state_t>(layer_file_names[layer], expected_transitions_size);
+	  layer_transitions[layer].resize(expected_transitions_size);
 	}
     }
 
@@ -818,7 +956,7 @@ std::string DFA::serialize(std::string file_name_in) const
       uint64_t bound = layout.next_layer_size(layer);
 
       layer_transitions.at(layer).mmap();
-      const MemoryMap<dfa_state_t>& source = layer_transitions.at(layer);
+      const DFAStagingLayer& source = layer_transitions.at(layer);
 
       size_t block_bytes = size_t(layout.get_block_bytes(layer));
       std::vector<uint8_t> block(block_bytes);
@@ -831,7 +969,7 @@ std::string DFA::serialize(std::string file_name_in) const
 
 	  for(int c = 0; c < layer_shape; ++c)
 	    {
-	      dfa_state_t next_state = source[source_offset + size_t(c)];
+	      dfa_state_t next_state = source.get(source_offset + size_t(c));
 	      assert(next_state < bound);
 	      dfa_format::encode_entry(next_state, width, &block[block_offset + size_t(c) * size_t(width)]);
 	    }
@@ -841,7 +979,7 @@ std::string DFA::serialize(std::string file_name_in) const
 	    {
 	      for(int c = 0; c < layer_shape; ++c)
 		{
-		  assert(source[source_offset + size_t(c)] == state);
+		  assert(source.get(source_offset + size_t(c)) == state);
 		}
 	      continue;
 	    }
@@ -852,8 +990,11 @@ std::string DFA::serialize(std::string file_name_in) const
 	  // wrongly fails here rather than producing a file readers reject.
 	  if(canonical)
 	    {
-	      std::vector<dfa_state_t> row(source.begin() + long(source_offset),
-					   source.begin() + long(source_offset) + layer_shape);
+	      std::vector<dfa_state_t> row(static_cast<size_t>(layer_shape));
+	      for(int c = 0; c < layer_shape; ++c)
+		{
+		  row[size_t(c)] = source.get(source_offset + size_t(c));
+		}
 
 	      bool uniform_reject = true;
 	      bool uniform_accept = true;
@@ -1310,12 +1451,12 @@ DFATransitionsReference DFA::get_transitions(int layer, size_t state_index) cons
 				     file_layout->get_width(layer));
     }
 
-  // Being built: staging holds one uint32 per transition.
-  const MemoryMap<dfa_state_t>& staging = layer_transitions[layer];
+  // Being built: staging holds 4 or 8 bytes per transition.
+  const DFAStagingLayer& staging = layer_transitions[layer];
   staging.mmap();
-  const uint8_t *row = reinterpret_cast<const uint8_t *>(staging.begin() +
-							 state_index * size_t(layer_shape));
-  return DFATransitionsReference(row, layer_shape, int(sizeof(dfa_state_t)));
+  return DFATransitionsReference(staging.get_bytes(state_index * size_t(layer_shape)),
+				 layer_shape,
+				 staging.get_width());
 }
 
 bool DFA::is_canonical() const

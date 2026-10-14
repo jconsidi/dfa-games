@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "DFAFormat.h"
@@ -18,6 +19,19 @@ typedef uint32_t dfa_state_t;
 #define DFA_STATE_MAX UINT32_MAX
 
 typedef std::vector<dfa_state_t> DFATransitionsStaging;
+
+// Largest state id a narrow (uint32_t) array holds. Arrays of ids that can
+// go higher are wide (uint64_t). Production value is UINT32_MAX - 1, which
+// keeps UINT32_MAX free as a sentinel in narrow arrays. Tests lower it to
+// force wide arrays on small inputs, where every DFA built must come out
+// byte identical.
+extern uint64_t dfa_state_narrow_max;
+
+// Whether ids below state_count need a wide array.
+inline bool dfa_state_count_is_wide(size_t state_count)
+{
+  return (state_count > 0) && (uint64_t(state_count - 1) > dfa_state_narrow_max);
+}
 
 typedef std::vector<int> dfa_shape_t;
 
@@ -55,9 +69,9 @@ public:
 
 // One row of transitions, as raw bytes plus the width to read them at.
 //
-// A DFA being built stores transitions as uint32, while a saved DFA stores
-// them at the width the format derives from the next layer's size, so this
-// has to work for both. The bytes of an entry are naturally aligned -- blocks
+// A DFA being built stores transitions at 4 or 8 bytes (DFAStagingLayer),
+// while a saved DFA stores them at the width the format derives from the
+// next layer's size, so this has to work for both. The bytes of an entry are naturally aligned -- blocks
 // start on an 8 byte boundary and an entry sits at a multiple of its own
 // width -- and the width is constant for a whole layer, so at() is a single
 // load under a branch the predictor pins for the duration of a scan.
@@ -86,6 +100,42 @@ public:
   }
 
   int get_layer_shape() const {return layer_shape;}
+};
+
+// One layer of a DFA under construction: entry state * shape + c is the
+// next state on character c. Stored narrow while every entry fits under
+// dfa_state_narrow_max and wide otherwise, so a layer pointing into a next
+// layer of more than 2^32 states costs 8 bytes per entry and every other
+// layer still costs 4.
+class DFAStagingLayer
+{
+  std::variant<MemoryMap<uint32_t>, MemoryMap<uint64_t>> transitions;
+
+public:
+
+  explicit DFAStagingLayer(MemoryMap<uint32_t>&&);
+  explicit DFAStagingLayer(MemoryMap<uint64_t>&&);
+
+  bool is_wide() const {return transitions.index() == 1;}
+  int get_width() const {return is_wide() ? 8 : 4;}
+
+  std::string filename() const;
+  size_t size() const;
+
+  dfa_state_t get(size_t) const;
+  // Throws if the value does not fit a narrow layer.
+  void set(size_t, dfa_state_t);
+  // Bytes of entry i onwards, at get_width() bytes per entry.
+  const uint8_t *get_bytes(size_t) const;
+
+  void mmap() const;
+  void munmap() const;
+
+  // Reopen the backing file at a new entry count, keeping the entries
+  // both sizes share.
+  void resize(size_t);
+  // Rewrite the backing file at 8 bytes per entry.
+  void widen();
 };
 
 class DFAIterator;
@@ -125,12 +175,13 @@ class DFA
 
   std::vector<size_t> layer_sizes;
 
-  // Staging, while the DFA is being built: ndim files of uint32 mapping
-  // (state, character) -> next state. Discarded once the DFA is saved,
-  // because the format needs every layer size before it can place a byte.
+  // Staging, while the DFA is being built: ndim files mapping (state,
+  // character) -> next state, each narrow or wide (see DFAStagingLayer).
+  // Discarded once the DFA is saved, because the format needs every layer
+  // size before it can place a byte.
   mutable std::string directory;
   mutable std::vector<std::string> layer_file_names;
-  mutable std::vector<MemoryMap<dfa_state_t>> layer_transitions;
+  mutable std::vector<DFAStagingLayer> layer_transitions;
   mutable bool temporary;
 
   // Persistent, once saved or loaded: one file in the format of
@@ -180,6 +231,9 @@ class DFA
   // once; falls back to a copy, reverified from the bytes on disk, only
   // when root is a genuinely different filesystem (EXDEV).
   void publish_copy(const std::string& root) const;
+
+  template<class T>
+  void build_layer_staged(int, size_t, const std::function<void(dfa_state_t, dfa_state_t *)>&);
 
  protected:
 

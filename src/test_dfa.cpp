@@ -1,6 +1,7 @@
 // test_union_dfa.cpp
 
 #include <cstdint>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -9,14 +10,18 @@
 
 #include "AcceptDFA.h"
 #include "BinaryDFA.h"
+#include "ChangeDFA.h"
 #include "CountCharacterDFA.h"
 #include "CountDFA.h"
 #include "DFA.h"
 #include "DFAUtil.h"
+#include "DifferenceDFA.h"
+#include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
 #include "RejectDFA.h"
 #include "TestDFAParams.h"
+#include "StringDFA.h"
 #include "sort_utils.h"
 #include "UnionDFA.h"
 
@@ -394,6 +399,89 @@ void test_wide_pair_ranks(const dfa_shape_t& shape)
     }
 }
 
+// Restores dfa_state_narrow_max when a test that lowered it leaves scope,
+// including by an exception.
+class NarrowMaxGuard
+{
+  uint64_t saved;
+
+public:
+
+  explicit NarrowMaxGuard(uint64_t narrow_max)
+    : saved(dfa_state_narrow_max)
+  {
+    dfa_state_narrow_max = narrow_max;
+  }
+
+  ~NarrowMaxGuard()
+  {
+    dfa_state_narrow_max = saved;
+  }
+
+  NarrowMaxGuard(const NarrowMaxGuard&) = delete;
+  NarrowMaxGuard& operator=(const NarrowMaxGuard&) = delete;
+};
+
+// Build each DFA with dfa_state_narrow_max at its production value and again
+// lowered, so arrays of state ids go wide at small sizes, and check every
+// build is byte identical: storage width must never reach the bytes of a
+// DFA. Lowered to 0 every array is wide from the start; lowered to 1 or 3,
+// add_state's staging widens partway through a layer.
+void test_narrow_max(const dfa_shape_t& shape)
+{
+  std::string shape_name = get_parameter_string(shape);
+
+  CountDFA count1(shape, 1);
+  CountDFA count2(shape, 2);
+  CountCharacterDFA zero1(shape, 0, 1);
+  FixedDFA fixed(shape, 1, 0);
+  IntersectionDFA count2_fixed(count2, fixed);
+
+  std::vector<DFAString> all_positions = get_all_positions(shape);
+  std::vector<DFAString> some_positions;
+  for(size_t i = 0; i < all_positions.size(); i += 3)
+    {
+      some_positions.push_back(all_positions[i]);
+    }
+
+  change_vector changes(shape.size());
+  changes[1] = change_type(0, 1);
+
+  typedef std::function<std::shared_ptr<const DFA>()> build_func;
+  std::vector<std::pair<std::string, build_func>> builds = {
+    {"count2", [&]() {return std::make_shared<CountDFA>(shape, 2);}},
+    {"zero1", [&]() {return std::make_shared<CountCharacterDFA>(shape, 0, 1);}},
+    {"strings", [&]() {return std::make_shared<StringDFA>(shape, some_positions);}},
+    {"union count1+count2", [&]() {return std::make_shared<UnionDFA>(count1, count2);}},
+    {"intersection count2+zero1", [&]() {return std::make_shared<IntersectionDFA>(count2, zero1);}},
+    {"difference count2-zero1", [&]() {return std::make_shared<DifferenceDFA>(count2, zero1);}},
+    {"inverse count2", [&]() {return std::make_shared<InverseDFA>(count2);}},
+    {"change two pass", [&]() {return std::make_shared<ChangeDFA>(count2, changes);}},
+    {"change one pass", [&]() {return std::make_shared<ChangeDFA>(count2_fixed, changes);}}};
+
+  for(const auto& [build_name, build] : builds)
+    {
+      std::string full_name = shape_name + " narrow max " + build_name;
+
+      std::shared_ptr<const DFA> baseline = build();
+      for(uint64_t narrow_max : {0, 1, 3})
+	{
+	  std::shared_ptr<const DFA> lowered;
+	  {
+	    NarrowMaxGuard guard(narrow_max);
+	    lowered = build();
+	  }
+
+	  if(lowered->get_hash() != baseline->get_hash())
+	    {
+	      throw std::logic_error(full_name + ": narrow max " + std::to_string(narrow_max) + " gives a different DFA");
+	    }
+	}
+      std::cout << full_name << ": passed (" << baseline->states() << " states, byte identical at narrow max 0, 1 and 3)" << std::endl;
+    }
+  std::cout.flush();
+}
+
 void test_string_dfa(const dfa_shape_t& shape)
 {
   std::vector<DFAString> all_positions = get_all_positions(shape);
@@ -644,6 +732,10 @@ int main()
       test_wide_pair_ranks(dfa_shape_t({TEST4_DFA_SHAPE}));
       test_wide_pair_ranks(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_wide_pair_ranks(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
+
+      test_narrow_max(dfa_shape_t({TEST3_DFA_SHAPE}));
+      test_narrow_max(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_narrow_max(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
 
       test_linear_bound();
 
