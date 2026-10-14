@@ -65,16 +65,12 @@ MoveGraph BreakthroughBase::build_move_graph(int side_to_move) const
 
   for(int row = 0; row < height; ++row)
     {
-      std::string from_row_name = "from " + std::to_string(row) + ",x";
-      move_graph.add_node(from_row_name);
-      move_graph.add_edge("begin+1", from_row_name);
-
       for(int col = 0; col < width; ++col)
         {
           change_vector move_changes(width * height);
           move_changes[calculate_layer(row, col)] = change_type(1 + side_to_move, 0);
           move_graph.add_node(get_from_node(row, col), move_changes);
-          move_graph.add_edge(from_row_name, get_from_node(row, col));
+          move_graph.add_edge("begin+1", get_from_node(row, col));
         }
     }
 
