@@ -256,16 +256,19 @@ void BinaryDFA::build_linear(const DFA& left_in,
 
   profile.tic("states");
 
-  std::vector<MemoryMap<dfa_state_t>> changed_states;
+  // Each reachable right state becomes output state 2 + its rank, or a
+  // constant, so a layer's ids are below its reachable count + 2.
+  std::vector<DFAStateIdMap> changed_states;
   for(int layer = 0; layer < get_shape_size(); ++layer)
     {
-      changed_states.emplace_back(right_reachable.at(layer).count());
+      size_t reachable_count = right_reachable.at(layer).count();
+      changed_states.emplace_back(reachable_count, reachable_count + 2);
     }
 
   // terminal pseudo-layer
-  changed_states.emplace_back(2);
-  changed_states[get_shape_size()][0] = leaf_func(1, 0);
-  changed_states[get_shape_size()][1] = leaf_func(1, 1);
+  changed_states.emplace_back(2, 2);
+  changed_states[get_shape_size()].set(0, leaf_func(1, 0));
+  changed_states[get_shape_size()].set(1, leaf_func(1, 1));
 
   // backward pass
   for(int layer = get_shape_size() - 1; layer >= 0; --layer)
@@ -274,13 +277,13 @@ void BinaryDFA::build_linear(const DFA& left_in,
 
       // materialize because VectorBitSetIterator does not satisfy
       // std::random_access_iterator.
-      MemoryMap<dfa_state_t> curr_reachable(right_reachable[layer].count());
+      DFAStateIdMap curr_reachable(right_reachable[layer].count(), right_in.get_layer_size(layer));
       dfa_state_t curr_reachable_i = 0;
       for(auto iter = right_reachable[layer].begin();
           iter < right_reachable[layer].end();
           ++iter, ++curr_reachable_i)
         {
-          curr_reachable[curr_reachable_i] = dfa_state_t(*iter);
+          curr_reachable.set(curr_reachable_i, dfa_state_t(*iter));
         }
 
       int layer_shape = this->get_layer_shape(layer);
@@ -288,7 +291,7 @@ void BinaryDFA::build_linear(const DFA& left_in,
       std::function<dfa_state_t(dfa_state_t)> get_next_changed = [&](dfa_state_t next_state_in)
       {
         assert(right_reachable[layer+1].check(next_state_in));
-        return changed_states[layer+1][next_index.rank(next_state_in)];
+        return changed_states[layer+1].get(next_index.rank(next_state_in));
       };
 
       // rewrite all transitions for each state
@@ -296,7 +299,7 @@ void BinaryDFA::build_linear(const DFA& left_in,
       {
         assert(new_state_id >= 2);
         dfa_state_t reachable_rank = new_state_id - 2;
-        dfa_state_t state_in = curr_reachable[reachable_rank];
+        dfa_state_t state_in = curr_reachable.get(reachable_rank);
 
         dfa_state_t transitions_max = 0;
 
@@ -317,17 +320,17 @@ void BinaryDFA::build_linear(const DFA& left_in,
         if(transitions_max == 0)
           {
             // reject state
-            changed_states[layer][reachable_rank] = 0;
+            changed_states[layer].set(reachable_rank, 0);
             return;
           }
         if((transitions_max == 1) && (*std::min_element(transitions_out, transitions_out + layer_shape) == 1))
           {
             // accept state
-            changed_states[layer][reachable_rank] = 1;
+            changed_states[layer].set(reachable_rank, 1);
             return;
           }
 
-        changed_states[layer][reachable_rank] = 2 + reachable_rank;
+        changed_states[layer].set(reachable_rank, 2 + reachable_rank);
       });
 
       changed_states.pop_back();
@@ -337,7 +340,7 @@ void BinaryDFA::build_linear(const DFA& left_in,
 
   // done
 
-  this->set_initial_state(changed_states[0][0]);
+  this->set_initial_state(changed_states[0].get(0));
 }
 
 std::string BinaryDFA::memory_map_name(int layer, std::string suffix) const
@@ -419,7 +422,7 @@ dfa_state_t BinaryDFA::build_quadratic_backward(const DFA& left_in,
 
   // initially empty since shortcircuiting will happen by last layer.
 
-  BinaryDFAStateIdMap next_pair_rank_to_output(MemoryMap<uint32_t>(1)); // dummy initialization
+  DFAStateIdMap next_pair_rank_to_output(MemoryMap<uint32_t>(1)); // dummy initialization
 
   // backward pass
 
@@ -427,7 +430,7 @@ dfa_state_t BinaryDFA::build_quadratic_backward(const DFA& left_in,
     {
       profile.tic("layer=" + std::to_string(layer));
 
-      BinaryDFAStateIdMap curr_pair_rank_to_output =
+      DFAStateIdMap curr_pair_rank_to_output =
         build_quadratic_backward_layer(left_in,
                                        right_in,
                                        layer,
@@ -447,10 +450,10 @@ size_t binary_dfa_narrow_pair_count_max = UINT32_MAX;
 size_t binary_dfa_output_slices_min = 1;
 uint64_t binary_dfa_key_narrow_max = UINT32_MAX;
 
-BinaryDFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
+DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
                                                               const DFA& right_in,
                                                               int layer,
-                                                              const BinaryDFAStateIdMap& next_pair_rank_to_output)
+                                                              const DFAStateIdMap& next_pair_rank_to_output)
 {
   size_t curr_layer_count = build_quadratic_pair_count(left_in, right_in, layer);
   assert(curr_layer_count > 0);
@@ -469,13 +472,13 @@ BinaryDFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in
   bool curr_pairs_wide = build_quadratic_pairs_wide(left_in, right_in, layer);
   bool next_pairs_wide = build_quadratic_pairs_wide(left_in, right_in, layer + 1);
 
-  return next_pair_rank_to_output.visit([&](const auto& next_ids) -> BinaryDFAStateIdMap
+  return next_pair_rank_to_output.visit([&](const auto& next_ids) -> DFAStateIdMap
   {
     typedef typename std::remove_cvref_t<decltype(next_ids)> next_ids_t;
     typedef std::remove_cvref_t<decltype(next_ids[0])> next_id_t;
     static_assert(std::is_same_v<next_ids_t, MemoryMap<next_id_t>>);
 
-    return with_state_type(next_pairs_wide, [&](auto next_tag) -> BinaryDFAStateIdMap
+    return with_state_type(next_pairs_wide, [&](auto next_tag) -> DFAStateIdMap
     {
       typedef dfa_state_pair<typename decltype(next_tag)::type> next_pair_t;
 
@@ -489,7 +492,7 @@ BinaryDFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in
 }
 
 template <bool wide, class next_pair_t, class next_id_t>
-BinaryDFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
+DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
                                                               const DFA& right_in,
                                                               int layer,
                                                               size_t curr_layer_count,
@@ -874,7 +877,7 @@ BinaryDFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in
                                      check_new_count);
   size_t layer_size_expected = new_states + 2;
 
-  return with_state_type(dfa_state_count_is_wide(layer_size_expected), [&](auto curr_tag) -> BinaryDFAStateIdMap
+  return with_state_type(dfa_state_count_is_wide(layer_size_expected), [&](auto curr_tag) -> DFAStateIdMap
   {
     typedef typename decltype(curr_tag)::type curr_id_t;
 
@@ -1048,7 +1051,7 @@ BinaryDFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in
 
     // done
 
-    return BinaryDFAStateIdMap(std::move(curr_pair_rank_to_output));
+    return DFAStateIdMap(std::move(curr_pair_rank_to_output));
   });
 }
 

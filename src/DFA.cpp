@@ -24,6 +24,7 @@
 
 #include "DFA.h"
 #include "DFAFormat.h"
+#include "DFAStateIdMap.h"
 #include "Profile.h"
 #include "ScratchConfig.h"
 #include "VectorBitSet.h"
@@ -1278,12 +1279,12 @@ const DFALinearBound& DFA::get_linear_bound() const
 
 	  if(layer_shape <= 32)
 	    {
-	      MemoryMap<dfa_state_t> curr_reachable_ids(reachable[layer].count());
+	      DFAStateIdMap curr_reachable_ids(reachable[layer].count(), get_layer_size(layer));
 	      {
 		dfa_state_t i = 0;
 		for(auto iter = reachable[layer].begin(); iter < reachable[layer].end(); ++iter, ++i)
 		  {
-		    curr_reachable_ids[i] = dfa_state_t(*iter);
+		    curr_reachable_ids.set(i, dfa_state_t(*iter));
 		  }
 	      }
 
@@ -1322,13 +1323,15 @@ const DFALinearBound& DFA::get_linear_bound() const
 	      std::pair<bool, uint32_t> combined_bounds(false, 0);
 	      if(curr_reachable_ids.size() > 0)
 		{
-		  combined_bounds =
-		    TRY_PARALLEL_5(std::transform_reduce,
-				   curr_reachable_ids.begin(),
-				   curr_reachable_ids.end(),
-				   (std::pair<bool, uint32_t>(false, 0)),
-				   reduce_local,
-				   get_local);
+		  combined_bounds = curr_reachable_ids.visit([&](const auto& ids)
+		  {
+		    return TRY_PARALLEL_5(std::transform_reduce,
+					  ids.begin(),
+					  ids.end(),
+					  (std::pair<bool, uint32_t>(false, 0)),
+					  reduce_local,
+					  get_local);
+		  });
 		}
 
 	      if(std::get<0>(combined_bounds))
@@ -1347,7 +1350,7 @@ const DFALinearBound& DFA::get_linear_bound() const
 		{
 		  for(size_t idx = 0; idx < curr_reachable_ids.size(); ++idx)
 		    {
-		      DFATransitionsReference transitions = this->get_transitions(layer, curr_reachable_ids[idx]);
+		      DFATransitionsReference transitions = this->get_transitions(layer, curr_reachable_ids.get(idx));
 		      for(int i = 0; i < layer_shape; ++i)
 			{
 			  dfa_state_t t = transitions[i];

@@ -5,6 +5,7 @@
 #include <functional>
 #include <ranges>
 
+#include "DFAStateIdMap.h"
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "VectorBitSet.h"
@@ -176,16 +177,19 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
   // backward pass rewriting states //////////////////////////
   ////////////////////////////////////////////////////////////
 
-  std::vector<MemoryMap<dfa_state_t>> changed_states;
+  // Each reachable state becomes at most one output state, so a layer's ids
+  // are below its reachable count + 2.
+  std::vector<DFAStateIdMap> changed_states;
   for(int layer = 0; layer < get_shape_size(); ++layer)
     {
-      changed_states.emplace_back(forward_reachable.at(layer).count());
+      size_t reachable_count = forward_reachable.at(layer).count();
+      changed_states.emplace_back(reachable_count, reachable_count + 2);
     }
 
   // terminal pseudo-layer
-  changed_states.emplace_back(2);
-  changed_states[get_shape_size()][0] = 0;
-  changed_states[get_shape_size()][1] = 1;
+  changed_states.emplace_back(2, 2);
+  changed_states[get_shape_size()].set(0, 0);
+  changed_states[get_shape_size()].set(1, 1);
 
   // backward pass
   for(int layer = get_shape_size() - 1; layer >= 0; --layer)
@@ -197,7 +201,7 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
       std::function<dfa_state_t(dfa_state_t)> get_next_changed = [&](dfa_state_t next_state_in)
       {
 	assert(forward_reachable[layer+1].check(next_state_in));
-	return changed_states[layer+1][next_index.rank(next_state_in)];
+	return changed_states[layer+1].get(next_index.rank(next_state_in));
       };
 
       change_optional layer_change = changes_in[layer];
@@ -221,7 +225,7 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
 	    {
 	      DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state_in);
 	      transitions_temp[after_character] = get_next_changed(transitions_in[before_character]);
-	      changed_states[layer][state_out++] = this->add_state(layer, transitions_temp);
+	      changed_states[layer].set(state_out++, this->add_state(layer, transitions_temp));
 	    }
 	}
       else
@@ -234,7 +238,7 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
 		{
 		  transitions_temp[i] = get_next_changed(transitions_in[i]);
 		}
-	      changed_states[layer][state_out++] = this->add_state(layer, transitions_temp);
+	      changed_states[layer].set(state_out++, this->add_state(layer, transitions_temp));
 	    }
 	}
       assert(state_out == changed_states[layer].size());
@@ -246,5 +250,5 @@ void ChangeDFA::build_two_pass(const DFA& dfa_in, const change_vector& changes_i
 
   // done
 
-  this->set_initial_state(changed_states[0][0]);
+  this->set_initial_state(changed_states[0].get(0));
 }

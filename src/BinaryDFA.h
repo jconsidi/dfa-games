@@ -9,11 +9,11 @@
 #include <functional>
 #include <map>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "BinaryFunction.h"
 #include "DFA.h"
+#include "DFAStateIdMap.h"
 
 // A pair of states, one from each input DFA, at S bits per state: uint32_t
 // while both inputs' layers fit narrow (see dfa_state_narrow_max), uint64_t
@@ -107,39 +107,6 @@ typedef dfa_state_pair<uint64_t> dfa_state_pair_wide_t;
 static_assert(sizeof(dfa_state_pair_t) == 8);
 static_assert(sizeof(dfa_state_pair_wide_t) == 16);
 
-// Output state ids of one layer, indexed by pair rank: narrow or wide by the
-// layer's size, the same rule as DFAStagingLayer.
-class BinaryDFAStateIdMap
-{
-  std::variant<MemoryMap<uint32_t>, MemoryMap<uint64_t>> ids;
-
-public:
-
-  explicit BinaryDFAStateIdMap(MemoryMap<uint32_t>&& ids_in) : ids(std::move(ids_in)) {}
-  explicit BinaryDFAStateIdMap(MemoryMap<uint64_t>&& ids_in) : ids(std::move(ids_in)) {}
-
-  template <class F>
-  decltype(auto) visit(F&& f) const
-  {
-    return std::visit(std::forward<F>(f), ids);
-  }
-
-  size_t size() const
-  {
-    return visit([](const auto& map) {return map.size();});
-  }
-
-  dfa_state_t get(size_t i) const
-  {
-    return visit([&](const auto& map) {return dfa_state_t(map[i]);});
-  }
-
-  void unlink()
-  {
-    std::visit([](auto& map) {map.unlink();}, ids);
-  }
-};
-
 class BinaryDFA : public DFA
 {
   BinaryFunction leaf_func;
@@ -206,9 +173,9 @@ protected:
   DirectoryGuard create_binary_directory();
 
   dfa_state_t build_quadratic_backward(const DFA&, const DFA&, int);
-  BinaryDFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, const BinaryDFAStateIdMap&);
+  DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, const DFAStateIdMap&);
   template <bool wide, class next_pair_t, class next_id_t>
-  BinaryDFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<next_id_t>&, bool curr_pairs_wide);
+  DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<next_id_t>&, bool curr_pairs_wide);
   int build_quadratic_forward(const DFA&, const DFA&);
   int build_quadratic_forward(const DFA&, const DFA&, int);
   size_t build_quadratic_forward_layer(const DFA&, const DFA& right_in, int layer);
