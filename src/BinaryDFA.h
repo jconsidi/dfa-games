@@ -9,69 +9,78 @@
 #include <functional>
 #include <map>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "BinaryFunction.h"
 #include "DFA.h"
 
-class dfa_state_pair_t
+// A pair of states, one from each input DFA, at S bits per state: uint32_t
+// while both inputs' layers fit narrow (see dfa_state_narrow_max), uint64_t
+// otherwise. Pairs order the same way at either width.
+template <class S>
+class dfa_state_pair
 {
-  dfa_state_t left;
-  dfa_state_t right;
+  S left;
+  S right;
 
 public:
 
-  dfa_state_pair_t()
+  typedef S state_type;
+
+  dfa_state_pair()
     : left(0),
       right(0)
   {
   }
 
-  dfa_state_pair_t(dfa_state_t left_in, dfa_state_t right_in)
-    : left(left_in),
-      right(right_in)
+  dfa_state_pair(uint64_t left_in, uint64_t right_in)
+    : left(S(left_in)),
+      right(S(right_in))
   {
+    assert(left == left_in);
+    assert(right == right_in);
   }
 
-  dfa_state_pair_t(const dfa_state_pair_t& pair_in)
+  dfa_state_pair(const dfa_state_pair& pair_in)
     : left(pair_in.left),
       right(pair_in.right)
   {
   }
 
-  dfa_state_pair_t(dfa_state_pair_t&& pair_in)
+  dfa_state_pair(dfa_state_pair&& pair_in)
     : left(pair_in.left),
       right(pair_in.right)
   {
   }
 
-  bool operator<(const dfa_state_pair_t& right_in) const
+  bool operator<(const dfa_state_pair& right_in) const
   {
     return ((left < right_in.left) ||
             ((left == right_in.left) && (right < right_in.right)));
   }
 
-  bool operator<=(const dfa_state_pair_t& right_in) const
+  bool operator<=(const dfa_state_pair& right_in) const
   {
     return ((left < right_in.left) ||
             ((left == right_in.left) && (right <= right_in.right)));
   }
 
-  dfa_state_pair_t& operator=(const dfa_state_pair_t& pair_in)
+  dfa_state_pair& operator=(const dfa_state_pair& pair_in)
   {
     left = pair_in.left;
     right = pair_in.right;
     return *this;
   }
 
-  dfa_state_pair_t& operator=(dfa_state_pair_t&& pair_in)
+  dfa_state_pair& operator=(dfa_state_pair&& pair_in)
   {
     left = pair_in.left;
     right = pair_in.right;
     return *this;
   }
 
-  bool operator==(const dfa_state_pair_t& right_in) const
+  bool operator==(const dfa_state_pair& right_in) const
   {
     return ((left == right_in.left) &&
             (right == right_in.right));
@@ -85,15 +94,51 @@ public:
 
   dfa_state_t get_left_state() const
   {
-    return left;
+    return dfa_state_t(left);
   }
 
   dfa_state_t get_right_state() const
   {
-    return right;
+    return dfa_state_t(right);
   }
 };
+typedef dfa_state_pair<uint32_t> dfa_state_pair_t;
+typedef dfa_state_pair<uint64_t> dfa_state_pair_wide_t;
 static_assert(sizeof(dfa_state_pair_t) == 8);
+static_assert(sizeof(dfa_state_pair_wide_t) == 16);
+
+// Output state ids of one layer, indexed by pair rank: narrow or wide by the
+// layer's size, the same rule as DFAStagingLayer.
+class BinaryDFAStateIdMap
+{
+  std::variant<MemoryMap<uint32_t>, MemoryMap<uint64_t>> ids;
+
+public:
+
+  explicit BinaryDFAStateIdMap(MemoryMap<uint32_t>&& ids_in) : ids(std::move(ids_in)) {}
+  explicit BinaryDFAStateIdMap(MemoryMap<uint64_t>&& ids_in) : ids(std::move(ids_in)) {}
+
+  template <class F>
+  decltype(auto) visit(F&& f) const
+  {
+    return std::visit(std::forward<F>(f), ids);
+  }
+
+  size_t size() const
+  {
+    return visit([](const auto& map) {return map.size();});
+  }
+
+  dfa_state_t get(size_t i) const
+  {
+    return visit([&](const auto& map) {return dfa_state_t(map[i]);});
+  }
+
+  void unlink()
+  {
+    std::visit([](auto& map) {map.unlink();}, ids);
+  }
+};
 
 class BinaryDFA : public DFA
 {
@@ -113,7 +158,8 @@ class BinaryDFA : public DFA
   void build_linear(const DFA&, const DFA&);
 
   void build_quadratic(const DFA&, const DFA&);
-  MemoryMap<dfa_state_pair_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer);
+  template <class curr_pair_t, class next_pair_t>
+  MemoryMap<next_pair_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer);
 
   std::function<bool(dfa_state_t, dfa_state_t)> get_filter_func() const;
   std::function<dfa_state_t(dfa_state_t, dfa_state_t)> get_shortcircuit_func() const;
@@ -160,14 +206,21 @@ protected:
   DirectoryGuard create_binary_directory();
 
   dfa_state_t build_quadratic_backward(const DFA&, const DFA&, int);
-  MemoryMap<dfa_state_t> build_quadratic_backward_layer(const DFA&, const DFA&, int, const MemoryMap<dfa_state_t>&);
-  template <bool wide>
-  MemoryMap<dfa_state_t> build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<dfa_state_t>&);
+  BinaryDFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, const BinaryDFAStateIdMap&);
+  template <bool wide, class next_pair_t, class next_id_t>
+  BinaryDFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<next_id_t>&, bool curr_pairs_wide);
   int build_quadratic_forward(const DFA&, const DFA&);
   int build_quadratic_forward(const DFA&, const DFA&, int);
-  MemoryMap<dfa_state_pair_t> build_quadratic_forward_layer(const DFA&, const DFA& right_in, int layer);
+  size_t build_quadratic_forward_layer(const DFA&, const DFA& right_in, int layer);
+  template <class curr_pair_t, class next_pair_t>
+  size_t build_quadratic_forward_layer(const DFA&, const DFA& right_in, int layer);
 
-  MemoryMap<dfa_state_pair_t> build_quadratic_read_pairs(int layer);
+  // Whether layer's pairs are wide: either input's layer has states past
+  // dfa_state_narrow_max.
+  static bool build_quadratic_pairs_wide(const DFA&, const DFA&, int layer);
+  size_t build_quadratic_pair_count(const DFA&, const DFA&, int layer);
+  template <class pair_t>
+  MemoryMap<pair_t> build_quadratic_read_pairs(int layer);
 
 public:
 
@@ -175,7 +228,7 @@ public:
 };
 
 const int binary_dfa_hash_bytes = 16;
-const int binary_dfa_hash_width = binary_dfa_hash_bytes / sizeof(dfa_state_t);
+const int binary_dfa_hash_width = binary_dfa_hash_bytes / sizeof(uint32_t);
 
 // Sort record for one pair in build_quadratic_backward_layer: a sort key
 // (the pair's transitions, or a hash of them) plus the pair's rank, in 16
@@ -201,9 +254,9 @@ struct BinaryDFATransitionsHashPlusIndex
   static constexpr int direct_max = wide ? key_words - 1 : key_words;
   static constexpr size_t pair_rank_max = wide ? (size_t(1) << 40) - 1 : size_t(UINT32_MAX);
 
-  dfa_state_t data[binary_dfa_hash_width];
+  uint32_t data[binary_dfa_hash_width];
 
-  dfa_state_t get_key_word(int i) const
+  uint32_t get_key_word(int i) const
   {
     if(wide && (i == key_words - 1))
       {
@@ -256,7 +309,7 @@ struct BinaryDFATransitionsHashPlusIndex
 
   // key_in holds key_words words. In wide mode the low byte of the last one
   // is overwritten by the rank.
-  void set(const dfa_state_t *key_in, size_t pair_rank)
+  void set(const uint32_t *key_in, size_t pair_rank)
   {
     assert(pair_rank <= pair_rank_max);
 
@@ -264,10 +317,10 @@ struct BinaryDFATransitionsHashPlusIndex
       {
         data[i] = key_in[i];
       }
-    data[binary_dfa_hash_width - 1] = dfa_state_t(pair_rank);
+    data[binary_dfa_hash_width - 1] = uint32_t(pair_rank);
     if(wide)
       {
-        data[key_words - 1] = (data[key_words - 1] & ~dfa_state_t(0xFF)) | dfa_state_t(pair_rank >> 32);
+        data[key_words - 1] = (data[key_words - 1] & ~uint32_t(0xFF)) | uint32_t(pair_rank >> 32);
       }
 
     assert(get_pair_rank() == pair_rank);
@@ -281,6 +334,21 @@ static_assert(binary_dfa_hash_width == 4);
 // Production value is UINT32_MAX. Tests lower it to run the wide path on
 // small inputs, where it must produce the same DFA.
 extern size_t binary_dfa_narrow_pair_count_max;
+
+template <class pair_t>
+MemoryMap<pair_t> BinaryDFA::build_quadratic_read_pairs(int layer)
+{
+  return MemoryMap<pair_t>(memory_map_name(layer, "pairs"));
+}
+
+// Largest next layer state id build_quadratic_backward_layer keys on as 32
+// bits: directly, or hashed over 4 bytes per transition. Above it, every row
+// is hashed over 8 bytes per transition, and the layer loses canonical
+// numbering. Production value is UINT32_MAX, so every DFA whose next layers
+// fit 32 bits numbers its states as it always has, whatever width its arrays
+// are stored at. Tests lower it to run the 8 byte path on small inputs, where
+// it must produce the same language and state count.
+extern uint64_t binary_dfa_key_narrow_max;
 
 // Fewest slices build_quadratic_backward_layer splits pair_rank_to_output
 // into, each written in its own pass. Production value is 1, leaving the

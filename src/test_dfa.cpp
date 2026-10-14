@@ -482,6 +482,82 @@ void test_narrow_max(const dfa_shape_t& shape)
   std::cout.flush();
 }
 
+// Build each binary operation with binary_dfa_key_narrow_max at its
+// production value and again at 0, which keys every layer by hashing its
+// transitions at 8 bytes each. The states are numbered differently, so the
+// bytes differ, but the language and the state count must not. Each lowered
+// result is also reloaded from its file, which checks its digest, and is
+// built again with dfa_state_narrow_max at 0, which must be byte identical.
+void test_key_narrow_max(const dfa_shape_t& shape)
+{
+  std::string shape_name = get_parameter_string(shape);
+
+  CountDFA count1(shape, 1);
+  CountDFA count2(shape, 2);
+  CountCharacterDFA zero1(shape, 0, 1);
+
+  typedef std::function<std::shared_ptr<const DFA>()> build_func;
+  std::vector<std::pair<std::string, build_func>> builds = {
+    {"union count1+count2", [&]() {return std::make_shared<UnionDFA>(count1, count2);}},
+    {"intersection count2+zero1", [&]() {return std::make_shared<IntersectionDFA>(count2, zero1);}},
+    {"difference count2-zero1", [&]() {return std::make_shared<DifferenceDFA>(count2, zero1);}}};
+
+  std::vector<DFAString> all_positions = get_all_positions(shape);
+
+  for(const auto& [build_name, build] : builds)
+    {
+      std::string full_name = shape_name + " key narrow max " + build_name;
+
+      std::shared_ptr<const DFA> baseline = build();
+      std::shared_ptr<const DFA> lowered;
+      std::shared_ptr<const DFA> lowered_wide;
+      {
+	uint64_t saved = binary_dfa_key_narrow_max;
+	binary_dfa_key_narrow_max = 0;
+	try
+	  {
+	    lowered = build();
+
+	    // Wide ids are hashed in place rather than copied out, which must
+	    // give the same keys.
+	    NarrowMaxGuard guard(0);
+	    lowered_wide = build();
+	  }
+	catch(...)
+	  {
+	    binary_dfa_key_narrow_max = saved;
+	    throw;
+	  }
+	binary_dfa_key_narrow_max = saved;
+      }
+
+      if(lowered_wide->get_hash() != lowered->get_hash())
+	{
+	  throw std::logic_error(full_name + ": wide ids give different 8 byte keys than narrow ones");
+	}
+
+      if(lowered->states() != baseline->states())
+	{
+	  throw std::logic_error(full_name + ": " + std::to_string(lowered->states()) + " states, default has " + std::to_string(baseline->states()));
+	}
+
+      DFA reloaded(shape, "dfas_by_hash/" + lowered->get_hash(), false);
+      size_t accepted = 0;
+      for(const DFAString& position : all_positions)
+	{
+	  bool expected = baseline->contains(position);
+	  if((lowered->contains(position) != expected) || (reloaded.contains(position) != expected))
+	    {
+	      throw std::logic_error(full_name + ": language differs from the default build");
+	    }
+	  accepted += expected;
+	}
+
+      std::cout << full_name << ": passed (" << baseline->states() << " states, " << all_positions.size() << " positions with " << accepted << " accepted match, " << (lowered->get_hash() == baseline->get_hash() ? "byte identical" : "renumbered") << ", identical with wide ids)" << std::endl;
+    }
+  std::cout.flush();
+}
+
 void test_string_dfa(const dfa_shape_t& shape)
 {
   std::vector<DFAString> all_positions = get_all_positions(shape);
@@ -736,6 +812,10 @@ int main()
       test_narrow_max(dfa_shape_t({TEST3_DFA_SHAPE}));
       test_narrow_max(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_narrow_max(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
+
+      test_key_narrow_max(dfa_shape_t({TEST3_DFA_SHAPE}));
+      test_key_narrow_max(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_key_narrow_max(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
 
       test_linear_bound();
 

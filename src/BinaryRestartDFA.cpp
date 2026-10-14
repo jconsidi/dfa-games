@@ -31,15 +31,27 @@ BinaryRestartDFA::BinaryRestartDFA(const DFA& left_in,
       try
         {
           int layer = forward_layer_min + 1;
-          const MemoryMap<dfa_state_pair_t>& pairs = build_quadratic_read_pairs(layer);
-          std::cout << "restart: layer=" << layer << " has " << pairs.size() << " pairs." << std::endl;
-
           size_t left_size = left_in.get_layer_size(layer);
           size_t right_size = right_in.get_layer_size(layer);
-          TRY_PARALLEL_3(std::for_each, pairs.begin(), pairs.end(), [&](const dfa_state_pair_t& pair)
+
+          auto check_pairs = [&](const auto& pairs)
           {
-            pair.check(left_size, right_size);
-          });
+            std::cout << "restart: layer=" << layer << " has " << pairs.size() << " pairs." << std::endl;
+
+            auto check_pair = [&](const auto& pair)
+            {
+              pair.check(left_size, right_size);
+            };
+            TRY_PARALLEL_3(std::for_each, pairs.begin(), pairs.end(), check_pair);
+          };
+          if(build_quadratic_pairs_wide(left_in, right_in, layer))
+            {
+              check_pairs(build_quadratic_read_pairs<dfa_state_pair_wide_t>(layer));
+            }
+          else
+            {
+              check_pairs(build_quadratic_read_pairs<dfa_state_pair_t>(layer));
+            }
 
           forward_layer_min = layer;
         }
