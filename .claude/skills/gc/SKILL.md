@@ -1,11 +1,11 @@
 ---
 name: gc
-description: Garbage collect src/scratch with gc.sh, after confirming no solver or other src/ binary is running on this host. Use when asked to run gc, clean up scratch, or free disk space between solves.
+description: Garbage collect src/scratch with gc.sh, after confirming no staging directory under scratch belongs to a live process on this host. Use when asked to run gc, clean up scratch, or free disk space between solves.
 ---
 
 # gc
 
-Run `gc.sh` on `scratch`, but only once nothing built from `src/` is running.
+Run `gc.sh` on `scratch`, but only once no solver is running.
 
 gc is not safe alongside a live solver: the solver unmaps DFAs and reopens them by path, and holds DFAs that only `*_cache` links name, which gc deletes.
 
