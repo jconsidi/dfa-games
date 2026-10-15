@@ -323,3 +323,21 @@ With direct keys, packed or not:
 With hashed keys, none of this applies, and `sort hash check` is the only guard against a SHA-256 collision, so it has to stay.
 It may need redesign to avoid the random reads: comparing in rank order does not help, since a group's members and its first row are scattered across ranks just as much.
 `states write` on the hashed path has the same problem.
+
+### flashsort on row and rank records
+
+A possible replacement for the hash, the sort, the check and the random reads of `states write` together, on every path.
+
+- At `transitions populate`, write records of each pair's row and its rank, at position rank, in place of `transitions`.
+- Sort the records by row bytes with an in place, depth first, most significant byte first flashsort (American flag sort): 256 buckets per level, each filled from one advancing pointer.
+  Digit k is byte `width - 1 - (k % width)` of transition `k / width`, so byte order is the numeric order the direct keys use today, and narrow layers keep today's numbering.
+- Records carry their rows, so every level reads its digits from the bucket's own contiguous region.
+  Sorting ranks alone and reading digits through them from `transitions` goes sparse after a level or two, the same random reads as today's check.
+- In the histogram pass, also find the bucket's common prefix, so a skewed bucket (rows whose transition 0 is reject, or the zero top bytes of wide ids) skips all its shared digits in one pass.
+- Equal neighbours are then equal rows exactly. A sequential is sorted pass is the check, and `states write` reads the rows in order. Every layer is canonical.
+- Cost: records are row plus rank, 24 bytes on cram layer 40 against today's 16, and each level above RAM moves them once.
+  Wider alphabets cost more, since a 13 character row at 4 bytes per id is 52 bytes. Measure before deciding whether hashing stays for rows over some size.
+- Layers hashed today (more characters than `direct_max`, e.g. amazons, chess) would get new numbering and digests.
+
+Test it against `std::sort` by row on: shapes 1 to 13, ids at 4 and 8 bytes, all equal, all distinct, few distinct, a heavily skewed first digit, and sizes around the in memory cutoff.
+Then benchmark against the current hash, sort and check on in memory inputs, and out of core on a layer about twice RAM, watching page-ins.
