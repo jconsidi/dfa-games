@@ -129,6 +129,7 @@ void write_buffer(int fildes, const T *buffer, size_t elements)
 // template instantiations
 
 #include "BinaryDFA.h"
+#include "flash_sort.h"
 
 #define INSTANTIATE(T) template void write_buffer(int fildes, const T *buffer, size_t elements);
 
@@ -142,3 +143,15 @@ INSTANTIATE(unsigned char);
 INSTANTIATE(unsigned int);
 INSTANTIATE(dfa_state_pair_t);
 INSTANTIATE(dfa_state_pair_wide_t);
+
+// BinaryDFA's row sort records, as instantiated for MemoryMap.
+#define INSTANTIATE_ROW_RANK_RECORDS(id_t, rank_t)			\
+  template void write_buffer(int, const RowRankRecord<id_t, 1, rank_t> *, size_t); \
+  template void write_buffer(int, const RowRankRecord<id_t, 2, rank_t> *, size_t); \
+  template void write_buffer(int, const RowRankRecord<id_t, 3, rank_t> *, size_t); \
+  template void write_buffer(int, const RowRankRecord<id_t, 4, rank_t> *, size_t);
+
+INSTANTIATE_ROW_RANK_RECORDS(uint32_t, uint32_t)
+INSTANTIATE_ROW_RANK_RECORDS(uint32_t, size_t)
+INSTANTIATE_ROW_RANK_RECORDS(uint64_t, uint32_t)
+INSTANTIATE_ROW_RANK_RECORDS(uint64_t, size_t)

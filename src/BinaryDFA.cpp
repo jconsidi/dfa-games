@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "Flashsort.h"
+#include "flash_sort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "ScratchConfig.h"
@@ -446,9 +447,34 @@ dfa_state_t BinaryDFA::build_quadratic_backward(const DFA& left_in,
   return initial_state;
 }
 
+// Largest layer shape the row sort path handles. Each shape is its own
+// record type, so this bounds the instantiations.
+static const int binary_dfa_row_shape_max = 4;
+
+// Calls f with std::integral_constant<int, shape> for shapes 1 to
+// binary_dfa_row_shape_max.
+template <class F>
+static decltype(auto) with_row_shape(int shape, F&& f)
+{
+  switch(shape)
+    {
+    case 1:
+      return f(std::integral_constant<int, 1>());
+    case 2:
+      return f(std::integral_constant<int, 2>());
+    case 3:
+      return f(std::integral_constant<int, 3>());
+    case 4:
+      return f(std::integral_constant<int, 4>());
+    }
+  static_assert(binary_dfa_row_shape_max == 4);
+  throw std::logic_error("with_row_shape: shape " + std::to_string(shape) + " outside 1 to " + std::to_string(binary_dfa_row_shape_max));
+}
+
 size_t binary_dfa_narrow_pair_count_max = UINT32_MAX;
 size_t binary_dfa_output_slices_min = 1;
 uint64_t binary_dfa_key_narrow_max = UINT32_MAX;
+bool binary_dfa_rows_enabled = true;
 
 DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
                                                               const DFA& right_in,
@@ -500,12 +526,15 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
                                                               bool curr_pairs_wide)
 {
   typedef BinaryDFATransitionsHashPlusIndex<wide> hash_plus_index_t;
+  // Ranks of pairs in this layer, which may exceed 32 bits in wide mode.
+  typedef std::conditional_t<wide, size_t, uint32_t> pair_rank_t;
 
   Profile profile("build_quadratic_backward_layer");
 
   profile.set_prefix("layer=" + std::to_string(layer));
   profile.tic(wide ? "init wide" : "init");
 
+  int curr_layer_shape = this->get_layer_shape(layer);
   assert(curr_layer_count - 1 <= hash_plus_index_t::pair_rank_max);
 
   size_t next_left_size = left_in.get_layer_size(layer + 1);
@@ -629,6 +658,12 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
       }
   };
 
+  // Up to direct_max transitions that each fit 32 bits, the sort key is the
+  // transitions themselves, so the sort leaves states in canonical order
+  // (FORMAT-DFA.md section 8) and the scan below numbers them 2, 3, ... in
+  // that order. Otherwise the key is a hash and the order is arbitrary.
+  bool direct_key = key_narrow && (curr_layer_shape <= hash_plus_index_t::direct_max);
+
   std::string state_bytes = std::to_string(sizeof(typename next_pair_t::state_type)) + " next pairs, " + std::to_string(sizeof(next_id_t)) + " next ids";
 
   // Every transition has been read once the chosen path has its rows, so
@@ -648,7 +683,209 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
       }
   };
 
+  // Rows sorted as themselves number states the same way direct keys do, so
+  // they replace the hashed path wherever its keys are direct, keeping those
+  // layers byte identical, and wherever the next layer is too big for 4 byte
+  // keys, which only wide layers reach. Each record carries its row, so
+  // every step after the sort reads the rows in order.
+  if(binary_dfa_rows_enabled && (curr_layer_shape <= binary_dfa_row_shape_max) && (direct_key || !key_narrow))
+    {
+      return with_row_shape(curr_layer_shape, [&](auto shape_tag) -> DFAStateIdMap
+      {
+        typedef RowRankRecord<next_id_t, decltype(shape_tag)::value, pair_rank_t> record_t;
+        return build_quadratic_backward_layer_rows<record_t>(layer, curr_layer_count, transition_for, release_inputs, state_bytes, profile);
+      });
+    }
+
   return build_quadratic_backward_layer_hashed<wide, next_id_t>(layer, curr_layer_count, key_narrow, transition_for, release_inputs, state_bytes, profile);
+}
+
+// The row sort path of build_quadratic_backward_layer: each pair's row and
+// rank as one record, sorted by the row, so equal rows are found exactly
+// and every step after the sort reads the rows in order. States are
+// numbered in sorted row order, as direct keys number them.
+template <class record_t, class F>
+DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
+                                                             size_t curr_layer_count,
+                                                             const F& transition_for,
+                                                             const std::function<void()>& release_inputs,
+                                                             const std::string& state_bytes,
+                                                             Profile& profile)
+{
+  constexpr int shape = record_t::row_shape;
+  typedef typename record_t::rank_type pair_rank_t;
+  assert(shape == this->get_layer_shape(layer));
+
+  MemoryMap<record_t> rows(binary_dir() + "/rows", curr_layer_count, [&](size_t curr_pair_rank)
+  {
+    record_t record;
+    for(int j = 0; j < shape; ++j)
+      {
+        record.row[j] = transition_for(curr_pair_rank * shape + size_t(j));
+      }
+    record.rank = pair_rank_t(curr_pair_rank);
+    return record;
+  });
+
+  release_inputs();
+
+  profile.tic("rows sort");
+
+  FlashSort<record_t>().sort(rows.begin(), rows.end());
+
+  profile.tic("states identification");
+
+  const record_t *rows_begin = rows.begin();
+
+  // 0 or 1 for a row of all reject or all accept transitions, else -1.
+  auto constant_of = [](const record_t& record) -> int
+  {
+    if(record.row[0] >= 2)
+      {
+        return -1;
+      }
+    for(int j = 1; j < shape; ++j)
+      {
+        if(record.row[j] != record.row[0])
+          {
+            return -1;
+          }
+      }
+    return int(record.row[0]);
+  };
+
+  auto check_new = [&](const record_t& record) -> int
+  {
+    if(constant_of(record) >= 0)
+      {
+        return 0;
+      }
+    if(&record == rows_begin)
+      {
+        return 1;
+      }
+    return (&record)[-1].row_equal(record) ? 0 : 1;
+  };
+
+  auto check_new_count = [&](const record_t& record)
+  {
+    return size_t(check_new(record));
+  };
+  size_t new_states = TRY_PARALLEL_5(std::transform_reduce,
+                                     rows.begin(),
+                                     rows.end(),
+                                     size_t(0),
+                                     std::plus<size_t>(),
+                                     check_new_count);
+  size_t layer_size_expected = new_states + 2;
+
+  return with_state_type(dfa_state_count_is_wide(layer_size_expected), [&](auto curr_tag) -> DFAStateIdMap
+  {
+    typedef typename decltype(curr_tag)::type curr_id_t;
+
+    MemoryMap<curr_id_t> curr_pairs_permutation_to_output(binary_dir() + "/pairs_permutation_to_output", curr_layer_count);
+
+    auto check_new_id = [&](const record_t& record)
+    {
+      return curr_id_t(check_new(record));
+    };
+
+    TRY_PARALLEL_6(std::transform_inclusive_scan,
+                   rows.begin(),
+                   rows.end(),
+                   curr_pairs_permutation_to_output.begin(),
+                   [](curr_id_t previous, curr_id_t delta) {
+                     curr_id_t output = previous + delta;
+                     // check for overflow
+                     assert(output >= previous);
+                     return output;
+                   },
+                   check_new_id,
+                   curr_id_t(1)); // first new state will be 2
+
+    size_t layer_size = size_t(curr_pairs_permutation_to_output[curr_layer_count - 1]) + 1;
+    assert(layer_size == layer_size_expected);
+
+    profile.tic("states positions");
+
+    // Sorted position of each new state's row, so states write reads
+    // the rows in order. Constant rows get their constant here, so
+    // nothing patches them later.
+    MemoryMap<size_t> state_positions(binary_dir() + "/state_positions", std::max(new_states, size_t(1)));
+    size_t *state_positions_data = state_positions.begin();
+    curr_id_t *permutation_to_output_data = curr_pairs_permutation_to_output.begin();
+
+    TRY_PARALLEL_3(std::for_each, rows.begin(), rows.end(), [&](const record_t& record)
+    {
+      size_t i = size_t(&record - rows_begin);
+      int constant = constant_of(record);
+      if(constant >= 0)
+        {
+          permutation_to_output_data[i] = curr_id_t(constant);
+          return;
+        }
+      if(check_new(record))
+        {
+          size_t id = size_t(permutation_to_output_data[i]);
+          assert((2 <= id) && (id < layer_size));
+          state_positions_data[id - 2] = i;
+        }
+    });
+
+    profile.tic("states write");
+
+    auto populate_transitions = [&](dfa_state_t new_state_id, dfa_state_t *transitions_out)
+    {
+      assert((2 <= new_state_id) && (new_state_id < layer_size));
+      size_t i = state_positions_data[new_state_id - 2];
+      assert(i < curr_layer_count);
+      assert(size_t(permutation_to_output_data[i]) == new_state_id);
+      const record_t& record = rows_begin[i];
+      for(int j = 0; j < shape; ++j)
+        {
+          transitions_out[j] = dfa_state_t(record.row[j]);
+        }
+    };
+
+    build_layer(layer, layer_size, populate_transitions);
+
+    profile.tic("unlink state_positions");
+
+    state_positions.unlink();
+
+    profile.tic("sort permutation");
+
+    MemoryMap<pair_rank_t> curr_pairs_permutation(binary_dir() + "/pairs_permutation", curr_layer_count, [&](size_t i)
+    {
+      return rows_begin[i].rank;
+    });
+
+    profile.tic("unlink rows");
+
+    rows.unlink();
+
+    MemoryMap<curr_id_t> curr_pair_rank_to_output = build_quadratic_write_pair_rank_to_output<curr_id_t, pair_rank_t>(layer,
+                                                                                                             curr_layer_count,
+                                                                                                             curr_pairs_permutation,
+                                                                                                             curr_pairs_permutation_to_output,
+                                                                                                             layer_size,
+                                                                                                             state_bytes,
+                                                                                                             "rows",
+                                                                                                             [](curr_id_t *, size_t, size_t) {},
+                                                                                                             profile);
+
+    profile.tic("unlink pairs_permutation");
+
+    curr_pairs_permutation.unlink();
+
+    profile.tic("unlink pairs_permutation_to_output");
+
+    curr_pairs_permutation_to_output.unlink();
+
+    profile.tic("cleanup");
+
+    return DFAStateIdMap(std::move(curr_pair_rank_to_output));
+  });
 }
 
 // The hashed path of build_quadratic_backward_layer: transitions stored by

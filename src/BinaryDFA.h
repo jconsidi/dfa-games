@@ -179,6 +179,8 @@ protected:
   DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, const DFAStateIdMap&);
   template <bool wide, class next_pair_t, class next_id_t>
   DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<next_id_t>&, bool curr_pairs_wide);
+  template <class record_t, class F>
+  DFAStateIdMap build_quadratic_backward_layer_rows(int layer, size_t curr_layer_count, const F& transition_for, const std::function<void()>& release_inputs, const std::string& state_bytes, Profile& profile);
   template <bool wide, class next_id_t, class F>
   DFAStateIdMap build_quadratic_backward_layer_hashed(int layer, size_t curr_layer_count, bool key_narrow, const F& transition_for, const std::function<void()>& release_inputs, const std::string& state_bytes, Profile& profile);
   template <class curr_id_t, class pair_rank_t>
@@ -323,6 +325,13 @@ MemoryMap<pair_t> BinaryDFA::build_quadratic_read_pairs(int layer)
 // are stored at. Tests lower it to run the 8 byte path on small inputs, where
 // it must produce the same language and state count.
 extern uint64_t binary_dfa_key_narrow_max;
+
+// Whether build_quadratic_backward_layer sorts rows as themselves wherever
+// it can (layers of at most 4 characters, whose keys today are direct or
+// whose next layer is past binary_dfa_key_narrow_max). Production value is
+// true. Tests clear it to build the same DFAs on the hashed path, which
+// must give the same bytes wherever its keys are direct.
+extern bool binary_dfa_rows_enabled;
 
 // Fewest slices build_quadratic_backward_layer splits pair_rank_to_output
 // into, each written in its own pass. Production value is 1, leaving the

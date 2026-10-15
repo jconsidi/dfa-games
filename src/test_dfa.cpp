@@ -483,6 +483,104 @@ void test_narrow_max(const dfa_shape_t& shape)
   std::cout.flush();
 }
 
+// Build each binary operation on the row sort path and again on the hashed
+// path (binary_dfa_rows_enabled cleared). The row sort numbers states the
+// way direct keys do, so wherever the hashed path's keys are direct the
+// bytes must match. That holds at production settings, and with wide pair
+// ranks (binary_dfa_narrow_pair_count_max at 0) as long as every layer has
+// at most 2 characters. With binary_dfa_key_narrow_max at 0 the hashed path
+// hashes every layer, so there only the language and state count must match.
+void test_rows_path(const dfa_shape_t& shape)
+{
+  std::string shape_name = get_parameter_string(shape);
+
+  CountDFA count1(shape, 1);
+  CountDFA count2(shape, 2);
+  CountCharacterDFA zero1(shape, 0, 1);
+
+  typedef std::function<std::shared_ptr<const DFA>()> build_func;
+  std::vector<std::pair<std::string, build_func>> builds = {
+    {"union count1+count2", [&]() {return std::make_shared<UnionDFA>(count1, count2);}},
+    {"intersection count2+zero1", [&]() {return std::make_shared<IntersectionDFA>(count2, zero1);}},
+    {"difference count2-zero1", [&]() {return std::make_shared<DifferenceDFA>(count2, zero1);}}};
+
+  int shape_max = *std::max_element(shape.begin(), shape.end());
+
+  std::vector<DFAString> all_positions = get_all_positions(shape);
+
+  // Builds with the hooks at the given values, restoring them after.
+  auto build_with = [](const build_func& build, bool rows_enabled, uint64_t key_narrow_max, size_t narrow_pair_count_max)
+  {
+    bool saved_rows_enabled = binary_dfa_rows_enabled;
+    uint64_t saved_key_narrow_max = binary_dfa_key_narrow_max;
+    size_t saved_narrow_pair_count_max = binary_dfa_narrow_pair_count_max;
+    auto restore = [&]()
+    {
+      binary_dfa_rows_enabled = saved_rows_enabled;
+      binary_dfa_key_narrow_max = saved_key_narrow_max;
+      binary_dfa_narrow_pair_count_max = saved_narrow_pair_count_max;
+    };
+
+    binary_dfa_rows_enabled = rows_enabled;
+    binary_dfa_key_narrow_max = key_narrow_max;
+    binary_dfa_narrow_pair_count_max = narrow_pair_count_max;
+    std::shared_ptr<const DFA> output;
+    try
+      {
+        output = build();
+      }
+    catch(...)
+      {
+        restore();
+        throw;
+      }
+    restore();
+    return output;
+  };
+
+  for(const auto& [build_name, build] : builds)
+    {
+      std::string full_name = shape_name + " rows path " + build_name;
+
+      std::shared_ptr<const DFA> rows = build_with(build, true, UINT32_MAX, UINT32_MAX);
+      std::shared_ptr<const DFA> hashed = build_with(build, false, UINT32_MAX, UINT32_MAX);
+      if(rows->get_hash() != hashed->get_hash())
+        {
+          throw std::logic_error(full_name + ": differs from the hashed path at production settings");
+        }
+
+      std::string wide_ranks = "not checked, a layer has more than 2 characters";
+      if(shape_max <= 2)
+        {
+          std::shared_ptr<const DFA> rows_wide = build_with(build, true, UINT32_MAX, 0);
+          std::shared_ptr<const DFA> hashed_wide = build_with(build, false, UINT32_MAX, 0);
+          if((rows_wide->get_hash() != hashed_wide->get_hash()) || (rows_wide->get_hash() != rows->get_hash()))
+            {
+              throw std::logic_error(full_name + ": differs from the hashed path with wide pair ranks");
+            }
+          wide_ranks = "byte identical";
+        }
+
+      std::shared_ptr<const DFA> rows_keyed = build_with(build, true, 0, UINT32_MAX);
+      std::shared_ptr<const DFA> hashed_keyed = build_with(build, false, 0, UINT32_MAX);
+      if((rows_keyed->states() != rows->states()) || (hashed_keyed->states() != rows->states()))
+        {
+          throw std::logic_error(full_name + ": state count changes with key narrow max 0");
+        }
+      for(const DFAString& position : all_positions)
+        {
+          bool expected = rows->contains(position);
+          if((rows_keyed->contains(position) != expected) || (hashed_keyed->contains(position) != expected))
+            {
+              throw std::logic_error(full_name + ": language changes with key narrow max 0");
+            }
+        }
+
+      std::cout << full_name << ": passed (" << rows->states() << " states, byte identical to the hashed path, wide pair ranks " << wide_ranks << ", key narrow max 0 matches on " << all_positions.size() << " positions)" << std::endl;
+    }
+  std::cout.flush();
+}
+
 // Build each binary operation with binary_dfa_key_narrow_max at its
 // production value and again at 0, which keys every layer by hashing its
 // transitions at 8 bytes each. The states are numbered differently, so the
@@ -817,6 +915,10 @@ int main()
       test_narrow_max(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_narrow_max(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
 
+      test_rows_path(dfa_shape_t({TEST3_DFA_SHAPE}));
+      test_rows_path(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_rows_path(dfa_shape_t({2, 2, 2, 2, 2, 2}));
+      test_rows_path(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
       test_key_narrow_max(dfa_shape_t({TEST3_DFA_SHAPE}));
       test_key_narrow_max(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_key_narrow_max(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
