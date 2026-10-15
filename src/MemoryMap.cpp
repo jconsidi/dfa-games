@@ -112,8 +112,9 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
 
   assert(_length / sizeof(T) == _size);
 
+  // At most 1GB of whole elements, which need not divide 1GB exactly.
   const size_t chunk_bytes_max = size_t(1) << 30; // 1GB
-  static_assert(chunk_bytes_max % sizeof(T) == 0);
+  static_assert(chunk_bytes_max >= sizeof(T));
   const size_t chunk_elements_max = chunk_bytes_max / sizeof(T);
   const size_t chunk_elements = std::min(size_in, chunk_elements_max);
 
