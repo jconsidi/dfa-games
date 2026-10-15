@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cerrno>
 #include <cstdlib>
 #include <format>
 #include <functional>
@@ -12,6 +13,7 @@
 #include <memory>
 #include <numeric>
 #include <sstream>
+#include <system_error>
 #include <unistd.h>
 #include <utility>
 #include <vector>
@@ -397,7 +399,18 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
       for(int cleanup_node_index : cleanup_schedule.at(node_index))
 	{
 	  std::string cleanup_link = ScratchConfig::get_local_dir() + "/" + output_names.at(cleanup_node_index);
-	  unlink(cleanup_link.c_str());
+	  if(unlink(cleanup_link.c_str()) == 0)
+	    {
+	      std::cout << "released " << output_names.at(cleanup_node_index) << " after node " << node_index << " (" << node_names.at(node_index) << ")" << std::endl;
+	    }
+	  else if(errno == ENOENT)
+	    {
+	      std::cout << "already released " << output_names.at(cleanup_node_index) << std::endl;
+	    }
+	  else
+	    {
+	      throw std::system_error(errno, std::generic_category(), "MoveGraph: unlink " + cleanup_link);
+	    }
 	}
     }
 
