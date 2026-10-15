@@ -152,6 +152,6 @@ INSTANTIATE(dfa_state_pair_wide_t);
   template void write_buffer(int, const RowRankRecord<id_t, 4, rank_t> *, size_t);
 
 INSTANTIATE_ROW_RANK_RECORDS(uint32_t, uint32_t)
-INSTANTIATE_ROW_RANK_RECORDS(uint32_t, size_t)
+INSTANTIATE_ROW_RANK_RECORDS(uint32_t, uint64_t)
 INSTANTIATE_ROW_RANK_RECORDS(uint64_t, uint32_t)
-INSTANTIATE_ROW_RANK_RECORDS(uint64_t, size_t)
+INSTANTIATE_ROW_RANK_RECORDS(uint64_t, uint64_t)

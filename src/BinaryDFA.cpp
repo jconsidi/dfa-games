@@ -692,7 +692,10 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
     {
       return with_row_shape(curr_layer_shape, [&](auto shape_tag) -> DFAStateIdMap
       {
-        typedef RowRankRecord<next_id_t, decltype(shape_tag)::value, pair_rank_t> record_t;
+        // Fixed width, so a record type is the same on every platform.
+        typedef std::conditional_t<wide, uint64_t, uint32_t> record_rank_t;
+        static_assert(sizeof(record_rank_t) >= sizeof(pair_rank_t));
+        typedef RowRankRecord<next_id_t, decltype(shape_tag)::value, record_rank_t> record_t;
         return build_quadratic_backward_layer_rows<record_t>(layer, curr_layer_count, transition_for, release_inputs, state_bytes, profile);
       });
     }
@@ -853,34 +856,61 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
 
     state_positions.unlink();
 
-    profile.tic("sort permutation");
+    // pair_rank_to_output in rank order: each sorted row's rank and output
+    // id as one record, sorted by the rank, so every pass over them reads
+    // and writes in order.
+    typedef RankOutputRecord<pair_rank_t, curr_id_t> rank_output_t;
 
-    MemoryMap<pair_rank_t> curr_pairs_permutation(binary_dir() + "/pairs_permutation", curr_layer_count, [&](size_t i)
+    profile.tic("rank outputs");
+
+    MemoryMap<rank_output_t> rank_outputs(binary_dir() + "/rank_outputs", curr_layer_count, [&](size_t i)
     {
-      return rows_begin[i].rank;
+      rank_output_t record;
+      record.row[0] = rows_begin[i].rank;
+      record.rank = permutation_to_output_data[i];
+      return record;
     });
 
     profile.tic("unlink rows");
 
     rows.unlink();
 
-    MemoryMap<curr_id_t> curr_pair_rank_to_output = build_quadratic_write_pair_rank_to_output<curr_id_t, pair_rank_t>(layer,
-                                                                                                             curr_layer_count,
-                                                                                                             curr_pairs_permutation,
-                                                                                                             curr_pairs_permutation_to_output,
-                                                                                                             layer_size,
-                                                                                                             state_bytes,
-                                                                                                             "rows",
-                                                                                                             [](curr_id_t *, size_t, size_t) {},
-                                                                                                             profile);
-
-    profile.tic("unlink pairs_permutation");
-
-    curr_pairs_permutation.unlink();
-
     profile.tic("unlink pairs_permutation_to_output");
 
     curr_pairs_permutation_to_output.unlink();
+
+    profile.tic("rank outputs sort");
+
+    FlashSort<rank_output_t>().sort(rank_outputs.begin(), rank_outputs.end());
+
+    profile.tic("rank outputs check");
+
+    // The ranks are a permutation of 0 to curr_layer_count - 1 exactly
+    // when sorted record k holds rank k.
+    const rank_output_t *rank_outputs_begin = rank_outputs.begin();
+    auto rank_misplaced = [&](const rank_output_t& record)
+    {
+      return size_t(record.row[0]) != size_t(&record - rank_outputs_begin);
+    };
+    const rank_output_t *misplaced = TRY_PARALLEL_3(std::find_if, rank_outputs.begin(), rank_outputs.end(), rank_misplaced);
+    if(misplaced != rank_outputs.end())
+      {
+        size_t k = size_t(misplaced - rank_outputs_begin);
+        throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " sorted rank outputs hold rank " + std::to_string(misplaced->row[0]) + " at position " + std::to_string(k) + ", so pair rank " + std::to_string(k) + " is missing or repeated");
+      }
+
+    profile.tic("output write");
+
+    std::cout << "layer=" << layer << " pair_rank_to_output: " << curr_layer_count << " ranks written in order after a rank sort; state bytes: " << state_bytes << ", " << sizeof(curr_id_t) << " ids, rows" << std::endl;
+
+    MemoryMap<curr_id_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count, [&](size_t curr_pair_rank)
+    {
+      return rank_outputs_begin[curr_pair_rank].rank;
+    });
+
+    profile.tic("unlink rank_outputs");
+
+    rank_outputs.unlink();
 
     profile.tic("cleanup");
 

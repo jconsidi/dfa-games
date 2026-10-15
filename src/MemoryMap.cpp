@@ -502,7 +502,7 @@ template class MemoryMap<BinaryDFATransitionsHashPlusIndex<false>>;
 template class MemoryMap<BinaryDFATransitionsHashPlusIndex<true>>;
 
 // BinaryDFA's row sort records: next ids at 4 or 8 bytes, shapes 1 to 4,
-// pair ranks narrow or wide.
+// pair ranks narrow or wide. Rank output records are the shape 1 ones.
 #define MEMORY_MAP_ROW_RANK_RECORDS(id_t, rank_t)			\
   template class MemoryMap<RowRankRecord<id_t, 1, rank_t>>;		\
   template class MemoryMap<RowRankRecord<id_t, 2, rank_t>>;		\
@@ -510,6 +510,6 @@ template class MemoryMap<BinaryDFATransitionsHashPlusIndex<true>>;
   template class MemoryMap<RowRankRecord<id_t, 4, rank_t>>;
 
 MEMORY_MAP_ROW_RANK_RECORDS(uint32_t, uint32_t)
-MEMORY_MAP_ROW_RANK_RECORDS(uint32_t, size_t)
+MEMORY_MAP_ROW_RANK_RECORDS(uint32_t, uint64_t)
 MEMORY_MAP_ROW_RANK_RECORDS(uint64_t, uint32_t)
-MEMORY_MAP_ROW_RANK_RECORDS(uint64_t, size_t)
+MEMORY_MAP_ROW_RANK_RECORDS(uint64_t, uint64_t)

@@ -95,6 +95,12 @@ struct RowRankRecord
   }
 };
 
+// A pair rank and its output id, sorted by the rank: a one column row
+// holding the rank, with the id in the rank field. BinaryDFA sorts these
+// to write pair_rank_to_output in rank order.
+template <class rank_t, class id_t>
+using RankOutputRecord = RowRankRecord<rank_t, 1, id_t>;
+
 // Most significant digit first, in place radix sort by row, 8 key bits per
 // level (American flag sort, the byte at a time form of flashsort).
 //
