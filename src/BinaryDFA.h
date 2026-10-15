@@ -8,12 +8,15 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "BinaryFunction.h"
 #include "DFA.h"
 #include "DFAStateIdMap.h"
+
+class Profile;
 
 // A pair of states, one from each input DFA, at S bits per state: uint32_t
 // while both inputs' layers fit narrow (see dfa_state_narrow_max), uint64_t
@@ -176,6 +179,10 @@ protected:
   DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, const DFAStateIdMap&);
   template <bool wide, class next_pair_t, class next_id_t>
   DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<next_id_t>&, bool curr_pairs_wide);
+  template <bool wide, class next_id_t, class F>
+  DFAStateIdMap build_quadratic_backward_layer_hashed(int layer, size_t curr_layer_count, bool key_narrow, const F& transition_for, const std::function<void()>& release_inputs, const std::string& state_bytes, Profile& profile);
+  template <class curr_id_t, class pair_rank_t>
+  MemoryMap<curr_id_t> build_quadratic_write_pair_rank_to_output(int layer, size_t curr_layer_count, const MemoryMap<pair_rank_t>& curr_pairs_permutation, const MemoryMap<curr_id_t>& curr_pairs_permutation_to_output, size_t layer_size, const std::string& state_bytes, const std::string& key_description, const std::function<void(curr_id_t *, size_t, size_t)>& patch_slice, Profile& profile);
   int build_quadratic_forward(const DFA&, const DFA&);
   int build_quadratic_forward(const DFA&, const DFA&, int);
   size_t build_quadratic_forward_layer(const DFA&, const DFA& right_in, int layer);
