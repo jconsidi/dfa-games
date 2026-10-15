@@ -105,6 +105,15 @@ by a shared fixed name) and that redesign is out of scope for pid-scoping
     to be skipped there rather than failing, which is the opposite of the Rust
     runner's rule and worth a comment where it happens.
 
+- recorded hashes for small solves, so a change can be checked for byte identity without building and rerunning a baseline from git each time.
+  Today that check means `git archive` of HEAD, a second build, and both binaries run on `solve_backward breakthrough_4x4` and `build_forward breakthrough_4x4 4` in fresh scratch roots, comparing every result symlink's hash.
+  - A config file listing the solves to run (command, arguments, expected run time) and, for each, every result name it publishes with its expected hash.
+    Start with breakthrough_4x4 backward and forward, and add a few cheap cases from other games, since `config/` tests only cover tictactoe.
+  - A runner that executes each solve in a fresh scratch root (`DFA_LOCAL_DIR` and `DFA_ARCHIVE_DIR` both set), then compares the published symlinks with the recorded hashes.
+    Every mismatch, missing name and extra name fails loudly, and the runner prints how many names it checked per solve.
+  - A way to rerecord the hashes, used only when a change is meant to renumber states, with the old and new hashes both shown in the commit so the change is deliberate and reviewable.
+  - Hashes pin the bytes, not just the language, so a change that renumbers states correctly still fails; the language check for that case stays with the `verify_*` programs.
+
 ## memory maps
 
 - revisit the munmap calls added for mapping pressure, now that a saved DFA
