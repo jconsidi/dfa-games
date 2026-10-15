@@ -7,6 +7,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "AcceptDFA.h"
 #include "BinaryDFA.h"
@@ -15,6 +17,7 @@
 #include "CountDFA.h"
 #include "DFA.h"
 #include "DFAUtil.h"
+#include "format_utils.h"
 #include "DifferenceDFA.h"
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
@@ -895,10 +898,34 @@ void test_out_of_range_transition()
   throw std::logic_error("out of range transition: build_layer accepted a transition to state 2 of 2");
 }
 
+static void test_with_commas()
+{
+  const std::vector<std::pair<uint64_t, std::string>> cases = {
+    {0, "0"},
+    {7, "7"},
+    {999, "999"},
+    {1000, "1,000"},
+    {12345, "12,345"},
+    {123456, "123,456"},
+    {1234567, "1,234,567"},
+    {3372170416, "3,372,170,416"},
+    {UINT64_MAX, "18,446,744,073,709,551,615"}};
+  for(const auto& [n, expected] : cases)
+    {
+      std::string actual = with_commas(n);
+      if(actual != expected)
+	{
+	  throw std::logic_error("with_commas(" + std::to_string(n) + ") gave " + actual + ", expected " + expected);
+	}
+    }
+  std::cout << "with_commas: " << cases.size() << " cases matched" << std::endl;
+}
+
 int main()
 {
   try
     {
+      test_with_commas();
       test_suite(dfa_shape_t({TEST1_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST2_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST3_DFA_SHAPE}));

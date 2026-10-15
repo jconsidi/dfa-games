@@ -27,6 +27,7 @@
 #include "RejectDFA.h"
 #include "StringDFA.h"
 #include "UnionDFA.h"
+#include "format_utils.h"
 #include "parallel.h"
 
 double _binary_score(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
@@ -181,7 +182,7 @@ shared_dfa_ptr _reduce_aci(std::function<shared_dfa_ptr(shared_dfa_ptr, shared_d
 
       if((dfa_i->states() >= 1024) || (dfa_j->states() >= 1024))
 	{
-	  std::cout << "  merging DFAs with " << dfa_i->states() << " states and " << dfa_j->states() << " states (" << dfas_todo.size() << " remaining)" << std::endl;
+	  std::cout << "  merging DFAs with " << with_commas(dfa_i->states()) << " states and " << with_commas(dfa_j->states()) << " states (" << dfas_todo.size() << " remaining)" << std::endl;
 	}
 
       shared_dfa_ptr dfa_reduced = reduce_func(dfa_i, dfa_j);
