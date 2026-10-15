@@ -350,3 +350,21 @@ A possible replacement for the hash, the sort, the check and the random reads of
 
 Test it against `std::sort` by row on: shapes 1 to 13, ids at 4 and 8 bytes, all equal, all distinct, few distinct, a heavily skewed first digit, and sizes around the in memory cutoff.
 Then benchmark against the current hash, sort and check on in memory inputs, and out of core on a layer about twice RAM, watching page-ins.
+
+## consolidate the sort implementations
+
+There are three sort modules, plus scattered `std::sort` calls:
+
+- `Flashsort.h` / `Flashsort.cpp`: `flashsort_partition` and `flashsort_permutation`, keyed by a `std::function`.
+  Nothing calls them; `BinaryDFA.cpp` still includes the header.
+- `sort_utils.h`: `parallel_sort`, which picks `std::sort(par)` or `parallel_sort_in_place` by memory, tested by `test_sort_utils`.
+  It sorts the hashed backward keys and the forward pass's transition pairs (`build_quadratic_transition_pairs`).
+- `flash_sort.h`: `FlashSort` over `RowRankRecord`, with RegionSort for large ranges, tested by `test_flash_sort`.
+  It sorts the backward rows path.
+
+Pick one home for the sorts and one test program.
+- Remove `Flashsort.*` unless something needs it, or fold what is worth keeping into `flash_sort.h`.
+- Generalize `FlashSort` from `RowRankRecord` to any record with a byte digit accessor, then measure it on the forward pass's `dfa_state_pair` sort, which is bigger than RAM on cram, against `parallel_sort`.
+  The forward pairs are fixed width integers, so the digit order is their numeric order.
+- If `FlashSort` wins there and on the hashed keys, `parallel_sort` may only be needed for small inputs, or not at all.
+- Keep the post sort check (`FlashSort` throws if the result is not sorted) on every sort that replaces another.
