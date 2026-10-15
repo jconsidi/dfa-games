@@ -303,3 +303,23 @@ Two 64 bit transitions do not fit, but at ceil(log2(next layer size)) bits each 
 - Narrow layers where today's 32 bit direct keys apply must keep exactly today's keys, so existing DFAs stay byte identical.
 - Test with `binary_dfa_key_narrow_max` lowered: same language and state count as the default, output canonical and reloading with a valid digest.
   Also test a shape that fits packed but not at 32 bits, and one that needs the hash.
+
+### random reads of `transitions` after the sort
+
+Two steps after the sort read rows of `transitions` at random ranks, since the records are in key order and the ranks within them are scattered.
+This is cheap while `transitions` fits in RAM and very slow once it does not.
+
+- `sort hash check` (`BinaryDFA.cpp:810-829`) runs on every layer and `memcmp`s the rows of each adjacent pair of equal keys.
+  On cram_7x7 layer 40 (14.7e9 pairs, `transitions` 235 GB at 8 bytes per id, about twice RAM) it ran for hours at about 107,000 16 KB page-ins per second, each fetching one 16 byte row; layer 41 (117 GB at 4 bytes per id, mostly resident) took 195s.
+- `states write` (`BinaryDFA.cpp:916-932`) does one random row read per new state.
+
+With direct keys, packed or not:
+
+- Skip `sort hash check`. The key is the row, so equal keys already mean equal rows; the check repeats the sort's own comparison.
+  For packed keys, verify instead that each key unpacks to its row while the keys are built, which reads `transitions` in order.
+- Decode each new state's transitions from its sorted key in `states write`, in order, since direct keys number states in sorted key order.
+- Then nothing reads `transitions` after the hash step, so unlink it there, freeing its disk (235 GB on cram layer 40) before the sort.
+
+With hashed keys, none of this applies, and `sort hash check` is the only guard against a SHA-256 collision, so it has to stay.
+It may need redesign to avoid the random reads: comparing in rank order does not help, since a group's members and its first row are scattered across ranks just as much.
+`states write` on the hashed path has the same problem.
