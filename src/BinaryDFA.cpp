@@ -1566,7 +1566,9 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
 
   profile.tic("sort");
 
-  parallel_sort(working_begin, working_end);
+  // FlashSort orders pairs as operator< does, sentinels last, and throws
+  // if the result is not sorted.
+  FlashSort<next_pair_t>().sort(working_begin, working_end);
 
   profile.tic("post-unique");
 
