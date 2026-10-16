@@ -144,6 +144,16 @@ INSTANTIATE(unsigned int);
 INSTANTIATE(dfa_state_pair_t);
 INSTANTIATE(dfa_state_pair_wide_t);
 
+// A comma inside the macro argument would split it, so name the types.
+typedef dfa_pair_output<dfa_state_pair_t, uint32_t> dfa_pair_output_narrow_narrow_t;
+typedef dfa_pair_output<dfa_state_pair_t, uint64_t> dfa_pair_output_narrow_wide_t;
+typedef dfa_pair_output<dfa_state_pair_wide_t, uint32_t> dfa_pair_output_wide_narrow_t;
+typedef dfa_pair_output<dfa_state_pair_wide_t, uint64_t> dfa_pair_output_wide_wide_t;
+INSTANTIATE(dfa_pair_output_narrow_narrow_t);
+INSTANTIATE(dfa_pair_output_narrow_wide_t);
+INSTANTIATE(dfa_pair_output_wide_narrow_t);
+INSTANTIATE(dfa_pair_output_wide_wide_t);
+
 // BinaryDFA's row sort records, as instantiated for MemoryMap.
 #define INSTANTIATE_ROW_RANK_RECORDS(id_t, rank_t)			\
   template void write_buffer(int, const RowRankRecord<id_t, 1, rank_t> *, size_t); \

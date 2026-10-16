@@ -134,6 +134,16 @@ typedef dfa_state_pair<uint64_t> dfa_state_pair_wide_t;
 static_assert(sizeof(dfa_state_pair_t) == 8);
 static_assert(sizeof(dfa_state_pair_wide_t) == 16);
 
+// A next layer pair and the output state it minimized to, side by side in
+// rank order, so the backward pass finds a transition's pair and reads its
+// output from the same block of one file.
+template <class pair_t, class id_t>
+struct dfa_pair_output
+{
+  pair_t pair;
+  id_t output;
+};
+
 class BinaryDFA : public DFA
 {
   BinaryFunction leaf_func;

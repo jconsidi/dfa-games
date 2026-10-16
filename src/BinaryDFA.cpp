@@ -548,42 +548,66 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
 
   profile.tic("next pair mmap");
 
-  const MemoryMap<next_pair_t> next_pairs = build_quadratic_read_pairs<next_pair_t>(layer + 1);
-  size_t next_layer_count = next_pairs.size();
+  // The next layer's pairs and their outputs, merged in rank order so each
+  // lookup below finds its pair and reads its output from one block. Both
+  // inputs are read sequentially.
+  typedef dfa_pair_output<next_pair_t, next_id_t> next_pair_output_t;
+  size_t next_layer_count = 0;
+  MemoryMap<next_pair_output_t> next_pair_outputs = [&]()
+  {
+    const MemoryMap<next_pair_t> next_pairs = build_quadratic_read_pairs<next_pair_t>(layer + 1);
+    next_layer_count = next_pairs.size();
+    // A next layer without pairs is past the top of the backward pass, every
+    // transition into it short circuits, and its outputs are the one entry
+    // placeholder build_quadratic_backward starts from.
+    size_t outputs_expected = (next_layer_count > 0) ? next_layer_count : 1;
+    if(next_pair_rank_to_output.size() != outputs_expected)
+      {
+        throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " has " + std::to_string(next_layer_count) + " pairs but " + std::to_string(next_pair_rank_to_output.size()) + " pair outputs");
+      }
+
+    profile.tic("next pair outputs");
+    return MemoryMap<next_pair_output_t>(binary_dir() + "/next_pair_outputs", next_layer_count, [&](size_t next_pair_rank)
+    {
+      return next_pair_output_t{next_pairs[next_pair_rank], next_pair_rank_to_output[next_pair_rank]};
+    });
+  }();
 
   profile.tic("next pair index");
 
-  // index entries have first pair of 4KB block (64 bit pair)
+  // index entries have the first pair of each 512 entry block
   std::vector<MemoryMap<next_pair_t>> next_pairs_index;
   next_pairs_index.reserve(3);
-  auto add_next_pairs_index = [&](const MemoryMap<next_pair_t>& previous_pairs)
+  auto add_next_pairs_index = [&](size_t previous_size, auto previous_pair)
   {
     std::string index_name = binary_dir() + "/next_pairs_index-" + std::to_string(next_pairs_index.size());
-    size_t index_length = (previous_pairs.size() + 511) / 512;
+    size_t index_length = (previous_size + 511) / 512;
     next_pairs_index.emplace_back(index_name, index_length, [&](size_t i)
     {
-      return previous_pairs[i * 512];
+      return previous_pair(i * 512);
     });
   };
-  add_next_pairs_index(next_pairs);
+  add_next_pairs_index(next_layer_count, [&](size_t i) {return next_pair_outputs[i].pair;});
   assert(next_pairs_index.size() == 1);
 
   // add more indexes until under 1MB
   while(next_pairs_index.back().length() > 1ULL << 20)
     {
       assert(next_pairs_index.size() < next_pairs_index.capacity());
-      add_next_pairs_index(next_pairs_index.back());
+      const MemoryMap<next_pair_t>& previous_index = next_pairs_index.back();
+      add_next_pairs_index(previous_index.size(), [&](size_t i) {return previous_index[i];});
     }
 
-  auto search_index = [&](const MemoryMap<next_pair_t>& next_pairs_index, next_pair_t next_pair, size_t offset_min, size_t offset_max)
+  // Last offset in [offset_min, offset_max] whose pair is at most
+  // next_pair, reading pairs through pair_at.
+  auto search = [&](auto pair_at, next_pair_t next_pair, size_t offset_min, size_t offset_max)
   {
     assert(offset_min <= offset_max);
-    assert(offset_max < next_pairs_index.size());
 
     while(offset_min < offset_max)
       {
         size_t offset_mid = offset_min + (offset_max - offset_min + 1) / 2;
-        if(next_pairs_index[offset_mid] <= next_pair)
+        if(pair_at(offset_mid) <= next_pair)
           {
             offset_min = offset_mid;
           }
@@ -626,6 +650,12 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
       }
     else
       {
+        auto search_index = [&](const MemoryMap<next_pair_t>& index, size_t offset_min, size_t offset_max)
+        {
+          assert(offset_max < index.size());
+          return search([&](size_t i) {return index[i];}, next_pair, offset_min, offset_max);
+        };
+
         size_t offset_min = 0;
         size_t offset_max = next_pairs_index.back().size() - 1;
 
@@ -633,7 +663,6 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
           {
             // compute index range in next index
             offset_min = search_index(next_pairs_index.at(index_index),
-                                      next_pair,
                                       offset_min,
                                       offset_max) * 512;
 
@@ -642,19 +671,19 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
           }
 
         offset_min = search_index(next_pairs_index.at(0),
-                                  next_pair,
                                   offset_min,
                                   offset_max) * 512;
         offset_max = std::min(offset_min + 511,
                               next_layer_count - 1);
 
-        size_t next_rank_min = search_index(next_pairs,
-                                            next_pair,
-                                            offset_min,
-                                            offset_max);
-        assert(next_pairs[next_rank_min] == next_pair);
+        size_t next_pair_rank = search([&](size_t i) {return next_pair_outputs[i].pair;},
+                                       next_pair,
+                                       offset_min,
+                                       offset_max);
+        const next_pair_output_t& found = next_pair_outputs[next_pair_rank];
+        assert(found.pair == next_pair);
 
-        return next_pair_rank_to_output[next_rank_min];
+        return found.output;
       }
   };
 
@@ -681,6 +710,10 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
         next_pairs_index.back().unlink();
         next_pairs_index.pop_back();
       }
+
+    profile.tic("unlink next_pair_outputs");
+
+    next_pair_outputs.unlink();
   };
 
   // Rows sorted as themselves number states the same way direct keys do, so

@@ -572,6 +572,10 @@ template class MemoryMap<dfa_state_pair_t>;
 template class MemoryMap<dfa_state_pair_wide_t>;
 template class MemoryMap<BinaryDFATransitionsHashPlusIndex<false>>;
 template class MemoryMap<BinaryDFATransitionsHashPlusIndex<true>>;
+template class MemoryMap<dfa_pair_output<dfa_state_pair_t, uint32_t>>;
+template class MemoryMap<dfa_pair_output<dfa_state_pair_t, uint64_t>>;
+template class MemoryMap<dfa_pair_output<dfa_state_pair_wide_t, uint32_t>>;
+template class MemoryMap<dfa_pair_output<dfa_state_pair_wide_t, uint64_t>>;
 
 // BinaryDFA's row sort records: next ids at 4 or 8 bytes, shapes 1 to 4,
 // pair ranks narrow or wide. Rank output records are the shape 1 ones.
