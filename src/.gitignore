@@ -35,6 +35,7 @@ test_chess_game
 test_chess_limited
 test_dfa
 test_flash_sort
+test_memory_map
 test_move_graph
 test_normal_nim_game
 test_perft

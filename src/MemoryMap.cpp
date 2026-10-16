@@ -451,10 +451,45 @@ size_t MemoryMap<T>::size() const
 template<class T>
 void MemoryMap<T>::truncate(size_t size_in)
 {
+  size_t length_in = size_in * sizeof(T);
+
+  if(_mapped && !_readonly && (length_in < _length))
+    {
+      // Shrink the file while it is still mapped, so the dirty pages past
+      // the new end are dropped rather than flushed by munmap. Nothing
+      // touches the mapping between the truncate and the munmap, so those
+      // pages are never read past the end of the file. Only the kept
+      // prefix is flushed.
+      if(::truncate(_filename.c_str(), off_t(length_in)))
+	{
+	  perror("truncate");
+	  throw std::runtime_error("truncate() failed");
+	}
+
+      if(length_in > 0)
+	{
+	  if(::msync(_mapped, length_in, MS_SYNC))
+	    {
+	      perror("msync");
+	      throw std::runtime_error("msync failed");
+	    }
+	}
+
+      if(::munmap(_mapped, _length))
+	{
+	  throw std::runtime_error("munmap failed");
+	}
+      _mapped = 0;
+
+      _size = size_in;
+      _length = length_in;
+      return;
+    }
+
   munmap();
 
   _size = size_in;
-  _length = _size * sizeof(T);
+  _length = length_in;
 
   int fildes = open(O_RDWR, 0);
   ftruncate(fildes);
@@ -470,11 +505,48 @@ void MemoryMap<T>::truncate(size_t size_in)
 template <class T>
 void MemoryMap<T>::unlink()
 {
-  munmap();
-
   if(_flags & MAP_ANONYMOUS)
     {
+      munmap();
       return;
+    }
+
+  // A file with no other link is truncated to nothing first, mapped or
+  // not, so its dirty pages are dropped rather than flushed by munmap or
+  // written back later. A file with other links keeps its contents for
+  // them, so it is flushed and unmapped as usual.
+  bool discard = false;
+  if(!_readonly)
+    {
+      struct stat stat_buffer;
+      if(::stat(_filename.c_str(), &stat_buffer))
+	{
+	  perror("unlink stat");
+	  throw std::runtime_error("unlink stat failed");
+	}
+      discard = (stat_buffer.st_nlink == 1);
+    }
+
+  if(discard)
+    {
+      if(::truncate(_filename.c_str(), 0))
+	{
+	  perror("truncate");
+	  throw std::runtime_error("truncate() failed");
+	}
+
+      if(_mapped)
+	{
+	  if(::munmap(_mapped, _length))
+	    {
+	      throw std::runtime_error("munmap failed");
+	    }
+	  _mapped = 0;
+	}
+    }
+  else
+    {
+      munmap();
     }
 
   if(::unlink(_filename.c_str()))
