@@ -358,13 +358,43 @@ There are three sort modules, plus scattered `std::sort` calls:
 - `Flashsort.h` / `Flashsort.cpp`: `flashsort_partition` and `flashsort_permutation`, keyed by a `std::function`.
   Nothing calls them; `BinaryDFA.cpp` still includes the header.
 - `sort_utils.h`: `parallel_sort`, which picks `std::sort(par)` or `parallel_sort_in_place` by memory, tested by `test_sort_utils`.
-  It sorts the hashed backward keys and the forward pass's transition pairs (`build_quadratic_transition_pairs`).
-- `flash_sort.h`: `FlashSort` over `RowRankRecord`, with RegionSort for large ranges, tested by `test_flash_sort`.
-  It sorts the backward rows path.
+  Its only BinaryDFA caller left is the hashed backward path's key sort (`build_quadratic_backward_layer_hashed`).
+- `flash_sort.h`: `FlashSort` over any record with a fixed length key read through `sort_key.h`, with RegionSort for large ranges, tested by `test_flash_sort`.
+  It sorts the backward rows path, the rank output records, and the forward pass's transition pairs.
 
 Pick one home for the sorts and one test program.
 - Remove `Flashsort.*` unless something needs it, or fold what is worth keeping into `flash_sort.h`.
-- Generalize `FlashSort` from `RowRankRecord` to any record with a byte digit accessor, then measure it on the forward pass's `dfa_state_pair` sort, which is bigger than RAM on cram, against `parallel_sort`.
-  The forward pairs are fixed width integers, so the digit order is their numeric order.
-- If `FlashSort` wins there and on the hashed keys, `parallel_sort` may only be needed for small inputs, or not at all.
+- Measure the forward pair sort out of core on cram against the `parallel_sort` times in the 2026-10-15 trace (7,055s on `begin.join_0_8`).
+  In memory, on 1e9 pairs, FlashSort took 3.2-3.7s against 5.9-6.7s for `parallel_sort_in_place`.
+- Then nothing but the hashed path calls `parallel_sort`, so either of these would retire it.
+  Test both and compare.
 - Keep the post sort check (`FlashSort` throws if the result is not sorted) on every sort that replaces another.
+
+### hashed path: FlashSort its keys
+
+The hashed path still sorts its `BinaryDFATransitionsHashPlusIndex` records with `parallel_sort`.
+It is taken when a layer's shape is over `binary_dfa_row_shape_max` (4), when a narrow layer's rows do not fit a direct key, and when `binary_dfa_rows_enabled` is cleared.
+Cram never takes it; larger alphabet games such as chess and amazons can.
+
+- Give the hash records the `sort_key.h` interface over their key words only, as `operator<` compares them: words 0 to 2, or in wide mode words 0 and 1 and the high 24 bits of word 2.
+  Then sort them with `FlashSort`.
+  Hashed keys are uniform, so every level splits 256 ways and nothing is skipped as shared.
+- The output must be byte identical.
+  States are numbered in key order, and records with equal keys hold equal rows, so the order among ties does not change the numbering.
+  Check that with the hashed path forced (`binary_dfa_rows_enabled` cleared, as `test_rows_path` does), and on an amazons or chess case whose layers go hashed.
+  breakthrough_4x4 does not exercise it, since its shape 3 layers take the rows path.
+- Time it against `parallel_sort` on a hashed layer large enough to matter.
+
+### hashed path: retire it in favor of the rows path
+
+The rows path already covers layers of shape up to 4 whose rows fit a direct key, and those whose next layer is over 2^32 states.
+Its numbering is canonical where the hashed path's is not.
+What it leaves to the hashed path is narrow layers whose rows do not fit a direct key (shape 4, or shape 3 with wide pair ranks), and every layer over shape 4.
+Extending it to the remaining cases would leave one backward path.
+
+- Rows over shape 4 need more `RowRankRecord` shapes, each its own instantiation, so pick the shapes the games use rather than every one up to the largest.
+- A record carries its whole row: at shape 13 and 4 byte ids that is 56 bytes, against 16 for a hash record.
+  Measure the disk and the sort time against hashing at the largest hashed layers.
+- Layers the hashed path numbers by hash would be numbered by row instead, so their DFAs change hash and every cache built from them is rebuilt once.
+  The language must not change: check each affected result against the hashed build by state count, and by `get_difference` both ways being empty.
+- Then remove the hashed path, `binary_dfa_rows_enabled`, `binary_dfa_key_narrow_max`, and `hashed_any_layer`, along with the tests that force them.
