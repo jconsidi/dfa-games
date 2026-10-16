@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
-#include <bit>
 #include <cassert>
 #include <chrono>
 #include <cstddef>
@@ -19,13 +18,13 @@
 #include <vector>
 
 #include "parallel.h"
+#include "sort_key.h"
 
 // A pair's row of transitions and its rank, sorted by the row.
 //
 // Rows compare as their transitions read as numbers, transition 0 first,
-// which is the order BinaryDFA's direct keys give today. As a key, a row is
-// the bit string of its transitions concatenated most significant bit
-// first, key_bits long.
+// which is the order BinaryDFA's direct keys give today. Its key is the
+// row's, as sort_key.h reads it.
 template <class id_t, int shape, class rank_t>
 struct RowRankRecord
 {
@@ -41,50 +40,17 @@ struct RowRankRecord
   id_t row[shape];
   rank_t rank;
 
-  // The 8 key bits starting at bit b, zero padded past the end of the key.
   uint8_t key_byte_at_bit(int b) const
   {
-    assert((0 <= b) && (b < key_bits));
-    int t = b / id_bits;
-    int available = id_bits - b % id_bits;
-    uint64_t value = uint64_t(row[t]);
-    if(available >= 8)
-      {
-        return uint8_t((value >> (available - 8)) & 0xFF);
-      }
-
-    uint64_t high = value & ((uint64_t(1) << available) - 1);
-    uint64_t low = 0;
-    if(t + 1 < shape)
-      {
-        low = uint64_t(row[t + 1]) >> (id_bits - (8 - available));
-      }
-    return uint8_t((high << (8 - available)) | low);
+    return row_key_byte_at_bit<id_t, shape>(row, b);
   }
 
-  // First key bit at or after b where this row and other differ, or
-  // key_bits if they agree from b on.
   int first_difference_bit(const RowRankRecord& other, int b) const
   {
-    assert((0 <= b) && (b <= key_bits));
-    for(int t = b / id_bits; t < shape; ++t)
-      {
-        uint64_t difference = uint64_t(row[t] ^ other.row[t]);
-        if(t == b / id_bits)
-          {
-            // only the bits from b on
-            uint64_t id_mask = (id_bits == 64) ? ~uint64_t(0) : ((uint64_t(1) << id_bits) - 1);
-            difference &= id_mask >> (b % id_bits);
-          }
-        if(difference != 0)
-          {
-            return t * id_bits + (std::countl_zero(difference) - (64 - id_bits));
-          }
-      }
-    return key_bits;
+    return row_first_difference_bit<id_t, shape>(row, other.row, b);
   }
 
-  bool row_less(const RowRankRecord& b) const
+  bool key_less(const RowRankRecord& b) const
   {
     return std::lexicographical_compare(row, row + shape, b.row, b.row + shape);
   }
@@ -137,8 +103,13 @@ using RankOutputRecord = RowRankRecord<rank_t, 1, id_t>;
 // sort their buckets in parallel. Ranges of at least verbose_min elements
 // log their timings.
 //
-// Not stable: equal rows come out in any order. The result is checked with
+// Not stable: equal keys come out in any order. The result is checked with
 // a parallel is_sorted, and a failure throws.
+//
+// T is any record with a fixed length key read most significant bit first:
+// key_bits, key_byte_at_bit, first_difference_bit and key_less, which must
+// agree with each other. RowRankRecord and dfa_state_pair are the two, both
+// reading their keys through sort_key.h.
 template <class T>
 class FlashSort
 {
@@ -158,7 +129,7 @@ class FlashSort
       {
         T value = *i;
         T *j = i;
-        while((j > begin) && value.row_less(j[-1]))
+        while((j > begin) && value.key_less(j[-1]))
           {
             *j = j[-1];
             --j;
@@ -679,7 +650,7 @@ public:
 
     auto less = [](const T& a, const T& b)
     {
-      return a.row_less(b);
+      return a.key_less(b);
     };
     if(!TRY_PARALLEL_3(std::is_sorted, begin, end, less))
       {

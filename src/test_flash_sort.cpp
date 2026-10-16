@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <random>
 #include <stdexcept>
 #include <string>
@@ -21,6 +22,7 @@
 #include <mach/mach.h>
 #endif
 
+#include "BinaryDFA.h"
 #include "flash_sort.h"
 #include "sort_utils.h"
 
@@ -99,7 +101,7 @@ void test_case(const std::string& pattern, size_t n, size_t insertion_max, size_
   FlashSort<record_t>(insertion_max, parallel_min, SIZE_MAX, region_min, region_chunks).sort(actual.data(), actual.data() + n);
 
   std::vector<record_t> expected = input;
-  std::sort(expected.begin(), expected.end(), [](const record_t& a, const record_t& b) {return a.row_less(b);});
+  std::sort(expected.begin(), expected.end(), [](const record_t& a, const record_t& b) {return a.key_less(b);});
 
   std::vector<bool> seen(n, false);
   for(size_t i = 0; i < n; ++i)
@@ -145,6 +147,116 @@ size_t test_shape()
   return cases;
 }
 
+template <class S>
+std::vector<dfa_state_pair<S>> make_pairs(const std::string& pattern, size_t n, uint64_t seed)
+{
+  std::mt19937_64 rng(seed);
+  std::vector<dfa_state_pair<S>> pairs;
+  pairs.reserve(n);
+  const uint64_t s_max = std::numeric_limits<S>::max();
+  for(size_t i = 0; i < n; ++i)
+    {
+      uint64_t left;
+      uint64_t right;
+      if(pattern == "random")
+        {
+          left = rng() & s_max;
+          right = rng() & s_max;
+        }
+      else if(pattern == "small")
+        {
+          left = rng() % 4;
+          right = rng() % 4;
+        }
+      else if(pattern == "equal")
+        {
+          left = 42;
+          right = 7;
+        }
+      else if(pattern == "skewed")
+        {
+          // most pairs reject on the left
+          left = (rng() % 10 != 0) ? 0 : (rng() & s_max);
+          right = rng() & s_max;
+        }
+      else if(pattern == "narrow_bits")
+        {
+          // states of a layer just over 2^32 states, or 2^20 for 4 byte states
+          uint64_t size = (sizeof(S) == 8) ? 4479239467ULL : (1ULL << 20);
+          left = rng() % size;
+          right = rng() % size;
+        }
+      else if(pattern == "sorted")
+        {
+          left = i >> 8;
+          right = i & 0xFF;
+        }
+      else if(pattern == "reverse")
+        {
+          left = (n - i) >> 8;
+          right = (n - i) & 0xFF;
+        }
+      else if(pattern == "prefix")
+        {
+          // every pair shares its left state
+          left = 7;
+          right = rng() % 1000;
+        }
+      else
+        {
+          throw std::logic_error("unknown pattern " + pattern);
+        }
+      pairs.emplace_back(left, right);
+    }
+
+  // the forward pass's sentinel pair, which must sort last
+  if(n > 0)
+    {
+      for(size_t i = 0; i < n; i += 97)
+        {
+          pairs[i] = dfa_state_pair<S>(s_max, s_max);
+        }
+    }
+
+  return pairs;
+}
+
+template <class S>
+size_t test_pairs()
+{
+  typedef dfa_state_pair<S> pair_t;
+
+  size_t cases = 0;
+  for(const char *pattern : patterns)
+    {
+      for(size_t n : {size_t(0), size_t(1), size_t(2), size_t(31), size_t(32), size_t(33), size_t(1000), size_t(100000)})
+        {
+          std::vector<pair_t> input = make_pairs<S>(pattern, n, 0xFA1B + n);
+          std::vector<pair_t> expected = input;
+          std::sort(expected.begin(), expected.end());
+
+          // the same configurations as test_shape
+          const size_t configs[][4] = {{32, size_t(1) << 20, size_t(1) << 24, 0},
+                                       {1, size_t(1) << 20, size_t(1) << 24, 0},
+                                       {1, 64, size_t(1) << 24, 0},
+                                       {1, 64, 64, 1},
+                                       {1, 64, 64, 3},
+                                       {32, size_t(1) << 20, 64, 7}};
+          for(const auto& config : configs)
+            {
+              std::vector<pair_t> actual = input;
+              FlashSort<pair_t>(config[0], config[1], SIZE_MAX, config[2], config[3]).sort(actual.data(), actual.data() + n);
+              if(actual != expected)
+                {
+                  throw std::logic_error(std::string(pattern) + " state_bytes=" + std::to_string(sizeof(S)) + " n=" + std::to_string(n) + " insertion_max=" + std::to_string(config[0]) + " parallel_min=" + std::to_string(config[1]) + " region_min=" + std::to_string(config[2]) + " region_chunks=" + std::to_string(config[3]) + ": pairs differ from std::sort");
+                }
+              ++cases;
+            }
+        }
+    }
+  return cases;
+}
+
 static void run_tests()
 {
   size_t cases = 0;
@@ -159,6 +271,12 @@ static void run_tests()
   cases += test_shape<uint64_t, 13, uint64_t>();
 
   std::cout << "test_flash_sort: " << cases << " cases matched std::sort by row, with every rank present once and carrying its own row" << std::endl;
+
+  size_t pair_cases = 0;
+  pair_cases += test_pairs<uint32_t>();
+  pair_cases += test_pairs<uint64_t>();
+
+  std::cout << "test_flash_sort: " << pair_cases << " dfa_state_pair cases matched std::sort, sentinels included" << std::endl;
 }
 
 // Benchmark against today's hashed path on a cram layer 40 like input: shape
@@ -421,11 +539,71 @@ static void run_bench_file(const std::string& path, size_t n)
   std::cout << "removed " << path << std::endl;
 }
 
+// Benchmark against parallel_sort on forward pass like pairs: narrow states
+// below 3.5e9 on each side, each distinct pair about twice, 0.04% of them
+// the sentinel. Every sort starts from the same shuffled input, and each
+// result must equal the first.
+static void run_bench_pairs(size_t n)
+{
+  typedef dfa_state_pair<uint32_t> pair_t;
+
+  std::cout << "bench_pairs n=" << n << " (" << n * sizeof(pair_t) << " bytes), physical memory=" << physical_memory_bytes() << std::endl;
+
+  std::mt19937_64 rng(2);
+  std::vector<pair_t> input(n);
+  for(size_t i = 0; i < n; i += 2)
+    {
+      pair_t pair(rng() % 3500000000ULL, rng() % 3500000000ULL);
+      input[i] = pair;
+      if(i + 1 < n)
+        {
+          input[i + 1] = pair;
+        }
+    }
+  for(size_t i = 0; i < n; i += 2500)
+    {
+      input[i] = pair_t(UINT32_MAX, UINT32_MAX);
+    }
+  std::shuffle(input.begin(), input.end(), rng);
+
+  std::vector<pair_t> first;
+  auto run = [&](const std::string& name, auto sort_func)
+  {
+    std::vector<pair_t> working = input;
+    auto start = std::chrono::steady_clock::now();
+    sort_func(working.data(), working.data() + n);
+    double elapsed = seconds_since(start);
+    if(first.size() == 0)
+      {
+        first.swap(working);
+      }
+    else if(working != first)
+      {
+        throw std::logic_error("bench_pairs: " + name + " result differs");
+      }
+    std::cout << name << ": " << elapsed << "s" << std::endl;
+  };
+
+  for(int round = 0; round < 2; ++round)
+    {
+      run("parallel_sort_in_place", [](pair_t *begin, pair_t *end) {parallel_sort_in_place(begin, end);});
+      run("std::sort(par)", [](pair_t *begin, pair_t *end) {TRY_PARALLEL_2(std::sort, begin, end);});
+      run("FlashSort", [](pair_t *begin, pair_t *end) {FlashSort<pair_t>().sort(begin, end);});
+    }
+  std::cout << "all sorts agreed on " << n << " pairs" << std::endl;
+}
+
 int main(int argc, char **argv)
 {
   if((argc == 3) && (std::string(argv[1]) == "bench"))
     {
       run_bench(std::stoull(argv[2]));
+      return 0;
+    }
+
+  if((argc == 3) && (std::string(argv[1]) == "bench_pairs"))
+    {
+      run_bench_pairs(std::stoull(argv[2]));
       return 0;
     }
 
@@ -437,7 +615,7 @@ int main(int argc, char **argv)
 
   if(argc != 1)
     {
-      std::cerr << "usage: " << argv[0] << " [bench N | bench_file PATH N]" << std::endl;
+      std::cerr << "usage: " << argv[0] << " [bench N | bench_pairs N | bench_file PATH N]" << std::endl;
       return 1;
     }
 

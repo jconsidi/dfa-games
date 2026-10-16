@@ -15,12 +15,16 @@
 #include "BinaryFunction.h"
 #include "DFA.h"
 #include "DFAStateIdMap.h"
+#include "sort_key.h"
 
 class Profile;
 
 // A pair of states, one from each input DFA, at S bits per state: uint32_t
 // while both inputs' layers fit narrow (see dfa_state_narrow_max), uint64_t
 // otherwise. Pairs order the same way at either width.
+//
+// As a sort key, a pair is the row (left, right), as sort_key.h reads it,
+// so FlashSort orders pairs the way operator< does.
 template <class S>
 class dfa_state_pair
 {
@@ -30,6 +34,8 @@ class dfa_state_pair
 public:
 
   typedef S state_type;
+
+  static constexpr int key_bits = int(2 * 8 * sizeof(S));
 
   dfa_state_pair()
     : left(0),
@@ -87,6 +93,24 @@ public:
   {
     return ((left == right_in.left) &&
             (right == right_in.right));
+  }
+
+  uint8_t key_byte_at_bit(int b) const
+  {
+    const S row[2] = {left, right};
+    return row_key_byte_at_bit<S, 2>(row, b);
+  }
+
+  int first_difference_bit(const dfa_state_pair& other, int b) const
+  {
+    const S row[2] = {left, right};
+    const S other_row[2] = {other.left, other.right};
+    return row_first_difference_bit<S, 2>(row, other_row, b);
+  }
+
+  bool key_less(const dfa_state_pair& b) const
+  {
+    return *this < b;
   }
 
   void check(size_t left_size, size_t right_size) const
