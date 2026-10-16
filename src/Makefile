@@ -47,6 +47,12 @@ TARGETS=build_backward build_bound_backward build_chess_database build_forward b
 
 all : $(TARGETS)
 
+# Every object is named as a target, so make keeps it after linking instead
+# of deleting it as an intermediate of a pattern rule. A library change then
+# relinks the programs without recompiling their objects.
+OBJECTS=$(patsubst %.cpp,%.o,$(wildcard *.cpp))
+$(OBJECTS) :
+
 clean :
 	$(RM) $(TARGETS) *.a *.o
 
