@@ -1522,8 +1522,8 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
   // compacting for it would rewrite nearly the whole file to save almost
   // nothing. Instead each filtered pair is written as a sentinel that sorts
   // after every real pair, as the pairs are built. The sort moves the
-  // sentinels to the end, where they are cut off before the one compaction,
-  // the unique after the sort, which removes about half the pairs.
+  // sentinels to the end, and the unique after it copies the distinct real
+  // pairs, about half of them, to the next layer's pairs file.
 
   // No real pair can equal this: next states are below the next layer's
   // size, and next_state_t was picked so they stay at or below
@@ -1565,24 +1565,97 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
     {
       throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " has " + std::to_string(working_end - working_begin) + " pairs before the sentinels after sorting, expected " + std::to_string(working_count - marked_count));
     }
+  size_t sorted_count = size_t(working_end - working_begin);
 
-  working_end = std::unique(working_begin, working_end);
+  // The distinct pairs are copied to a new file in parallel blocks: each
+  // block counts the pairs that differ from the one before them, a prefix
+  // sum of the counts gives each block's output offset, and each block then
+  // writes its pairs there. Both passes only read the sorted pairs.
+  size_t unique_block_size = std::max(sorted_count / (8 * std::max(size_t(std::thread::hardware_concurrency()), size_t(1))), size_t(1) << 16);
+  size_t unique_block_count = (sorted_count + unique_block_size - 1) / unique_block_size;
+  std::vector<size_t> unique_blocks(unique_block_count);
+  std::iota(unique_blocks.begin(), unique_blocks.end(), size_t(0));
 
-  std::cout << "pair count = " << (working_end - working_begin) << " (post sort unique)" << std::endl;
+  auto is_distinct = [&](size_t i)
+  {
+    return (i == 0) || (working_begin[i] != working_begin[i - 1]);
+  };
 
-  // the following truncate and rename to the next pairs file are to
-  // make the next pairs updates atomic and make restarts easier.
+  std::vector<size_t> unique_offsets(unique_block_count + 1, 0);
+  auto count_block = [&](size_t block)
+  {
+    size_t i_begin = block * unique_block_size;
+    size_t i_end = std::min(i_begin + unique_block_size, sorted_count);
+    size_t distinct = 0;
+    for(size_t i = i_begin; i < i_end; ++i)
+      {
+        distinct += is_distinct(i);
+      }
+    unique_offsets[block + 1] = distinct;
+  };
+  TRY_PARALLEL_3(std::for_each, unique_blocks.begin(), unique_blocks.end(), count_block);
+  std::partial_sum(unique_offsets.begin(), unique_offsets.end(), unique_offsets.begin());
+  size_t next_pairs_count = unique_offsets.back();
+
+  profile.tic("unique write");
+
+  MemoryMap<next_pair_t> next_pairs(binary_dir() + "/next_pairs_unique", next_pairs_count);
+
+  // Each block checks that it writes exactly its counted pairs, each greater
+  // than the one it wrote before.
+  std::atomic<bool> unique_write_failed(false);
+  auto write_block = [&](size_t block)
+  {
+    size_t i_begin = block * unique_block_size;
+    size_t i_end = std::min(i_begin + unique_block_size, sorted_count);
+    size_t o = unique_offsets[block];
+    size_t o_end = unique_offsets[block + 1];
+    for(size_t i = i_begin; i < i_end; ++i)
+      {
+        if(is_distinct(i))
+          {
+            if((o >= o_end) || ((o > unique_offsets[block]) && !(next_pairs[o - 1] < working_begin[i])))
+              {
+                unique_write_failed = true;
+                return;
+              }
+            next_pairs[o++] = working_begin[i];
+          }
+      }
+    if(o != o_end)
+      {
+        unique_write_failed = true;
+      }
+  };
+  TRY_PARALLEL_3(std::for_each, unique_blocks.begin(), unique_blocks.end(), write_block);
+  if(unique_write_failed)
+    {
+      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " unique pairs did not match their block counts or were not increasing");
+    }
+
+  // pairs across each block boundary increase too
+  for(size_t block = 1; block < unique_block_count; ++block)
+    {
+      size_t o = unique_offsets[block];
+      if((o > 0) && (o < next_pairs_count) && !(next_pairs[o - 1] < next_pairs[o]))
+        {
+          throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " unique pairs do not increase at offset " + std::to_string(o));
+        }
+    }
+
+  std::cout << "pair count = " << next_pairs_count << " (post sort unique)" << std::endl;
+
+  // the sorted pairs are dropped without flushing them, then the next pairs
+  // are flushed, and renamed into place so the next pairs update is atomic
+  // and restarts are easier.
+
+  profile.tic("unlink sorted");
+
+  curr_transition_pairs.unlink();
 
   profile.tic("munmap");
 
-  // this munmap is implied by the truncate, but separating to track
-  // the timing.
-  curr_transition_pairs.munmap();
-
-  profile.tic("truncate");
-
-  size_t next_pairs_count = working_end - working_begin;
-  curr_transition_pairs.truncate(next_pairs_count);
+  next_pairs.munmap();
 
   profile.tic("stats");
 
@@ -1599,13 +1672,13 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
   std::string next_pairs_name = memory_map_name(layer + 1, "pairs");
 
   // atomic swap into place
-  curr_transition_pairs.rename(next_pairs_name);
+  next_pairs.rename(next_pairs_name);
 
 #ifdef PARANOIA
   profile.tic("next pairs paranoia");
 
-  curr_transition_pairs.mmap();
-  assert(TRY_PARALLEL_2(std::is_sorted, curr_transition_pairs.begin(), curr_transition_pairs.end()));
+  next_pairs.mmap();
+  assert(TRY_PARALLEL_2(std::is_sorted, next_pairs.begin(), next_pairs.end()));
 #endif
 
   profile.tic("done");
