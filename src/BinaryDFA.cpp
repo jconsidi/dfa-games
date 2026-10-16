@@ -1518,23 +1518,12 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
   size_t next_left_size = left_in.get_layer_size(layer + 1);
   size_t next_right_size = right_in.get_layer_size(layer + 1);
 
-  profile.tic("transitions");
-
-  MemoryMap<next_pair_t> curr_transition_pairs = build_quadratic_transition_pairs<curr_pair_t, next_pair_t>(left_in, right_in, layer);
-
-  std::cout << "pair count = " << curr_transition_pairs.size() << " (original, " << sizeof(next_state_t) << " bytes per state)" << std::endl;
-
-  // Filtering and dropping adjacent duplicates both remove very few pairs
-  // here (0.04% and 0.008% at cram_7x7 layer 40), so compacting for them
-  // would rewrite nearly the whole file to save almost nothing. Instead
-  // overwrite those pairs in place with a sentinel that sorts after every
-  // real pair, which dirties only the pages holding them. The sort moves the
+  // Filtering removes very few pairs here (0.04% at cram_7x7 layer 40), so
+  // compacting for it would rewrite nearly the whole file to save almost
+  // nothing. Instead each filtered pair is written as a sentinel that sorts
+  // after every real pair, as the pairs are built. The sort moves the
   // sentinels to the end, where they are cut off before the one compaction,
   // the unique after the sort, which removes about half the pairs.
-
-  profile.tic("mark");
-
-  auto filter_func = get_filter_func();
 
   // No real pair can equal this: next states are below the next layer's
   // size, and next_state_t was picked so they stay at or below
@@ -1543,59 +1532,25 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
   assert(uint64_t(std::max(next_left_size, next_right_size) - 1) < uint64_t(sentinel_state));
   const next_pair_t sentinel(sentinel_state, sentinel_state);
 
-  auto working_begin = curr_transition_pairs.begin();
-  auto working_end = curr_transition_pairs.end();
-  size_t working_count = size_t(working_end - working_begin);
+  profile.tic("transitions");
 
-  // Each block is scanned serially, comparing every pair with the original
-  // value of the one before it. A block's first pair is not compared, since
-  // the pair before it belongs to another block that may be overwriting it.
-  // That misses at most one duplicate per block, which the unique after the
-  // sort removes anyway.
-  size_t block_size = std::max(working_count / (8 * std::max(size_t(std::thread::hardware_concurrency()), size_t(1))), size_t(1) << 16);
-  size_t block_count = (working_count + block_size - 1) / block_size;
-  std::vector<size_t> blocks(block_count);
-  std::iota(blocks.begin(), blocks.end(), size_t(0));
+  transition_pairs_marking<next_pair_t> marking;
+  marking.filter_func = get_filter_func();
+  marking.sentinel = sentinel;
+  MemoryMap<next_pair_t> curr_transition_pairs = build_quadratic_transition_pairs<curr_pair_t, next_pair_t>(left_in, right_in, layer, &marking);
 
-  std::atomic<bool> found_sentinel(false);
-  std::vector<size_t> block_marked(block_count, 0);
-  auto mark_block = [&](size_t block)
-  {
-    size_t i_begin = block * block_size;
-    size_t i_end = std::min(i_begin + block_size, working_count);
-    bool has_previous = false;
-    next_pair_t previous;
-    size_t marked = 0;
-    for(size_t i = i_begin; i < i_end; ++i)
-      {
-        next_pair_t current = working_begin[i];
-        if(current == sentinel)
-          {
-            found_sentinel = true;
-          }
+  std::cout << "pair count = " << curr_transition_pairs.size() << " (original, " << sizeof(next_state_t) << " bytes per state)" << std::endl;
 
-        bool filtered = filter_func(current.get_left_state(), current.get_right_state());
-        bool duplicate = has_previous && (current == previous);
-        if(filtered || duplicate)
-          {
-            working_begin[i] = sentinel;
-            ++marked;
-          }
-
-        previous = current;
-        has_previous = true;
-      }
-    block_marked[block] = marked;
-  };
-  TRY_PARALLEL_3(std::for_each, blocks.begin(), blocks.end(), mark_block);
-
-  if(found_sentinel)
+  if(marking.found_sentinel)
     {
       throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " transition pairs include the sentinel pair");
     }
 
-  size_t marked_count = std::accumulate(block_marked.begin(), block_marked.end(), size_t(0));
-  std::cout << "pair count = " << (working_count - marked_count) << " (filtered and pre sort unique, marked)" << std::endl;
+  auto working_begin = curr_transition_pairs.begin();
+  auto working_end = curr_transition_pairs.end();
+  size_t working_count = size_t(working_end - working_begin);
+  size_t marked_count = marking.marked;
+  std::cout << "pair count = " << (working_count - marked_count) << " (filtered, marked)" << std::endl;
 
   profile.tic("sort");
 
@@ -1661,7 +1616,8 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
 template <class curr_pair_t, class next_pair_t>
 MemoryMap<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& left_in,
                                                                    const DFA& right_in,
-                                                                   int layer)
+                                                                   int layer,
+                                                                   transition_pairs_marking<next_pair_t> *marking)
 {
   typedef typename next_pair_t::state_type next_state_t;
 
@@ -1716,7 +1672,20 @@ MemoryMap<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& le
     assert(curr_right_state < curr_right_size);
 
     DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
-    return next_pair_t(transition_pairs_left[transition_index], right_transitions.at(curr_j));
+    next_pair_t next_pair(transition_pairs_left[transition_index], right_transitions.at(curr_j));
+    if(marking)
+      {
+        if(next_pair == marking->sentinel)
+          {
+            marking->found_sentinel = true;
+          }
+        if(marking->filter_func(next_pair.get_left_state(), next_pair.get_right_state()))
+          {
+            ++marking->marked;
+            return marking->sentinel;
+          }
+      }
+    return next_pair;
   });
 
   // cleanup

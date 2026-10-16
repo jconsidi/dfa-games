@@ -3,6 +3,7 @@
 #ifndef BINARY_DFA_H
 #define BINARY_DFA_H
 
+#include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -162,8 +163,21 @@ class BinaryDFA : public DFA
   void build_linear(const DFA&, const DFA&);
 
   void build_quadratic(const DFA&, const DFA&);
+  // The forward pass's filter, applied while its transition pairs are
+  // built: each pair the filter matches is written as the sentinel instead
+  // and counted in marked. found_sentinel is set if a built pair equals the
+  // sentinel.
+  template <class next_pair_t>
+  struct transition_pairs_marking
+  {
+    std::function<bool(dfa_state_t, dfa_state_t)> filter_func;
+    next_pair_t sentinel;
+    std::atomic<size_t> marked{0};
+    std::atomic<bool> found_sentinel{false};
+  };
+
   template <class curr_pair_t, class next_pair_t>
-  MemoryMap<next_pair_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer);
+  MemoryMap<next_pair_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer, transition_pairs_marking<next_pair_t> *marking = nullptr);
 
   std::function<bool(dfa_state_t, dfa_state_t)> get_filter_func() const;
   std::function<dfa_state_t(dfa_state_t, dfa_state_t)> get_shortcircuit_func() const;
