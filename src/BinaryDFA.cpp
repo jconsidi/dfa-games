@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "Flashsort.h"
+#include "bucket_sort.h"
 #include "flash_sort.h"
 #include "MemoryMap.h"
 #include "Profile.h"
@@ -774,7 +775,9 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
 
   profile.tic("rows sort");
 
-  FlashSort<record_t>().sort(rows.begin(), rows.end());
+  // Every transition is a state of layer + 1, which places the out of core
+  // path's digit.
+  bucket_sort(rows, bucket_digit_bit(int(8 * sizeof(typename record_t::id_type)), this->get_layer_size(layer + 1)));
 
   profile.tic("states identification");
 
@@ -921,7 +924,9 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
 
     profile.tic("rank outputs sort");
 
-    FlashSort<rank_output_t>().sort(rank_outputs.begin(), rank_outputs.end());
+    // Ranks are below curr_layer_count, which places the out of core path's
+    // digit.
+    bucket_sort(rank_outputs, bucket_digit_bit(int(8 * sizeof(pair_rank_t)), curr_layer_count));
 
     profile.tic("rank outputs check");
 
@@ -1561,9 +1566,14 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
 
   profile.tic("sort");
 
-  // FlashSort orders pairs as operator< does, sentinels last, and throws
-  // if the result is not sorted.
-  FlashSort<next_pair_t>().sort(working_begin, working_end);
+  // Pairs sort as operator< orders them, sentinels last, and the sort
+  // throws if its result is not sorted. Real pairs' left states are below
+  // next_left_size, which places the out of core path's digit; the
+  // sentinels go to their own bucket. The file may be remapped, so the
+  // working range is taken again.
+  bucket_sort(curr_transition_pairs, bucket_digit_bit(int(8 * sizeof(next_state_t)), next_left_size), std::optional<next_pair_t>(sentinel));
+  working_begin = curr_transition_pairs.begin();
+  working_end = curr_transition_pairs.end();
 
   profile.tic("post-unique");
 
