@@ -555,7 +555,7 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
   size_t next_layer_count = 0;
   MemoryMap<next_pair_output_t> next_pair_outputs = [&]()
   {
-    const MemoryMap<next_pair_t> next_pairs = build_quadratic_read_pairs<next_pair_t>(layer + 1);
+    MemoryMap<next_pair_t> next_pairs = build_quadratic_read_pairs<next_pair_t>(layer + 1);
     next_layer_count = next_pairs.size();
     // A next layer without pairs is past the top of the backward pass, every
     // transition into it short circuits, and its outputs are the one entry
@@ -567,10 +567,17 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
       }
 
     profile.tic("next pair outputs");
-    return MemoryMap<next_pair_output_t>(binary_dir() + "/next_pair_outputs", next_layer_count, [&](size_t next_pair_rank)
+    MemoryMap<next_pair_output_t> merged(binary_dir() + "/next_pair_outputs", next_layer_count, [&](size_t next_pair_rank)
     {
       return next_pair_output_t{next_pairs[next_pair_rank], next_pair_rank_to_output[next_pair_rank]};
     });
+
+    // The merged file holds every next pair, and this is the last layer that
+    // reads them, so the next layer's pairs file is unlinked here.
+    profile.tic("unlink next pairs");
+    next_pairs.unlink();
+
+    return merged;
   }();
 
   profile.tic("next pair index");
