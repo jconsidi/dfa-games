@@ -85,6 +85,29 @@ by a shared fixed name) and that redesign is out of scope for pid-scoping
   cannot be expected to know a directory is "still wanted" by a restart that
   has not happened yet.
 
+## live garbage collection
+
+`gc.pl` is only safe while no solver is running.
+A live solver holds DFAs that only `*_cache` links name, which gc deletes, and it unmaps DFAs and reopens them by path.
+So every DFA a solve stops needing keeps its disk until the solve is stopped by hand for gc.
+
+The biggest case is `MoveGraph`'s join outputs.
+Each join's inputs are released (their `move_nodes` links unlinked) once the join is built, but their files stay until the next gc.
+In cram_7x7, building `begin.join_0_16` releases `begin.join_0_8` and `begin.join_8_16`, 442 GB and 560 GB.
+
+The idea is to flag a DFA as ephemeral when it is built, and restrict how it may be saved, so its builder can delete it safely itself:
+
+- An ephemeral DFA's file is named only by links its builder controls, so releasing those links can delete the file at once, with no gc pass needed.
+- Any save that would give it another name, such as `save_durable`, a `union_cache` entry or a link from another game, throws, unless it is first explicitly promoted to an ordinary DFA.
+- Releasing one checks that it has no other names before deleting it, and throws if it does.
+
+What the design has to settle:
+
+- **Content addressing.** `dfas_by_hash/<sha256>.dfa` is shared by every name with the same contents. An ephemeral DFA whose hash matches an existing ordinary DFA, or one saved later, must not delete the shared file. It needs either its own file outside `dfas_by_hash` or a check at release time that nothing else links the hash.
+- **Restart.** Restarts resume from saved join outputs today: the restart at de312f2 reloaded `begin.join_0_8` and `begin.join_8_16` from their `move_nodes` links. An ephemeral output still has to survive the process until its parent is built, so a crash before then must leave it loadable, and gc must still clean it up once released.
+- **Caches.** `get_union` saves every result under `union_cache/`, and gc deletes those entries only up to the newest `move_nodes` link. An ephemeral output must not get that entry, or must have it removed when it is released.
+- **Who is ephemeral.** Join outputs are the clear candidates. Anything a later ply or a verifier reads must stay ordinary.
+
 ## tests
 
 - solution tests
