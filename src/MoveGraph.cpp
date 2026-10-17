@@ -762,7 +762,7 @@ int move_graph_max_fan_in()
   const char *value = std::getenv(env_max_fan_in);
   if(!value)
     {
-      return 8;
+      return 2;
     }
 
   std::string value_string(value);

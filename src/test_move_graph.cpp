@@ -147,9 +147,9 @@ void test_max_fan_in_env()
   const char *name = "DFA_MOVE_GRAPH_MAX_FAN_IN";
 
   unsetenv(name);
-  if((move_graph_max_fan_in() != 8) || !move_graph_max_fan_in_is_default())
+  if((move_graph_max_fan_in() != 2) || !move_graph_max_fan_in_is_default())
     {
-      throw std::logic_error("test_max_fan_in_env: unset did not give the default 8");
+      throw std::logic_error("test_max_fan_in_env: unset did not give the default 2");
     }
 
   setenv(name, "3", 1);

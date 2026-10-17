@@ -68,7 +68,7 @@ class MoveGraph
 };
 
 // Largest in-degree GameBase leaves on a move graph node (see
-// split_joins). Read from DFA_MOVE_GRAPH_MAX_FAN_IN, default 8. Throws if
+// split_joins). Read from DFA_MOVE_GRAPH_MAX_FAN_IN, default 2. Throws if
 // the variable is set to anything but an integer of at least 2.
 int move_graph_max_fan_in();
 bool move_graph_max_fan_in_is_default();
