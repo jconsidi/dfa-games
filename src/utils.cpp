@@ -1,9 +1,13 @@
 // util.cpp
 
+#include <algorithm>
 #include <bit>
 #include <cassert>
+#include <cerrno>
 #include <climits>
 #include <format>
+#include <stdexcept>
+#include <system_error>
 #include <unistd.h>
 
 #include "utils.h"
@@ -124,6 +128,56 @@ void write_buffer(int fildes, const T *buffer, size_t elements)
     }
 
   assert(bytes_written == bytes_wanted);
+}
+
+void pwrite_bytes(int fildes, const void *buffer, size_t bytes, size_t offset, size_t bytes_per_call_max)
+{
+  if(bytes_per_call_max == 0)
+    {
+      throw std::invalid_argument("pwrite_bytes: bytes_per_call_max must be positive");
+    }
+
+  const char *buffer_bytes = static_cast<const char *>(buffer);
+  size_t bytes_written = 0;
+  while(bytes_written < bytes)
+    {
+      size_t bytes_next = std::min({bytes - bytes_written, bytes_per_call_max, size_t(INT_MAX)});
+      ssize_t ret = pwrite(fildes, buffer_bytes + bytes_written, bytes_next, off_t(offset + bytes_written));
+      if(ret < 0)
+        {
+          throw std::system_error(errno, std::generic_category(), std::format("pwrite of {:d} bytes at offset {:d} failed", bytes_next, offset + bytes_written));
+        }
+      if(ret == 0)
+        {
+          throw std::runtime_error(std::format("pwrite of {:d} bytes at offset {:d} wrote nothing", bytes_next, offset + bytes_written));
+        }
+      bytes_written += size_t(ret);
+    }
+}
+
+void pread_bytes(int fildes, void *buffer, size_t bytes, size_t offset, size_t bytes_per_call_max)
+{
+  if(bytes_per_call_max == 0)
+    {
+      throw std::invalid_argument("pread_bytes: bytes_per_call_max must be positive");
+    }
+
+  char *buffer_bytes = static_cast<char *>(buffer);
+  size_t bytes_read = 0;
+  while(bytes_read < bytes)
+    {
+      size_t bytes_next = std::min({bytes - bytes_read, bytes_per_call_max, size_t(INT_MAX)});
+      ssize_t ret = pread(fildes, buffer_bytes + bytes_read, bytes_next, off_t(offset + bytes_read));
+      if(ret < 0)
+        {
+          throw std::system_error(errno, std::generic_category(), std::format("pread of {:d} bytes at offset {:d} failed", bytes_next, offset + bytes_read));
+        }
+      if(ret == 0)
+        {
+          throw std::runtime_error(std::format("pread of {:d} bytes at offset {:d} reached end of file after {:d} of {:d} bytes", bytes_next, offset + bytes_read, bytes_read, bytes));
+        }
+      bytes_read += size_t(ret);
+    }
 }
 
 // template instantiations
