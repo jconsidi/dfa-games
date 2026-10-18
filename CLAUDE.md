@@ -242,6 +242,10 @@ serial:
 These are macros, so a lambda argument containing a top-level comma (e.g.
 `std::pair<size_t, uint64_t>`) will not compile. Name the lambda first.
 
+An exception escaping a parallel algorithm terminates the process.
+`parallel_for(n, f)` in `parallel.h` calls `f(i)` for each `i` in `[0, n)` in parallel, and rethrows the first exception once every call has returned.
+Use it wherever a parallel callable can throw.
+
 Thread-safety rules that hold today:
 
 - The DFA read path is safe **provided `DFA::mmap()` runs before threads start**.

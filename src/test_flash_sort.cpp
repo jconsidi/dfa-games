@@ -621,7 +621,7 @@ static size_t check_record_sink(const std::string& name, const std::vector<T>& i
       runs.push_back(begin);
     }
   std::shuffle(runs.begin(), runs.end(), std::mt19937_64(input.size()));
-  bucket_parallel_for(runs.size(), [&](size_t k)
+  parallel_for(runs.size(), [&](size_t k)
   {
     size_t begin = runs[k];
     size_t n = std::min(run, input.size() - begin);

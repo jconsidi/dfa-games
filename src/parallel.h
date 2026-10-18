@@ -23,4 +23,50 @@
 #define TRY_PARALLEL_6(f, a, b, c, d, e, g) f(a, b, c, d, e, g)
 #endif
 
+#include <algorithm>
+#include <atomic>
+#include <cstddef>
+#include <exception>
+#include <mutex>
+#include <numeric>
+#include <vector>
+
+// Calls f(i) for i in [0, n) in parallel. An exception escaping a parallel
+// algorithm terminates the process, so the first one is kept and thrown
+// once every call has returned.
+template <class F>
+void parallel_for(size_t n, F f)
+{
+  std::vector<size_t> indexes(n);
+  std::iota(indexes.begin(), indexes.end(), size_t(0));
+  std::atomic<bool> failed(false);
+  std::exception_ptr failure;
+  std::mutex failure_mutex;
+  auto body = [&](size_t i)
+  {
+    if(failed)
+      {
+        return;
+      }
+    try
+      {
+        f(i);
+      }
+    catch(...)
+      {
+        std::lock_guard<std::mutex> lock(failure_mutex);
+        if(!failure)
+          {
+            failure = std::current_exception();
+          }
+        failed = true;
+      }
+  };
+  TRY_PARALLEL_3(std::for_each, indexes.begin(), indexes.end(), body);
+  if(failure)
+    {
+      std::rethrow_exception(failure);
+    }
+}
+
 #endif

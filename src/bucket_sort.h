@@ -1142,44 +1142,6 @@ inline size_t sorted_block_records(size_t record_bytes)
   return std::clamp(bucket_sort_memory_bytes() / 4 / threads / (2 * record_bytes), size_t(1), size_t(1) << 20);
 }
 
-// Calls f(i) for i in [0, n) in parallel. An exception escaping a parallel
-// algorithm terminates the process, so the first one is kept and thrown
-// once every call has returned.
-template <class F>
-void bucket_parallel_for(size_t n, F f)
-{
-  std::vector<size_t> indexes(n);
-  std::iota(indexes.begin(), indexes.end(), size_t(0));
-  std::atomic<bool> failed(false);
-  std::exception_ptr failure;
-  std::mutex failure_mutex;
-  auto body = [&](size_t i)
-  {
-    if(failed)
-      {
-        return;
-      }
-    try
-      {
-        f(i);
-      }
-    catch(...)
-      {
-        std::lock_guard<std::mutex> lock(failure_mutex);
-        if(!failure)
-          {
-            failure = std::current_exception();
-          }
-        failed = true;
-      }
-  };
-  TRY_PARALLEL_3(std::for_each, indexes.begin(), indexes.end(), body);
-  if(failure)
-    {
-      std::rethrow_exception(failure);
-    }
-}
-
 // A block of a run: where it starts in key order, its length, its count,
 // and the counts of every block before it.
 struct SortedBlock
@@ -1211,7 +1173,7 @@ std::vector<SortedBlock> sorted_count_run(std::span<const T> run, size_t offset,
   size_t block_records = sorted_block_records(sizeof(T));
   size_t block_count = (run.size() + block_records - 1) / block_records;
   std::vector<SortedBlock> blocks(block_count);
-  bucket_parallel_for(block_count, [&](size_t k)
+  parallel_for(block_count, [&](size_t k)
   {
     size_t begin = k * block_records;
     size_t n = std::min(block_records, run.size() - begin);
@@ -1227,7 +1189,7 @@ template <class T, class Emit>
 void sorted_emit_run(std::span<const T> run, const T *before_run, const std::vector<SortedBlock>& blocks, Emit& emit)
 {
   size_t run_offset = blocks.empty() ? 0 : blocks.front().offset;
-  bucket_parallel_for(blocks.size(), [&](size_t k)
+  parallel_for(blocks.size(), [&](size_t k)
   {
     const SortedBlock& block = blocks[k];
     size_t begin = block.offset - run_offset;
@@ -1416,7 +1378,7 @@ public:
       }
     try
       {
-        bucket_parallel_for(blocks.size(), [&](size_t k)
+        parallel_for(blocks.size(), [&](size_t k)
         {
           const SortedBlock& block = blocks[k];
           // the block with the record before it
