@@ -234,6 +234,8 @@ protected:
   DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<next_id_t>&, bool curr_pairs_wide);
   template <class record_t, class F>
   DFAStateIdMap build_quadratic_backward_layer_rows(int layer, size_t curr_layer_count, const F& transition_for, const std::function<void()>& release_inputs, const std::string& state_bytes, Profile& profile);
+  template <class record_t, class F>
+  DFAStateIdMap build_quadratic_backward_layer_rows_streamed(int layer, size_t curr_layer_count, const F& transition_for, const std::function<void()>& release_inputs, const std::string& state_bytes, Profile& profile);
   template <bool wide, class next_id_t, class F>
   DFAStateIdMap build_quadratic_backward_layer_hashed(int layer, size_t curr_layer_count, bool key_narrow, const F& transition_for, const std::function<void()>& release_inputs, const std::string& state_bytes, Profile& profile);
   template <class curr_id_t, class pair_rank_t>

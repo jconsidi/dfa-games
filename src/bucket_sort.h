@@ -885,12 +885,23 @@ void for_each_bucket(BucketFiles<T>&& files, size_t base_offset, Process& proces
     }
 }
 
+// Calls back on each sorted piece as bucket_sort_write_back writes it:
+// sorted(offset, records) in parallel, once a piece is sorted, and
+// committed(offset, records) in key order. Either may be empty.
+template <class T>
+struct BucketObserver
+{
+  std::function<void(size_t, std::span<const T>)> sorted;
+  std::function<void(size_t, std::span<const T>)> committed;
+};
+
 // Sorts each piece in memory and writes it to the file at path at its
 // offset, checking that each piece's first key is not less than the
 // previous piece's last key. path must hold files.total() records' worth
-// of bytes. Fills in the counts in stats.
+// of bytes. Fills in the counts in stats. observer, if given, sees each
+// sorted piece.
 template <class T>
-void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, BucketSortStats& stats)
+void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, BucketSortStats& stats, const BucketObserver<T> *observer = nullptr)
 {
   int fd = ::open(path.c_str(), O_WRONLY);
   if(fd < 0)
@@ -906,9 +917,13 @@ void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, Buc
   {
     FlashSort<T>().sort(records.data(), records.data() + records.size());
     pwrite_bytes(fd, records.data(), records.size() * sizeof(T), offset * sizeof(T));
+    if(observer && observer->sorted)
+      {
+        observer->sorted(offset, std::span<const T>(records.data(), records.size()));
+      }
     return std::make_tuple(records.front(), records.back(), records.size());
   };
-  auto commit = [&](size_t offset, std::tuple<T, T, size_t> summary, std::span<T>)
+  auto commit = [&](size_t offset, std::tuple<T, T, size_t> summary, std::span<T> records)
   {
     const auto& [first, last, n] = summary;
     if(offset != written)
@@ -925,6 +940,10 @@ void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, Buc
       }
     previous_last = last;
     written += n;
+    if(observer && observer->committed)
+      {
+        observer->committed(offset, std::span<const T>(records.data(), records.size()));
+      }
   };
 
   size_t total = files.total();
@@ -998,9 +1017,10 @@ struct PopulatedRecords
 // ever being written to path in index order. With keep_buckets, the bucket
 // files are returned instead, unsorted, for the caller to pass to
 // for_each_bucket, and nothing is written to path. digit_bit and sentinel
-// are as for bucket_sort.
+// are as for bucket_sort. observer, if given, sees each sorted piece as it
+// is written to path.
 template <class T, class AfterPopulate>
-PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const std::function<T(size_t)>& populate, int digit_bit, std::optional<T> sentinel, AfterPopulate after_populate, bool keep_buckets = false)
+PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const std::function<T(size_t)>& populate, int digit_bit, std::optional<T> sentinel, AfterPopulate after_populate, bool keep_buckets = false, const BucketObserver<T> *observer = nullptr)
 {
   if((count == 0) || !bucket_sort_out_of_core(count * sizeof(T)))
     {
@@ -1036,7 +1056,7 @@ PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const
 
   MemoryMap<T> map(path, count);
   map.munmap();
-  bucket_sort_write_back(std::move(files), path, stats);
+  bucket_sort_write_back(std::move(files), path, stats, observer);
 
   profile.tic("mmap");
 

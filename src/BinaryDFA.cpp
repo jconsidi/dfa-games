@@ -744,6 +744,399 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
   return build_quadratic_backward_layer_hashed<wide, next_id_t>(layer, curr_layer_count, key_narrow, transition_for, release_inputs, state_bytes, profile);
 }
 
+// Writes the output ids of rank output records, held in bucket files split
+// on the rank's high bits, to a new file of count ids at output_name, each
+// at its rank. The ranks must be a permutation of 0 to count - 1, so the
+// bucket offset records in holds ranks offset to offset + n exactly. Each
+// bucket moves every record to rank - offset in place, following the
+// permutation's cycles, and throws on a rank out of range or found twice,
+// so every rank is proven present once. Its output ids are then written at
+// offset, which buckets do in parallel.
+template <class rank_output_t, class curr_id_t>
+static MemoryMap<curr_id_t> scatter_rank_buckets(BucketFiles<rank_output_t>&& files, size_t count, int layer, const std::string& output_name, BucketSortStats& stats)
+{
+  int fd = ::open(output_name.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+  if(fd < 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "BinaryDFA: open " + output_name);
+    }
+  if(::ftruncate(fd, off_t(count * sizeof(curr_id_t))) != 0)
+    {
+      int saved_errno = errno;
+      ::close(fd);
+      throw std::system_error(saved_errno, std::generic_category(), "BinaryDFA: ftruncate " + output_name);
+    }
+
+  size_t ranks_seen = 0;
+  auto process = [&](size_t offset, std::span<rank_output_t> records)
+  {
+    size_t n = records.size();
+    auto slot_of = [&](const rank_output_t& record)
+    {
+      size_t rank = size_t(record.row[0]);
+      if((rank < offset) || (rank - offset >= n))
+        {
+          throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs bucket of ranks " + std::to_string(offset) + " to " + std::to_string(offset + n) + " holds rank " + std::to_string(rank) + ", so a pair rank is missing or repeated");
+        }
+      return rank - offset;
+    };
+    for(size_t i = 0; i < n; ++i)
+      {
+        for(size_t t = slot_of(records[i]); t != i; t = slot_of(records[i]))
+          {
+            if(slot_of(records[t]) == t)
+              {
+                throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs hold pair rank " + std::to_string(offset + t) + " twice");
+              }
+            std::swap(records[i], records[t]);
+          }
+      }
+
+    std::vector<curr_id_t> ids;
+    const size_t ids_max = size_t(1) << 17;
+    for(size_t begin = 0; begin < n; begin += ids_max)
+      {
+        size_t m = std::min(ids_max, n - begin);
+        ids.resize(m);
+        for(size_t j = 0; j < m; ++j)
+          {
+            ids[j] = records[begin + j].rank;
+          }
+        pwrite_bytes(fd, ids.data(), m * sizeof(curr_id_t), (offset + begin) * sizeof(curr_id_t));
+      }
+    return n;
+  };
+  auto commit = [&](size_t offset, size_t n, std::span<rank_output_t>)
+  {
+    if(offset != ranks_seen)
+      {
+        throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs bucket at rank " + std::to_string(offset) + " follows " + std::to_string(ranks_seen) + " ranks");
+      }
+    ranks_seen += n;
+  };
+
+  try
+    {
+      for_each_bucket<rank_output_t>(std::move(files), 0, process, commit, stats, 0);
+    }
+  catch(...)
+    {
+      ::close(fd);
+      throw;
+    }
+  if(::close(fd) != 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "BinaryDFA: close " + output_name);
+    }
+  if(ranks_seen != count)
+    {
+      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs held " + std::to_string(ranks_seen) + " ranks, expected " + std::to_string(count));
+    }
+
+  return MemoryMap<curr_id_t>(output_name);
+}
+
+// The row sort path above the bucket sort cutoff. The rows go straight to
+// bucket files and are sorted bucket by bucket into rows, with each sorted
+// bucket's new states counted while it is in memory, per fixed block of
+// rows. The block counts give the layer size and each block's first new
+// state id, so one sequential pass over rows, in parallel by block, numbers
+// every row as the in-memory path does (0 or 1 for a constant row, the
+// previous row's id for a repeat, else the next id), writes each new state's
+// row to state_rows in id order, and writes each row's rank and id to rank
+// buckets. build_layer then reads state_rows in id order, and the rank
+// buckets scatter into pair_rank_to_output.
+template <class record_t, class F>
+DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows_streamed(int layer,
+                                                                      size_t curr_layer_count,
+                                                                      const F& transition_for,
+                                                                      const std::function<void()>& release_inputs,
+                                                                      const std::string& state_bytes,
+                                                                      Profile& profile)
+{
+  constexpr int shape = record_t::row_shape;
+  typedef typename record_t::rank_type pair_rank_t;
+  typedef typename record_t::id_type next_id_t;
+  assert(shape == this->get_layer_shape(layer));
+
+  int rows_digit_bit = bucket_digit_bit(int(8 * sizeof(next_id_t)), this->get_layer_size(layer + 1));
+  std::function<record_t(size_t)> make_row = [&](size_t curr_pair_rank)
+  {
+    record_t record;
+    for(int j = 0; j < shape; ++j)
+      {
+        record.row[j] = transition_for(curr_pair_rank * shape + size_t(j));
+      }
+    record.rank = pair_rank_t(curr_pair_rank);
+    return record;
+  };
+
+  // 0 or 1 for a row of all reject or all accept transitions, else -1.
+  auto constant_of = [](const record_t& record) -> int
+  {
+    if(record.row[0] >= 2)
+      {
+        return -1;
+      }
+    for(int j = 1; j < shape; ++j)
+      {
+        if(record.row[j] != record.row[0])
+          {
+            return -1;
+          }
+      }
+    return int(record.row[0]);
+  };
+
+  size_t threads = std::max(size_t(std::thread::hardware_concurrency()), size_t(1));
+  size_t memory = bucket_sort_memory_bytes();
+  // Blocks of up to 2^20 rows, smaller when the in-core limit is: each
+  // stream worker holds one block of rows, and its new states' rows.
+  size_t block_rows = std::clamp(memory / 4 / threads / (2 * sizeof(record_t)), size_t(1), size_t(1) << 20);
+  size_t block_count = (curr_layer_count + block_rows - 1) / block_rows;
+
+  // New states starting in each block. A sorted piece counts a row as new
+  // when it is not constant and differs from the row before it in the
+  // piece, counting its first row as new; the commit, in key order, takes
+  // that back when the first row repeats the previous piece's last.
+  std::vector<std::atomic<size_t>> block_new(block_count);
+  std::optional<record_t> previous_last;
+  BucketObserver<record_t> observer;
+  observer.sorted = [&](size_t offset, std::span<const record_t> records)
+  {
+    size_t block = offset / block_rows;
+    size_t count = 0;
+    for(size_t i = 0; i < records.size(); ++i)
+      {
+        if((offset + i) / block_rows != block)
+          {
+            block_new[block] += count;
+            count = 0;
+            block = (offset + i) / block_rows;
+          }
+        if((constant_of(records[i]) < 0) && ((i == 0) || !records[i - 1].row_equal(records[i])))
+          {
+            ++count;
+          }
+      }
+    block_new[block] += count;
+  };
+  observer.committed = [&](size_t offset, std::span<const record_t> records)
+  {
+    if(previous_last && (constant_of(records[0]) < 0) && records[0].row_equal(*previous_last))
+      {
+        --block_new[offset / block_rows];
+      }
+    previous_last = records.back();
+  };
+
+  PopulatedRecords<record_t> populated_rows = bucket_populate<record_t>(binary_dir() + "/rows", curr_layer_count, make_row, rows_digit_bit, std::nullopt, release_inputs, false, &observer);
+  if(!populated_rows.sorted)
+    {
+      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rows were not sorted through bucket files");
+    }
+  MemoryMap<record_t> rows = std::move(*populated_rows.map);
+  rows.munmap();
+  std::string rows_name = rows.filename();
+
+  std::vector<size_t> block_start(block_count + 1, 0);
+  for(size_t k = 0; k < block_count; ++k)
+    {
+      block_start[k + 1] = block_start[k] + block_new[k];
+    }
+  size_t new_states = block_start[block_count];
+  size_t layer_size = new_states + 2;
+
+  return with_state_type(dfa_state_count_is_wide(layer_size), [&](auto curr_tag) -> DFAStateIdMap
+  {
+    typedef typename decltype(curr_tag)::type curr_id_t;
+    typedef RankOutputRecord<pair_rank_t, curr_id_t> rank_output_t;
+
+    profile.tic("rows stream");
+
+    int ranks_digit_bit = bucket_digit_bit(int(8 * sizeof(pair_rank_t)), curr_layer_count);
+    BucketSpec<rank_output_t> rank_spec = make_bucket_spec<rank_output_t>(curr_layer_count, bucket_first_digit_bit<rank_output_t>(ranks_digit_bit), rank_output_t(), std::nullopt);
+    BucketAppender<rank_output_t> rank_appender(binary_dir(), "rank_outputs.bucket", rank_spec, threads, memory / 2);
+
+    std::string state_rows_name = binary_dir() + "/state_rows";
+    size_t state_row_bytes = size_t(shape) * sizeof(next_id_t);
+    int states_fd = ::open(state_rows_name.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    if(states_fd < 0)
+      {
+        throw std::system_error(errno, std::generic_category(), "BinaryDFA: open " + state_rows_name);
+      }
+    if(::ftruncate(states_fd, off_t(new_states * state_row_bytes)) != 0)
+      {
+        int saved_errno = errno;
+        ::close(states_fd);
+        throw std::system_error(saved_errno, std::generic_category(), "BinaryDFA: ftruncate " + state_rows_name);
+      }
+    int rows_fd = ::open(rows_name.c_str(), O_RDONLY);
+    if(rows_fd < 0)
+      {
+        int saved_errno = errno;
+        ::close(states_fd);
+        throw std::system_error(saved_errno, std::generic_category(), "BinaryDFA: open " + rows_name);
+      }
+
+    std::atomic<size_t> next_block(0);
+    std::atomic<bool> failed(false);
+    std::exception_ptr failure;
+    std::mutex failure_mutex;
+
+    auto work = [&]()
+    {
+      try
+        {
+          typename BucketAppender<rank_output_t>::Writer writer(rank_appender);
+          std::vector<record_t> records(std::min(block_rows, curr_layer_count));
+          std::vector<next_id_t> state_rows;
+          state_rows.reserve(records.size() * size_t(shape));
+          for(size_t k = next_block++; (k < block_count) && !failed; k = next_block++)
+            {
+              size_t begin = k * block_rows;
+              size_t n = std::min(block_rows, curr_layer_count - begin);
+              pread_bytes(rows_fd, records.data(), n * sizeof(record_t), begin * sizeof(record_t));
+
+              // The row before the block, and its id: a constant, or the last
+              // new state numbered before the block.
+              std::optional<record_t> previous;
+              curr_id_t previous_id = 0;
+              if(k > 0)
+                {
+                  record_t before;
+                  pread_bytes(rows_fd, &before, sizeof(record_t), (begin - 1) * sizeof(record_t));
+                  previous = before;
+                  int constant = constant_of(before);
+                  previous_id = (constant >= 0) ? curr_id_t(constant) : curr_id_t(1 + block_start[k]);
+                }
+
+              size_t next_id = 2 + block_start[k];
+              state_rows.clear();
+              for(size_t i = 0; i < n; ++i)
+                {
+                  const record_t& record = records[i];
+                  const record_t *before = (i > 0) ? &records[i - 1] : (previous ? &*previous : nullptr);
+                  int constant = constant_of(record);
+                  curr_id_t id;
+                  if(constant >= 0)
+                    {
+                      id = curr_id_t(constant);
+                    }
+                  else if(before && before->row_equal(record))
+                    {
+                      id = previous_id;
+                    }
+                  else
+                    {
+                      id = curr_id_t(next_id++);
+                      state_rows.insert(state_rows.end(), record.row, record.row + shape);
+                    }
+                  previous_id = id;
+
+                  rank_output_t rank_record;
+                  rank_record.row[0] = record.rank;
+                  rank_record.rank = id;
+                  size_t bucket = rank_spec.bucket_of(rank_record);
+                  if(bucket == BucketSpec<rank_output_t>::invalid_bucket)
+                    {
+                      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " row " + std::to_string(begin + i) + " has rank " + std::to_string(record.rank) + ", not below the " + std::to_string(curr_layer_count) + " pairs");
+                    }
+                  writer.append(bucket, rank_record);
+                }
+
+              size_t found = next_id - 2 - block_start[k];
+              if(found != block_start[k + 1] - block_start[k])
+                {
+                  throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rows block " + std::to_string(k) + " holds " + std::to_string(found) + " new states, but " + std::to_string(block_start[k + 1] - block_start[k]) + " were counted while sorting");
+                }
+              pwrite_bytes(states_fd, state_rows.data(), state_rows.size() * sizeof(next_id_t), block_start[k] * state_row_bytes);
+            }
+          writer.flush_all();
+        }
+      catch(...)
+        {
+          std::lock_guard<std::mutex> lock(failure_mutex);
+          if(!failure)
+            {
+              failure = std::current_exception();
+            }
+          failed = true;
+        }
+    };
+
+    std::vector<std::thread> workers;
+    for(size_t t = 0; t < threads; ++t)
+      {
+        workers.emplace_back(work);
+      }
+    for(std::thread& worker : workers)
+      {
+        worker.join();
+      }
+
+    int rows_close = ::close(rows_fd);
+    int states_close = ::close(states_fd);
+    if(failure)
+      {
+        BucketFiles<rank_output_t> abandoned = rank_appender.abandon();
+        std::rethrow_exception(failure);
+      }
+    if((rows_close != 0) || (states_close != 0))
+      {
+        BucketFiles<rank_output_t> abandoned = rank_appender.abandon();
+        throw std::system_error(errno, std::generic_category(), "BinaryDFA: close " + rows_name + " or " + state_rows_name);
+      }
+    BucketFiles<rank_output_t> rank_files = rank_appender.finish();
+    if(rank_files.total() != curr_layer_count)
+      {
+        throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank buckets hold " + std::to_string(rank_files.total()) + " records, expected " + std::to_string(curr_layer_count));
+      }
+
+    std::cout << "layer=" << layer << " rows: " << curr_layer_count << " rows streamed once in sorted order in " << block_count << " blocks, " << new_states << " new states, each block's count matching the one made while sorting" << std::endl;
+
+    profile.tic("unlink rows");
+
+    rows.unlink();
+
+    profile.tic("states write");
+
+    MemoryMap<next_id_t> state_rows(state_rows_name);
+    if(state_rows.size() != new_states * size_t(shape))
+      {
+        throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " state_rows holds " + std::to_string(state_rows.size()) + " ids, expected " + std::to_string(new_states * size_t(shape)));
+      }
+    const next_id_t *state_rows_data = (new_states > 0) ? state_rows.begin() : nullptr;
+    auto populate_transitions = [&](dfa_state_t new_state_id, dfa_state_t *transitions_out)
+    {
+      assert((2 <= new_state_id) && (new_state_id < layer_size));
+      const next_id_t *row = state_rows_data + size_t(new_state_id - 2) * size_t(shape);
+      for(int j = 0; j < shape; ++j)
+        {
+          transitions_out[j] = dfa_state_t(row[j]);
+        }
+    };
+
+    build_layer(layer, layer_size, populate_transitions);
+
+    profile.tic("unlink state_rows");
+
+    state_rows.unlink();
+
+    profile.tic("rank scatter");
+
+    std::string output_name = binary_build_file_prefix(layer) + "-pair_rank_to_output";
+    BucketSortStats rank_stats;
+    MemoryMap<curr_id_t> curr_pair_rank_to_output = scatter_rank_buckets<rank_output_t, curr_id_t>(std::move(rank_files), curr_layer_count, layer, output_name, rank_stats);
+
+    std::cout << "layer=" << layer << " pair_rank_to_output: " << curr_layer_count << " ranks written in order after a bucketed scatter, every rank found once; " << rank_stats.repartitioned << " buckets partitioned again, to depth " << rank_stats.depth << "; state bytes: " << state_bytes << ", " << sizeof(curr_id_t) << " ids, rows streamed" << std::endl;
+
+    profile.tic("cleanup");
+
+    return DFAStateIdMap(std::move(curr_pair_rank_to_output));
+  });
+}
+
 // The row sort path of build_quadratic_backward_layer: each pair's row and
 // rank as one record, sorted by the row, so equal rows are found exactly
 // and every step after the sort reads the rows in order. States are
@@ -756,6 +1149,11 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
                                                              const std::string& state_bytes,
                                                              Profile& profile)
 {
+  if(bucket_sort_out_of_core(curr_layer_count * sizeof(record_t)))
+    {
+      return build_quadratic_backward_layer_rows_streamed<record_t>(layer, curr_layer_count, transition_for, release_inputs, state_bytes, profile);
+    }
+
   constexpr int shape = record_t::row_shape;
   typedef typename record_t::rank_type pair_rank_t;
   assert(shape == this->get_layer_shape(layer));
@@ -937,97 +1335,14 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
 
     if(populated_ranks.buckets)
       {
-        // The ranks are a permutation of 0 to curr_layer_count - 1, and
-        // buckets split on their high bits, so the bucket offset records in
-        // holds ranks offset to offset + n exactly. Each bucket moves every
-        // record to rank - offset in place, following the permutation's
-        // cycles, and throws on a rank out of range or found twice, so every
-        // rank is proven present once. Its output ids are then written at
-        // offset, which buckets do in parallel.
+        // The ranks are a permutation, so their buckets scatter straight into
+        // pair_rank_to_output.
         profile.tic("rank scatter");
 
         std::string output_name = binary_build_file_prefix(layer) + "-pair_rank_to_output";
-        int fd = ::open(output_name.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
-        if(fd < 0)
-          {
-            throw std::system_error(errno, std::generic_category(), "BinaryDFA: open " + output_name);
-          }
-        if(::ftruncate(fd, off_t(curr_layer_count * sizeof(curr_id_t))) != 0)
-          {
-            int saved_errno = errno;
-            ::close(fd);
-            throw std::system_error(saved_errno, std::generic_category(), "BinaryDFA: ftruncate " + output_name);
-          }
-
-        size_t ranks_seen = 0;
-        auto process = [&](size_t offset, std::span<rank_output_t> records)
-        {
-          size_t n = records.size();
-          auto slot_of = [&](const rank_output_t& record)
-          {
-            size_t rank = size_t(record.row[0]);
-            if((rank < offset) || (rank - offset >= n))
-              {
-                throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs bucket of ranks " + std::to_string(offset) + " to " + std::to_string(offset + n) + " holds rank " + std::to_string(rank) + ", so a pair rank is missing or repeated");
-              }
-            return rank - offset;
-          };
-          for(size_t i = 0; i < n; ++i)
-            {
-              for(size_t t = slot_of(records[i]); t != i; t = slot_of(records[i]))
-                {
-                  if(slot_of(records[t]) == t)
-                    {
-                      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs hold pair rank " + std::to_string(offset + t) + " twice");
-                    }
-                  std::swap(records[i], records[t]);
-                }
-            }
-
-          std::vector<curr_id_t> ids;
-          const size_t ids_max = size_t(1) << 17;
-          for(size_t begin = 0; begin < n; begin += ids_max)
-            {
-              size_t m = std::min(ids_max, n - begin);
-              ids.resize(m);
-              for(size_t j = 0; j < m; ++j)
-                {
-                  ids[j] = records[begin + j].rank;
-                }
-              pwrite_bytes(fd, ids.data(), m * sizeof(curr_id_t), (offset + begin) * sizeof(curr_id_t));
-            }
-          return n;
-        };
-        auto commit = [&](size_t offset, size_t n, std::span<rank_output_t>)
-        {
-          if(offset != ranks_seen)
-            {
-              throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs bucket at rank " + std::to_string(offset) + " follows " + std::to_string(ranks_seen) + " ranks");
-            }
-          ranks_seen += n;
-        };
-
-        try
-          {
-            for_each_bucket<rank_output_t>(std::move(*populated_ranks.buckets), 0, process, commit, populated_ranks.stats, 0);
-          }
-        catch(...)
-          {
-            ::close(fd);
-            throw;
-          }
-        if(::close(fd) != 0)
-          {
-            throw std::system_error(errno, std::generic_category(), "BinaryDFA: close " + output_name);
-          }
-        if(ranks_seen != curr_layer_count)
-          {
-            throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs held " + std::to_string(ranks_seen) + " ranks, expected " + std::to_string(curr_layer_count));
-          }
+        MemoryMap<curr_id_t> curr_pair_rank_to_output = scatter_rank_buckets<rank_output_t, curr_id_t>(std::move(*populated_ranks.buckets), curr_layer_count, layer, output_name, populated_ranks.stats);
 
         std::cout << "layer=" << layer << " pair_rank_to_output: " << curr_layer_count << " ranks written in order after a bucketed scatter, every rank found once; " << populated_ranks.stats.repartitioned << " buckets partitioned again, to depth " << populated_ranks.stats.depth << "; state bytes: " << state_bytes << ", " << sizeof(curr_id_t) << " ids, rows" << std::endl;
-
-        MemoryMap<curr_id_t> curr_pair_rank_to_output(output_name);
 
         profile.tic("cleanup");
 
