@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 
 #include "Profile.h"
@@ -112,40 +113,28 @@ MemoryMap<T>::MemoryMap(std::string filename_in, size_t size_in, std::function<T
 
   assert(_length / sizeof(T) == _size);
 
-  // At most 1GB of whole elements, which need not divide 1GB exactly.
-  const size_t chunk_bytes_max = size_t(1) << 30; // 1GB
-  static_assert(chunk_bytes_max >= sizeof(T));
-  const size_t chunk_elements_max = chunk_bytes_max / sizeof(T);
-  const size_t chunk_elements = std::min(size_in, chunk_elements_max);
-
   int fildes = open(O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
-  std::vector<T> chunk_buffer(chunk_elements);
-  T *chunk_data = chunk_buffer.data();
-
-  for(size_t chunk_start = 0; chunk_start < _size; chunk_start += chunk_elements)
+  // The buffer holds whole elements from an allocation aligned for any
+  // fundamental type, so out holds elements of T, as a mapping of the file
+  // does.
+  auto fill = [&](size_t begin, size_t n, uint8_t *out)
+  {
+    assert(reinterpret_cast<uintptr_t>(out) % alignof(T) == 0);
+    T *elements = reinterpret_cast<T *>(out);
+    for(size_t i = 0; i < n; ++i)
+      {
+        elements[i] = populate_func(begin + i);
+      }
+  };
+  try
     {
-      size_t chunk_end = std::min(chunk_start + chunk_elements, _size);
-      size_t chunk_size = chunk_end - chunk_start;
-
-      // Each element's index comes from its address, so there is no index
-      // vector to build. This must stay a parallel algorithm over the
-      // vector's own random-access iterators: a counting iterator such as
-      // std::views::iota reports an input iterator_category, and libstdc++'s
-      // parallel algorithms quietly run serially on anything weaker than
-      // random access.
-      profile.tic("chunk populate");
-      TRY_PARALLEL_3(std::for_each,
-                     chunk_buffer.begin(),
-                     chunk_buffer.begin() + std::ptrdiff_t(chunk_size),
-                     [&](T& element)
-                     {
-                       size_t i = size_t(&element - chunk_data);
-                       element = populate_func(chunk_start + i);
-                     });
-
-      profile.tic("chunk write");
-      write_buffer<T>(fildes, chunk_buffer.data(), chunk_end - chunk_start);
+      pwrite_filled(fildes, 0, _size, sizeof(T), fill, &profile);
+    }
+  catch(...)
+    {
+      ::close(fildes);
+      throw;
     }
 
   profile.tic("truncate");

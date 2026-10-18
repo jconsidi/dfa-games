@@ -385,6 +385,128 @@ static void run_bench_unlink(size_t megabytes)
     }
 }
 
+// pwrite_filled over element sizes, counts, offsets and buffer limits that
+// leave a partial last buffer or hold one element each, comparing the file
+// with each element's expected bytes; a populate MemoryMap against its
+// function; and a fill that throws.
+static size_t test_pwrite_filled()
+{
+  size_t cases = 0;
+  std::string path = test_path("pwrite-filled");
+
+  auto byte_of = [](size_t element, size_t j)
+  {
+    return uint8_t((element * 131 + j * 17 + 7) % 251);
+  };
+
+  for(size_t element_bytes : {size_t(1), size_t(3), size_t(8), size_t(24), size_t(1 << 20)})
+    {
+      for(size_t count : {size_t(0), size_t(1), size_t(5), size_t(1000)})
+        {
+          if((element_bytes == (1 << 20)) && (count > 5))
+            {
+              continue;
+            }
+          for(size_t offset : {size_t(0), size_t(5), size_t(4096)})
+            {
+              for(size_t buffer_bytes_max : {size_t(1), size_t(100), size_t(4096), size_t(1) << 30})
+                {
+                  std::string name = "pwrite_filled element " + std::to_string(element_bytes) + " count " + std::to_string(count) + " offset " + std::to_string(offset) + " buffer " + std::to_string(buffer_bytes_max);
+                  int fd = open_test_file(path);
+                  std::atomic<size_t> filled{0};
+                  pwrite_filled(fd, offset, count, element_bytes, [&](size_t begin, size_t n, uint8_t *out)
+                  {
+                    for(size_t i = 0; i < n; ++i)
+                      {
+                        for(size_t j = 0; j < element_bytes; ++j)
+                          {
+                            out[i * element_bytes + j] = byte_of(begin + i, j);
+                          }
+                      }
+                    filled += n;
+                  }, nullptr, buffer_bytes_max);
+                  if(filled != count)
+                    {
+                      throw std::logic_error(name + ": fill was asked for " + std::to_string(filled) + " elements, expected " + std::to_string(count));
+                    }
+                  off_t expected_size = (count > 0) ? off_t(offset + count * element_bytes) : 0;
+                  if(file_size(path) != expected_size)
+                    {
+                      throw std::logic_error(name + ": file is " + std::to_string(file_size(path)) + " bytes, expected " + std::to_string(expected_size));
+                    }
+                  std::vector<uint8_t> back(count * element_bytes);
+                  pread_bytes(fd, back.data(), back.size(), offset);
+                  for(size_t i = 0; i < count; ++i)
+                    {
+                      for(size_t j = 0; j < element_bytes; ++j)
+                        {
+                          if(back[i * element_bytes + j] != byte_of(i, j))
+                            {
+                              throw std::logic_error(name + ": element " + std::to_string(i) + " byte " + std::to_string(j) + " differs");
+                            }
+                        }
+                    }
+                  ::close(fd);
+                  ++cases;
+                }
+            }
+        }
+    }
+
+  // populate MemoryMap, over more than one 1MB piece
+  for(size_t count : {size_t(0), size_t(1), size_t(300001)})
+    {
+      std::string name = "populate count " + std::to_string(count);
+      std::string populate_path = test_path("populate");
+      MemoryMap<uint64_t> map(populate_path, count, [](size_t i)
+      {
+        return uint64_t(i) * 0x9E3779B97F4A7C15ull;
+      });
+      if(map.size() != count)
+        {
+          throw std::logic_error(name + ": size " + std::to_string(map.size()));
+        }
+      for(size_t i = 0; i < count; ++i)
+        {
+          if(map[i] != uint64_t(i) * 0x9E3779B97F4A7C15ull)
+            {
+              throw std::logic_error(name + ": element " + std::to_string(i) + " differs");
+            }
+        }
+      map.unlink();
+      ++cases;
+    }
+
+  // a fill that throws reaches the caller
+  {
+    int fd = open_test_file(path);
+    bool threw = false;
+    try
+      {
+        pwrite_filled(fd, 0, 100000, 8, [](size_t begin, size_t n, uint8_t *)
+        {
+          if((begin <= 77777) && (77777 < begin + n))
+            {
+              throw std::runtime_error("fill failed");
+            }
+        }, nullptr, 4096);
+      }
+    catch(const std::runtime_error& e)
+      {
+        threw = (std::string(e.what()) == "fill failed");
+      }
+    ::close(fd);
+    if(!threw)
+      {
+        throw std::logic_error("pwrite_filled: a fill that throws did not reach the caller");
+      }
+    ++cases;
+  }
+
+  ::unlink(path.c_str());
+  return cases;
+}
+
 int main(int argc, char **argv)
 {
   test_dir = (std::filesystem::temp_directory_path() / ("test_memory_map." + std::to_string(getpid()))).string();
@@ -405,6 +527,8 @@ int main(int argc, char **argv)
 	  std::cout << "test_memory_map: " << unlink_cases << " unlink cases removed the file, and other links kept every element" << std::endl;
 	  size_t io_cases = test_pread_pwrite();
 	  std::cout << "test_memory_map: " << io_cases << " pread_bytes and pwrite_bytes cases read back what was written or threw" << std::endl;
+	  size_t filled_cases = test_pwrite_filled();
+	  std::cout << "test_memory_map: " << filled_cases << " pwrite_filled and populate cases wrote every element at its offset, or threw from fill" << std::endl;
 	}
       else
 	{

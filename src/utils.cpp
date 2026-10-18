@@ -9,7 +9,10 @@
 #include <stdexcept>
 #include <system_error>
 #include <unistd.h>
+#include <vector>
 
+#include "Profile.h"
+#include "parallel.h"
 #include "utils.h"
 
 std::string mask_to_square(BoardMask mask)
@@ -177,6 +180,45 @@ void pread_bytes(int fildes, void *buffer, size_t bytes, size_t offset, size_t b
           throw std::runtime_error(std::format("pread of {:d} bytes at offset {:d} reached end of file after {:d} of {:d} bytes", bytes_next, offset + bytes_read, bytes_read, bytes));
         }
       bytes_read += size_t(ret);
+    }
+}
+
+void pwrite_filled(int fildes, size_t offset, size_t count, size_t element_bytes,
+                   const std::function<void(size_t, size_t, uint8_t *)>& fill,
+                   Profile *profile, size_t buffer_bytes_max)
+{
+  if(element_bytes == 0)
+    {
+      throw std::invalid_argument("pwrite_filled: element_bytes must be positive");
+    }
+
+  const size_t buffer_elements = std::min(count, std::max(buffer_bytes_max / element_bytes, size_t(1)));
+  // Pieces of about 1MB, so a buffer splits into enough pieces to balance
+  // across threads.
+  const size_t piece_elements = std::max((size_t(1) << 20) / element_bytes, size_t(1));
+
+  std::vector<uint8_t> buffer(buffer_elements * element_bytes);
+  for(size_t buffer_start = 0; buffer_start < count; buffer_start += buffer_elements)
+    {
+      size_t buffer_count = std::min(buffer_elements, count - buffer_start);
+
+      if(profile)
+        {
+          profile->tic("chunk populate");
+        }
+      size_t pieces = (buffer_count + piece_elements - 1) / piece_elements;
+      parallel_for(pieces, [&](size_t k)
+      {
+        size_t piece_start = k * piece_elements;
+        size_t piece_count = std::min(piece_elements, buffer_count - piece_start);
+        fill(buffer_start + piece_start, piece_count, buffer.data() + piece_start * element_bytes);
+      });
+
+      if(profile)
+        {
+          profile->tic("chunk write");
+        }
+      pwrite_bytes(fildes, buffer.data(), buffer_count * element_bytes, offset + buffer_start * element_bytes);
     }
 }
 
