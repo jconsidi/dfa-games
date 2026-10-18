@@ -702,8 +702,10 @@ std::vector<T> bucket_read_records(const std::string& path, size_t begin, size_t
 }
 
 // Calls process(offset, records) on each bucket of files, offset being the
-// number of records before it, and then commit(offset, summary) with what
-// process returned, in key order. Buckets within the in-core limit are
+// number of records before it, and then commit(offset, summary, records)
+// with what process returned and the same records, in key order. process
+// may reorder or overwrite records, which stay in memory until their
+// commit. Buckets within the in-core limit are
 // loaded and processed several at once, as many as fit the limit together
 // at the largest such bucket's size. A bucket over the limit is partitioned
 // again from its file, on the bits after those its records share, and its
@@ -787,7 +789,7 @@ void for_each_bucket(BucketFiles<T>&& files, size_t base_offset, Process& proces
                 size_t m = std::min(piece, n - begin);
                 std::vector<T> records = bucket_read_records<T>(path, begin, m);
                 summary_t summary = process(offset + begin, std::span<T>(records));
-                commit(offset + begin, std::move(summary));
+                commit(offset + begin, std::move(summary), std::span<T>(records));
               }
           }
         else
@@ -817,9 +819,10 @@ void for_each_bucket(BucketFiles<T>&& files, size_t base_offset, Process& proces
       }
 
     std::optional<summary_t> summary;
+    std::vector<T> records;
     if(n > 0)
       {
-        std::vector<T> records = bucket_read_records<T>(path, 0, n);
+        records = bucket_read_records<T>(path, 0, n);
         summary = process(offset, std::span<T>(records));
       }
 
@@ -829,7 +832,7 @@ void for_each_bucket(BucketFiles<T>&& files, size_t base_offset, Process& proces
       }
     if(n > 0)
       {
-        commit(offset, std::move(*summary));
+        commit(offset, std::move(*summary), std::span<T>(records));
         files.unlink_bucket(b);
       }
     end_turn();
@@ -905,7 +908,7 @@ void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, Buc
     pwrite_bytes(fd, records.data(), records.size() * sizeof(T), offset * sizeof(T));
     return std::make_tuple(records.front(), records.back(), records.size());
   };
-  auto commit = [&](size_t offset, std::tuple<T, T, size_t> summary)
+  auto commit = [&](size_t offset, std::tuple<T, T, size_t> summary, std::span<T>)
   {
     const auto& [first, last, n] = summary;
     if(offset != written)
@@ -974,12 +977,14 @@ void bucket_log_sorted(size_t count, const BucketSortStats& stats)
   std::cout << std::format("bucket_sort: {:d} records sorted and written back in order, {:d} piece boundaries checked; {:d} buckets partitioned again, to depth {:d}, and {:d} of all equal keys", count, stats.boundaries, stats.repartitioned, stats.depth, stats.equal_runs) << std::endl;
 }
 
-// Records made by a populate function, in a mapped file.
+// Records made by a populate function: in a mapped file, or in bucket
+// files for the caller to pass to for_each_bucket.
 template <class T>
 struct PopulatedRecords
 {
-  MemoryMap<T> map;
-  // whether map is already sorted by key
+  std::optional<MemoryMap<T>> map;
+  std::optional<BucketFiles<T>> buckets;
+  // whether map is sorted by key
   bool sorted;
   BucketSortStats stats;
 };
@@ -990,16 +995,18 @@ struct PopulatedRecords
 // left in index order for the caller to sort. Above it, the records go
 // straight into bucket files, after_populate runs, and the buckets are
 // sorted and written to path, so the result is sorted, without the records
-// ever being written to path in index order. digit_bit and sentinel are as
-// for bucket_sort.
+// ever being written to path in index order. With keep_buckets, the bucket
+// files are returned instead, unsorted, for the caller to pass to
+// for_each_bucket, and nothing is written to path. digit_bit and sentinel
+// are as for bucket_sort.
 template <class T, class AfterPopulate>
-PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const std::function<T(size_t)>& populate, int digit_bit, std::optional<T> sentinel, AfterPopulate after_populate)
+PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const std::function<T(size_t)>& populate, int digit_bit, std::optional<T> sentinel, AfterPopulate after_populate, bool keep_buckets = false)
 {
   if((count == 0) || !bucket_sort_out_of_core(count * sizeof(T)))
     {
-      MemoryMap<T> map(path, count, populate);
+      PopulatedRecords<T> populated{MemoryMap<T>(path, count, populate), std::nullopt, false, BucketSortStats()};
       after_populate();
-      return PopulatedRecords<T>{std::move(map), false, BucketSortStats()};
+      return populated;
     }
 
   BucketSortStats stats;
@@ -1020,6 +1027,11 @@ PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const
 
   after_populate();
 
+  if(keep_buckets)
+    {
+      return PopulatedRecords<T>{std::nullopt, std::move(files), false, stats};
+    }
+
   profile.tic("buckets");
 
   MemoryMap<T> map(path, count);
@@ -1030,7 +1042,7 @@ PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const
 
   map.mmap();
   bucket_log_sorted<T>(count, stats);
-  return PopulatedRecords<T>{std::move(map), true, stats};
+  return PopulatedRecords<T>{std::move(map), std::nullopt, true, stats};
 }
 
 // Sorts map's records by key. In memory with FlashSort at or under the

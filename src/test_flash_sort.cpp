@@ -381,15 +381,15 @@ static BucketSortStats check_bucket_populate(const std::string& name, const std:
     {
       throw std::logic_error(name + ": records " + (populated.sorted ? "sorted" : "not sorted"));
     }
-  if(populated.map.size() != input.size())
+  if(populated.map->size() != input.size())
     {
-      throw std::logic_error(name + ": " + std::to_string(populated.map.size()) + " records, expected " + std::to_string(input.size()));
+      throw std::logic_error(name + ": " + std::to_string(populated.map->size()) + " records, expected " + std::to_string(input.size()));
     }
 
   std::vector<T> output;
-  if(populated.map.size() > 0)
+  if(populated.map->size() > 0)
     {
-      output.assign(populated.map.begin(), populated.map.end());
+      output.assign(populated.map->begin(), populated.map->end());
     }
   if(!populated.sorted)
     {
@@ -419,7 +419,63 @@ static BucketSortStats check_bucket_populate(const std::string& name, const std:
     {
       throw std::logic_error(name + ": " + std::to_string(bucket_files_left()) + " bucket files left");
     }
-  populated.map.unlink();
+  populated.map->unlink();
+  return populated.stats;
+}
+
+// bucket_populate keeping its buckets, then for_each_bucket sorting each
+// piece, dropping its duplicates, and committing its distinct records in
+// order, dropping a first record equal to the last one kept: the result
+// must be the input's distinct keys in order, the way the forward pass
+// uses it.
+template <class T>
+static BucketSortStats check_bucket_unique(const std::string& name, const std::vector<T>& input, int digit_bit)
+{
+  std::function<T(size_t)> populate = [&](size_t i) {return input[i];};
+  PopulatedRecords<T> populated = bucket_populate<T>(bucket_test_dir + "/unique", input.size(), populate, digit_bit, std::nullopt, []() {}, true);
+  if(!populated.buckets || populated.map)
+    {
+      throw std::logic_error(name + ": bucket files not kept");
+    }
+
+  std::vector<T> kept;
+  auto process = [&](size_t, std::span<T> records)
+  {
+    FlashSort<T>().sort(records.data(), records.data() + records.size());
+    T *distinct_end = std::unique(records.data(), records.data() + records.size(), [](const T& a, const T& b)
+    {
+      return !a.key_less(b) && !b.key_less(a);
+    });
+    return size_t(distinct_end - records.data());
+  };
+  auto commit = [&](size_t, size_t distinct, std::span<T> records)
+  {
+    size_t skip = (!kept.empty() && !kept.back().key_less(records[0]) && !records[0].key_less(kept.back())) ? 1 : 0;
+    kept.insert(kept.end(), records.begin() + std::ptrdiff_t(skip), records.begin() + std::ptrdiff_t(distinct));
+  };
+  for_each_bucket<T>(std::move(*populated.buckets), 0, process, commit, populated.stats, 0);
+
+  std::vector<T> expected = input;
+  std::sort(expected.begin(), expected.end(), [](const T& a, const T& b) {return a.key_less(b);});
+  expected.erase(std::unique(expected.begin(), expected.end(), [](const T& a, const T& b)
+  {
+    return !a.key_less(b) && !b.key_less(a);
+  }), expected.end());
+  if(kept.size() != expected.size())
+    {
+      throw std::logic_error(name + ": " + std::to_string(kept.size()) + " distinct keys kept, expected " + std::to_string(expected.size()));
+    }
+  for(size_t i = 0; i < kept.size(); ++i)
+    {
+      if(kept[i].key_less(expected[i]) || expected[i].key_less(kept[i]))
+        {
+          throw std::logic_error(name + ": distinct key " + std::to_string(i) + " differs");
+        }
+    }
+  if(bucket_files_left() != 0)
+    {
+      throw std::logic_error(name + ": " + std::to_string(bucket_files_left()) + " bucket files left");
+    }
   return populated.stats;
 }
 
@@ -488,6 +544,15 @@ static size_t test_bucket_sort_type(const std::string& type_name, uint64_t bound
           bucket_sort_memory_max = 4096;
           BucketSortStats narrow = check_bucket_sort<T>(name + " buckets, small limit", input, digit_bit, std::nullopt, out_of_core);
           BucketSortStats populated_narrow = check_bucket_populate<T>(name + " populate, small limit", input, digit_bit, std::nullopt, out_of_core);
+          if(out_of_core)
+            {
+              BucketSortStats unique_narrow = check_bucket_unique<T>(name + " unique, small limit", input, digit_bit);
+              if((n == 50000) && (pattern == "equal") && (unique_narrow.equal_runs == 0))
+                {
+                  throw std::logic_error(name + " unique, small limit: no bucket of equal keys was passed on in pieces");
+                }
+              ++cases;
+            }
           bucket_sort_memory_max = 0;
           check_bucket_populate<T>(name + " populate", input, digit_bit, std::nullopt, out_of_core);
           bucket_sort_min_bytes = 0;
@@ -664,7 +729,7 @@ static void run_bucket_sort_tests()
   cases += test_bucket_sort_sentinels<uint64_t>();
 
   std::filesystem::remove_all(bucket_test_dir);
-  std::cout << "test_flash_sort: " << cases << " bucket_sort and bucket_populate cases sorted by key (or left in index order in memory) with exactly their input records and no bucket files left, or threw" << std::endl;
+  std::cout << "test_flash_sort: " << cases << " bucket_sort, bucket_populate and bucket unique cases sorted by key (or left in index order in memory, or reduced to their distinct keys) with exactly their input records and no bucket files left, or threw" << std::endl;
 }
 
 static void run_tests()
