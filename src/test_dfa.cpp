@@ -24,6 +24,7 @@
 #include "InverseDFA.h"
 #include "RejectDFA.h"
 #include "TestDFAParams.h"
+#include "bucket_sort.h"
 #include "StringDFA.h"
 #include "sort_utils.h"
 #include "UnionDFA.h"
@@ -341,6 +342,49 @@ void test_in_place_sort_pair(std::string test_name, const DFA& left, const DFA& 
   std::cout.flush();
 }
 
+// Build the union of left and right with its sorts in memory, and again
+// with the bucket path's cutoff lowered to 1 byte, so every sort goes
+// through bucket files: the forward pass's pairs reduced to their distinct
+// pairs bucket by bucket, the backward rows sorted by bucket, and the rank
+// outputs scattered by bucket. memory_max is the in-core limit, 0 for the
+// production limit; a small one partitions buckets again. Equal keys are
+// equal pairs, rows with equal transitions, or nothing (ranks are
+// distinct), so the DFAs must be byte identical.
+void test_bucket_sort_pair(std::string test_name, const DFA& left, const DFA& right, size_t memory_max)
+{
+  std::string full_name = get_parameter_string(left.get_shape()) + " bucket sort" + (memory_max ? " limit " + std::to_string(memory_max) : std::string()) + " " + test_name;
+
+  UnionDFA normal(left, right);
+
+  size_t min_bytes_saved = bucket_sort_min_bytes;
+  size_t memory_max_saved = bucket_sort_memory_max;
+  auto restore = [&]()
+  {
+    bucket_sort_min_bytes = min_bytes_saved;
+    bucket_sort_memory_max = memory_max_saved;
+  };
+  bucket_sort_min_bytes = 1;
+  bucket_sort_memory_max = memory_max;
+  std::shared_ptr<UnionDFA> bucketed;
+  try
+    {
+      bucketed = std::make_shared<UnionDFA>(left, right);
+    }
+  catch(...)
+    {
+      restore();
+      throw;
+    }
+  restore();
+
+  if(bucketed->get_hash() != normal.get_hash())
+    {
+      throw std::logic_error(full_name + ": bucket and in-memory sorts give different DFAs");
+    }
+  std::cout << full_name << ": passed (" << normal.states() << " states, byte identical)" << std::endl;
+  std::cout.flush();
+}
+
 // Build the union of left and right with pair_rank_to_output written in one
 // pass and again split into at least slices_min passes. Each pass writes the
 // same values into its own ranks, so the DFAs must be byte identical. Small
@@ -399,6 +443,14 @@ void test_wide_pair_ranks(const dfa_shape_t& shape)
       test_output_slices_pair("count2+count3", count2, count3, slices_min);
       test_output_slices_pair("zero1+one1", zero1, one1, slices_min);
       test_output_slices_pair("count12+zero1", count12, zero1, slices_min);
+    }
+
+  for(size_t memory_max : {size_t(0), size_t(4096)})
+    {
+      test_bucket_sort_pair("count1+count2", count1, count2, memory_max);
+      test_bucket_sort_pair("count2+count3", count2, count3, memory_max);
+      test_bucket_sort_pair("zero1+one1", zero1, one1, memory_max);
+      test_bucket_sort_pair("count12+zero1", count12, zero1, memory_max);
     }
 }
 
