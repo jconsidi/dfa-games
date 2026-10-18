@@ -1019,10 +1019,9 @@ struct PopulatedRecords
 // ever being written to path in index order. With keep_buckets, the bucket
 // files are returned instead, unsorted, for the caller to pass to
 // for_each_bucket, and nothing is written to path. digit_bit and sentinel
-// are as for bucket_sort. observer, if given, sees each sorted piece as it
-// is written to path.
+// are as for bucket_sort.
 template <class T, class AfterPopulate>
-PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const std::function<T(size_t)>& populate, int digit_bit, std::optional<T> sentinel, AfterPopulate after_populate, bool keep_buckets = false, const BucketObserver<T> *observer = nullptr)
+PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const std::function<T(size_t)>& populate, int digit_bit, std::optional<T> sentinel, AfterPopulate after_populate, bool keep_buckets = false)
 {
   if((count == 0) || !bucket_sort_out_of_core(count * sizeof(T)))
     {
@@ -1058,7 +1057,7 @@ PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const
 
   MemoryMap<T> map(path, count);
   map.munmap();
-  bucket_sort_write_back(std::move(files), path, stats, observer);
+  bucket_sort_write_back(std::move(files), path, stats);
 
   profile.tic("mmap");
 
