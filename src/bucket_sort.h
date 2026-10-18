@@ -17,6 +17,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -32,6 +33,7 @@
 #include "MemoryMap.h"
 #include "Profile.h"
 #include "flash_sort.h"
+#include "parallel.h"
 #include "utils.h"
 
 // Sort of a file of records by key, in sequential passes over files.
@@ -1111,5 +1113,534 @@ BucketSortStats bucket_sort(MemoryMap<T>& map, int digit_bit, std::optional<T> s
   bucket_log_sorted<T>(count, stats);
   return stats;
 }
+
+// Sorted blocks: one way of handling records in key order, whether they
+// fit the cutoff or not.
+//
+// A call site hands over records made by bucket_populate (or a
+// RecordSink), and two callbacks over spans:
+//
+//   count(offset, block, before) -> size_t
+//   emit(offset, block, before, base) -> size_t
+//
+// block is a run of records in key order starting at offset, before is the
+// record just before it in key order (nullptr for the first), and base is
+// the sum of the counts of every block before it. emit returns the count it
+// produced, which must equal what count returned for the block. Counts must
+// be additive: the count of a run cut into blocks, each given its before,
+// is the same however it is cut.
+//
+// At or under the cutoff the records are one run, the populated file,
+// sorted in place by FlashSort through its mapping. Above it each bucket
+// is a run, loaded and sorted in memory as bucket_sort does. Either way a
+// run is cut into blocks, and counts and emits run in parallel across
+// blocks on the thread pool.
+
+// Records per block for records of record_bytes.
+inline size_t sorted_block_records(size_t record_bytes)
+{
+  size_t threads = std::max(size_t(std::thread::hardware_concurrency()), size_t(1));
+  return std::clamp(bucket_sort_memory_bytes() / 4 / threads / (2 * record_bytes), size_t(1), size_t(1) << 20);
+}
+
+// Calls f(i) for i in [0, n) in parallel. An exception escaping a parallel
+// algorithm terminates the process, so the first one is kept and thrown
+// once every call has returned.
+template <class F>
+void bucket_parallel_for(size_t n, F f)
+{
+  std::vector<size_t> indexes(n);
+  std::iota(indexes.begin(), indexes.end(), size_t(0));
+  std::atomic<bool> failed(false);
+  std::exception_ptr failure;
+  std::mutex failure_mutex;
+  auto body = [&](size_t i)
+  {
+    if(failed)
+      {
+        return;
+      }
+    try
+      {
+        f(i);
+      }
+    catch(...)
+      {
+        std::lock_guard<std::mutex> lock(failure_mutex);
+        if(!failure)
+          {
+            failure = std::current_exception();
+          }
+        failed = true;
+      }
+  };
+  TRY_PARALLEL_3(std::for_each, indexes.begin(), indexes.end(), body);
+  if(failure)
+    {
+      std::rethrow_exception(failure);
+    }
+}
+
+// A block of a run: where it starts in key order, its length, its count,
+// and the counts of every block before it.
+struct SortedBlock
+{
+  size_t offset;
+  size_t n;
+  size_t count;
+  size_t base;
+};
+
+// What the sorted block handling saw, for checks and logs.
+struct SortedBlocksStats
+{
+  bool out_of_core = false;
+  // records passed to the callbacks, and sentinels set aside
+  size_t records = 0;
+  size_t sentinels = 0;
+  size_t blocks = 0;
+  // sum of every block's count
+  size_t total = 0;
+  BucketSortStats buckets;
+};
+
+// Cuts run, which starts at offset in key order, into blocks, and counts
+// them in parallel, giving the first block before_run.
+template <class T, class Count>
+std::vector<SortedBlock> sorted_count_run(std::span<const T> run, size_t offset, const T *before_run, Count& count)
+{
+  size_t block_records = sorted_block_records(sizeof(T));
+  size_t block_count = (run.size() + block_records - 1) / block_records;
+  std::vector<SortedBlock> blocks(block_count);
+  bucket_parallel_for(block_count, [&](size_t k)
+  {
+    size_t begin = k * block_records;
+    size_t n = std::min(block_records, run.size() - begin);
+    const T *before = (k > 0) ? &run[begin - 1] : before_run;
+    blocks[k] = SortedBlock{offset + begin, n, count(offset + begin, run.subspan(begin, n), before), 0};
+  });
+  return blocks;
+}
+
+// Emits the blocks of run, which starts at blocks' first offset, in
+// parallel, checking each emit's count against the block's.
+template <class T, class Emit>
+void sorted_emit_run(std::span<const T> run, const T *before_run, const std::vector<SortedBlock>& blocks, Emit& emit)
+{
+  size_t run_offset = blocks.empty() ? 0 : blocks.front().offset;
+  bucket_parallel_for(blocks.size(), [&](size_t k)
+  {
+    const SortedBlock& block = blocks[k];
+    size_t begin = block.offset - run_offset;
+    const T *before = (k > 0) ? &run[begin - 1] : before_run;
+    size_t emitted = emit(block.offset, run.subspan(begin, block.n), before, block.base);
+    if(emitted != block.count)
+      {
+        throw std::logic_error(std::format("sorted blocks: block at record {:d} emitted {:d}, but counted {:d}", block.offset, emitted, block.count));
+      }
+  });
+}
+
+// Gives each block its base, continuing from base, and returns the total.
+inline size_t sorted_assign_bases(std::vector<SortedBlock>& blocks, size_t base)
+{
+  for(SortedBlock& block : blocks)
+    {
+      block.base = base;
+      base += block.count;
+    }
+  return base;
+}
+
+// Whether record has the sentinel's key.
+template <class T>
+bool sorted_is_sentinel(const T& record, const std::optional<T>& sentinel)
+{
+  return sentinel && (record.first_difference_bit(*sentinel, 0) >= T::key_bits);
+}
+
+// Sorts records by key and calls count and then emit on every block, as
+// described above, once each, and unlinks the records' file or buckets.
+// Records with the sentinel's key, which sort last, are set aside and
+// counted rather than passed on.
+template <class T, class Count, class Emit>
+SortedBlocksStats sorted_emit(PopulatedRecords<T>&& records, std::optional<T> sentinel, Count count, Emit emit)
+{
+  SortedBlocksStats stats;
+
+  if(records.map)
+    {
+      MemoryMap<T>& map = *records.map;
+      size_t n = map.size();
+      if(n > 0)
+        {
+          FlashSort<T>().sort(map.begin(), map.end());
+          std::span<const T> all(map.begin(), n);
+          size_t real = n;
+          if(sentinel)
+            {
+              const T *first_sentinel = std::partition_point(all.data(), all.data() + n, [&](const T& record)
+              {
+                return record.key_less(*sentinel);
+              });
+              real = size_t(first_sentinel - all.data());
+              for(size_t i = real; i < n; ++i)
+                {
+                  if(!sorted_is_sentinel(all[i], sentinel))
+                    {
+                      throw std::logic_error(std::format("sorted blocks: record {:d} of {:s} sorts after the sentinel", i, map.filename()));
+                    }
+                }
+            }
+          std::span<const T> run = all.subspan(0, real);
+          std::vector<SortedBlock> blocks = sorted_count_run<T>(run, 0, nullptr, count);
+          stats.total = sorted_assign_bases(blocks, 0);
+          sorted_emit_run<T>(run, nullptr, blocks, emit);
+          stats.records = real;
+          stats.sentinels = n - real;
+          stats.blocks = blocks.size();
+        }
+      map.unlink();
+      return stats;
+    }
+
+  if(!records.buckets)
+    {
+      throw std::logic_error("sorted blocks: records hold neither a file nor buckets");
+    }
+  stats.out_of_core = true;
+
+  struct piece_t
+  {
+    bool sentinels;
+    size_t n;
+    std::vector<SortedBlock> blocks;
+  };
+  std::optional<T> previous_last;
+
+  auto process = [&](size_t offset, std::span<T> records_in)
+  {
+    std::span<const T> run(records_in.data(), records_in.size());
+    if(sorted_is_sentinel(run.front(), sentinel))
+      {
+        for(const T& record : run)
+          {
+            if(!sorted_is_sentinel(record, sentinel))
+              {
+                throw std::logic_error(std::format("sorted blocks: sentinel bucket at record {:d} holds a real record", offset));
+              }
+          }
+        return piece_t{true, run.size(), {}};
+      }
+    FlashSort<T>().sort(records_in.data(), records_in.data() + records_in.size());
+    if(sorted_is_sentinel(run.back(), sentinel))
+      {
+        throw std::logic_error(std::format("sorted blocks: bucket at record {:d} holds a sentinel", offset));
+      }
+    // The first block is counted again on commit, with the previous run's
+    // last record before it.
+    return piece_t{false, run.size(), sorted_count_run<T>(run, offset, nullptr, count)};
+  };
+
+  auto commit = [&](size_t offset, piece_t piece, std::span<T> records_in)
+  {
+    if(piece.sentinels)
+      {
+        stats.sentinels += piece.n;
+        return;
+      }
+    std::span<const T> run(records_in.data(), records_in.size());
+    const T *before = previous_last ? &*previous_last : nullptr;
+    SortedBlock& first = piece.blocks.front();
+    first.count = count(first.offset, run.subspan(0, first.n), before);
+    stats.total = sorted_assign_bases(piece.blocks, stats.total);
+    sorted_emit_run<T>(run, before, piece.blocks, emit);
+    previous_last = run.back();
+    stats.records += piece.n;
+    stats.blocks += piece.blocks.size();
+    (void) offset;
+  };
+
+  for_each_bucket<T>(std::move(*records.buckets), 0, process, commit, stats.buckets, 0);
+  return stats;
+}
+
+// Records sorted by key and counted block by block, for an emit phase once
+// the total is known. At or under the cutoff the records are the populated
+// file, sorted in place; above it, the buckets sorted and written in key
+// order to one file, read back block by block.
+template <class T>
+class CountedRecords
+{
+  MemoryMap<T> map;
+  bool in_core;
+
+public:
+
+  std::vector<SortedBlock> blocks;
+  SortedBlocksStats stats;
+
+  CountedRecords(MemoryMap<T>&& map_in, bool in_core_in, std::vector<SortedBlock>&& blocks_in, SortedBlocksStats stats_in)
+    : map(std::move(map_in)),
+      in_core(in_core_in),
+      blocks(std::move(blocks_in)),
+      stats(stats_in)
+  {
+  }
+
+  size_t total() const
+  {
+    return stats.total;
+  }
+
+  // Calls emit on every block once, in parallel, checking each emit's
+  // count, then unlinks the sorted records' file.
+  template <class Emit>
+  void emit(Emit emit_func)
+  {
+    if(in_core)
+      {
+        if(!blocks.empty())
+          {
+            std::span<const T> run(map.begin(), map.size());
+            sorted_emit_run<T>(run, nullptr, blocks, emit_func);
+          }
+        map.unlink();
+        return;
+      }
+
+    std::string path = map.filename();
+    int fd = ::open(path.c_str(), O_RDONLY);
+    if(fd < 0)
+      {
+        throw std::system_error(errno, std::generic_category(), "sorted blocks: open " + path);
+      }
+    try
+      {
+        bucket_parallel_for(blocks.size(), [&](size_t k)
+        {
+          const SortedBlock& block = blocks[k];
+          // the block with the record before it
+          size_t lead = (block.offset > 0) ? 1 : 0;
+          std::vector<T> buffer(block.n + lead);
+          pread_bytes(fd, buffer.data(), buffer.size() * sizeof(T), (block.offset - lead) * sizeof(T));
+          std::span<const T> run(buffer.data() + lead, block.n);
+          const T *before = lead ? buffer.data() : nullptr;
+          size_t emitted = emit_func(block.offset, run, before, block.base);
+          if(emitted != block.count)
+            {
+              throw std::logic_error(std::format("sorted blocks: block at record {:d} emitted {:d}, but counted {:d}", block.offset, emitted, block.count));
+            }
+        });
+      }
+    catch(...)
+      {
+        ::close(fd);
+        throw;
+      }
+    if(::close(fd) != 0)
+      {
+        throw std::system_error(errno, std::generic_category(), "sorted blocks: close " + path);
+      }
+    map.unlink();
+  }
+};
+
+// Sorts records by key and counts every block, as described above, for an
+// emit phase once the total is known. Out of core the sorted records are
+// written to sorted_path.
+template <class T, class Count>
+CountedRecords<T> sorted_count(PopulatedRecords<T>&& records, const std::string& sorted_path, Count count)
+{
+  SortedBlocksStats stats;
+
+  if(records.map)
+    {
+      MemoryMap<T> map = std::move(*records.map);
+      std::vector<SortedBlock> blocks;
+      size_t n = map.size();
+      if(n > 0)
+        {
+          FlashSort<T>().sort(map.begin(), map.end());
+          blocks = sorted_count_run<T>(std::span<const T>(map.begin(), n), 0, nullptr, count);
+        }
+      stats.total = sorted_assign_bases(blocks, 0);
+      stats.records = n;
+      stats.blocks = blocks.size();
+      return CountedRecords<T>(std::move(map), true, std::move(blocks), stats);
+    }
+
+  if(!records.buckets)
+    {
+      throw std::logic_error("sorted blocks: records hold neither a file nor buckets");
+    }
+  stats.out_of_core = true;
+
+  size_t n = records.buckets->total();
+  std::vector<SortedBlock> blocks;
+  std::mutex blocks_mutex;
+  std::optional<T> previous_last;
+
+  BucketObserver<T> observer;
+  observer.sorted = [&](size_t offset, std::span<const T> run)
+  {
+    std::vector<SortedBlock> piece = sorted_count_run<T>(run, offset, nullptr, count);
+    std::lock_guard<std::mutex> lock(blocks_mutex);
+    blocks.insert(blocks.end(), piece.begin(), piece.end());
+  };
+  // The first block of each run is counted again in key order, with the
+  // previous run's last record before it.
+  observer.committed = [&](size_t offset, std::span<const T> run)
+  {
+    const T *before = previous_last ? &*previous_last : nullptr;
+    size_t first_n = std::min(run.size(), sorted_block_records(sizeof(T)));
+    size_t first_count = count(offset, run.subspan(0, first_n), before);
+    {
+      std::lock_guard<std::mutex> lock(blocks_mutex);
+      auto found = std::find_if(blocks.begin(), blocks.end(), [&](const SortedBlock& block) {return block.offset == offset;});
+      if(found == blocks.end())
+        {
+          throw std::logic_error(std::format("sorted blocks: no block counted at record {:d}", offset));
+        }
+      found->count = first_count;
+    }
+    previous_last = run.back();
+  };
+
+  MemoryMap<T> map(sorted_path, n);
+  map.munmap();
+  bucket_sort_write_back(std::move(*records.buckets), sorted_path, stats.buckets, &observer);
+
+  std::sort(blocks.begin(), blocks.end(), [](const SortedBlock& a, const SortedBlock& b) {return a.offset < b.offset;});
+  size_t expected = 0;
+  for(const SortedBlock& block : blocks)
+    {
+      if(block.offset != expected)
+        {
+          throw std::logic_error(std::format("sorted blocks: blocks of {:s} reach record {:d}, then start again at {:d}", sorted_path, expected, block.offset));
+        }
+      expected += block.n;
+    }
+  if(expected != n)
+    {
+      throw std::logic_error(std::format("sorted blocks: blocks of {:s} cover {:d} of {:d} records", sorted_path, expected, n));
+    }
+
+  stats.total = sorted_assign_bases(blocks, 0);
+  stats.records = n;
+  stats.blocks = blocks.size();
+  return CountedRecords<T>(std::move(map), false, std::move(blocks), stats);
+}
+
+// Collects count records, written in runs at given offsets from many
+// threads at once, into records for sorted_emit or sorted_count: at or
+// under the cutoff a file of them at path, each at its offset; above it
+// bucket files by the digit from digit_bit, as bucket_populate makes them.
+template <class T>
+class RecordSink
+{
+  size_t count;
+  std::optional<MemoryMap<T>> map;
+  std::optional<BucketSpec<T>> spec;
+  std::unique_ptr<BucketAppender<T>> appender;
+  std::mutex writers_mutex;
+  std::vector<std::unique_ptr<typename BucketAppender<T>::Writer>> writers;
+  std::vector<typename BucketAppender<T>::Writer *> free_writers;
+  std::string path;
+
+public:
+
+  RecordSink(const std::string& path_in, size_t count_in, int digit_bit)
+    : count(count_in),
+      path(path_in)
+  {
+    if((count == 0) || !bucket_sort_out_of_core(count * sizeof(T)))
+      {
+        map.emplace(path, count);
+        return;
+      }
+    spec = make_bucket_spec<T>(count, bucket_first_digit_bit<T>(digit_bit), T(), std::nullopt);
+    size_t slash = path.find_last_of('/');
+    std::string dir = (slash == std::string::npos) ? "." : path.substr(0, slash);
+    std::string prefix = ((slash == std::string::npos) ? path : path.substr(slash + 1)) + ".bucket";
+    size_t threads = std::max(size_t(std::thread::hardware_concurrency()), size_t(1));
+    appender = std::make_unique<BucketAppender<T>>(dir, prefix, *spec, threads, bucket_sort_memory_bytes() / 2);
+  }
+
+  RecordSink(const RecordSink&) = delete;
+  RecordSink& operator=(const RecordSink&) = delete;
+
+  // Puts records at offsets offset to offset + records.size(). Runs put
+  // from different threads must not overlap.
+  void put(size_t offset, std::span<const T> records)
+  {
+    if(offset + records.size() > count)
+      {
+        throw std::logic_error(std::format("RecordSink: records {:d} to {:d} of {:s} past its {:d}", offset, offset + records.size(), path, count));
+      }
+    if(map)
+      {
+        std::copy(records.begin(), records.end(), map->begin() + std::ptrdiff_t(offset));
+        return;
+      }
+
+    typename BucketAppender<T>::Writer *writer = nullptr;
+    {
+      std::lock_guard<std::mutex> lock(writers_mutex);
+      if(free_writers.empty())
+        {
+          writers.push_back(std::make_unique<typename BucketAppender<T>::Writer>(*appender));
+          writer = writers.back().get();
+        }
+      else
+        {
+          writer = free_writers.back();
+          free_writers.pop_back();
+        }
+    }
+    try
+      {
+        for(size_t i = 0; i < records.size(); ++i)
+          {
+            size_t bucket = spec->bucket_of(records[i]);
+            if(bucket == BucketSpec<T>::invalid_bucket)
+              {
+                throw std::logic_error(std::format("RecordSink: record {:d} of {:s} differs from its bucket's prefix before bit {:d}", offset + i, path, spec->digit_bit));
+              }
+            writer->append(bucket, records[i]);
+          }
+      }
+    catch(...)
+      {
+        std::lock_guard<std::mutex> lock(writers_mutex);
+        free_writers.push_back(writer);
+        throw;
+      }
+    std::lock_guard<std::mutex> lock(writers_mutex);
+    free_writers.push_back(writer);
+  }
+
+  // The records put, for sorted_emit or sorted_count. Every one of count
+  // must have been put exactly once.
+  PopulatedRecords<T> finish()
+  {
+    if(map)
+      {
+        PopulatedRecords<T> populated{std::move(*map), std::nullopt, false, BucketSortStats()};
+        map.reset();
+        return populated;
+      }
+    for(auto& writer : writers)
+      {
+        writer->flush_all();
+      }
+    BucketFiles<T> files = appender->finish();
+    if(files.total() != count)
+      {
+        throw std::logic_error(std::format("RecordSink: {:d} records put into buckets of {:s}, expected {:d}", files.total(), path, count));
+      }
+    return PopulatedRecords<T>{std::nullopt, std::move(files), false, BucketSortStats()};
+  }
+};
 
 #endif

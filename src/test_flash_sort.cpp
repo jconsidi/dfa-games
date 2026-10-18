@@ -479,6 +479,191 @@ static BucketSortStats check_bucket_unique(const std::string& name, const std::v
   return populated.stats;
 }
 
+// The input's distinct keys in order, the way sorted blocks should emit them.
+template <class T>
+static std::vector<T> distinct_keys(const std::vector<T>& input)
+{
+  std::vector<T> expected = input;
+  std::sort(expected.begin(), expected.end(), [](const T& a, const T& b) {return a.key_less(b);});
+  expected.erase(std::unique(expected.begin(), expected.end(), [](const T& a, const T& b)
+  {
+    return !a.key_less(b) && !b.key_less(a);
+  }), expected.end());
+  return expected;
+}
+
+template <class T>
+static bool same_key(const T& a, const T& b)
+{
+  return !a.key_less(b) && !b.key_less(a);
+}
+
+// Sorted blocks over input, one phase (sorted_emit) or two (sorted_count
+// then emit), reducing it to its distinct keys: count gives a block's
+// distinct keys given the record before it, emit writes them at base. The
+// result must be the input's distinct keys in order, with sentinels set
+// aside and counted.
+template <class T>
+static SortedBlocksStats check_sorted_blocks(const std::string& name, const std::vector<T>& input, int digit_bit, std::optional<T> sentinel, bool two_phase, bool expect_out_of_core)
+{
+  std::vector<T> real_input;
+  size_t sentinels = 0;
+  for(const T& record : input)
+    {
+      if(sentinel && same_key(record, *sentinel))
+        {
+          ++sentinels;
+        }
+      else
+        {
+          real_input.push_back(record);
+        }
+    }
+  std::vector<T> expected = distinct_keys(real_input);
+
+  std::function<T(size_t)> populate = [&](size_t i) {return input[i];};
+  PopulatedRecords<T> populated = bucket_populate<T>(bucket_test_dir + "/blocks", input.size(), populate, digit_bit, sentinel, []() {}, true);
+
+  auto count = [](size_t, std::span<const T> block, const T *before)
+  {
+    size_t distinct = 0;
+    for(size_t i = 0; i < block.size(); ++i)
+      {
+        const T *previous = (i > 0) ? &block[i - 1] : before;
+        if(!previous || !same_key(*previous, block[i]))
+          {
+            ++distinct;
+          }
+      }
+    return distinct;
+  };
+  std::vector<T> output(expected.size());
+  std::atomic<size_t> written(0);
+  auto emit = [&](size_t, std::span<const T> block, const T *before, size_t base)
+  {
+    size_t o = base;
+    for(size_t i = 0; i < block.size(); ++i)
+      {
+        const T *previous = (i > 0) ? &block[i - 1] : before;
+        if(previous && block[i].key_less(*previous))
+          {
+            throw std::logic_error("sorted blocks gave a block out of order");
+          }
+        if(!previous || !same_key(*previous, block[i]))
+          {
+            if(o >= output.size())
+              {
+                throw std::logic_error("sorted blocks emitted past the distinct keys");
+              }
+            output[o++] = block[i];
+          }
+      }
+    written += o - base;
+    return o - base;
+  };
+
+  SortedBlocksStats stats;
+  if(two_phase)
+    {
+      if(sentinel)
+        {
+          throw std::logic_error(name + ": two phases take no sentinel");
+        }
+      CountedRecords<T> counted = sorted_count<T>(std::move(populated), bucket_test_dir + "/blocks_sorted", count);
+      if(counted.total() != expected.size())
+        {
+          throw std::logic_error(name + ": counted " + std::to_string(counted.total()) + " distinct keys, expected " + std::to_string(expected.size()));
+        }
+      counted.emit(emit);
+      stats = counted.stats;
+    }
+  else
+    {
+      stats = sorted_emit<T>(std::move(populated), sentinel, count, emit);
+    }
+
+  if(stats.out_of_core != expect_out_of_core)
+    {
+      throw std::logic_error(name + ": out of core path " + (stats.out_of_core ? "taken" : "not taken"));
+    }
+  if((stats.records != real_input.size()) || (stats.sentinels != sentinels) || (stats.total != expected.size()) || (written != expected.size()))
+    {
+      throw std::logic_error(name + ": saw " + std::to_string(stats.records) + " records, " + std::to_string(stats.sentinels) + " sentinels and " + std::to_string(stats.total) + " distinct keys, expected " + std::to_string(real_input.size()) + ", " + std::to_string(sentinels) + " and " + std::to_string(expected.size()));
+    }
+  for(size_t i = 0; i < expected.size(); ++i)
+    {
+      if(!same_key(output[i], expected[i]))
+        {
+          throw std::logic_error(name + ": distinct key " + std::to_string(i) + " differs");
+        }
+    }
+  if(bucket_files_left() != 0)
+    {
+      throw std::logic_error(name + ": " + std::to_string(bucket_files_left()) + " bucket files left");
+    }
+  for(const auto& entry : std::filesystem::directory_iterator(bucket_test_dir))
+    {
+      throw std::logic_error(name + ": " + entry.path().string() + " left");
+    }
+  return stats;
+}
+
+// RecordSink: records put in shuffled runs at their offsets come back as
+// the same records, sorted by sorted_emit, in core or out of core.
+template <class T>
+static size_t check_record_sink(const std::string& name, const std::vector<T>& input, int digit_bit, bool expect_out_of_core)
+{
+  RecordSink<T> sink(bucket_test_dir + "/sink", input.size(), digit_bit);
+  size_t run = 97;
+  std::vector<size_t> runs;
+  for(size_t begin = 0; begin < input.size(); begin += run)
+    {
+      runs.push_back(begin);
+    }
+  std::shuffle(runs.begin(), runs.end(), std::mt19937_64(input.size()));
+  bucket_parallel_for(runs.size(), [&](size_t k)
+  {
+    size_t begin = runs[k];
+    size_t n = std::min(run, input.size() - begin);
+    sink.put(begin, std::span<const T>(input.data() + begin, n));
+  });
+
+  std::vector<T> output;
+  std::mutex output_mutex;
+  auto count = [](size_t, std::span<const T> block, const T *) {return block.size();};
+  auto emit = [&](size_t offset, std::span<const T> block, const T *, size_t base)
+  {
+    if(offset != base)
+      {
+        throw std::logic_error("record sink block offset and base differ");
+      }
+    std::lock_guard<std::mutex> lock(output_mutex);
+    if(output.size() < offset + block.size())
+      {
+        output.resize(offset + block.size());
+      }
+    std::copy(block.begin(), block.end(), output.begin() + std::ptrdiff_t(offset));
+    return block.size();
+  };
+  SortedBlocksStats stats = sorted_emit<T>(sink.finish(), std::nullopt, count, emit);
+  if(stats.out_of_core != expect_out_of_core)
+    {
+      throw std::logic_error(name + ": out of core path " + (stats.out_of_core ? "taken" : "not taken"));
+    }
+  std::vector<T> expected = input;
+  sort_total(expected);
+  sort_total(output);
+  if((output.size() != expected.size()) || ((expected.size() > 0) && (std::memcmp(expected.data(), output.data(), expected.size() * sizeof(T)) != 0)))
+    {
+      throw std::logic_error(name + ": records put are not the records sorted");
+    }
+  if(bucket_files_left() != 0)
+    {
+      throw std::logic_error(name + ": " + std::to_string(bucket_files_left()) + " bucket files left");
+    }
+  return 1;
+}
+
 // Records with every key bit before digit_bit clear: leading field values
 // below bound, the rest of the key unconstrained. pattern random, equal
 // (one record repeated), few (8 distinct), or skewed (90% share a leading
@@ -557,6 +742,24 @@ static size_t test_bucket_sort_type(const std::string& type_name, uint64_t bound
           check_bucket_populate<T>(name + " populate", input, digit_bit, std::nullopt, out_of_core);
           bucket_sort_min_bytes = 0;
           check_bucket_populate<T>(name + " populate in memory", input, digit_bit, std::nullopt, false);
+          // sorted blocks and the record sink at the production cutoff, with
+          // the cutoff lowered, and with the in-core limit lowered too
+          for(int setting = 0; setting < 3; ++setting)
+            {
+              bucket_sort_min_bytes = (setting > 0) ? 4096 : 0;
+              bucket_sort_memory_max = (setting > 1) ? 4096 : 0;
+              bool blocks_out_of_core = (setting > 0) && out_of_core;
+              std::string where = (setting == 0) ? " in memory" : ((setting == 1) ? " buckets" : " buckets, small limit");
+              for(bool two_phase : {false, true})
+                {
+                  check_sorted_blocks<T>(name + " sorted blocks" + (two_phase ? " two phases" : " one phase") + where, input, digit_bit, std::nullopt, two_phase, blocks_out_of_core);
+                  ++cases;
+                }
+              check_record_sink<T>(name + " record sink" + where, input, digit_bit, blocks_out_of_core);
+              ++cases;
+            }
+          bucket_sort_min_bytes = 0;
+          bucket_sort_memory_max = 0;
           if((n == 50000) && (pattern == "skewed") && (populated_narrow.repartitioned == 0))
             {
               throw std::logic_error(name + " populate, small limit: no bucket was partitioned again");
@@ -659,12 +862,80 @@ static size_t test_bucket_sort_sentinels()
       bucket_sort_min_bytes = 4096;
       check_bucket_sort<pair_t>(name, input, digit_bit, sentinel, true);
       check_bucket_populate<pair_t>(name + " populate", input, digit_bit, sentinel, true);
+      check_sorted_blocks<pair_t>(name + " sorted blocks", input, digit_bit, sentinel, false, true);
+      bucket_sort_min_bytes = 0;
+      check_sorted_blocks<pair_t>(name + " sorted blocks in memory", input, digit_bit, sentinel, false, false);
+      bucket_sort_min_bytes = 4096;
       bucket_sort_memory_max = 4096;
       check_bucket_sort<pair_t>(name + ", small limit", input, digit_bit, sentinel, true);
       check_bucket_populate<pair_t>(name + " populate, small limit", input, digit_bit, sentinel, true);
+      check_sorted_blocks<pair_t>(name + " sorted blocks, small limit", input, digit_bit, sentinel, false, true);
       bucket_sort_memory_max = 0;
       bucket_sort_min_bytes = 0;
-      cases += 3;
+      cases += 6;
+    }
+  return cases;
+}
+
+// An emit that returns other than its block's count, and a put past the
+// end of a record sink, throw, in memory and through buckets.
+static size_t test_sorted_blocks_failures()
+{
+  size_t cases = 0;
+  typedef dfa_state_pair<uint32_t> pair_t;
+  std::vector<pair_t> input;
+  std::mt19937_64 rng(5);
+  for(size_t i = 0; i < 20000; ++i)
+    {
+      input.push_back(pair_t(rng() % 1000000, rng() % 1000000));
+    }
+  int digit_bit = bucket_digit_bit(32, 1000000);
+  auto count = [](size_t, std::span<const pair_t> block, const pair_t *) {return block.size();};
+  auto bad_emit = [](size_t, std::span<const pair_t> block, const pair_t *, size_t) {return block.size() + 1;};
+
+  for(size_t min_bytes : {size_t(0), size_t(4096)})
+    {
+      std::string where = min_bytes ? " buckets" : " in memory";
+      bucket_sort_min_bytes = min_bytes;
+      bool threw = false;
+      try
+        {
+          std::function<pair_t(size_t)> populate = [&](size_t i) {return input[i];};
+          sorted_emit<pair_t>(bucket_populate<pair_t>(bucket_test_dir + "/bad", input.size(), populate, digit_bit, std::nullopt, []() {}, true), std::nullopt, count, bad_emit);
+        }
+      catch(const std::logic_error& e)
+        {
+          threw = true;
+          std::cout << "sorted blocks bad emit" << where << ": threw as expected: " << e.what() << std::endl;
+        }
+      if(!threw)
+        {
+          throw std::logic_error("sorted blocks" + where + ": an emit returning the wrong count did not throw");
+        }
+      ++cases;
+
+      threw = false;
+      try
+        {
+          // 1000 pairs, 8000 bytes, so the lowered cutoff puts them in buckets
+          RecordSink<pair_t> sink(bucket_test_dir + "/bad_sink", 1000, digit_bit);
+          sink.put(995, std::span<const pair_t>(input.data(), 6));
+        }
+      catch(const std::logic_error& e)
+        {
+          threw = true;
+          std::cout << "record sink put past the end" << where << ": threw as expected: " << e.what() << std::endl;
+        }
+      if(!threw)
+        {
+          throw std::logic_error("record sink" + where + ": a put past the end did not throw");
+        }
+      ++cases;
+      bucket_sort_min_bytes = 0;
+      for(const auto& entry : std::filesystem::directory_iterator(bucket_test_dir))
+        {
+          std::filesystem::remove(entry.path());
+        }
     }
   return cases;
 }
@@ -727,9 +998,10 @@ static void run_bucket_sort_tests()
   }
   cases += test_bucket_sort_sentinels<uint32_t>();
   cases += test_bucket_sort_sentinels<uint64_t>();
+  cases += test_sorted_blocks_failures();
 
   std::filesystem::remove_all(bucket_test_dir);
-  std::cout << "test_flash_sort: " << cases << " bucket_sort, bucket_populate and bucket unique cases sorted by key (or left in index order in memory, or reduced to their distinct keys) with exactly their input records and no bucket files left, or threw" << std::endl;
+  std::cout << "test_flash_sort: " << cases << " bucket_sort, bucket_populate, bucket unique, sorted blocks and record sink cases sorted by key (or left in index order in memory, or reduced to their distinct keys) with exactly their input records and no bucket files left, or threw" << std::endl;
 }
 
 static void run_tests()
