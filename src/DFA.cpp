@@ -945,70 +945,76 @@ std::string DFA::serialize(std::string file_name_in) const
       layer_transitions.at(layer).mmap();
       const DFAStagingLayer& source = layer_transitions.at(layer);
 
-      size_t block_bytes = size_t(layout.get_block_bytes(layer));
-      std::vector<uint8_t> block(block_bytes);
+      // Each state's row, narrowed, written in parallel pieces through a
+      // bounded buffer. Every state's checks read only the staging layer,
+      // so each piece checks its own states.
+      size_t row_bytes = size_t(layer_shape) * size_t(width);
+      auto fill_rows = [&](size_t begin, size_t n, uint8_t *out)
+      {
+	for(size_t i = 0; i < n; ++i)
+	  {
+	    uint64_t state = begin + i;
+	    size_t source_offset = size_t(state) * size_t(layer_shape);
+	    uint8_t *row_out = out + i * row_bytes;
 
-      std::vector<dfa_state_t> previous_row;
-      for(uint64_t state = 0; state < layer_size; ++state)
-	{
-	  size_t source_offset = size_t(state) * size_t(layer_shape);
-	  size_t block_offset = size_t(state) * size_t(layer_shape) * size_t(width);
+	    for(int c = 0; c < layer_shape; ++c)
+	      {
+		dfa_state_t next_state = source.get(source_offset + size_t(c));
+		assert(next_state < bound);
+		dfa_format::encode_entry(next_state, width, &row_out[size_t(c) * size_t(width)]);
+	      }
 
-	  for(int c = 0; c < layer_shape; ++c)
-	    {
-	      dfa_state_t next_state = source.get(source_offset + size_t(c));
-	      assert(next_state < bound);
-	      dfa_format::encode_entry(next_state, width, &block[block_offset + size_t(c) * size_t(width)]);
-	    }
+	    // Rows 0 and 1 carry fixed values (section 4).
+	    if(state < 2)
+	      {
+		for(int c = 0; c < layer_shape; ++c)
+		  {
+		    assert(source.get(source_offset + size_t(c)) == state);
+		  }
+		continue;
+	      }
 
-	  // Rows 0 and 1 carry fixed values (section 4).
-	  if(state < 2)
-	    {
-	      for(int c = 0; c < layer_shape; ++c)
-		{
-		  assert(source.get(source_offset + size_t(c)) == state);
-		}
-	      continue;
-	    }
+	    // Verify the cheap half of the canonical claim: no row of new
+	    // states is uniformly reject or accept, and each is above the one
+	    // before it, so a subclass that declares canonical wrongly fails
+	    // here rather than producing a file readers reject.
+	    if(canonical)
+	      {
+		bool uniform_reject = true;
+		bool uniform_accept = true;
+		for(int c = 0; c < layer_shape; ++c)
+		  {
+		    dfa_state_t next_state = source.get(source_offset + size_t(c));
+		    uniform_reject = uniform_reject && (next_state == dfa_format::state_reject);
+		    uniform_accept = uniform_accept && (next_state == dfa_format::state_accept);
+		  }
+		assert(!uniform_reject);
+		assert(!uniform_accept);
 
-	  // Verify the cheap half of the canonical claim. The rows are
-	  // streaming past in order anyway, so comparing each against the
-	  // last costs nothing, and a subclass that declares canonical
-	  // wrongly fails here rather than producing a file readers reject.
-	  if(canonical)
-	    {
-	      std::vector<dfa_state_t> row(static_cast<size_t>(layer_shape));
-	      for(int c = 0; c < layer_shape; ++c)
-		{
-		  row[size_t(c)] = source.get(source_offset + size_t(c));
-		}
+		if(state > 2)
+		  {
+		    size_t previous_offset = source_offset - size_t(layer_shape);
+		    int c = 0;
+		    while((c < layer_shape) && (source.get(previous_offset + size_t(c)) == source.get(source_offset + size_t(c))))
+		      {
+			++c;
+		      }
+		    assert(c < layer_shape);
+		    assert(source.get(previous_offset + size_t(c)) < source.get(source_offset + size_t(c)));
+		  }
+	      }
+	  }
+      };
 
-	      bool uniform_reject = true;
-	      bool uniform_accept = true;
-	      for(int c = 0; c < layer_shape; ++c)
-		{
-		  uniform_reject = uniform_reject && (row[size_t(c)] == dfa_format::state_reject);
-		  uniform_accept = uniform_accept && (row[size_t(c)] == dfa_format::state_accept);
-		}
-	      assert(!uniform_reject);
-	      assert(!uniform_accept);
-
-	      if(previous_row.size())
-		{
-		  assert(previous_row < row);
-		}
-	      previous_row = row;
-	    }
-	}
-
-      write_buffer(fildes, block.data(), block.size());
+      pwrite_filled(fildes, size_t(layout.get_layer_offset(layer)), size_t(layer_size), row_bytes, fill_rows);
+      assert(size_t(layout.get_block_bytes(layer)) == size_t(layer_size) * row_bytes);
 
       // Padding between blocks. The last block is followed by EOF.
       if(layer + 1 < ndim)
 	{
 	  uint64_t end = layout.get_layer_offset(layer) + layout.get_block_bytes(layer);
 	  std::vector<uint8_t> padding(size_t(layout.get_layer_offset(layer + 1) - end), 0);
-	  write_buffer(fildes, padding.data(), padding.size());
+	  pwrite_bytes(fildes, padding.data(), padding.size(), size_t(end));
 	}
     }
 
