@@ -633,7 +633,7 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
   MemoryMap<next_pair_t> curr_transition_pairs = with_state_type(curr_pairs_wide, [&](auto curr_tag)
   {
     typedef dfa_state_pair<typename decltype(curr_tag)::type> curr_pair_t;
-    return build_quadratic_transition_pairs<curr_pair_t, next_pair_t>(left_in, right_in, layer);
+    return std::move(build_quadratic_transition_pairs<curr_pair_t, next_pair_t>(left_in, right_in, layer).map);
   });
 
   profile.tic("transitions populate");
@@ -760,7 +760,10 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
   typedef typename record_t::rank_type pair_rank_t;
   assert(shape == this->get_layer_shape(layer));
 
-  MemoryMap<record_t> rows(binary_dir() + "/rows", curr_layer_count, [&](size_t curr_pair_rank)
+  // Every transition is a state of layer + 1, which places the out of core
+  // path's digit.
+  int rows_digit_bit = bucket_digit_bit(int(8 * sizeof(typename record_t::id_type)), this->get_layer_size(layer + 1));
+  std::function<record_t(size_t)> make_row = [&](size_t curr_pair_rank)
   {
     record_t record;
     for(int j = 0; j < shape; ++j)
@@ -769,15 +772,18 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
       }
     record.rank = pair_rank_t(curr_pair_rank);
     return record;
-  });
-
-  release_inputs();
+  };
+  // Above the cutoff the rows go straight to bucket files and come back
+  // sorted; the inputs they were read from are dropped once they are made.
+  PopulatedRecords<record_t> populated_rows = bucket_populate<record_t>(binary_dir() + "/rows", curr_layer_count, make_row, rows_digit_bit, std::nullopt, release_inputs);
+  MemoryMap<record_t> rows = std::move(populated_rows.map);
 
   profile.tic("rows sort");
 
-  // Every transition is a state of layer + 1, which places the out of core
-  // path's digit.
-  bucket_sort(rows, bucket_digit_bit(int(8 * sizeof(typename record_t::id_type)), this->get_layer_size(layer + 1)));
+  if(!populated_rows.sorted)
+    {
+      bucket_sort(rows, rows_digit_bit);
+    }
 
   profile.tic("states identification");
 
@@ -906,27 +912,37 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
 
     profile.tic("rank outputs");
 
-    MemoryMap<rank_output_t> rank_outputs(binary_dir() + "/rank_outputs", curr_layer_count, [&](size_t i)
+    // Ranks are below curr_layer_count, which places the out of core path's
+    // digit.
+    int ranks_digit_bit = bucket_digit_bit(int(8 * sizeof(pair_rank_t)), curr_layer_count);
+    std::function<rank_output_t(size_t)> make_rank_output = [&](size_t i)
     {
       rank_output_t record;
       record.row[0] = rows_begin[i].rank;
       record.rank = permutation_to_output_data[i];
       return record;
+    };
+    // Above the cutoff the records go straight to bucket files and come
+    // back sorted; the rows and permutation they were read from are dropped
+    // once they are made.
+    PopulatedRecords<rank_output_t> populated_ranks = bucket_populate<rank_output_t>(binary_dir() + "/rank_outputs", curr_layer_count, make_rank_output, ranks_digit_bit, std::nullopt, [&]()
+    {
+      profile.tic("unlink rows");
+
+      rows.unlink();
+
+      profile.tic("unlink pairs_permutation_to_output");
+
+      curr_pairs_permutation_to_output.unlink();
     });
-
-    profile.tic("unlink rows");
-
-    rows.unlink();
-
-    profile.tic("unlink pairs_permutation_to_output");
-
-    curr_pairs_permutation_to_output.unlink();
+    MemoryMap<rank_output_t> rank_outputs = std::move(populated_ranks.map);
 
     profile.tic("rank outputs sort");
 
-    // Ranks are below curr_layer_count, which places the out of core path's
-    // digit.
-    bucket_sort(rank_outputs, bucket_digit_bit(int(8 * sizeof(pair_rank_t)), curr_layer_count));
+    if(!populated_ranks.sorted)
+      {
+        bucket_sort(rank_outputs, ranks_digit_bit);
+      }
 
     profile.tic("rank outputs check");
 
@@ -1549,7 +1565,12 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
   transition_pairs_marking<next_pair_t> marking;
   marking.filter_func = get_filter_func();
   marking.sentinel = sentinel;
-  MemoryMap<next_pair_t> curr_transition_pairs = build_quadratic_transition_pairs<curr_pair_t, next_pair_t>(left_in, right_in, layer, &marking);
+  // Real pairs' left states are below next_left_size, which places the out
+  // of core path's digit; the sentinels go to their own bucket. Above the
+  // cutoff the pairs come back sorted.
+  int pairs_digit_bit = bucket_digit_bit(int(8 * sizeof(next_state_t)), next_left_size);
+  PopulatedRecords<next_pair_t> populated_pairs = build_quadratic_transition_pairs<curr_pair_t, next_pair_t>(left_in, right_in, layer, &marking, pairs_digit_bit);
+  MemoryMap<next_pair_t> curr_transition_pairs = std::move(populated_pairs.map);
 
   std::cout << "pair count = " << curr_transition_pairs.size() << " (original, " << sizeof(next_state_t) << " bytes per state)" << std::endl;
 
@@ -1567,11 +1588,12 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
   profile.tic("sort");
 
   // Pairs sort as operator< orders them, sentinels last, and the sort
-  // throws if its result is not sorted. Real pairs' left states are below
-  // next_left_size, which places the out of core path's digit; the
-  // sentinels go to their own bucket. The file may be remapped, so the
+  // throws if its result is not sorted. The file may be remapped, so the
   // working range is taken again.
-  bucket_sort(curr_transition_pairs, bucket_digit_bit(int(8 * sizeof(next_state_t)), next_left_size), std::optional<next_pair_t>(sentinel));
+  if(!populated_pairs.sorted)
+    {
+      bucket_sort(curr_transition_pairs, pairs_digit_bit, std::optional<next_pair_t>(sentinel));
+    }
   working_begin = curr_transition_pairs.begin();
   working_end = curr_transition_pairs.end();
 
@@ -1704,10 +1726,11 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
 }
 
 template <class curr_pair_t, class next_pair_t>
-MemoryMap<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& left_in,
-                                                                   const DFA& right_in,
-                                                                   int layer,
-                                                                   transition_pairs_marking<next_pair_t> *marking)
+PopulatedRecords<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& left_in,
+                                                                         const DFA& right_in,
+                                                                         int layer,
+                                                                         transition_pairs_marking<next_pair_t> *marking,
+                                                                         std::optional<int> sort_digit_bit)
 {
   typedef typename next_pair_t::state_type next_state_t;
 
@@ -1752,7 +1775,7 @@ MemoryMap<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& le
 
   right_in.get_transitions(layer, 0);
 
-  MemoryMap<next_pair_t> curr_transition_pairs(binary_dir() + "/transition_pairs", transition_pairs_size, [&](size_t transition_index)
+  std::function<next_pair_t(size_t)> make_pair = [&](size_t transition_index)
   {
     size_t curr_i = transition_index / curr_layer_shape;
     size_t curr_j = transition_index % curr_layer_shape;
@@ -1776,13 +1799,29 @@ MemoryMap<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const DFA& le
           }
       }
     return next_pair;
-  });
+  };
 
-  // cleanup
+  // cleanup, once every pair is made
+  auto unlink_left = [&]()
+  {
+    profile2.tic("left unlink");
 
-  profile2.tic("left unlink");
+    transition_pairs_left.unlink();
+  };
 
-  transition_pairs_left.unlink();
+  // With sort_digit_bit, pairs above the cutoff go straight to bucket files
+  // and come back sorted.
+  std::string transition_pairs_name = binary_dir() + "/transition_pairs";
+  std::optional<next_pair_t> sentinel;
+  if(marking)
+    {
+      sentinel = marking->sentinel;
+    }
+  PopulatedRecords<next_pair_t> curr_transition_pairs = sort_digit_bit ? bucket_populate<next_pair_t>(transition_pairs_name, transition_pairs_size, make_pair, *sort_digit_bit, sentinel, unlink_left) : PopulatedRecords<next_pair_t>{MemoryMap<next_pair_t>(transition_pairs_name, transition_pairs_size, make_pair), false, BucketSortStats()};
+  if(!sort_digit_bit)
+    {
+      unlink_left();
+    }
 
   profile2.tic("curr pairs munmap");
 

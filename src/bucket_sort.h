@@ -13,7 +13,9 @@
 #include <cstdint>
 #include <exception>
 #include <format>
+#include <functional>
 #include <iostream>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -557,6 +559,122 @@ BucketFiles<T> bucket_partition_file(const std::string& path, size_t count, cons
   return files;
 }
 
+// Partitions count records, record i being populate(i), into bucket files
+// under dir, for the file at path, which names them in messages. Records are made in chunks of up to 1GB (a quarter of the
+// in-core limit when that is less), in parallel as MemoryMap's populate
+// constructor makes them, and each chunk is appended to the buckets by
+// threads each taking a part of it. Throws if a record's key differs from
+// spec.prefix before spec.digit_bit, naming the record.
+template <class T>
+BucketFiles<T> bucket_partition_populate(const std::string& path, size_t count, const std::function<T(size_t)>& populate, const std::string& dir, const std::string& prefix, const BucketSpec<T>& spec)
+{
+  size_t threads = std::max(size_t(std::thread::hardware_concurrency()), size_t(1));
+  size_t memory = bucket_sort_memory_bytes();
+  BucketAppender<T> appender(dir, prefix, spec, threads, memory / 2);
+
+  size_t chunk_records = std::max(std::min(size_t(1) << 30, memory / 4) / sizeof(T), size_t(1));
+  std::vector<T> chunk(std::min(chunk_records, count));
+
+  std::vector<std::unique_ptr<typename BucketAppender<T>::Writer>> writers;
+  for(size_t t = 0; t < threads; ++t)
+    {
+      writers.push_back(std::make_unique<typename BucketAppender<T>::Writer>(appender));
+    }
+
+  std::exception_ptr failure;
+  std::mutex failure_mutex;
+  auto record_failure = [&]()
+  {
+    std::lock_guard<std::mutex> lock(failure_mutex);
+    if(!failure)
+      {
+        failure = std::current_exception();
+      }
+  };
+
+  for(size_t chunk_start = 0; (chunk_start < count) && !failure; chunk_start += chunk_records)
+    {
+      size_t n = std::min(chunk_records, count - chunk_start);
+
+      // Each element's index comes from its address, as in MemoryMap's
+      // populate constructor, over the vector's own random access iterators.
+      T *chunk_data = chunk.data();
+      try
+        {
+          TRY_PARALLEL_3(std::for_each,
+                         chunk.begin(),
+                         chunk.begin() + std::ptrdiff_t(n),
+                         [&](T& element)
+                         {
+                           element = populate(chunk_start + size_t(&element - chunk_data));
+                         });
+        }
+      catch(...)
+        {
+          record_failure();
+          break;
+        }
+
+      size_t part = (n + threads - 1) / threads;
+      std::vector<std::thread> workers;
+      for(size_t t = 0; t < threads; ++t)
+        {
+          workers.emplace_back([&, t]()
+          {
+            try
+              {
+                for(size_t i = std::min(n, t * part); i < std::min(n, (t + 1) * part); ++i)
+                  {
+                    size_t bucket = spec.bucket_of(chunk[i]);
+                    if(bucket == BucketSpec<T>::invalid_bucket)
+                      {
+                        throw std::logic_error(std::format("bucket_sort: record {:d} of {:s} differs from its bucket's prefix before bit {:d}", chunk_start + i, path, spec.digit_bit));
+                      }
+                    writers[t]->append(bucket, chunk[i]);
+                  }
+              }
+            catch(...)
+              {
+                record_failure();
+              }
+          });
+        }
+      for(std::thread& worker : workers)
+        {
+          worker.join();
+        }
+    }
+
+  if(!failure)
+    {
+      try
+        {
+          for(auto& writer : writers)
+            {
+              writer->flush_all();
+            }
+        }
+      catch(...)
+        {
+          record_failure();
+        }
+    }
+
+  if(failure)
+    {
+      // removes whatever was written
+      BucketFiles<T> abandoned = appender.abandon();
+      std::rethrow_exception(failure);
+    }
+
+  BucketFiles<T> files = appender.finish();
+  if(files.total() != count)
+    {
+      throw std::logic_error(std::format("bucket_sort: {:d} records partitioned into buckets of {:s}, expected {:d}", files.total(), path, count));
+    }
+  return files;
+}
+
 // Reads records [begin, begin + n) of the file at path.
 template <class T>
 std::vector<T> bucket_read_records(const std::string& path, size_t begin, size_t n)
@@ -828,6 +946,93 @@ void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, Buc
   stats.boundaries = checked_boundaries;
 }
 
+// The first digit's bit for a bound's digit_bit: a bound of 1 claims every
+// key bit is zero, so the digit is the last bit, and every bit before it
+// is still checked.
+template <class T>
+int bucket_first_digit_bit(int digit_bit)
+{
+  return std::min(digit_bit, T::key_bits - 1);
+}
+
+template <class T>
+void bucket_log_partition(const std::string& path, size_t count, const BucketSpec<T>& spec, const BucketFiles<T>& files, BucketSortStats& stats)
+{
+  size_t largest = 0;
+  stats.buckets = spec.bucket_count();
+  for(size_t c : files.counts)
+    {
+      largest = std::max(largest, c);
+      stats.buckets_used += (c > 0) ? 1 : 0;
+    }
+  std::cout << std::format("bucket_sort: {:d} records ({:d} bytes) of {:s} partitioned on key bits [{:d}, {:d}){:s} into {:d} of {:d} buckets, largest {:d} records ({:.1f}%), in-core limit {:d} bytes", count, count * sizeof(T), path, spec.digit_bit, spec.digit_bit + spec.digit_width, (spec.sentinel ? " plus a sentinel bucket" : ""), stats.buckets_used, stats.buckets, largest, 100.0 * double(largest) / double(std::max(count, size_t(1))), bucket_sort_memory_bytes()) << std::endl;
+}
+
+template <class T>
+void bucket_log_sorted(size_t count, const BucketSortStats& stats)
+{
+  std::cout << std::format("bucket_sort: {:d} records sorted and written back in order, {:d} piece boundaries checked; {:d} buckets partitioned again, to depth {:d}, and {:d} of all equal keys", count, stats.boundaries, stats.repartitioned, stats.depth, stats.equal_runs) << std::endl;
+}
+
+// Records made by a populate function, in a mapped file.
+template <class T>
+struct PopulatedRecords
+{
+  MemoryMap<T> map;
+  // whether map is already sorted by key
+  bool sorted;
+  BucketSortStats stats;
+};
+
+// Makes the file at path of count records, record i being populate(i),
+// and calls after_populate once every record is made. At or under the
+// cutoff this is MemoryMap's populate constructor, and the records are
+// left in index order for the caller to sort. Above it, the records go
+// straight into bucket files, after_populate runs, and the buckets are
+// sorted and written to path, so the result is sorted, without the records
+// ever being written to path in index order. digit_bit and sentinel are as
+// for bucket_sort.
+template <class T, class AfterPopulate>
+PopulatedRecords<T> bucket_populate(const std::string& path, size_t count, const std::function<T(size_t)>& populate, int digit_bit, std::optional<T> sentinel, AfterPopulate after_populate)
+{
+  if((count == 0) || !bucket_sort_out_of_core(count * sizeof(T)))
+    {
+      MemoryMap<T> map(path, count, populate);
+      after_populate();
+      return PopulatedRecords<T>{std::move(map), false, BucketSortStats()};
+    }
+
+  BucketSortStats stats;
+  stats.out_of_core = true;
+
+  Profile profile("bucket_populate");
+  profile.tic("partition");
+
+  BucketSpec<T> spec = make_bucket_spec<T>(count, bucket_first_digit_bit<T>(digit_bit), T(), sentinel);
+  size_t slash = path.find_last_of('/');
+  std::string dir = (slash == std::string::npos) ? "." : path.substr(0, slash);
+  std::string prefix = ((slash == std::string::npos) ? path : path.substr(slash + 1)) + ".bucket";
+
+  BucketFiles<T> files = bucket_partition_populate<T>(path, count, populate, dir, prefix, spec);
+  bucket_log_partition(path, count, spec, files, stats);
+
+  profile.tic("after populate");
+
+  after_populate();
+
+  profile.tic("buckets");
+
+  MemoryMap<T> map(path, count);
+  map.munmap();
+  bucket_sort_write_back(std::move(files), path, stats);
+
+  profile.tic("mmap");
+
+  map.mmap();
+  bucket_log_sorted<T>(count, stats);
+  return PopulatedRecords<T>{std::move(map), true, stats};
+}
+
 // Sorts map's records by key. In memory with FlashSort at or under the
 // cutoff, else through bucket files as described at the top, leaving map
 // mapped as it was. digit_bit and sentinel are as for BucketSpec, with an
@@ -853,13 +1058,7 @@ BucketSortStats bucket_sort(MemoryMap<T>& map, int digit_bit, std::optional<T> s
   Profile profile("bucket_sort");
   profile.tic("partition");
 
-  // A bound of 1 claims every key bit is zero, so the digit is the last
-  // bit, and every bit before it is still checked.
-  if(digit_bit >= T::key_bits)
-    {
-      digit_bit = T::key_bits - 1;
-    }
-  BucketSpec<T> spec = make_bucket_spec<T>(count, digit_bit, T(), sentinel);
+  BucketSpec<T> spec = make_bucket_spec<T>(count, bucket_first_digit_bit<T>(digit_bit), T(), sentinel);
   std::string path = map.filename();
   size_t slash = path.find_last_of('/');
   std::string dir = (slash == std::string::npos) ? "." : path.substr(0, slash);
@@ -868,14 +1067,7 @@ BucketSortStats bucket_sort(MemoryMap<T>& map, int digit_bit, std::optional<T> s
   map.munmap();
   BucketFiles<T> files = bucket_partition_file<T>(path, count, dir, prefix, spec);
 
-  size_t largest = 0;
-  stats.buckets = spec.bucket_count();
-  for(size_t c : files.counts)
-    {
-      largest = std::max(largest, c);
-      stats.buckets_used += (c > 0) ? 1 : 0;
-    }
-  std::cout << std::format("bucket_sort: {:d} records ({:d} bytes) partitioned on key bits [{:d}, {:d}){:s} into {:d} of {:d} buckets, largest {:d} records ({:.1f}%), in-core limit {:d} bytes", count, bytes, spec.digit_bit, spec.digit_bit + spec.digit_width, (sentinel ? " plus a sentinel bucket" : ""), stats.buckets_used, stats.buckets, largest, 100.0 * double(largest) / double(count), bucket_sort_memory_bytes()) << std::endl;
+  bucket_log_partition(path, count, spec, files, stats);
 
   profile.tic("buckets");
 
@@ -884,7 +1076,7 @@ BucketSortStats bucket_sort(MemoryMap<T>& map, int digit_bit, std::optional<T> s
   profile.tic("mmap");
 
   map.mmap();
-  std::cout << std::format("bucket_sort: {:d} records sorted and written back in order, {:d} piece boundaries checked; {:d} buckets partitioned again, to depth {:d}, and {:d} of all equal keys", count, stats.boundaries, stats.repartitioned, stats.depth, stats.equal_runs) << std::endl;
+  bucket_log_sorted<T>(count, stats);
   return stats;
 }
 

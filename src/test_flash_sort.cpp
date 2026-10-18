@@ -7,6 +7,8 @@
 #include <filesystem>
 #include <iostream>
 #include <limits>
+#include <atomic>
+#include <functional>
 #include <optional>
 #include <random>
 #include <stdexcept>
@@ -345,6 +347,82 @@ static BucketSortStats check_bucket_sort(const std::string& name, const std::vec
   return stats;
 }
 
+// bucket_populate from input: in index order at or under the cutoff, and
+// sorted by key above it, with exactly the input's records either way,
+// after_populate called once after the last record was made, and no bucket
+// files left.
+template <class T>
+static BucketSortStats check_bucket_populate(const std::string& name, const std::vector<T>& input, int digit_bit, std::optional<T> sentinel, bool expect_out_of_core)
+{
+  std::string path = bucket_test_dir + "/populated";
+  std::atomic<size_t> made(0);
+  size_t calls = 0;
+  size_t made_at_call = 0;
+  std::function<T(size_t)> populate = [&](size_t i)
+  {
+    ++made;
+    return input[i];
+  };
+  PopulatedRecords<T> populated = bucket_populate<T>(path, input.size(), populate, digit_bit, sentinel, [&]()
+  {
+    ++calls;
+    made_at_call = made;
+  });
+
+  if(calls != 1)
+    {
+      throw std::logic_error(name + ": after_populate called " + std::to_string(calls) + " times");
+    }
+  if(made_at_call != input.size())
+    {
+      throw std::logic_error(name + ": after_populate called after " + std::to_string(made_at_call) + " of " + std::to_string(input.size()) + " records were made");
+    }
+  if(populated.sorted != expect_out_of_core)
+    {
+      throw std::logic_error(name + ": records " + (populated.sorted ? "sorted" : "not sorted"));
+    }
+  if(populated.map.size() != input.size())
+    {
+      throw std::logic_error(name + ": " + std::to_string(populated.map.size()) + " records, expected " + std::to_string(input.size()));
+    }
+
+  std::vector<T> output;
+  if(populated.map.size() > 0)
+    {
+      output.assign(populated.map.begin(), populated.map.end());
+    }
+  if(!populated.sorted)
+    {
+      if((input.size() > 0) && (std::memcmp(input.data(), output.data(), input.size() * sizeof(T)) != 0))
+        {
+          throw std::logic_error(name + ": records are not in index order");
+        }
+    }
+  else
+    {
+      for(size_t i = 1; i < output.size(); ++i)
+        {
+          if(output[i].key_less(output[i - 1]))
+            {
+              throw std::logic_error(name + ": record " + std::to_string(i) + " is less than the one before it");
+            }
+        }
+      std::vector<T> expected = input;
+      sort_total(expected);
+      sort_total(output);
+      if(std::memcmp(expected.data(), output.data(), expected.size() * sizeof(T)) != 0)
+        {
+          throw std::logic_error(name + ": sorted records are not the input's records");
+        }
+    }
+  if(bucket_files_left() != 0)
+    {
+      throw std::logic_error(name + ": " + std::to_string(bucket_files_left()) + " bucket files left");
+    }
+  populated.map.unlink();
+  return populated.stats;
+}
+
 // Records with every key bit before digit_bit clear: leading field values
 // below bound, the rest of the key unconstrained. pattern random, equal
 // (one record repeated), few (8 distinct), or skewed (90% share a leading
@@ -409,8 +487,15 @@ static size_t test_bucket_sort_type(const std::string& type_name, uint64_t bound
           // partitioned again or, with all keys equal, passed on in pieces
           bucket_sort_memory_max = 4096;
           BucketSortStats narrow = check_bucket_sort<T>(name + " buckets, small limit", input, digit_bit, std::nullopt, out_of_core);
+          BucketSortStats populated_narrow = check_bucket_populate<T>(name + " populate, small limit", input, digit_bit, std::nullopt, out_of_core);
           bucket_sort_memory_max = 0;
+          check_bucket_populate<T>(name + " populate", input, digit_bit, std::nullopt, out_of_core);
           bucket_sort_min_bytes = 0;
+          check_bucket_populate<T>(name + " populate in memory", input, digit_bit, std::nullopt, false);
+          if((n == 50000) && (pattern == "skewed") && (populated_narrow.repartitioned == 0))
+            {
+              throw std::logic_error(name + " populate, small limit: no bucket was partitioned again");
+            }
           if((n == 50000) && (pattern == "skewed") && (narrow.repartitioned == 0))
             {
               throw std::logic_error(name + " buckets, small limit: no bucket was partitioned again");
@@ -419,7 +504,7 @@ static size_t test_bucket_sort_type(const std::string& type_name, uint64_t bound
             {
               throw std::logic_error(name + " buckets, small limit: no bucket of equal keys was passed on in pieces");
             }
-          cases += 3;
+          cases += 6;
         }
     }
 
@@ -455,6 +540,32 @@ static size_t test_bucket_sort_type(const std::string& type_name, uint64_t bound
         }
       ::unlink(path.c_str());
       ++cases;
+
+      // the same record from a populate function
+      bucket_sort_min_bytes = 4096;
+      bucket_sort_memory_max = 4096;
+      threw = false;
+      try
+        {
+          std::function<T(size_t)> populate = [&](size_t i) {return input[i];};
+          bucket_populate<T>(bucket_test_dir + "/populated", input.size(), populate, digit_bit, std::nullopt, []() {});
+        }
+      catch(const std::logic_error& e)
+        {
+          threw = true;
+          std::cout << "bucket_populate " << type_name << " bad record: threw as expected: " << e.what() << std::endl;
+        }
+      bucket_sort_memory_max = 0;
+      bucket_sort_min_bytes = 0;
+      if(!threw)
+        {
+          throw std::logic_error("bucket_populate " + type_name + ": a record with a bit set before digit_bit did not throw");
+        }
+      if(bucket_files_left() != 0)
+        {
+          throw std::logic_error("bucket_populate " + type_name + " bad record: " + std::to_string(bucket_files_left()) + " bucket files left");
+        }
+      ++cases;
     }
 
   return cases;
@@ -482,11 +593,13 @@ static size_t test_bucket_sort_sentinels()
       std::string name = "bucket_sort sentinels " + std::to_string(8 * sizeof(S)) + " bit every " + std::to_string(every);
       bucket_sort_min_bytes = 4096;
       check_bucket_sort<pair_t>(name, input, digit_bit, sentinel, true);
+      check_bucket_populate<pair_t>(name + " populate", input, digit_bit, sentinel, true);
       bucket_sort_memory_max = 4096;
       check_bucket_sort<pair_t>(name + ", small limit", input, digit_bit, sentinel, true);
+      check_bucket_populate<pair_t>(name + " populate, small limit", input, digit_bit, sentinel, true);
       bucket_sort_memory_max = 0;
       bucket_sort_min_bytes = 0;
-      ++cases;
+      cases += 3;
     }
   return cases;
 }
@@ -551,7 +664,7 @@ static void run_bucket_sort_tests()
   cases += test_bucket_sort_sentinels<uint64_t>();
 
   std::filesystem::remove_all(bucket_test_dir);
-  std::cout << "test_flash_sort: " << cases << " bucket_sort cases sorted by key with exactly their input records and no bucket files left, or threw" << std::endl;
+  std::cout << "test_flash_sort: " << cases << " bucket_sort and bucket_populate cases sorted by key (or left in index order in memory) with exactly their input records and no bucket files left, or threw" << std::endl;
 }
 
 static void run_tests()

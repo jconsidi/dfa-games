@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,6 +18,10 @@
 #include "DFA.h"
 #include "DFAStateIdMap.h"
 #include "sort_key.h"
+
+// bucket_sort.h
+template <class T>
+struct PopulatedRecords;
 
 class Profile;
 
@@ -177,7 +182,7 @@ class BinaryDFA : public DFA
   };
 
   template <class curr_pair_t, class next_pair_t>
-  MemoryMap<next_pair_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer, transition_pairs_marking<next_pair_t> *marking = nullptr);
+  PopulatedRecords<next_pair_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer, transition_pairs_marking<next_pair_t> *marking = nullptr, std::optional<int> sort_digit_bit = std::nullopt);
 
   std::function<bool(dfa_state_t, dfa_state_t)> get_filter_func() const;
   std::function<dfa_state_t(dfa_state_t, dfa_state_t)> get_shortcircuit_func() const;
