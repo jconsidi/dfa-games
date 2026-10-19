@@ -36,10 +36,18 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
   The range uses the lowest and highest per layer time ratios, over layers of 5 minutes or more in the reference.
 - Early in a union, the ETA goes by size instead: until the layers both have finished cover 15% of the reference's time, when loading and small layers dominate.
   - It scales each reference's minutes linearly by the ratio of input states.
+  - The input states are the input nodes' counts, known from the union's first log lines, before its inputs load:
+    - for a join of joins, the two joins built before it that split its moves;
+    - for a join of moves, the move nodes its edge lines name.
+    Each count comes from the log's `built` or `loaded` line for that node, or for the union in progress from the node's DFA header through its link in `scratch/move_nodes`.
+    References get their counts from the log, so this works after gc has removed their files.
+  - Without those, it uses the conditioned input counts the merge logs, comparing only the inputs loaded so far with as many of each reference's.
+  - Before any input is known, it uses the median time of the joins over as many moves at the same code.
   - It counts from the union's start, or from the previous union's end in this run before any layer has finished.
   - The references are the closest by input states, preferring same-code ones within 25% of the size, since older code ran slower.
-  - While only one input has loaded, it compares that input with each reference's first.
-  - The range spans the references listed.
+  - The range spans the same-code references listed, or all of them if none is at the same code, and reaches down to 0.75 of the best reference's scaled time.
+  - Linear scaling is rough and has run long: at its start, `join_0_32` scaled from `join_16_32` gave 676 minutes, and it took 512, because its pair counts grew less than its inputs.
+    Time follows the pairs per layer, which depend on how the inputs overlap, so per layer input sizes predicted no better than the total when compared on the joins of 2026-10-19.
 
 ## 3. Present
 

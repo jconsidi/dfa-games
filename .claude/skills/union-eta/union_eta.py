@@ -28,6 +28,7 @@ import math
 import os
 import re
 import shutil
+import struct
 import sys
 import time
 
@@ -45,6 +46,9 @@ CANDIDATES_SHOWN = 3
 # estimate goes by size.
 TIMING_MIN_SHARE = 0.15
 SAME_CODE_SIZE_FACTOR = 1.25
+# Scaling by input states overestimated join_0_32 by 32% and join_36_40 by
+# 21%, so the size estimate's range reaches this share of its scaled time.
+SIZE_LOW_FACTOR = 0.75
 
 
 def builds(lines):
@@ -52,13 +56,29 @@ def builds(lines):
     forward and backward seconds, filtered pairs and unique pairs, keyed by
     the layer the pairs are for, and its input state counts."""
     out, b = [], None
+    states = {}
     for k, line in enumerate(lines):
+        m = re.match(r"(?:built|loaded) move_nodes/.*,node=(\S+) => (\d+) states$", line)
+        if m:
+            states[m.group(1)] = int(m.group(2))
         if line.startswith("building move_nodes/") and ",node=begin.join_" in line:
-            b = {"node": line.rsplit(",node=", 1)[1], "begin": k, "built": False, "inputs": None, "loaded": [],
+            prefix, node = line[len("building move_nodes/"):].rsplit(",node=", 1)
+            b = {"node": node, "prefix": prefix, "begin": k, "built": False, "inputs": None, "loaded": [],
+                 "states": states, "edges": {}, "edge_count": None,
                  "seconds": {"forward": {}, "backward": {}}, "pairs": {}, "unique": {}}
+            # The node state counts logged up to this build, and during it.
+            states = dict(states)
+            b["states"] = states
             out.append(b)
             continue
         if b is None:
+            continue
+        # A join of joins logs "(child to this join)"; a join of moves logs
+        # "(begin to move node)", whose input is the move node.
+        m = re.match(r" node \d+/\d+ \((\S+)\), incoming edge (\d+)/(\d+) \((\S+) to (\S+)\)$", line)
+        if m:
+            b["edges"][int(m.group(2))] = m.group(4) if m.group(5) == m.group(1) else m.group(5)
+            b["edge_count"] = int(m.group(3))
             continue
         if line.startswith("==="):
             b = None
@@ -93,8 +113,61 @@ def builds(lines):
     return out
 
 
+def file_states(prefix, node):
+    """A move node's state count from its DFA header, through its link in
+    scratch, or None if the link is gone."""
+    path = os.path.join(sb.SRC_DIR, "scratch", "move_nodes", prefix + ",node=" + node)
+    if not os.path.exists(path):
+        return None
+    with open(path, "rb") as f:
+        header = f.read(64)
+        if header[:8] != b"DFA1\r\n\x1a\n":
+            sb.fail(f"{path} is not a DFA file")
+        ndim = struct.unpack_from("<I", header, 48)[0]
+        return sum(struct.unpack_from(f"<{ndim}Q", f.read(8 * ndim)))
+
+
+def source_counts(b, live):
+    """([states of each input node, before edge conditions, or None while
+    unknown], number of inputs), or None.
+
+    A join of joins takes the two joins built before it that split its moves;
+    a join of moves takes the move nodes its edge lines name. Counts come from
+    the log, or for the union in progress, from the input's DFA header.
+    """
+    m = re.match(r"begin\.join_(\d+)_(\d+)$", b["node"])
+    names, n = None, None
+    if m:
+        lo, hi = int(m.group(1)), int(m.group(2))
+        for x in range(lo + 1, hi):
+            a, c = f"begin.join_{lo}_{x}", f"begin.join_{x}_{hi}"
+            if a in b["states"] and c in b["states"]:
+                names, n = [a, c], 2
+    if names is None:
+        if not b["edges"]:
+            return None
+        names, n = [b["edges"][i] for i in sorted(b["edges"])], b["edge_count"]
+    counts = []
+    for name in names:
+        v = b["states"].get(name)
+        if v is None and live:
+            v = file_states(b["prefix"], name)
+        counts.append(v)
+    return counts, n
+
+
+def leading(counts):
+    """The counts before the first unknown one."""
+    out = []
+    for v in counts:
+        if v is None:
+            break
+        out.append(v)
+    return out
+
+
 def input_states(b):
-    """(total input states, whether every input has loaded), or None."""
+    """(total conditioned input states, whether every input has loaded), or None."""
     if b["inputs"]:
         return sum(b["inputs"]), True
     if b["loaded"]:
@@ -103,37 +176,46 @@ def input_states(b):
 
 
 def compared_states(current, ref):
-    """(current, ref) input states over the inputs loaded so far in the
-    current union, or None."""
-    cur = input_states(current)
-    if cur is None:
+    """(current states, ref states, basis), or None.
+
+    Input node counts come first: over every input when both unions have
+    them all, else over the current union's inputs known so far and as many
+    of the reference's. The conditioned input counts the merge logs are the
+    fallback.
+    """
+    cur, other = source_counts(current, True), source_counts(ref, False)
+    if cur and other:
+        k, r = leading(cur[0]), leading(other[0])
+        if k and len(k) == cur[1] and len(r) == other[1]:
+            return sum(k), sum(r), "input node states"
+        if k and len(k) < cur[1] and len(r) >= len(k):
+            return sum(k), sum(r[:len(k)]), f"first {len(k)} input node states"
+    c = input_states(current)
+    if c is None:
         return None
-    if cur[1]:
-        other = input_states(ref)
-        return (cur[0], other[0]) if other and other[1] else None
-    k = len(current["loaded"])
-    return (cur[0], sum(ref["loaded"][:k])) if len(ref["loaded"]) >= k else None
+    if c[1]:
+        o = input_states(ref)
+        return (c[0], o[0], "conditioned input states") if o and o[1] else None
+    n = len(current["loaded"])
+    return (c[0], sum(ref["loaded"][:n]), f"first {n} conditioned input states") if len(ref["loaded"]) >= n else None
 
 
 def size_estimate(t0, current, candidates):
-    """For a union with no finished layer to compare: each reference's wall
-    time scaled by the ratio of input states, from t0. Returns the closest
-    references by input states, same code first among equals, each with its
-    estimate."""
-    cur = input_states(current)
-    if cur is None:
-        return [], None
+    """For a union without enough finished layers to compare: each
+    reference's wall time scaled by the ratio of input states, from t0.
+    Returns the closest references by input states, each with its estimate."""
     out = []
     for c in candidates:
         pair = compared_states(current, c["build"])
-        if pair is None or pair[1] == 0:
+        if pair is None or pair[0] == 0 or pair[1] == 0:
             continue
         scale = pair[0] / pair[1]
-        out.append(dict(c, ref_states=pair[1], size_off=abs(math.log(scale)), scale=scale, size_eta=t0 + c["union"]["wall_us"] * scale))
+        out.append(dict(c, cur_states=pair[0], ref_states=pair[1], basis=pair[2], size_off=abs(math.log(scale)),
+                        scale=scale, size_eta=t0 + c["union"]["wall_us"] * scale))
     # Older code ran slower, so a reference at the same code within this
     # factor of the size comes first.
     out.sort(key=lambda c: (not (c["same"] and c["size_off"] < math.log(SAME_CODE_SIZE_FACTOR)), c["size_off"], -c["run"]))
-    return out[:CANDIDATES_SHOWN], cur
+    return out[:CANDIDATES_SHOWN]
 
 
 def layer_ends(records, t0, t1):
@@ -182,7 +264,7 @@ def score(current, ref):
         return sum(abs(math.log(current["unique"][n] / ref["unique"][n])) for n in layers) / len(layers), f"unique pairs, {len(layers)} layers"
     pair = compared_states(current, ref)
     if pair and pair[0] and pair[1]:
-        return abs(math.log(pair[0] / pair[1])), "input states" if input_states(current)[1] else "input states so far"
+        return abs(math.log(pair[0] / pair[1])), pair[2]
     return None
 
 
@@ -207,6 +289,28 @@ def estimate(cur_t0, cur_ends, ref_union, ref_ends, current, ref):
                 ratios.append(c / s)
     at = lambda q: cur_t0 + cur_elapsed + q * ref_left
     return at(r), at(min(ratios)), at(max(ratios)), r, min(ratios), max(ratios), k, ref_left
+
+
+def span(node):
+    m = re.match(r"begin\.join_(\d+)_(\d+)$", node)
+    return int(m.group(2)) - int(m.group(1)) if m else None
+
+
+def span_estimate(current, trace_done, commits, epoch, t0):
+    """Before any input has loaded: the finished joins over as many moves,
+    at the same code, from the previous union's end."""
+    width = span(current["node"])
+    if t0 is None or width is None:
+        print("\nETA: none yet, since no input of this union has loaded and no layer has finished")
+        return
+    walls = sorted(r["wall_us"] for node, traced in trace_done.items() if span(node) == width
+                   for i, r, rs in traced if commits[i] is not None and not sb.solver_changes(commits[i], commits[-1]))
+    if not walls:
+        print(f"\nETA: none yet, since no input of this union has loaded, and no {width} move join finished at this code")
+        return
+    mid = walls[len(walls) // 2]
+    print(f"\nETA by span, before any input has loaded: {len(walls)} joins over {width} moves at this code took {walls[0] / 6e7:.1f} to {walls[-1] / 6e7:.1f} min, median {mid / 6e7:.1f}, from a start of {clock(epoch + t0 / 1e6)}")
+    print(f"ETA {clock(epoch + (t0 + mid) / 1e6)}, range {clock(epoch + (t0 + walls[0]) / 1e6)} to {clock(epoch + (t0 + walls[-1]) / 1e6)}")
 
 
 def main():
@@ -280,8 +384,8 @@ def main():
             est = estimate(cur_t0, cur_ends, r, ends, current, b) if cur_t0 is not None else None
             candidates.append({"node": node, "build": b, "union": r, "run": i, "same": same, "score": s, "est": est})
     if not candidates:
-        if input_states(current) is None:
-            print("\nETA: none yet, since no input of this union has loaded and no layer has finished")
+        if input_states(current) is None and source_counts(current, True) is None:
+            span_estimate(current, trace_done, commits, epoch, after if finished_here else None)
             return
         sb.fail("no finished union in the trace and log to compare with")
     candidates.sort(key=lambda c: (c["score"][0], not c["same"], -c["run"]))
@@ -301,19 +405,24 @@ def main():
         if t0 is None:
             print("\nETA: not enough of this union has finished to compare times, and no union finished before it in this run to give its start")
             return
-        sized, cur = size_estimate(t0, current, [ref] if args.ref else candidates)
+        sized = size_estimate(t0, current, [ref] if args.ref else candidates)
         if not sized:
             print("\nETA: not enough of this union has finished to compare times, and no reference's input state counts compare")
             return
-        print(f"\nETA by size, before enough of this union has finished to compare times: {cur[0]:,} input states"
-              + ("" if cur[1] else f" in the first {len(current['loaded'])} input, compared with each reference's first")
-              + f", from a start of {clock(epoch + t0 / 1e6)}")
-        print(f'  {"union":18s} {"commit":8s} {"code":5s} {"input states":>15s} {"scale":>5s} {"min":>6s} {"scaled":>6s}  ETA')
+        print(f"\nETA by size, before enough of this union has finished to compare times, from a start of {clock(epoch + t0 / 1e6)}")
+        print(f'  {"union":18s} {"commit":8s} {"code":5s} {"basis":34s} {"states":>15s} {"ref states":>15s} {"scale":>5s} {"min":>6s} {"scaled":>6s}  ETA')
         for c in sized:
-            print(f'  {c["node"]:18s} {commits[c["run"]] or "?":8s} {"same" if c["same"] else "older":5s} {c["ref_states"]:>15,} {c["scale"]:5.2f} {c["union"]["wall_us"] / 6e7:6.1f} {c["union"]["wall_us"] * c["scale"] / 6e7:6.1f}  {clock(epoch + c["size_eta"] / 1e6)}')
-        etas = [c["size_eta"] for c in sized]
-        print(f"ETA {clock(epoch + sized[0]['size_eta'] / 1e6)}, range {clock(epoch + min(etas) / 1e6)} to {clock(epoch + max(etas) / 1e6)}, by size against {sized[0]['node']}")
-        print("  each reference's minutes scaled linearly by input states; the range spans the references above")
+            print(f'  {c["node"]:18s} {commits[c["run"]] or "?":8s} {"same" if c["same"] else "older":5s} {c["basis"]:34s} {c["cur_states"]:>15,} {c["ref_states"]:>15,} {c["scale"]:5.2f} {c["union"]["wall_us"] / 6e7:6.1f} {c["union"]["wall_us"] * c["scale"] / 6e7:6.1f}  {clock(epoch + c["size_eta"] / 1e6)}')
+        # The range spans the same-code references, or all of them when none
+        # is at the same code, and reaches SIZE_LOW_FACTOR of the best one's
+        # scaled time, since scaling by size has run long.
+        best = sized[0]
+        same = [c for c in sized if c["same"]] or sized
+        lo = min([c["size_eta"] for c in same] + [t0 + SIZE_LOW_FACTOR * (best["size_eta"] - t0)])
+        hi = max(c["size_eta"] for c in same)
+        print(f"ETA {clock(epoch + best['size_eta'] / 1e6)}, range {clock(epoch + lo / 1e6)} to {clock(epoch + hi / 1e6)}, by size against {best['node']}")
+        print(f"  each reference's minutes scaled linearly by input states; the range spans the {'same-code ' if same is not sized else ''}references above,"
+              f" and down to {SIZE_LOW_FACTOR:.2f} of {best['node']}'s scaled time")
         return
 
     print("\nreferences, closest first:")
