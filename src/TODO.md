@@ -421,3 +421,71 @@ Extending it to the remaining cases would leave one backward path.
 - Layers the hashed path numbers by hash would be numbered by row instead, so their DFAs change hash and every cache built from them is rebuilt once.
   The language must not change: check each affected result against the hashed build by state count, and by `get_difference` both ways being empty.
 - Then remove the hashed path, `binary_dfa_rows_enabled`, `binary_dfa_key_narrow_max`, and `hashed_any_layer`, along with the tests that force them.
+
+## BinaryDFA backward pass lookups out of core
+
+Measured on cram_7x7 `begin.join_16_24` (8 moves, 192.7 minutes at d24c8cb) on 2026-10-18, from the profile trace and log.
+Faults are each phase's own major faults at 16 KiB each, a lower bound on what it read, since the trace's `inblock` is always 0.
+The backward pass took 118.1 minutes, against 37.0 for the forward pass.
+
+| Division | Min | User cores | Sys cores | GB faulted |
+|---|---|---|---|---|
+| `transitions populate`: next pair lookup | 56.2 | 6.7 | 2.0 | 4,115 |
+| `transitions input`: rebuild, right lookup | 14.7 | 5.9 | 2.0 | 1,316 |
+| `transitions input`: rebuild, left lookup | 7.1 | 2.5 | 3.0 | 819 |
+| `next pair outputs` merge | 8.4 | 0.6 | 3.0 | 1,129 |
+| `next pair index` | 7.7 | 0.1 | 4.9 | 1,114 |
+| rows sorts and numbering | 23.7 | 5.4 | 1.4 | 504 |
+
+### next pair index inside the merge
+
+`next pair index` (`BinaryDFA.cpp:584`) reads every 512th entry of `next_pair_outputs` right after the merge writes it, about one page fault per entry.
+It ran at 0.08 user cores for 7.7 minutes.
+
+- Write the first level of the index from the merge's own populate, which writes every pair, so it can write every 512th to the index as it goes.
+- Keep the upper levels as they are; they are under 1 MB after the first.
+
+### sequential reads through `pread`
+
+Inputs read in order fault once per 16 KiB page through mmap.
+The left lookup's faults (166 GB on layer 41) match reading `curr_pairs` (146 GB) and the left input in order, at 2.7 user and 2.8 sys cores.
+
+- Read the in-order inputs with large `pread` calls instead: `curr_pairs` in the left lookup, `transition_pairs_left` in the right lookup, `curr_transition_pairs` in `transition_for`, and both inputs of the `next pair outputs` merge.
+- These are forward and backward alike, since the rebuild runs the forward producer.
+
+### sort join for the next pair lookup
+
+`transition_for` (`BinaryDFA.cpp:644`) binary searches `next_pair_outputs` for each transition, in transition order rather than next pair order.
+
+| Layer | Min | GB faulted | In-order input GB | Table GB |
+|---|---|---|---|---|
+| 42 | 4.0 | 223 | 195 | 27 |
+| 41 | 10.3 | 692 | 291 | 146 |
+| 40 | 17.5 | 1,432 | 271 | 291 |
+| 39 | 11.4 | 906 | 208 | 271 |
+| 38 | 6.0 | 437 | 143 | 208 |
+
+While the table fits RAM (layer 42) the faults are only the in-order read.
+Above RAM they reach 2 to 5 times the input and table together, about 2.7 TB re-read on layers 38 to 41, which take 45 of the 56 minutes.
+
+Keeping each transition's next pair rank from the forward pass would remove the lookup and the rebuild, but every layer's list would be on disk at once at the turn from forward to backward: about 2.7 TB at 16 bytes per transition for `join_16_24`, and about twice that for `join_16_32`.
+Instead, within each backward layer whose table is over a RAM cutoff:
+
+- Rebuild the transition pairs as now, emitting (next pair, transition index) records straight into the bucket partition.
+- Bucket sort them by next pair, and merge each bucket against its contiguous range of `next_pair_outputs` in order.
+- Emit (transition index, output) records and bucket sort them by index; consecutive indices are each pair's row, which feeds the rows path.
+- Check that every record finds its pair, as `assert(found.pair == next_pair)` does now, and that every index comes back once, as the rank outputs check does.
+- Disk is held for one layer only: about 580 GB of records and bucket files at layer 41.
+- Estimate, not measured: the two sorts move about twice the bytes of the forward pair sort (3.5 minutes on layer 41), so 7 to 12 minutes against 10 to 17.5 for today's lookup on layers 39 to 41, or 20 to 30 minutes per 8 move join.
+  The gain grows with join size, since the random reads grow faster than the sorts once the table is several times RAM.
+- Prototype it on one layer in the side tree and time it before building it into the solver.
+
+### keep bucket files out of the page cache
+
+Measured on cram_7x7 `begin.join_24_32` on 2026-10-18: on layer 40 the right lookup faulted 251 GB, against 115 GB of `transition_pairs_left` read in order and a 21 GB right input layer.
+The right input fits RAM easily, so it is being evicted and read back about 6 times, probably by the bucket file writes and reads going through the page cache.
+
+- Set `F_NOCACHE` with `fcntl` on bucket files on macOS, and call `posix_fadvise(POSIX_FADV_DONTNEED)` on written ranges on Linux, guarded by platform.
+- Check the `fcntl` and `posix_fadvise` return values and throw on failure.
+- Measure the right lookup's faults and time on a large layer with and without it, and keep it only if it helps.
+- If the right input's faults stay high, look for the other streams evicting it, such as `transition_pairs_left` and the MemoryMap populate writes.
