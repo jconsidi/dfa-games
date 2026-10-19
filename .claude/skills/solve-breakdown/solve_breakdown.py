@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
-"""Where the time of a solve's unions goes, from its profile trace and log.
+"""Where a solve's union time goes, for the latest solver code version.
 
-usage: union_profile.py GAME breakdown [--wait] [--trace FILE] [--log FILE]
-       union_profile.py GAME lookups NODE [--trace FILE] [--log FILE]
+usage: solve_breakdown.py GAME breakdown [--wait] [--trace FILE] [--log FILE]
+       solve_breakdown.py GAME lookups NODE [--trace FILE] [--log FILE]
 
 Runs from src/ (found relative to this file). The trace defaults to
 GAME.jsonl (DFA_PROFILE_TRACE) and the log to GAME.log, both in src/.
 
-breakdown: the unions finished in the trace's last run, then minutes, share
-and cores busy per phase group, for the whole run and for the latest union.
-With --wait, it first waits for the next union to finish, and exits 3 if the
-solve exits instead.
+A code version is the solver code a run used: runs whose restart commits
+differ only outside src/ and third_party/, or only in Markdown files, are the
+same version. Each trace run is matched to the log's "=== restart" line
+written just before it.
+
+breakdown: the unions finished at the latest run's code version, then
+minutes, share and cores busy per phase group, over those unions and for the
+latest one. With --wait, it first waits for the next union to finish, and
+exits 3 if the solve exits instead.
 
 lookups: one union's forward and backward passes, split by the BinaryDFA
 record producer's lookups, with per layer minutes and own major faults. The
 input DFAs' layer sizes are read from scratch when they still exist there.
+
+The union-eta skill imports this file for its trace and log parsing.
 
 Exits nonzero, with the reason, on anything it does not recognize.
 """
@@ -25,14 +32,20 @@ import json
 import os
 import re
 import struct
+import subprocess
 import sys
 import time
 
 SRC_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "src"))
+REPO_DIR = os.path.dirname(SRC_DIR)
 
 # Major faults are counted per phase, not bytes; the trace's inblock is 0 on
 # macOS. Each fault is shown as one 16 KiB page, a lower bound on the read.
 PAGE_BYTES = 16384
+
+# A trace run starts when the solver process does, right after the log's
+# restart line.
+RESTART_TO_RUN_MAX_S = 300
 
 GROUPS = [
     ("records: bucket partition", lambda k: k.startswith("bucket_populate partition")),
@@ -51,7 +64,7 @@ GROUPS = [
 
 
 def fail(message):
-    print(f"union_profile: {message}", file=sys.stderr)
+    print(f"{os.path.basename(sys.argv[0])}: {message}", file=sys.stderr)
     sys.exit(1)
 
 
@@ -84,10 +97,69 @@ def read_runs(trace):
     return runs
 
 
+def read_log(log):
+    if not os.path.exists(log):
+        fail(f"no log at {log}")
+    with open(log) as f:
+        return f.read().splitlines()
+
+
 def union_node(record):
     if record["name"].startswith("load_or_build move_nodes") and ",node=begin.join_" in record["name"]:
         return record["name"].rsplit(",node=", 1)[1]
     return None
+
+
+def run_start(run):
+    return run["start_epoch_ms"] / 1000
+
+
+def restart_marks(lines):
+    """(epoch seconds, commit) of each "=== restart" line."""
+    marks = []
+    for line in lines:
+        if line.startswith("=== restart"):
+            m = re.match(r"=== restart (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) at ([0-9a-f]{7,40}) ", line)
+            if not m:
+                fail(f"unrecognized restart line: {line}")
+            marks.append((time.mktime(time.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")), m.group(2)))
+    return marks
+
+
+def run_commits(runs, lines):
+    """The commit of each trace run, or None for a run with no restart line
+    just before it."""
+    marks = restart_marks(lines)
+    commits = []
+    for run, _ in runs:
+        start = run_start(run)
+        before = [c for t, c in marks if 0 <= start - t <= RESTART_TO_RUN_MAX_S]
+        commits.append(before[-1] if before else None)
+    return commits
+
+
+_changes = {}
+
+
+def solver_changes(a, b):
+    """Files that differ between commits a and b in the solver's code: under
+    src/ or third_party/, other than Markdown."""
+    if (a, b) not in _changes:
+        p = subprocess.run(["git", "-C", REPO_DIR, "diff", "--name-only", a, b, "--", "src", "third_party"], capture_output=True, text=True)
+        if p.returncode != 0:
+            fail(f"git diff {a} {b} failed: {p.stderr.strip()}")
+        _changes[(a, b)] = [f for f in p.stdout.split() if not f.endswith(".md")]
+    return _changes[(a, b)]
+
+
+def version_runs(runs, lines):
+    """The indices of the runs at the latest run's code version, and that
+    run's commit."""
+    commits = run_commits(runs, lines)
+    latest = commits[-1]
+    if latest is None:
+        fail("the trace's last run has no restart line in the log, so its commit is unknown")
+    return [i for i, c in enumerate(commits) if c is not None and not solver_changes(c, latest)], commits
 
 
 def group_of(record):
@@ -114,9 +186,13 @@ def group_table(records, title):
         print(f"  {group:32s} {t[0] / 6e7:7.1f} {100 * t[0] / max(wall, 1):5.1f} {t[1] / max(t[0], 1):10.2f} {t[2] / max(t[0], 1):9.2f}")
 
 
+def within(records, union):
+    t0, t1 = union["start_us"], union["start_us"] + union["wall_us"]
+    return [r for r in records if t0 <= r["start_us"] < t1]
+
+
 def unions_built_since_restart(log):
-    with open(log) as f:
-        lines = f.read().splitlines()
+    lines = read_log(log)
     starts = [k for k, l in enumerate(lines) if l.startswith("=== restart")]
     since = lines[starts[-1]:] if starts else lines
     return sum(1 for l in since if l.startswith("built move_nodes") and ",node=begin.join_" in l), (lines[-1] if lines else "")
@@ -137,20 +213,36 @@ def breakdown(args):
         time.sleep(5)
         print(time.strftime("%a %b %d %H:%M:%S %Z %Y"))
 
-    run, records = read_runs(args.trace)[-1]
-    elapsed_us = time.time() * 1e6 - run["start_epoch_ms"] * 1e3
-    started = time.strftime("%Y-%m-%d %H:%M", time.localtime(run["start_epoch_ms"] / 1000))
-    print(f"run started {started}, elapsed {elapsed_us / 6e7:.1f} min")
-    unions = [r for r in records if union_node(r)]
+    runs = read_runs(args.trace)
+    lines = read_log(args.log)
+    chosen, commits = version_runs(runs, lines)
+    latest = commits[-1]
+    head = solver_changes(latest, "HEAD")
+    print(f"code version of the latest run, {latest}: " + ("HEAD has the same solver code" if not head else "HEAD differs in " + ", ".join(head)))
+    print("runs at this code version:")
+    unions, inside, total = [], [], 0
+    for i in chosen:
+        run, records = runs[i]
+        finished = [r for r in records if union_node(r)]
+        started = time.strftime("%Y-%m-%d %H:%M", time.localtime(run_start(run)))
+        print(f"  {started} at {commits[i]}: {len(finished)} unions finished")
+        for r in finished:
+            unions.append(r)
+            inside.extend(within(records, r))
+            latest_records = records
+        total += sum(r["self_us"] for r in records)
+    print("\nunions finished at this code version:")
     for r in unions:
         print(f'  {union_node(r):20s} {r["wall_us"] / 6e7:7.1f} min  majflt {r["majflt"]:>12,}')
+    if not unions:
+        print("  none yet")
+        return
     print()
-    group_table(records, "cumulative")
-    if unions:
-        last = unions[-1]
-        t0, t1 = last["start_us"], last["start_us"] + last["wall_us"]
-        print()
-        group_table([r for r in records if t0 <= r["start_us"] < t1], "latest union " + union_node(last))
+    group_table(inside, "over those unions")
+    outside = total - sum(r["self_us"] for r in inside)
+    print(f"  plus {outside / 6e7:.1f} min of finished phases outside them: loading at each start, and unions not finished in their run")
+    print()
+    group_table(within(latest_records, unions[-1]), "latest union " + union_node(unions[-1]))
 
 
 def classify(labels):
@@ -221,7 +313,6 @@ def lookups(args):
     children = collections.defaultdict(list)
     for r in records:
         children[r["parent"]].append(r)
-    t0, t1 = union["start_us"], union["start_us"] + union["wall_us"]
 
     def labels(r):
         out = []
@@ -231,16 +322,14 @@ def lookups(args):
         return out
 
     totals = collections.defaultdict(lambda: [0, 0, 0, 0])
-    for r in records:
-        if t0 <= r["start_us"] < t1:
-            t = totals[classify(labels(r))]
-            t[0] += r["self_us"]
-            t[1] += r["self_user_us"]
-            t[2] += r["self_sys_us"]
-            t[3] += r["majflt"] - sum(c["majflt"] for c in children[r["id"]])
+    for r in within(records, union):
+        t = totals[classify(labels(r))]
+        t[0] += r["self_us"]
+        t[1] += r["self_user_us"]
+        t[2] += r["self_sys_us"]
+        t[3] += r["majflt"] - sum(c["majflt"] for c in children[r["id"]])
 
-    with open(args.log) as f:
-        log = f.read().splitlines()
+    log = read_log(args.log)
     begins = [k for k, l in enumerate(log) if l.startswith("building move_nodes/") and l.endswith(",node=" + node)]
     if not begins:
         fail(f"no building line for {node} in {args.log}")
@@ -334,6 +423,13 @@ def lookups(args):
         print(f'  {c:26s} {t[0] / 6e7:6.1f} {100 * t[0] / union["wall_us"]:6.1f}% {t[1]:>13,} own majflt')
 
 
+def default_paths(args):
+    args.trace = args.trace or os.path.join(SRC_DIR, args.game + ".jsonl")
+    args.log = args.log or os.path.join(SRC_DIR, args.game + ".log")
+    if not os.path.exists(args.log):
+        fail(f"no log at {args.log}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("game")
@@ -345,10 +441,7 @@ def main():
     l = commands.add_parser("lookups")
     l.add_argument("node")
     args = parser.parse_args()
-    args.trace = args.trace or os.path.join(SRC_DIR, args.game + ".jsonl")
-    args.log = args.log or os.path.join(SRC_DIR, args.game + ".log")
-    if not os.path.exists(args.log):
-        fail(f"no log at {args.log}")
+    default_paths(args)
     if args.command == "breakdown":
         breakdown(args)
     else:
