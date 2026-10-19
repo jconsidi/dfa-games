@@ -489,3 +489,39 @@ The right input fits RAM easily, so it is being evicted and read back about 6 ti
 - Check the `fcntl` and `posix_fadvise` return values and throw on failure.
 - Measure the right lookup's faults and time on a large layer with and without it, and keep it only if it helps.
 - If the right input's faults stay high, look for the other streams evicting it, such as `transition_pairs_left` and the MemoryMap populate writes.
+
+## sorts below the bucket sort cutoff in anonymous memory
+
+Below `DFA_BUCKET_SORT_MIN_BYTES` (1/10 of RAM by default, about 13.7 GB), `FlashSort` sorts records in place on a file backed `MemoryMap`, so its passes page through the file.
+
+- Read the records into anonymous memory with large `pread` calls, sort them there, and write them back with `pwrite`, within the in core memory limit.
+- Then measure the cutoff again, since a cheaper in core path moves the crossover with the bucket path.
+
+## bucket sort cutoff per record type
+
+Forward pairs (8 bytes on narrow layers), rows and rank outputs share one byte cutoff, though they sort at different rates.
+
+- Measure each record type's crossover between the in core path and the bucket path, and give each its own default if they differ.
+
+## digests at disk speed
+
+`calculate_digest` (the load check in `DFA::mmap`) and serialize's read back are serial SHA-256 passes through mmap faults.
+On cram_7x7 `begin.join_24_32` they took 4.2 and 2.9 minutes, at 0.3 and 0.8 cores.
+
+- Read in large `pread` blocks, double buffered so one block is hashed while the next is read, to bring both near SHA-256's single core speed.
+- Both checks stay; this changes how the bytes are read, not what is checked.
+- A tree hash would hash in parallel, but it changes FORMAT-DFA.md's digest and every file's name, so it is an option to weigh, not a plan.
+
+## bytes read per phase in the profile trace
+
+The trace's `inblock` is always 0 on macOS, so analyses count major faults at 16 KiB each, which is only a lower bound on the bytes read.
+
+- Record each phase's disk bytes read and written: `proc_pid_rusage`'s `ri_diskio_bytesread` and `ri_diskio_byteswritten` on macOS, `/proc/self/io` on Linux.
+- Then `union_profile.py` in the solve-stats skill can report bytes instead of a fault based bound.
+
+## skew split for the rows bucket sort
+
+Rows whose first transition is reject or accept crowd one bucket of the rows sort, so a few buckets are partitioned again: 2 on cram_7x7 `begin.join_16_24` layer 41.
+The whole rows sort took 9 minutes of `begin.join_24_32`, so this is low priority.
+
+- Give the constant first transitions buckets of their own, split by the next transition, using the distribution measured on a large layer.
