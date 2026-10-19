@@ -44,7 +44,8 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
   - Without those, it uses the conditioned input counts the merge logs, comparing only the inputs loaded so far with as many of each reference's.
   - Before any input is known, it uses the median time of the joins over as many moves at the same code.
   - It counts from the union's start, or from the previous union's end in this run before any layer has finished.
-  - The references are the closest by input states, preferring same-code ones within 25% of the size, since older code ran slower.
+  - The references are the closest by input states at the same code, those within 25% of the size first, and then older code, since older code ran slower.
+    `join_32_48` at its start shows why: the closest by size were at older code and gave 07:35 the next morning, against 23:06 from the closest at the same code.
   - The range spans the same-code references listed, or all of them if none is at the same code, and reaches down to 0.75 of the best reference's scaled time.
   - Linear scaling is rough and has run long: at its start, `join_0_32` scaled from `join_16_32` gave 676 minutes, and it took 512, because its pair counts grew less than its inputs.
     Time follows the pairs per layer, which depend on how the inputs overlap, so per layer input sizes predicted no better than the total when compared on the joins of 2026-10-19.

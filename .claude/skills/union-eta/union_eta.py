@@ -212,9 +212,9 @@ def size_estimate(t0, current, candidates):
         scale = pair[0] / pair[1]
         out.append(dict(c, cur_states=pair[0], ref_states=pair[1], basis=pair[2], size_off=abs(math.log(scale)),
                         scale=scale, size_eta=t0 + c["union"]["wall_us"] * scale))
-    # Older code ran slower, so a reference at the same code within this
-    # factor of the size comes first.
-    out.sort(key=lambda c: (not (c["same"] and c["size_off"] < math.log(SAME_CODE_SIZE_FACTOR)), c["size_off"], -c["run"]))
+    # Older code ran slower, so references at the same code come first, those
+    # within this factor of the size before the rest.
+    out.sort(key=lambda c: (not c["same"], not c["size_off"] < math.log(SAME_CODE_SIZE_FACTOR), c["size_off"], -c["run"]))
     return out[:CANDIDATES_SHOWN]
 
 
