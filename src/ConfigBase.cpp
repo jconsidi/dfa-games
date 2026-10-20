@@ -137,6 +137,23 @@ shared_dfa_ptr ConfigBase::get_component(const GameBase& game, std::string key_i
         return DFAUtil::get_intersection_vector(get_shape(), dfa_inputs);
       }
 
+    if(component_type == "intersection")
+      {
+        std::vector<shared_dfa_ptr> dfa_inputs;
+        for(std::string input_name : component_inputs.get<std::vector<std::string>>())
+          {
+            dfa_inputs.push_back(get_component(game, input_name));
+          }
+
+        // an empty intersection would silently accept every position
+        if(dfa_inputs.empty())
+          {
+            throw std::runtime_error("intersection component " + key_in + " has no inputs");
+          }
+
+        return DFAUtil::get_intersection_vector(get_shape(), dfa_inputs);
+      }
+
     if(component_type == "inverse")
       {
         return DFAUtil::get_inverse(get_component(game, component_inputs.get<std::string>()));
