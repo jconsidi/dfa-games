@@ -5,16 +5,15 @@
 
 #include <string>
 
-#include "NormalPlayGame.h"
+#include "ConfigGame.h"
 #include "RowMajorOrderBase.h"
 
 class ClobberGame
   : public RowMajorOrderBase,
-    public NormalPlayGame
+    public ConfigNormalPlayGame
 {
 private:
 
-  virtual MoveGraph build_move_graph(int) const;
 #if 0
   virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 #endif
@@ -22,8 +21,6 @@ private:
 public:
 
   ClobberGame(int, int);
-
-  virtual DFAString get_position_initial() const;
 
   virtual std::string position_to_string(const DFAString&) const;
 

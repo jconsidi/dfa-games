@@ -1,0 +1,231 @@
+{
+  "game": "clobber_2x2",
+  "nodes": [
+    {
+      "node": "begin",
+      "changes": []
+    },
+    {
+      "node": "from 0,0 to 1,0",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 1,
+          "after": 0
+        },
+        {
+          "layer": 1,
+          "before": 2,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "from 0,0 to 0,1",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 1,
+          "after": 0
+        },
+        {
+          "layer": 2,
+          "before": 2,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "from 0,1 to 1,1",
+      "changes": [
+        {
+          "layer": 2,
+          "before": 1,
+          "after": 0
+        },
+        {
+          "layer": 3,
+          "before": 2,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "from 0,1 to 0,0",
+      "changes": [
+        {
+          "layer": 2,
+          "before": 1,
+          "after": 0
+        },
+        {
+          "layer": 0,
+          "before": 2,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "from 1,0 to 0,0",
+      "changes": [
+        {
+          "layer": 1,
+          "before": 1,
+          "after": 0
+        },
+        {
+          "layer": 0,
+          "before": 2,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "from 1,0 to 1,1",
+      "changes": [
+        {
+          "layer": 1,
+          "before": 1,
+          "after": 0
+        },
+        {
+          "layer": 3,
+          "before": 2,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "from 1,1 to 0,1",
+      "changes": [
+        {
+          "layer": 3,
+          "before": 1,
+          "after": 0
+        },
+        {
+          "layer": 2,
+          "before": 2,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "from 1,1 to 1,0",
+      "changes": [
+        {
+          "layer": 3,
+          "before": 1,
+          "after": 0
+        },
+        {
+          "layer": 1,
+          "before": 2,
+          "after": 1
+        }
+      ]
+    },
+    {
+      "node": "end",
+      "changes": []
+    }
+  ],
+  "edges": [
+    {
+      "edge": "begin to from 0,0 to 1,0",
+      "from": "begin",
+      "to": "from 0,0 to 1,0",
+      "conditions": []
+    },
+    {
+      "edge": "from 0,0 to 1,0 to end",
+      "from": "from 0,0 to 1,0",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to from 0,0 to 0,1",
+      "from": "begin",
+      "to": "from 0,0 to 0,1",
+      "conditions": []
+    },
+    {
+      "edge": "from 0,0 to 0,1 to end",
+      "from": "from 0,0 to 0,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to from 0,1 to 1,1",
+      "from": "begin",
+      "to": "from 0,1 to 1,1",
+      "conditions": []
+    },
+    {
+      "edge": "from 0,1 to 1,1 to end",
+      "from": "from 0,1 to 1,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to from 0,1 to 0,0",
+      "from": "begin",
+      "to": "from 0,1 to 0,0",
+      "conditions": []
+    },
+    {
+      "edge": "from 0,1 to 0,0 to end",
+      "from": "from 0,1 to 0,0",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to from 1,0 to 0,0",
+      "from": "begin",
+      "to": "from 1,0 to 0,0",
+      "conditions": []
+    },
+    {
+      "edge": "from 1,0 to 0,0 to end",
+      "from": "from 1,0 to 0,0",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to from 1,0 to 1,1",
+      "from": "begin",
+      "to": "from 1,0 to 1,1",
+      "conditions": []
+    },
+    {
+      "edge": "from 1,0 to 1,1 to end",
+      "from": "from 1,0 to 1,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to from 1,1 to 0,1",
+      "from": "begin",
+      "to": "from 1,1 to 0,1",
+      "conditions": []
+    },
+    {
+      "edge": "from 1,1 to 0,1 to end",
+      "from": "from 1,1 to 0,1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "begin to from 1,1 to 1,0",
+      "from": "begin",
+      "to": "from 1,1 to 1,0",
+      "conditions": []
+    },
+    {
+      "edge": "from 1,1 to 1,0 to end",
+      "from": "from 1,1 to 1,0",
+      "to": "end",
+      "conditions": []
+    }
+  ]
+}

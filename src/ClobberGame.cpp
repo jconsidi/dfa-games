@@ -10,77 +10,16 @@
 #include "DFAUtil.h"
 #include "GameUtil.h"
 
-static dfa_shape_t build_shape(int width, int height)
+static std::string build_name(int width, int height)
 {
-  return dfa_shape_t(width * height, 3);
+  return std::format("clobber_{:d}x{:d}", width, height);
 }
 
 ClobberGame::ClobberGame(int width_in, int height_in)
   : RectangularBase(width_in, height_in),
     RowMajorOrderBase(width_in, height_in),
-    NormalPlayGame("clobber_" + std::to_string(width_in) + "x" + std::to_string(height_in),
-		   build_shape(width_in, height_in))
+    ConfigNormalPlayGame(build_name(width_in, height_in))
 {
-}
-
-MoveGraph ClobberGame::build_move_graph(int side_to_move) const
-{
-  // setup graph and nodes
-
-  MoveGraph move_graph(get_shape());
-  move_graph.add_node("begin");
-
-  std::vector<std::string> move_names;
-
-  for(int x0 = 0; x0 < width; ++x0)
-    {
-      for(int y0 = 0; y0 < height; ++y0)
-        {
-          auto add_move = [&](int x1, int y1)
-          {
-            std::string move_name = "from " + std::to_string(x0) + "," + std::to_string(y0) + " to " + std::to_string(x1) + "," + std::to_string(y1);
-            move_names.push_back(move_name);
-
-            int l0 = x0 + width * y0;
-            int l1 = x1 + width * y1;
-
-            change_vector move_changes(width * height);
-            move_changes[l0] = change_type(1 + side_to_move, 0);
-            move_changes[l1] = change_type(2 - side_to_move, 1 + side_to_move);
-
-            move_graph.add_node(move_name, move_changes);
-          };
-
-          if(x0 > 0)
-            {
-              add_move(x0 - 1, y0);
-            }
-          if(x0 + 1 < width)
-            {
-              add_move(x0 + 1, y0);
-            }
-          if(y0 > 0)
-            {
-              add_move(x0, y0 - 1);
-            }
-          if(y0 + 1 < height)
-            {
-              add_move(x0, y0 + 1);
-            }
-        }
-    }
-
-  move_graph.add_node("end");
-
-  for(auto move_name : move_names)
-    {
-      move_graph.add_edge("begin", move_name);
-      move_graph.add_edge(move_name, "end");
-    }
-
-  // done
-
-  return move_graph;
 }
 
 #if 0
@@ -120,21 +59,6 @@ shared_dfa_ptr ClobberGame::build_positions_reversed(shared_dfa_ptr positions_in
   return reverse_graph.get_moves(name_prefix, positions_in);
 }
 #endif
-
-DFAString ClobberGame::get_position_initial() const
-{
-  std::vector<int> initial_characters(width * height, 0);
-
-  for(int layer = 0; layer < width * height; ++layer)
-    {
-      int x = layer % width;
-      int y = layer / width;
-
-      initial_characters[layer] = 1 + (x + y) % 2;
-    }
-
-  return DFAString(get_shape(), initial_characters);
-}
 
 std::string ClobberGame::position_to_string(const DFAString& string_in) const
 {

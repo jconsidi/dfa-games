@@ -18,6 +18,51 @@ def generate_size(width, height):
     )
 
     for side_to_move in range(2):
+        # move graph - one node per (from, to) pair of orthogonally
+        # adjacent squares. the friendly stone leaves from and replaces
+        # the hostile stone on to.
+
+        friendly = 1 + side_to_move
+        hostile = 2 - side_to_move
+
+        game_config.add_move_node(side_to_move, "begin", changes=[])
+
+        move_node_names = []
+
+        for x0 in range(width):
+            for y0 in range(height):
+
+                def add_move(x1, y1):
+                    move_node_name = f"from {x0},{y0} to {x1},{y1}"
+                    game_config.add_move_node(
+                        side_to_move,
+                        move_node_name,
+                        changes=[
+                            {"layer": x0 + width * y0, "before": friendly, "after": 0},
+                            {
+                                "layer": x1 + width * y1,
+                                "before": hostile,
+                                "after": friendly,
+                            },
+                        ],
+                    )
+                    move_node_names.append(move_node_name)
+
+                if x0 > 0:
+                    add_move(x0 - 1, y0)
+                if x0 + 1 < width:
+                    add_move(x0 + 1, y0)
+                if y0 > 0:
+                    add_move(x0, y0 - 1)
+                if y0 + 1 < height:
+                    add_move(x0, y0 + 1)
+
+        game_config.add_move_node(side_to_move, "end", changes=[])
+
+        for move_node_name in move_node_names:
+            game_config.add_move_edge(side_to_move, "begin", move_node_name, [])
+            game_config.add_move_edge(side_to_move, move_node_name, "end", [])
+
         # tests - perft_u from initial position
 
         positions_expected = []
@@ -37,6 +82,7 @@ def generate_size(width, height):
 
 
 def main():
+    generate_size(2, 2)
     generate_size(4, 4)
     generate_size(4, 5)
     generate_size(4, 6)
