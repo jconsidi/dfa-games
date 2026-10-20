@@ -30,7 +30,8 @@ class GameConfig(object):
         self.position_data = {"game": game, "positions": []}
 
     def add_component(self, component_name, component_type, component_inputs):
-        assert component_name not in self.components_data
+        if component_name in self.components_data["components"]:
+            raise RuntimeError(f"duplicate component name {component_name!r}")
         self.components_data["components"][component_name] = {
             "type": component_type,
             "inputs": component_inputs,
