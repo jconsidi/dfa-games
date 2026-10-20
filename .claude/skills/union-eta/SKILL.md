@@ -57,8 +57,11 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
 - Rebuilds the join tree from the log's `node begin fan-in N -> ... (max fan-in K)` line, as `MoveGraph::split_joins` builds it, in build order.
 - Lists the finished unions of 8 moves or more since the last stop for gc with their actual minutes and results, the union in progress with union-eta's ETA, and the rest projected, with `--all` listing every union.
 - Projects each union from this solve's finished joins, by the number of moves it covers: result states from the median result/sum ratio, forward unique pairs from the median pairs/input ratio, minutes from a fit of minutes per G pairs to the unions at the latest code, peak working space at 20 bytes per unique pair, and free space lost until gc as the result's DFA file.
-- The move nodes not yet consumed fill the edges in order of node name, since the log gives no edge names; the edges the log names are placed exactly.
-  Move nodes not built yet take the median of those built, and the output names them.
+- The move nodes not yet consumed fill the edges in order of node name, since the log gives no edge names; the edges the log names are placed exactly, in this solve or else the latest earlier one, whose tree is the same.
+  Move nodes not built yet take their states in the latest earlier solve, one ply on, times the median ratio of the nodes built here to theirs there, or without that, the median of those built.
+- A union the latest earlier solve built is projected from its result and unique pairs there, times the median ratio of this solve's finished unions to the same unions there, or before any has finished, the move nodes' ratio.
+  Joins of moves differ too much by where they sit in the tree for one ratio by span to fit them all: in ply 10, `join_0_2` kept 0.96 of its inputs and the joins over rows 5 and 6 kept about 0.35.
+  Unions without that use the ratios by span, from this solve or, for a span it has not finished, the latest earlier one.
 - Plans a gc before any union whose low point, free space less 1.3 times its peak, would fall under the floor, 1 TiB by default.
   A gc keeps what scratch links outside the caches: the other games' DFAs, the live join results and the move nodes not yet consumed.
 - Rows past the largest pair count the time fit has seen say so, since minutes per pair grow with pairs and the fit is extrapolating there.

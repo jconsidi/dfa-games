@@ -233,19 +233,40 @@ def main():
     moves = sorted({m.group(1) for l in lines for m in [re.match(r"node \d+/\d+ \((move_[^)]*)\)$", l)] if m})
     if len(moves) != n:
         sb.fail(f"found {len(moves)} move node names in the log, but begin has fan-in {n}")
+    # Edges this solve has not logged take their places from the latest
+    # earlier solve, whose tree has the same edges in the same order.
     placed = {}
-    for node, b in builds.items():
-        m = re.match(r"begin\.join_(\d+)_(\d+)$", node)
-        if m and int(m.group(2)) - int(m.group(1)) == 2:
+    earlier_prefix = next((b["prefix"] for b in reversed(all_builds) if b["prefix"] != prefix), None)
+    for p in [prefix, earlier_prefix]:
+        for b in all_builds:
+            m = re.match(r"begin\.join_(\d+)_(\d+)$", b["node"])
+            if b["prefix"] != p or not (m and int(m.group(2)) - int(m.group(1)) == 2):
+                continue
             for i, e in b["edges"].items():
                 if e not in moves:
-                    sb.fail(f"{node} edge {i} names {e}, which no node line in the log does")
-                placed[int(m.group(1)) + i] = e
+                    sb.fail(f"{b['node']} edge {i} names {e}, which no node line in the log does")
+                k = int(m.group(1)) + i
+                if p == prefix:
+                    placed[k] = e
+                elif k not in placed and e not in placed.values():
+                    placed[k] = e
     move_states = {e: ue.file_states(prefix, e) if e in files else states.get(e) for e in moves}
     known = [v for v in move_states.values() if v is not None]
     unbuilt = [e for e, v in move_states.items() if v is None]
+    # A move node not built yet takes the same node's states in the latest
+    # earlier solve that logged it, scaled by the median ratio of this
+    # solve's built nodes to theirs there, or without one, the median of
+    # those built.
+    earlier = {}
+    for line in lines:
+        m = re.match(r"(?:built|loaded) move_nodes/(.*),node=(move_\S+) => (\d+) states", line)
+        if m and m.group(1) != prefix:
+            earlier[m.group(2)] = int(m.group(3))
+    growth = [move_states[e] / earlier[e] for e in moves if move_states[e] is not None and earlier.get(e)]
+    move_scale = statistics.median(growth) if growth else None
+    scaled = [e for e in unbuilt if move_scale is not None and e in earlier]
     for e in unbuilt:
-        move_states[e] = statistics.median(known)
+        move_states[e] = earlier[e] * move_scale if e in scaled else statistics.median(known)
     pool = [e for e in moves if e not in placed.values()]
     for i, e in zip([i for i in range(n) if i not in placed], pool):
         placed[i] = e
@@ -261,55 +282,99 @@ def main():
             return [leaf_states(k[0]) for k in kids]
         return [size[name_of(k, n)] for k in kids]
 
-    # Ratios by span, over this solve's finished joins.
-    by_span_result, by_span_pairs = {}, {}
+    # Ratios by span, over the finished joins of each solve (each prefix,
+    # one per ply), from the state counts the log gives each node and the
+    # inputs each join's edge lines name.
+    prefix_states = {}
+    for line in lines:
+        m = re.match(r"(?:built|loaded) move_nodes/(.*),node=(\S+) => (\d+) states", line)
+        if m:
+            prefix_states[(m.group(1), m.group(2))] = int(m.group(3))
+    ratios_by_prefix = {}
     input_sum, span_of = {}, {}
-    for start, end, kids in order:
-        node = name_of((start, end), n)
-        if node not in done or node not in states:
+    for b in all_builds:
+        m = re.match(r"begin\.join_(\d+)_(\d+)$", b["node"])
+        if not (m and b["built"] and b["edges"]):
             continue
-        ins = [states.get(name_of(k, n)) if k[1] - k[0] > 1 else move_states.get(placed.get(k[0])) for k in kids]
-        if None in ins:
+        p, span = b["prefix"], int(m.group(2)) - int(m.group(1))
+        ins = [prefix_states.get((p, e)) for e in b["edges"].values()]
+        out = prefix_states.get((p, b["node"]))
+        if None in ins or out is None:
             continue
-        span = end - start
-        input_sum[node], span_of[node] = sum(ins), span
-        by_span_result.setdefault(span, []).append(states[node] / sum(ins))
-        if builds[node]["unique"]:
-            by_span_pairs.setdefault(span, []).append(sum(builds[node]["unique"].values()) / sum(ins))
+        input_sum[(p, b["node"])], span_of[(p, b["node"])] = sum(ins), span
+        result, pairs = ratios_by_prefix.setdefault(p, ({}, {}))
+        result.setdefault(span, []).append(out / sum(ins))
+        if b["unique"]:
+            pairs.setdefault(span, []).append(sum(b["unique"].values()) / sum(ins))
+    # This solve's ratios, and for a span it has not finished, those of the
+    # latest earlier solve that has.
+    by_span_result, by_span_pairs = {}, {}
+    span_source = {}
+    prefix_order = list(dict.fromkeys(b["prefix"] for b in all_builds))
+    for p in [prefix] + [q for q in reversed(prefix_order) if q != prefix]:
+        result, pairs = ratios_by_prefix.get(p, ({}, {}))
+        for s, v in result.items():
+            if s not in by_span_result:
+                by_span_result[s] = v
+                span_source[s] = "this solve" if p == prefix else "an earlier solve"
+        for s, v in pairs.items():
+            by_span_pairs.setdefault(s, v)
+    if not by_span_result:
+        sb.fail("no finished join with its input and result state counts in the log")
     result_ratio = {s: statistics.median(v) for s, v in by_span_result.items()}
     pairs_ratio = {s: statistics.median(v) for s, v in by_span_pairs.items()}
 
-    # Minutes of the unions finished at the latest code version.
+    # Minutes of the unions finished at the latest code version, in every
+    # solve for the time fit, and in this one for the table.
     runs = sb.read_runs(args.trace)
     version, commits = sb.version_runs(runs, lines)
+    build_of = {(b["prefix"], b["node"]): b for b in all_builds if b["built"]}
+    wall_all = {}
     wall, finish = {}, {}
     for i in version:
         run, records = runs[i]
         for r in records:
             node = sb.union_node(r)
-            if node and r["name"].startswith(f"load_or_build move_nodes/{prefix},"):
+            if not node:
+                continue
+            p = r["name"][len("load_or_build move_nodes/"):].rsplit(",node=", 1)[0]
+            wall_all[(p, node)] = r["wall_us"] / 6e7
+            if p == prefix:
                 wall[node] = r["wall_us"] / 6e7
                 finish[node] = sb.run_start(run) + (r["start_us"] + r["wall_us"]) / 1e6
-    points = [(sum(builds[node]["unique"].values()) / 1e9, m) for node, m in wall.items() if node in builds and builds[node]["unique"]]
+    points = [(sum(build_of[k]["unique"].values()) / 1e9, m) for k, m in wall_all.items() if k in build_of and build_of[k]["unique"]]
     c0, c1 = fit_minutes(points)
     max_fit_pairs = 1e9 * max(g for g, _ in points)
+
+    # A union the latest earlier solve built takes its result and unique
+    # pairs there, scaled by the median ratio of this solve's finished
+    # unions to the same unions there, or before any has finished, by the
+    # move nodes' ratio.
+    earlier_out = {node: v for (p, node), v in prefix_states.items() if p == earlier_prefix and node.startswith("begin")}
+    earlier_pairs = {b["node"]: sum(b["unique"].values()) for b in all_builds
+                     if b["prefix"] == earlier_prefix and b["built"] and b["unique"]}
+    out_growth = [states[node] / earlier_out[node] for node in done if node in states and earlier_out.get(node)]
+    pairs_growth = [sum(builds[node]["unique"].values()) / earlier_pairs[node] for node in done
+                    if builds[node]["unique"] and earlier_pairs.get(node)]
+    out_scale = statistics.median(out_growth) if out_growth else move_scale
+    pairs_scale = statistics.median(pairs_growth) if pairs_growth else out_scale
     if args.ratios:
-        print(f"{args.game}: ratios by moves per join, over this solve's finished joins")
-        print(f"  {'moves':>5} {'joins':>5}  {'result/sum median':>17} {'min':>5} {'max':>5}  {'unique pairs/input median':>25} {'min':>5} {'max':>5}")
+        print(f"{args.game}: ratios by moves per join, over the finished joins of this solve, or for a span it has none, an earlier solve")
+        print(f"  {'moves':>5} {'joins':>5}  {'result/sum median':>17} {'min':>5} {'max':>5}  {'unique pairs/input median':>25} {'min':>5} {'max':>5}  from")
         for s in sorted(by_span_result):
             r = by_span_result[s]
             p = by_span_pairs.get(s)
             pairs = f"{statistics.median(p):25.2f} {min(p):5.2f} {max(p):5.2f}" if p else f"{'':25} {'':5} {'':5}"
-            print(f"  {s:5d} {len(r):5d}  {statistics.median(r):17.2f} {min(r):5.2f} {max(r):5.2f}  {pairs}")
+            print(f"  {s:5d} {len(r):5d}  {statistics.median(r):17.2f} {min(r):5.2f} {max(r):5.2f}  {pairs}  {span_source[s]}")
         print()
         print(f"{args.game}: minutes by moves per join, over the joins finished at the latest code version")
         print(f"  {'moves':>5} {'joins':>5}  {'minutes median':>14} {'min':>6} {'max':>6}"
               f"  {'min/G inputs median':>19} {'min':>5} {'max':>5}  {'min/G pairs median':>18} {'min':>5} {'max':>5}")
         by_span_wall = {}
-        for node, m in wall.items():
-            if node in span_of and builds.get(node, {}).get("unique"):
-                by_span_wall.setdefault(span_of[node], []).append(
-                    (m, m / (input_sum[node] / 1e9), m / (sum(builds[node]["unique"].values()) / 1e9)))
+        for k, m in wall_all.items():
+            if k in span_of and k in build_of and build_of[k]["unique"]:
+                by_span_wall.setdefault(span_of[k], []).append(
+                    (m, m / (input_sum[k] / 1e9), m / (sum(build_of[k]["unique"].values()) / 1e9)))
         for s in sorted(by_span_wall):
             cols = list(zip(*by_span_wall[s]))
             print(f"  {s:5d} {len(cols[0]):5d}  {statistics.median(cols[0]):14.1f} {min(cols[0]):6.1f} {max(cols[0]):6.1f}"
@@ -346,8 +411,14 @@ def main():
             rows.append(dict(node=node, span=span, status="done", ins=sum(ins), out=out, minutes=wall.get(node),
                              when=finish.get(node), peak=pairs * PEAK_BYTES_PER_PAIR if pairs else None, low=None))
         else:
-            out = sum(ins) * ratio_for(result_ratio, span)
-            pairs = sum(ins) * ratio_for(pairs_ratio, span)
+            if node in earlier_out and out_scale is not None:
+                out = earlier_out[node] * out_scale
+            else:
+                out = sum(ins) * ratio_for(result_ratio, span)
+            if node in earlier_pairs and pairs_scale is not None:
+                pairs = earlier_pairs[node] * pairs_scale
+            else:
+                pairs = sum(ins) * ratio_for(pairs_ratio, span)
             peak = pairs * PEAK_BYTES_PER_PAIR
             if node == current:
                 free = free_now + in_use
@@ -381,14 +452,22 @@ def main():
 
     print(f"{args.game}: {n} moves, fan-in {len(tops)} at begin; scratch {free_now / TIB:.2f} TiB free of {total / TIB:.2f} TiB,"
           f" {in_use / TIB:.2f} TiB in builds in progress")
-    print("projections by moves per join, from this solve's finished joins:")
+    print("projections by moves per join, from the finished joins of this solve, or for a span it has none, an earlier solve:")
     for s in sorted(result_ratio):
         print(f"  {s:3d} moves: result/sum {result_ratio[s]:.2f}" + (f", unique pairs/input {pairs_ratio[s]:.2f}" if s in pairs_ratio else "")
-              + f" ({len(by_span_result[s])} joins)")
+              + f" ({len(by_span_result[s])} joins, {span_source[s]})")
     print(f"  minutes = G pairs x ({c0:.3f} + {c1:.4f} x max(0, G pairs - {KNEE_GPAIRS})), fitted to {len(points)} unions at the latest code;"
           f" peak = {PEAK_BYTES_PER_PAIR:.0f} B per unique pair; low point = free - {PEAK_MARGIN} x peak")
-    if unbuilt:
-        print(f"  {len(unbuilt)} move nodes not built yet take the median of the {len(known)} built, {statistics.median(known) / 1e9:.2f}G states: {' '.join(unbuilt)}")
+    if out_scale is not None:
+        print(f"  unions an earlier solve built take their result there times {out_scale:.2f} and their unique pairs there times"
+              f" {pairs_scale:.2f}, the median ratios of the {len(out_growth)} and {len(pairs_growth)} finished here to theirs there"
+              + ("" if out_growth else ", or before any has finished, the move nodes' ratio"))
+    if scaled:
+        print(f"  {len(scaled)} move nodes not built yet take their states in an earlier solve times {move_scale:.2f},"
+              f" the median ratio of the {len(growth)} built here to theirs there")
+    rest = [e for e in unbuilt if e not in scaled]
+    if rest:
+        print(f"  {len(rest)} move nodes not built yet take the median of the {len(known)} built, {statistics.median(known) / 1e9:.2f}G states: {' '.join(rest)}")
     print()
     print(f'  {"union":20s} {"status":8s} {"finish":>9s} {"min":>6s} {"inputs":>7s} {"result":>7s} {"peak":>9s} {"low point":>9s}')
     fmt_t = lambda e: time.strftime("%a %H:%M", time.localtime(e)) if e else ""
