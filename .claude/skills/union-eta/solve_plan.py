@@ -263,6 +263,7 @@ def main():
 
     # Ratios by span, over this solve's finished joins.
     by_span_result, by_span_pairs = {}, {}
+    input_sum, span_of = {}, {}
     for start, end, kids in order:
         node = name_of((start, end), n)
         if node not in done or node not in states:
@@ -271,20 +272,12 @@ def main():
         if None in ins:
             continue
         span = end - start
+        input_sum[node], span_of[node] = sum(ins), span
         by_span_result.setdefault(span, []).append(states[node] / sum(ins))
         if builds[node]["unique"]:
             by_span_pairs.setdefault(span, []).append(sum(builds[node]["unique"].values()) / sum(ins))
     result_ratio = {s: statistics.median(v) for s, v in by_span_result.items()}
     pairs_ratio = {s: statistics.median(v) for s, v in by_span_pairs.items()}
-    if args.ratios:
-        print(f"{args.game}: ratios by moves per join, over this solve's finished joins")
-        print(f"  {'moves':>5} {'joins':>5}  {'result/sum median':>17} {'min':>5} {'max':>5}  {'unique pairs/input median':>25} {'min':>5} {'max':>5}")
-        for s in sorted(by_span_result):
-            r = by_span_result[s]
-            p = by_span_pairs.get(s)
-            pairs = f"{statistics.median(p):25.2f} {min(p):5.2f} {max(p):5.2f}" if p else f"{'':25} {'':5} {'':5}"
-            print(f"  {s:5d} {len(r):5d}  {statistics.median(r):17.2f} {min(r):5.2f} {max(r):5.2f}  {pairs}")
-        return
 
     # Minutes of the unions finished at the latest code version.
     runs = sb.read_runs(args.trace)
@@ -300,6 +293,29 @@ def main():
     points = [(sum(builds[node]["unique"].values()) / 1e9, m) for node, m in wall.items() if node in builds and builds[node]["unique"]]
     c0, c1 = fit_minutes(points)
     max_fit_pairs = 1e9 * max(g for g, _ in points)
+    if args.ratios:
+        print(f"{args.game}: ratios by moves per join, over this solve's finished joins")
+        print(f"  {'moves':>5} {'joins':>5}  {'result/sum median':>17} {'min':>5} {'max':>5}  {'unique pairs/input median':>25} {'min':>5} {'max':>5}")
+        for s in sorted(by_span_result):
+            r = by_span_result[s]
+            p = by_span_pairs.get(s)
+            pairs = f"{statistics.median(p):25.2f} {min(p):5.2f} {max(p):5.2f}" if p else f"{'':25} {'':5} {'':5}"
+            print(f"  {s:5d} {len(r):5d}  {statistics.median(r):17.2f} {min(r):5.2f} {max(r):5.2f}  {pairs}")
+        print()
+        print(f"{args.game}: minutes by moves per join, over the joins finished at the latest code version")
+        print(f"  {'moves':>5} {'joins':>5}  {'minutes median':>14} {'min':>6} {'max':>6}"
+              f"  {'min/G inputs median':>19} {'min':>5} {'max':>5}  {'min/G pairs median':>18} {'min':>5} {'max':>5}")
+        by_span_wall = {}
+        for node, m in wall.items():
+            if node in span_of and builds.get(node, {}).get("unique"):
+                by_span_wall.setdefault(span_of[node], []).append(
+                    (m, m / (input_sum[node] / 1e9), m / (sum(builds[node]["unique"].values()) / 1e9)))
+        for s in sorted(by_span_wall):
+            cols = list(zip(*by_span_wall[s]))
+            print(f"  {s:5d} {len(cols[0]):5d}  {statistics.median(cols[0]):14.1f} {min(cols[0]):6.1f} {max(cols[0]):6.1f}"
+                  f"  {statistics.median(cols[1]):19.2f} {min(cols[1]):5.2f} {max(cols[1]):5.2f}"
+                  f"  {statistics.median(cols[2]):18.2f} {min(cols[2]):5.2f} {max(cols[2]):5.2f}")
+        return
 
     def minutes(pairs):
         g = pairs / 1e9
