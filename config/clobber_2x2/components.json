@@ -1,4 +1,122 @@
 {
-  "components": {},
+  "components": {
+    "bound,ply=000": {
+      "inputs": {
+        "0": 1,
+        "1": 2,
+        "2": 2,
+        "3": 1
+      },
+      "type": "fixed"
+    },
+    "bound,ply=001": {
+      "inputs": [
+        "bound,ply=001,c=1",
+        "bound,ply=001,c=2"
+      ],
+      "type": "intersection"
+    },
+    "bound,ply=001,c=1": {
+      "inputs": {
+        "c": 1,
+        "count_max": 2,
+        "count_min": 2,
+        "layer_max": 3,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=001,c=2": {
+      "inputs": {
+        "c": 2,
+        "count_max": 1,
+        "count_min": 1,
+        "layer_max": 3,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=002": {
+      "inputs": [
+        "bound,ply=002,c=1",
+        "bound,ply=002,c=2"
+      ],
+      "type": "intersection"
+    },
+    "bound,ply=002,c=1": {
+      "inputs": {
+        "c": 1,
+        "count_max": 1,
+        "count_min": 1,
+        "layer_max": 3,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=002,c=2": {
+      "inputs": {
+        "c": 2,
+        "count_max": 1,
+        "count_min": 1,
+        "layer_max": 3,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=003": {
+      "inputs": [
+        "bound,ply=003,c=1",
+        "bound,ply=003,c=2"
+      ],
+      "type": "intersection"
+    },
+    "bound,ply=003,c=1": {
+      "inputs": {
+        "c": 1,
+        "count_max": 1,
+        "count_min": 1,
+        "layer_max": 3,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=003,c=2": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 3,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=004": {
+      "inputs": [
+        "bound,ply=004,c=1",
+        "bound,ply=004,c=2"
+      ],
+      "type": "intersection"
+    },
+    "bound,ply=004,c=1": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 3,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=004,c=2": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 3,
+        "layer_min": 0
+      },
+      "type": "count"
+    }
+  },
   "game": "clobber_2x2"
 }
