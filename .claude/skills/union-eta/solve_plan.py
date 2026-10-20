@@ -195,6 +195,12 @@ def main():
     sb.default_paths(args)
 
     lines = sb.read_log(args.log)
+    # Finished unions are listed from the last stop for gc on.
+    last_gc = 0.0
+    for line in lines:
+        m = re.match(r"=== build_bound_backward stopped by request at (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) .*for gc", line)
+        if m:
+            last_gc = time.mktime(time.strptime(m.group(1), "%Y-%m-%d %H:%M:%S"))
     n, tops, order = join_tree(lines)
     all_builds = ue.builds(lines)
     if not all_builds:
@@ -370,7 +376,7 @@ def main():
         after_gc = False
         if not shown:
             continue
-        if r["status"] == "done" and not args.all and r["when"] is None:
+        if r["status"] == "done" and not args.all and (r["when"] is None or r["when"] < last_gc):
             continue
         cell = lambda v, w, f: format(v, f).rjust(w) if v is not None else " " * w
         print(f'  {r["node"].replace("begin.", ""):20s} {r["status"]:8s} {fmt_t(r["when"]):>9s} {cell(r["minutes"], 6, ".1f")}'
