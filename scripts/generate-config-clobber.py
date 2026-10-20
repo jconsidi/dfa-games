@@ -17,6 +17,41 @@ def generate_size(width, height):
         f"clobber_{width}x{height}", shape=[3] * ndim, initial_position=initial_position
     )
 
+    # components - every move removes exactly one hostile stone and keeps
+    # the friendly count, so after ply moves side 0 (character 1) has
+    # moved ceil(ply / 2) times and side 1 (character 2) floor(ply / 2)
+    # times, fixing both counts. later plies would need a negative count.
+
+    initial_counts = [initial_position.count(c) for c in (1, 2)]
+
+    ply = 1
+    while True:
+        counts = [
+            initial_counts[0] - ply // 2,
+            initial_counts[1] - (ply + 1) // 2,
+        ]
+        if min(counts) < 0:
+            break
+
+        count_names = []
+        for c, count in zip((1, 2), counts):
+            count_name = f"bound,ply={ply:03d},c={c}"
+            game_config.add_component(
+                count_name,
+                "count",
+                {
+                    "c": c,
+                    "count_min": count,
+                    "count_max": count,
+                    "layer_min": 0,
+                    "layer_max": ndim - 1,
+                },
+            )
+            count_names.append(count_name)
+
+        game_config.add_component(f"bound,ply={ply:03d}", "intersection", count_names)
+        ply += 1
+
     for side_to_move in range(2):
         # move graph - one node per (from, to) pair of orthogonally
         # adjacent squares. the friendly stone leaves from and replaces
