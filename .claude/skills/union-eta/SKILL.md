@@ -50,6 +50,21 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
   - Linear scaling is rough and has run long: at its start, `join_0_32` scaled from `join_16_32` gave 676 minutes, and it took 512, because its pair counts grew less than its inputs.
     Time follows the pairs per layer, which depend on how the inputs overlap, so per layer input sizes predicted no better than the total when compared on the joins of 2026-10-19.
 
+## Plan of the remaining unions
+
+    python3 ../.claude/skills/union-eta/solve_plan.py GAME [--all] [--floor TIB]
+
+- Rebuilds the join tree from the log's `node begin fan-in N -> ... (max fan-in K)` line, as `MoveGraph::split_joins` builds it, in build order.
+- Lists the finished unions of 16 moves or more with their actual minutes and results, the union in progress with union-eta's ETA, and the rest projected, with `--all` listing every union.
+- Projects each union from this solve's finished joins, by the number of moves it covers: result states from the median result/sum ratio, forward unique pairs from the median pairs/input ratio, minutes from a fit of minutes per G pairs to the unions at the latest code, peak working space at 20 bytes per unique pair, and free space lost until gc as the result's DFA file.
+- The move nodes not yet consumed fill the edges in order of node name, since the log gives no edge names; the edges the log names are placed exactly.
+  Move nodes not built yet take the median of those built, and the output names them.
+- Plans a gc before any union whose low point, free space less 1.3 times its peak, would fall under the floor, 1 TiB by default.
+  A gc keeps what scratch links outside the caches: the other games' DFAs, the live join results and the move nodes not yet consumed.
+- Rows past the largest pair count the time fit has seen say so, since minutes per pair grow with pairs and the fit is extrapolating there.
+
+After each union finishes, run it and show its table with the after-union report.
+
 ## 3. Present
 
 Lead with:

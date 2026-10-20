@@ -33,6 +33,7 @@ With `--wait`, it first waits for the next union to finish, then prints, and exi
 Run that form with `run_in_background` to report after each union, and start it again after each report.
 Each of those reports also runs the union-eta skill's `union_eta.py GAME` and gives the ETA of the union just started.
 That ETA is usually by size, since the new union has little timing data yet.
+They also show the union-eta skill's `solve_plan.py GAME` table, which projects the remaining unions' finish times, sizes and gc stops from the unions finished so far.
 
 ## Lookups of one union
 
