@@ -29,6 +29,11 @@ int main(int argc, char **argv)
   std::string game_name(argv[1]);
   Game *game = get_game(game_name);
   const ConfigGameBase *config_game = dynamic_cast<ConfigGameBase *>(game);
+  if(!config_game)
+    {
+      std::cerr << "build_bound_backward: game \"" << game_name << "\" is not config based, so it has no bound components\n";
+      return 1;
+    }
 
   int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 100;
   int backward_ply_max = (argc >= 4) ? atoi(argv[3]) : 0;
