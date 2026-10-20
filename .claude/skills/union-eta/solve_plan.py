@@ -189,6 +189,7 @@ def main():
     parser.add_argument("game")
     parser.add_argument("--all", action="store_true", help="list every union, not only those over 8 moves or more")
     parser.add_argument("--floor", type=float, default=1.0, help="free space floor in TiB (default 1)")
+    parser.add_argument("--ratios", action="store_true", help="print the result/sum and unique pairs/input ratios by moves per join, and stop")
     parser.add_argument("--trace")
     parser.add_argument("--log")
     args = parser.parse_args()
@@ -275,6 +276,15 @@ def main():
             by_span_pairs.setdefault(span, []).append(sum(builds[node]["unique"].values()) / sum(ins))
     result_ratio = {s: statistics.median(v) for s, v in by_span_result.items()}
     pairs_ratio = {s: statistics.median(v) for s, v in by_span_pairs.items()}
+    if args.ratios:
+        print(f"{args.game}: ratios by moves per join, over this solve's finished joins")
+        print(f"  {'moves':>5} {'joins':>5}  {'result/sum median':>17} {'min':>5} {'max':>5}  {'unique pairs/input median':>25} {'min':>5} {'max':>5}")
+        for s in sorted(by_span_result):
+            r = by_span_result[s]
+            p = by_span_pairs.get(s)
+            pairs = f"{statistics.median(p):25.2f} {min(p):5.2f} {max(p):5.2f}" if p else f"{'':25} {'':5} {'':5}"
+            print(f"  {s:5d} {len(r):5d}  {statistics.median(r):17.2f} {min(r):5.2f} {max(r):5.2f}  {pairs}")
+        return
 
     # Minutes of the unions finished at the latest code version.
     runs = sb.read_runs(args.trace)

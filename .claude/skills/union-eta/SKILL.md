@@ -63,6 +63,8 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
   A gc keeps what scratch links outside the caches: the other games' DFAs, the live join results and the move nodes not yet consumed.
 - Rows past the largest pair count the time fit has seen say so, since minutes per pair grow with pairs and the fit is extrapolating there.
 
+`--ratios` prints the result/sum and unique pairs/input ratios by moves per join, with each one's median, minimum and maximum, and stops.
+
 After each union finishes, run it and show its table with the after-union report.
 
 ## 3. Present
