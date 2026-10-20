@@ -1,0 +1,16 @@
+{
+  "game": "clobber_2x2",
+  "shape": [
+    3,
+    3,
+    3,
+    3
+  ],
+  "sides": 2,
+  "initial_position": [
+    1,
+    2,
+    2,
+    1
+  ]
+}
