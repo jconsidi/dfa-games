@@ -95,8 +95,15 @@ shared_dfa_ptr get_dfa(std::string game_name, std::string hash_or_name)
 
 Game *get_game(std::string game_name)
 {
-  GameBase *output = get_gamebase(game_name);
-  return dynamic_cast<Game *>(output);
+  std::unique_ptr<GameBase> output(get_gamebase(game_name));
+  Game *game = dynamic_cast<Game *>(output.get());
+  if(!game)
+    {
+      throw std::logic_error("get_game() game name \"" + game_name + "\" is not a game");
+    }
+
+  output.release();
+  return game;
 }
 
 Puzzle *get_puzzle(std::string game_name)
