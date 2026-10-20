@@ -55,7 +55,7 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
     python3 ../.claude/skills/union-eta/solve_plan.py GAME [--all] [--floor TIB]
 
 - Rebuilds the join tree from the log's `node begin fan-in N -> ... (max fan-in K)` line, as `MoveGraph::split_joins` builds it, in build order.
-- Lists the finished unions of 16 moves or more with their actual minutes and results, the union in progress with union-eta's ETA, and the rest projected, with `--all` listing every union.
+- Lists the finished unions of 8 moves or more with their actual minutes and results, the union in progress with union-eta's ETA, and the rest projected, with `--all` listing every union.
 - Projects each union from this solve's finished joins, by the number of moves it covers: result states from the median result/sum ratio, forward unique pairs from the median pairs/input ratio, minutes from a fit of minutes per G pairs to the unions at the latest code, peak working space at 20 bytes per unique pair, and free space lost until gc as the result's DFA file.
 - The move nodes not yet consumed fill the edges in order of node name, since the log gives no edge names; the edges the log names are placed exactly.
   Move nodes not built yet take the median of those built, and the output names them.

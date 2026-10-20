@@ -187,7 +187,7 @@ def union_eta_finish(game, args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("game")
-    parser.add_argument("--all", action="store_true", help="list every union, not only those over 16 moves or more")
+    parser.add_argument("--all", action="store_true", help="list every union, not only those over 8 moves or more")
     parser.add_argument("--floor", type=float, default=1.0, help="free space floor in TiB (default 1)")
     parser.add_argument("--trace")
     parser.add_argument("--log")
@@ -366,7 +366,7 @@ def main():
             print(f'  {"gc":20s} {"planned":8s} {fmt_t(r["when"]):>9s} {GC_MINUTES:6.1f}   free {r["before"] / TIB:.2f} -> {r["after"] / TIB:.2f} TiB')
             after_gc = True
             continue
-        shown = args.all or r["span"] >= 16 or r["status"] == "running" or r["node"] == "begin" or after_gc
+        shown = args.all or r["span"] >= 8 or r["status"] == "running" or r["node"] == "begin" or after_gc
         after_gc = False
         if not shown:
             continue
