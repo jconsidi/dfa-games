@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Positions</title>
+<style>
+:root {
+  --bg: #fbfbfa;
+  --surface: #ffffff;
+  --text: #1d1d1b;
+  --muted: #66665f;
+  --border: #deddd8;
+  --board-bg: #f3f2ee;
+  --accent: #2f5d8a;
+  --tag-bg: #e8eef5;
+  --tag-text: #2f5d8a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161615;
+    --surface: #1f1f1d;
+    --text: #e9e8e4;
+    --muted: #a3a29b;
+    --border: #3a3935;
+    --board-bg: #2a2a27;
+    --accent: #8fb5dc;
+    --tag-bg: #26323f;
+    --tag-text: #a9c8e8;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161615;
+  --surface: #1f1f1d;
+  --text: #e9e8e4;
+  --muted: #a3a29b;
+  --border: #3a3935;
+  --board-bg: #2a2a27;
+  --accent: #8fb5dc;
+  --tag-bg: #26323f;
+  --tag-text: #a9c8e8;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 1.6rem; margin: 0 0 4px; }
+h2 { font-size: 1.05rem; margin: 0; }
+h3 { font-size: 0.9rem; margin: 16px 0 6px; color: var(--muted); font-weight: 600; }
+p { margin: 6px 0; }
+.sub { color: var(--muted); margin-bottom: 20px; }
+.legend { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; }
+.legend dt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; font-weight: 600; }
+.legend dd { margin: 0 0 8px 0; color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; margin-bottom: 10px; }
+.tag { display: inline-block; background: var(--tag-bg); color: var(--tag-text); border-radius: 4px; padding: 1px 7px; font-size: 0.78rem; }
+.checked-by { color: var(--muted); font-size: 0.82rem; font-weight: 400; }
+pre.board {
+  display: inline-block;
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--board-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: 15px/1.25 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.15em;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.moves { display: flex; flex-wrap: wrap; gap: 10px; }
+.moves pre.board { font-size: 12px; }
+.empty { color: var(--muted); font-style: italic; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { border-bottom: 1px solid var(--border); padding: 3px 14px 3px 0; text-align: right; }
+th { color: var(--muted); font-weight: 600; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; }
+</style>
+</head>
+<body>
+<main>
+<h1 id="title"></h1>
+<p class="sub" id="summary"></p>
+<dl class="legend" id="legend"></dl>
+<div id="cards"></div>
+</main>
+<script>
+const DATA = {"game":"clobber_5x5","positions":[{"always_checked_by":["test_move_graph","test_validate"],"comment":"initial position","expected_perft_u":[40],"expected_result":"not over (null)","file":"positions-generated.json","index":1,"perft_checked_by":["test_perft_u"],"result_checked_by":["test_validate"],"side_to_move":0,"text":"wbwbw\nbwbwb\nwbwbw\nbwbwb\nwbwbw\n"},{"always_checked_by":["test_move_graph","test_validate"],"comment":"initial position","expected_perft_u":[40],"expected_result":"not over (null)","file":"positions-generated.json","index":2,"perft_checked_by":["test_perft_u"],"result_checked_by":["test_validate"],"side_to_move":1,"text":"wbwbw\nbwbwb\nwbwbw\nbwbwb\nwbwbw\n"}],"programs":[["test_validate","Every position in both files: validate_moves returns no moves exactly when validate_outcome reports the game over. Where given, expected_moves must equal validate_moves as a set, and expected_result must equal validate_outcome."],["test_move_graph","Every position in both files: the moves the game's move graph generates equal validate_moves, with and without join splitting."],["test_perft_u","Positions with expected_perft_u: the number of distinct positions reached after each depth, generated with the move graph."],["Rust positions_manual","positions-manual.json only, for games with Rust rules: expected_moves and expected_result against independently written rules."]],"summary":"2 positions: 2 from positions-generated.json, 0 from positions-manual.json. This page shows what the tests check; make test runs them."};
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function board(text) {
+  return el("pre", "board", text.replace(/\n+$/, ""));
+}
+
+function section(card, title, checkedBy) {
+  const h = el("h3", null, title + " ");
+  h.appendChild(el("span", "checked-by", "checked by " + checkedBy.join(", ")));
+  card.appendChild(h);
+}
+
+document.title = DATA.game + " test positions";
+document.getElementById("title").textContent = DATA.game + " test positions";
+document.getElementById("summary").textContent = DATA.summary;
+
+const legend = document.getElementById("legend");
+for (const [program, meaning] of DATA.programs) {
+  legend.appendChild(el("dt", null, program));
+  legend.appendChild(el("dd", null, meaning));
+}
+
+const cards = document.getElementById("cards");
+for (const p of DATA.positions) {
+  const card = el("section", "card");
+
+  const head = el("div", "card-head");
+  head.appendChild(el("h2", null, "#" + p.index + (p.comment ? " · " + p.comment : "")));
+  head.appendChild(el("span", "tag", p.file));
+  head.appendChild(el("span", "tag", "side to move " + p.side_to_move));
+  card.appendChild(head);
+
+  card.appendChild(board(p.text));
+
+  section(card, "Every position", p.always_checked_by);
+  card.appendChild(el("p", null, "Move graph moves equal validate_moves; zero moves exactly when the game is over."));
+
+  if (p.expected_moves) {
+    const n = p.expected_moves.length;
+    section(card, "Expected moves: " + n, p.moves_checked_by);
+    if (n === 0) {
+      card.appendChild(el("p", "empty", "no moves"));
+    } else {
+      const grid = el("div", "moves");
+      for (const m of p.expected_moves) grid.appendChild(board(m));
+      card.appendChild(grid);
+    }
+  }
+
+  if (p.expected_result) {
+    section(card, "Expected result", p.result_checked_by);
+    card.appendChild(el("p", null, p.expected_result));
+  }
+
+  if (p.expected_perft_u) {
+    section(card, "Expected perft_u (distinct positions after each depth)", p.perft_checked_by);
+    const table = el("table");
+    const hr = el("tr");
+    hr.appendChild(el("th", null, "depth"));
+    hr.appendChild(el("th", null, "positions"));
+    table.appendChild(hr);
+    p.expected_perft_u.forEach((count, i) => {
+      const tr = el("tr");
+      tr.appendChild(el("td", null, String(i + 1)));
+      tr.appendChild(el("td", null, count.toLocaleString("en-US")));
+      table.appendChild(tr);
+    });
+    card.appendChild(table);
+  }
+
+  cards.appendChild(card);
+}
+</script>
+</body>
+</html>
