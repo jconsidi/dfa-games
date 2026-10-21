@@ -137,7 +137,7 @@ solve_backward : solve_backward.o game_utils.o dfagames.a
 stats : stats.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-render_move_graph : render_move_graph.o game_utils.o dfagames.a
+render_move_graph : render_move_graph.o render_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 stats_% : stats_%.o game_utils.o dfagames.a
