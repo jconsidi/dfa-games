@@ -124,6 +124,22 @@ Game names are parsed from the argument: `breakthrough_WxH`, `breakthroughcw_WxH
 `amazons_WxH`, `clobber_WxH`, `othello_WxH`, `normalnim_*`, `tictactoe_N`, and
 `chess+0` / `chess+1` / `chess+2*`.
 
+## Site
+
+`docs/` is a generated static site, served by GitHub Pages from `main` at `/dfa-games/` under the owner's user site.
+It lists every game family with config, each family's configured sizes, and per size a test positions page and a move graph page.
+Do not edit it by hand.
+Rebuild it with
+
+    cd src && make -j8 render_move_graph render_test_positions
+    cd .. && scripts/build-site.py
+
+then commit `docs/` by hand; nothing builds it automatically, since the build is too heavy for CI.
+
+`render_test_positions` shows each position with `position_to_string` and lists what the tests check, but checks nothing itself; `make test` does that.
+`build-site.py` builds into a fresh directory and swaps it in only once every page has been written, so a failed run leaves the old site intact.
+It refuses to replace a directory lacking its `.dfa-games-site` marker.
+
 ## Rust
 
 `rust/` is a cargo workspace holding a port of the parts of this repo that
