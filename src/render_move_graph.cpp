@@ -6,7 +6,6 @@
 // dagre from cdnjs, so viewing it needs network access.
 
 #include <format>
-#include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -18,6 +17,7 @@
 #include "GameBase.h"
 #include "MoveGraph.h"
 #include "game_utils.h"
+#include "render_utils.h"
 
 static const char *page_template = R"HTML(<!doctype html>
 <html lang="en">
@@ -379,27 +379,6 @@ static nlohmann::json graph_to_json(const MoveGraph& graph, size_t& edges)
   return nodes;
 }
 
-// JSON placed inside a <script> element must not contain "</", or a
-// node name could end the element early.
-static std::string script_safe(std::string json)
-{
-  for(size_t pos = json.find("</"); pos != std::string::npos; pos = json.find("</", pos + 3))
-    {
-      json.replace(pos, 2, "<\\/");
-    }
-  return json;
-}
-
-static void replace_once(std::string& text, const std::string& placeholder, const std::string& value)
-{
-  size_t pos = text.find(placeholder);
-  if((pos == std::string::npos) || (text.find(placeholder, pos + 1) != std::string::npos))
-    {
-      throw std::logic_error("page template must contain " + placeholder + " exactly once");
-    }
-  text.replace(pos, placeholder.size(), value);
-}
-
 int main(int argc, char **argv)
 {
   if(argc < 3)
@@ -445,17 +424,7 @@ int main(int argc, char **argv)
   replace_once(page, "__DATA__", script_safe(data.dump()));
   replace_once(page, "__META__", script_safe(meta.dump()));
 
-  std::ofstream output(output_path, std::ios::binary);
-  if(!output)
-    {
-      throw std::runtime_error("could not open " + output_path + " for writing");
-    }
-  output << page;
-  output.close();
-  if(!output)
-    {
-      throw std::runtime_error("error writing " + output_path);
-    }
+  write_page(output_path, page);
 
   for(const std::string& summary : summaries)
     {
