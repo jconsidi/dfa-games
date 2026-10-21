@@ -356,8 +356,11 @@ def main():
 
     phase = "backward" if current["seconds"]["backward"] else "forward"
     done = current["seconds"][phase]
-    print(f"\ncurrent union {current['node']}: {phase} pass, {len(done)} layers done"
-          + (f", latest layer={min(done) if phase == 'backward' else max(done)}" if done else ""))
+    # The log times only the slower layers, so name the pass's latest timed
+    # layer rather than counting the timed ones.
+    print(f"\ncurrent union {current['node']}: {phase} pass"
+          + ((f", down to layer={min(done)}" if phase == "backward" else f", through layer={max(done)}")
+             if done else ", no layer timed yet"))
     if current["inputs"]:
         print(f"  inputs {current['inputs'][0]:,} and {current['inputs'][1]:,} states")
     if cur_t0 is not None:

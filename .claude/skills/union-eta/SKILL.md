@@ -27,7 +27,8 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
 - Whether the solve is running, from the log's last `===` line, how long ago the log was last written, and its last line.
   If the solve is not running, it stops there.
 - Free space on scratch.
-- The union in progress since the last restart: its pass, the layers done, its input state counts, and when it started.
+- The union in progress since the last restart: its pass, the latest layer the pass has finished, its input state counts, and when it started.
+  The log times only the slower layers, so the script names the latest layer and does not count them.
 - The closest references among all finished unions in the trace, with each one's run, commit, whether it has the same solver code (as the solve-breakdown skill defines it), how far off it is, its minutes, and its own ETA.
   "Off by" is the mean distance between the two unions' unique pairs per forward layer, over the layers the current union has finished, or between their input state counts before it has finished any.
 - Per layer against the best reference, or `--ref`: forward and backward seconds, the pairs each forward layer made for the next, and the unique pairs after the sort, each with its ratio.
