@@ -178,7 +178,10 @@ Every binary takes `--scratch`, defaulting to `scratch`, so run them from
 `cargo test` includes a config driven check of the rules themselves:
 `config/<game>/positions-manual.json` holds hand written positions with
 `expected_moves` and `expected_result`, read by `tests/positions_manual.rs` the
-way `test_perft_u` reads `tests.json`. A file naming a game the Rust cannot
+way `test_perft_u` reads `tests.json`.
+The same test reads `positions-generated.json` and checks its
+`expected_perft_u` counts against the Rust rules, which covers every
+configured size without storing full move lists. A file naming a game the Rust cannot
 build fails the run rather than being skipped, since test data that never
 executes is worse than none.
 
