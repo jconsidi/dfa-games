@@ -275,8 +275,8 @@ Thread-safety rules that hold today:
 - `dfa_format::Layout` is immutable; `row_offset` is pure.
 - Lazily-filled function-local statics are a hazard. `GameUtil::get_queen_moves`
   had exactly this bug — a `static` vector filled behind an `if (empty)` guard,
-  which is not the same as a thread-safe magic static. It is now built in a
-  `static const` initializer. Watch for the pattern elsewhere.
+  which is not the same as a thread-safe magic static. It now returns a fresh
+  table, which `AmazonsGame` keeps per instance. Watch for the pattern elsewhere.
 
 ## Benchmarking and verifying changes
 

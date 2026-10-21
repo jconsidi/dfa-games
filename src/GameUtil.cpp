@@ -41,7 +41,7 @@ std::vector<std::pair<int, int>> GameUtil::get_between(int x_begin, int y_begin,
   return output;
 }
 
-static std::vector<std::tuple<int, int, std::vector<int>>> _build_queen_moves(int offset, int width, int height)
+std::vector<std::tuple<int, int, std::vector<int>>> GameUtil::get_queen_moves(int offset, int width, int height)
 {
   std::vector<std::tuple<int, int, std::vector<int>>> output;
 
@@ -83,25 +83,6 @@ static std::vector<std::tuple<int, int, std::vector<int>>> _build_queen_moves(in
 	    }
 	}
     }
-
-  return output;
-}
-
-const std::vector<std::tuple<int, int, std::vector<int>>>& GameUtil::get_queen_moves(int offset, int width, int height)
-{
-  // Cached for a single board size, which is all any one process uses.
-  // Function-local statics are initialized exactly once even when this is
-  // called concurrently, unlike the lazy fill this replaced.
-
-  static const int offset_cache = offset;
-  static const int width_cache = width;
-  static const int height_cache = height;
-  static const std::vector<std::tuple<int, int, std::vector<int>>> output =
-    _build_queen_moves(offset, width, height);
-
-  assert(offset == offset_cache);
-  assert(width == width_cache);
-  assert(height == height_cache);
 
   return output;
 }

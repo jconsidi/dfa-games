@@ -17,7 +17,7 @@ class GameUtil
 public:
 
   static std::vector<std::pair<int, int>> get_between(int, int, int, int);
-  static const std::vector<std::tuple<int, int, std::vector<int>>>& get_queen_moves(int, int, int);
+  static std::vector<std::tuple<int, int, std::vector<int>>> get_queen_moves(int, int, int);
 };
 
 #endif
