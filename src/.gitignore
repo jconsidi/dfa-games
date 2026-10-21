@@ -28,6 +28,7 @@ stats_forward
 stats_forward_backward
 stats_move_graph
 render_move_graph
+render_test_positions
 test_backward
 test_bitset
 test_change_dfa
