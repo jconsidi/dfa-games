@@ -62,6 +62,10 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
 - A union the latest earlier solve built is projected from its result and unique pairs there, times the median ratio of this solve's finished unions to the same unions there, or before any has finished, the move nodes' ratio.
   Joins of moves differ too much by where they sit in the tree for one ratio by span to fit them all: in ply 10, `join_0_2` kept 0.96 of its inputs and the joins over rows 5 and 6 kept about 0.35.
   Unions without that use the ratios by span, from this solve or, for a span it has not finished, the latest earlier one.
+- The move nodes a union consumes that are not built yet are built just before it, after any gc stop there.
+  Their minutes are a + b × G states, fitted to this solve's built move nodes, or with fewer than 3, the latest earlier solve's, and their DFA files come out of free space until the union consumes them.
+  The `move min` column gives those minutes since the union row before it in the table.
+  In ply 9 of cram_7x7 the fit's fixed part was about 7 minutes a node, against about 2 in ply 10, so a fit from the ply before would undercount the small nodes.
 - Plans a gc before any union whose low point, free space less 1.3 times its peak, would fall under the floor, 1 TiB by default.
   A gc keeps what scratch links outside the caches: the other games' DFAs, the live join results and the move nodes not yet consumed.
 - Rows past the largest pair count the time fit has seen say so, since minutes per pair grow with pairs and the fit is extrapolating there.

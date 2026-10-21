@@ -19,7 +19,10 @@ each covers:
 - minutes: pairs (G) x (c0 + c1 x max(0, pairs (G) - KNEE_GPAIRS)), fitted
   to the unions finished at the latest code version;
 - peak working space: PEAK_BYTES_PER_PAIR per forward unique pair;
-- free space lost until the next gc: the result's DFA file.
+- free space lost until the next gc: the result's DFA file;
+- the move nodes a union consumes, if not built yet, are built just before
+  it: minutes a + b x G states, fitted to this solve's built move nodes,
+  and their DFA files taken from free space.
 
 A span with no finished join uses the largest finished span below it. A
 union gets a gc stop before it when its low point, free space less
@@ -271,8 +274,34 @@ def main():
     for i, e in zip([i for i in range(n) if i not in placed], pool):
         placed[i] = e
 
-    sizes = [os.path.getsize(os.path.join(move_dir, prefix + ",node=" + e)) for e in files]
-    move_file_mean = statistics.mean(sizes) if sizes else 0
+    move_file_bytes = {e: os.path.getsize(os.path.join(move_dir, prefix + ",node=" + e)) for e in files}
+
+    # Move node build minutes = a + b x G states, fitted to this solve's
+    # built move nodes, or with fewer than 3, to the latest earlier solve's.
+    move_build, move_logged = {}, {}
+    for line in lines:
+        m = re.match(r"load_or_build move_nodes/(.*),node=(move_\S+) build took (\d+)s$", line)
+        if m:
+            move_build.setdefault(m.group(1), {})[m.group(2)] = int(m.group(3)) / 60
+        m = re.match(r"(?:built|loaded) move_nodes/(.*),node=(move_\S+) => (\d+) states", line)
+        if m:
+            move_logged[(m.group(1), m.group(2))] = int(m.group(3))
+    move_fit_source = None
+    for p, source in [(prefix, "this solve"), (earlier_prefix, "an earlier solve")]:
+        pts = [(move_logged.get((p, e)), mins) for e, mins in move_build.get(p, {}).items()]
+        pts = [(s / 1e9, mins) for s, mins in pts if s]
+        if len(pts) >= 3 and len({x for x, _ in pts}) > 1:
+            mx, my = statistics.mean(x for x, _ in pts), statistics.mean(y for _, y in pts)
+            move_b = sum((x - mx) * (y - my) for x, y in pts) / sum((x - mx) ** 2 for x, _ in pts)
+            move_a = my - move_b * mx
+            move_fit_source, move_fit_n = source, len(pts)
+            move_fit_range = (min(x for x, _ in pts), max(x for x, _ in pts))
+            break
+    if unbuilt and move_fit_source is None:
+        sb.fail("no solve has 3 move node build times with their state counts in the log to fit move node minutes to")
+
+    def move_minutes(e):
+        return move_a + move_b * move_states[e] / 1e9
 
     def leaf_states(i):
         return move_states[placed[i]]
@@ -392,11 +421,16 @@ def main():
     in_use = working_bytes()
 
     # Walk the tree in build order: finished, then in progress, then
-    # projected. live holds the results not yet consumed, as states.
+    # projected. live holds the results not yet consumed, as states, and
+    # move_disk the bytes of each move node built and not yet consumed.
+    # A planned union's move nodes not built yet are built just before it,
+    # after any gc stop, adding their minutes and taking their files from
+    # free space.
     size = {}
     live = set()
-    consumed = 0
+    move_disk = dict(move_file_bytes)
     rows = []
+    unbuilt_left = set(unbuilt)
     t = None
     free = None
     for start, end, kids in order + ([(0, n, tops)] if len(tops) > 1 else []):
@@ -426,26 +460,34 @@ def main():
                 start_t = finish[max(finish, key=finish.get)] if finish else time.time()
                 t = eta if eta is not None else start_t + 60 * minutes(pairs)
                 m = (t - start_t) / 60
+                move_m = None
                 status = "running"
             else:
                 if free is None:
                     free = free_now
                     t = time.time()
-                if free - PEAK_MARGIN * peak < args.floor * TIB:
-                    kept = other_kept + sum(dfa_bytes(size[x]) for x in live) + (n - consumed) * move_file_mean
+                to_build = [placed[k[0]] for k in kids if k[1] - k[0] == 1 and placed[k[0]] in unbuilt_left]
+                build_bytes = sum(dfa_bytes(move_states[e]) for e in to_build)
+                if free - build_bytes - PEAK_MARGIN * peak < args.floor * TIB:
+                    kept = other_kept + sum(dfa_bytes(size[x]) for x in live) + sum(move_disk.values())
                     t += 60 * GC_MINUTES
                     rows.append(dict(gc=True, when=t, before=free, after=total - kept))
                     free = total - kept
+                move_m = sum(move_minutes(e) for e in to_build)
+                for e in to_build:
+                    unbuilt_left.discard(e)
+                    move_disk[e] = dfa_bytes(move_states[e])
+                free -= build_bytes
                 m = minutes(pairs)
-                t += 60 * m
+                t += 60 * (move_m + m)
                 status = "planned"
             rows.append(dict(node=node, span=span, status=status, ins=sum(ins), out=out, minutes=m, when=t, peak=peak, pairs=pairs,
-                             low=free - PEAK_MARGIN * peak))
+                             low=free - PEAK_MARGIN * peak, move_minutes=move_m))
             free -= dfa_bytes(out)
             size[node] = out
         for k in kids:
             if k[1] - k[0] == 1:
-                consumed = max(consumed, k[1])
+                move_disk.pop(placed[k[0]], None)
             else:
                 live.discard(name_of(k, n))
         live.add(node)
@@ -468,23 +510,34 @@ def main():
     rest = [e for e in unbuilt if e not in scaled]
     if rest:
         print(f"  {len(rest)} move nodes not built yet take the median of the {len(known)} built, {statistics.median(known) / 1e9:.2f}G states: {' '.join(rest)}")
+    if unbuilt:
+        print(f"  move node minutes = {move_a:.2f} + {move_b:.2f} x G states, fitted to {move_fit_n} built in {move_fit_source}"
+              f" over {move_fit_range[0]:.2f}-{move_fit_range[1]:.2f}G states; the {len(unbuilt)} not built yet,"
+              f" {min(move_states[e] for e in unbuilt) / 1e9:.2f}-{max(move_states[e] for e in unbuilt) / 1e9:.2f}G states,"
+              f" take {sum(move_minutes(e) for e in unbuilt) / 60:.1f} h")
+    print("  move min: minutes building move nodes since the union row before it in this table, included in its finish")
     print()
-    print(f'  {"union":20s} {"status":8s} {"finish":>9s} {"min":>6s} {"inputs":>7s} {"result":>7s} {"peak":>9s} {"low point":>9s}')
+    print(f'  {"union":20s} {"status":8s} {"finish":>9s} {"move min":>8s} {"min":>6s} {"inputs":>7s} {"result":>7s} {"peak":>9s} {"low point":>9s}')
     fmt_t = lambda e: time.strftime("%a %H:%M", time.localtime(e)) if e else ""
     after_gc = False
+    move_since = 0.0
     for r in rows:
         if r.get("gc"):
-            print(f'  {"gc":20s} {"planned":8s} {fmt_t(r["when"]):>9s} {GC_MINUTES:6.1f}   free {r["before"] / TIB:.2f} -> {r["after"] / TIB:.2f} TiB')
+            print(f'  {"gc":20s} {"planned":8s} {fmt_t(r["when"]):>9s} {"":>8s} {GC_MINUTES:6.1f}   free {r["before"] / TIB:.2f} -> {r["after"] / TIB:.2f} TiB')
             after_gc = True
             continue
+        move_since += r.get("move_minutes") or 0.0
         shown = args.all or r["span"] >= 8 or r["status"] == "running" or r["node"] == "begin" or after_gc
         after_gc = False
         if not shown:
             continue
         if r["status"] == "done" and not args.all and (r["when"] is None or r["when"] < last_gc):
+            move_since = 0.0
             continue
         cell = lambda v, w, f: format(v, f).rjust(w) if v is not None else " " * w
-        print(f'  {r["node"].replace("begin.", ""):20s} {r["status"]:8s} {fmt_t(r["when"]):>9s} {cell(r["minutes"], 6, ".1f")}'
+        moves_cell = cell(move_since if r["status"] == "planned" else None, 8, ".1f")
+        move_since = 0.0
+        print(f'  {r["node"].replace("begin.", ""):20s} {r["status"]:8s} {fmt_t(r["when"]):>9s} {moves_cell} {cell(r["minutes"], 6, ".1f")}'
               f' {r["ins"] / 1e9:6.1f}G {r["out"] / 1e9:6.1f}G {cell(r["peak"] / TIB if r["peak"] else None, 5, ".2f")} TiB'
               + (f' {r["low"] / TIB:5.2f} TiB' if r["low"] is not None else "")
               + ("  beyond the fitted pairs" if r["status"] != "done" and r["pairs"] > max_fit_pairs else ""))
