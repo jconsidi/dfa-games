@@ -7,10 +7,10 @@
 #include <tuple>
 #include <vector>
 
-#include "NormalPlayGame.h"
+#include "ConfigGame.h"
 
 class AmazonsGame
-  : public NormalPlayGame
+  : public ConfigNormalPlayGame
 {
 private:
 
@@ -22,14 +22,11 @@ private:
   // validate_moves().
   const std::vector<std::vector<std::tuple<int, std::vector<int>>>> queen_moves_by_layer;
 
-  virtual MoveGraph build_move_graph(int) const;
   virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 
 public:
 
   AmazonsGame(int, int);
-
-  virtual DFAString get_position_initial() const;
 
   virtual std::string position_to_string(const DFAString&) const;
 

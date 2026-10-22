@@ -1,0 +1,173 @@
+{
+  "components": {
+    "empty,layer=000": {
+      "inputs": {
+        "0": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=001": {
+      "inputs": {
+        "1": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=002": {
+      "inputs": {
+        "2": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=003": {
+      "inputs": {
+        "3": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=004": {
+      "inputs": {
+        "4": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=005": {
+      "inputs": {
+        "5": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=006": {
+      "inputs": {
+        "6": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=007": {
+      "inputs": {
+        "7": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=008": {
+      "inputs": {
+        "8": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=009": {
+      "inputs": {
+        "9": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=010": {
+      "inputs": {
+        "10": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=011": {
+      "inputs": {
+        "11": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=012": {
+      "inputs": {
+        "12": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=013": {
+      "inputs": {
+        "13": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=014": {
+      "inputs": {
+        "14": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=015": {
+      "inputs": {
+        "15": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=016": {
+      "inputs": {
+        "16": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=017": {
+      "inputs": {
+        "17": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=018": {
+      "inputs": {
+        "18": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=019": {
+      "inputs": {
+        "19": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=020": {
+      "inputs": {
+        "20": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=021": {
+      "inputs": {
+        "21": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=022": {
+      "inputs": {
+        "22": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=023": {
+      "inputs": {
+        "23": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=024": {
+      "inputs": {
+        "24": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=025": {
+      "inputs": {
+        "25": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=026": {
+      "inputs": {
+        "26": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=027": {
+      "inputs": {
+        "27": 0
+      },
+      "type": "fixed"
+    }
+  },
+  "game": "amazons_4x7"
+}

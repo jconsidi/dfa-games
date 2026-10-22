@@ -1,0 +1,73 @@
+{
+  "game": "amazons_4x6",
+  "positions": [
+    {
+      "comment": "initial position",
+      "position": [
+        0,
+        1,
+        1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        2,
+        0,
+        2,
+        2,
+        0
+      ],
+      "side_to_move": 0,
+      "expected_result": null,
+      "expected_perft_u": [
+        256
+      ]
+    },
+    {
+      "comment": "initial position",
+      "position": [
+        0,
+        1,
+        1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        2,
+        0,
+        2,
+        2,
+        0
+      ],
+      "side_to_move": 1,
+      "expected_result": null,
+      "expected_perft_u": [
+        256
+      ]
+    }
+  ]
+}

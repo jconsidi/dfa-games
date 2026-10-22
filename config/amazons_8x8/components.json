@@ -1,0 +1,389 @@
+{
+  "components": {
+    "empty,layer=000": {
+      "inputs": {
+        "0": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=001": {
+      "inputs": {
+        "1": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=002": {
+      "inputs": {
+        "2": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=003": {
+      "inputs": {
+        "3": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=004": {
+      "inputs": {
+        "4": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=005": {
+      "inputs": {
+        "5": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=006": {
+      "inputs": {
+        "6": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=007": {
+      "inputs": {
+        "7": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=008": {
+      "inputs": {
+        "8": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=009": {
+      "inputs": {
+        "9": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=010": {
+      "inputs": {
+        "10": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=011": {
+      "inputs": {
+        "11": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=012": {
+      "inputs": {
+        "12": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=013": {
+      "inputs": {
+        "13": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=014": {
+      "inputs": {
+        "14": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=015": {
+      "inputs": {
+        "15": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=016": {
+      "inputs": {
+        "16": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=017": {
+      "inputs": {
+        "17": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=018": {
+      "inputs": {
+        "18": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=019": {
+      "inputs": {
+        "19": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=020": {
+      "inputs": {
+        "20": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=021": {
+      "inputs": {
+        "21": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=022": {
+      "inputs": {
+        "22": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=023": {
+      "inputs": {
+        "23": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=024": {
+      "inputs": {
+        "24": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=025": {
+      "inputs": {
+        "25": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=026": {
+      "inputs": {
+        "26": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=027": {
+      "inputs": {
+        "27": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=028": {
+      "inputs": {
+        "28": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=029": {
+      "inputs": {
+        "29": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=030": {
+      "inputs": {
+        "30": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=031": {
+      "inputs": {
+        "31": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=032": {
+      "inputs": {
+        "32": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=033": {
+      "inputs": {
+        "33": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=034": {
+      "inputs": {
+        "34": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=035": {
+      "inputs": {
+        "35": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=036": {
+      "inputs": {
+        "36": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=037": {
+      "inputs": {
+        "37": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=038": {
+      "inputs": {
+        "38": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=039": {
+      "inputs": {
+        "39": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=040": {
+      "inputs": {
+        "40": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=041": {
+      "inputs": {
+        "41": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=042": {
+      "inputs": {
+        "42": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=043": {
+      "inputs": {
+        "43": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=044": {
+      "inputs": {
+        "44": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=045": {
+      "inputs": {
+        "45": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=046": {
+      "inputs": {
+        "46": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=047": {
+      "inputs": {
+        "47": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=048": {
+      "inputs": {
+        "48": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=049": {
+      "inputs": {
+        "49": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=050": {
+      "inputs": {
+        "50": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=051": {
+      "inputs": {
+        "51": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=052": {
+      "inputs": {
+        "52": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=053": {
+      "inputs": {
+        "53": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=054": {
+      "inputs": {
+        "54": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=055": {
+      "inputs": {
+        "55": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=056": {
+      "inputs": {
+        "56": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=057": {
+      "inputs": {
+        "57": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=058": {
+      "inputs": {
+        "58": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=059": {
+      "inputs": {
+        "59": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=060": {
+      "inputs": {
+        "60": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=061": {
+      "inputs": {
+        "61": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=062": {
+      "inputs": {
+        "62": 0
+      },
+      "type": "fixed"
+    },
+    "empty,layer=063": {
+      "inputs": {
+        "63": 0
+      },
+      "type": "fixed"
+    }
+  },
+  "game": "amazons_8x8"
+}

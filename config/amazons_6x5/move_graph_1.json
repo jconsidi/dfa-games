@@ -1,0 +1,7819 @@
+{
+  "game": "amazons_6x5",
+  "nodes": [
+    {
+      "node": "begin",
+      "changes": []
+    },
+    {
+      "node": "move from=0",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=1",
+      "changes": [
+        {
+          "layer": 1,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=2",
+      "changes": [
+        {
+          "layer": 2,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=3",
+      "changes": [
+        {
+          "layer": 3,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=4",
+      "changes": [
+        {
+          "layer": 4,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=5",
+      "changes": [
+        {
+          "layer": 5,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=6",
+      "changes": [
+        {
+          "layer": 6,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=7",
+      "changes": [
+        {
+          "layer": 7,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=8",
+      "changes": [
+        {
+          "layer": 8,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=9",
+      "changes": [
+        {
+          "layer": 9,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=10",
+      "changes": [
+        {
+          "layer": 10,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=11",
+      "changes": [
+        {
+          "layer": 11,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=12",
+      "changes": [
+        {
+          "layer": 12,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=13",
+      "changes": [
+        {
+          "layer": 13,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=14",
+      "changes": [
+        {
+          "layer": 14,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=15",
+      "changes": [
+        {
+          "layer": 15,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=16",
+      "changes": [
+        {
+          "layer": 16,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=17",
+      "changes": [
+        {
+          "layer": 17,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=18",
+      "changes": [
+        {
+          "layer": 18,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=19",
+      "changes": [
+        {
+          "layer": 19,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=20",
+      "changes": [
+        {
+          "layer": 20,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=21",
+      "changes": [
+        {
+          "layer": 21,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=22",
+      "changes": [
+        {
+          "layer": 22,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=23",
+      "changes": [
+        {
+          "layer": 23,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=24",
+      "changes": [
+        {
+          "layer": 24,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=25",
+      "changes": [
+        {
+          "layer": 25,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=26",
+      "changes": [
+        {
+          "layer": 26,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=27",
+      "changes": [
+        {
+          "layer": 27,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=28",
+      "changes": [
+        {
+          "layer": 28,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move from=29",
+      "changes": [
+        {
+          "layer": 29,
+          "before": 2,
+          "after": 0
+        }
+      ]
+    },
+    {
+      "node": "move to=0",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=1",
+      "changes": [
+        {
+          "layer": 1,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=2",
+      "changes": [
+        {
+          "layer": 2,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=3",
+      "changes": [
+        {
+          "layer": 3,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=4",
+      "changes": [
+        {
+          "layer": 4,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=5",
+      "changes": [
+        {
+          "layer": 5,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=6",
+      "changes": [
+        {
+          "layer": 6,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=7",
+      "changes": [
+        {
+          "layer": 7,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=8",
+      "changes": [
+        {
+          "layer": 8,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=9",
+      "changes": [
+        {
+          "layer": 9,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=10",
+      "changes": [
+        {
+          "layer": 10,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=11",
+      "changes": [
+        {
+          "layer": 11,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=12",
+      "changes": [
+        {
+          "layer": 12,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=13",
+      "changes": [
+        {
+          "layer": 13,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=14",
+      "changes": [
+        {
+          "layer": 14,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=15",
+      "changes": [
+        {
+          "layer": 15,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=16",
+      "changes": [
+        {
+          "layer": 16,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=17",
+      "changes": [
+        {
+          "layer": 17,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=18",
+      "changes": [
+        {
+          "layer": 18,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=19",
+      "changes": [
+        {
+          "layer": 19,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=20",
+      "changes": [
+        {
+          "layer": 20,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=21",
+      "changes": [
+        {
+          "layer": 21,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=22",
+      "changes": [
+        {
+          "layer": 22,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=23",
+      "changes": [
+        {
+          "layer": 23,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=24",
+      "changes": [
+        {
+          "layer": 24,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=25",
+      "changes": [
+        {
+          "layer": 25,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=26",
+      "changes": [
+        {
+          "layer": 26,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=27",
+      "changes": [
+        {
+          "layer": 27,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=28",
+      "changes": [
+        {
+          "layer": 28,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "move to=29",
+      "changes": [
+        {
+          "layer": 29,
+          "before": 0,
+          "after": 2
+        }
+      ]
+    },
+    {
+      "node": "shot at=0",
+      "changes": [
+        {
+          "layer": 0,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=1",
+      "changes": [
+        {
+          "layer": 1,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=2",
+      "changes": [
+        {
+          "layer": 2,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=3",
+      "changes": [
+        {
+          "layer": 3,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=4",
+      "changes": [
+        {
+          "layer": 4,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=5",
+      "changes": [
+        {
+          "layer": 5,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=6",
+      "changes": [
+        {
+          "layer": 6,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=7",
+      "changes": [
+        {
+          "layer": 7,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=8",
+      "changes": [
+        {
+          "layer": 8,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=9",
+      "changes": [
+        {
+          "layer": 9,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=10",
+      "changes": [
+        {
+          "layer": 10,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=11",
+      "changes": [
+        {
+          "layer": 11,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=12",
+      "changes": [
+        {
+          "layer": 12,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=13",
+      "changes": [
+        {
+          "layer": 13,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=14",
+      "changes": [
+        {
+          "layer": 14,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=15",
+      "changes": [
+        {
+          "layer": 15,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=16",
+      "changes": [
+        {
+          "layer": 16,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=17",
+      "changes": [
+        {
+          "layer": 17,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=18",
+      "changes": [
+        {
+          "layer": 18,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=19",
+      "changes": [
+        {
+          "layer": 19,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=20",
+      "changes": [
+        {
+          "layer": 20,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=21",
+      "changes": [
+        {
+          "layer": 21,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=22",
+      "changes": [
+        {
+          "layer": 22,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=23",
+      "changes": [
+        {
+          "layer": 23,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=24",
+      "changes": [
+        {
+          "layer": 24,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=25",
+      "changes": [
+        {
+          "layer": 25,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=26",
+      "changes": [
+        {
+          "layer": 26,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=27",
+      "changes": [
+        {
+          "layer": 27,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=28",
+      "changes": [
+        {
+          "layer": 28,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "shot at=29",
+      "changes": [
+        {
+          "layer": 29,
+          "before": 0,
+          "after": 3
+        }
+      ]
+    },
+    {
+      "node": "end",
+      "changes": []
+    }
+  ],
+  "edges": [
+    {
+      "edge": "move from=0",
+      "from": "begin",
+      "to": "move from=0",
+      "conditions": []
+    },
+    {
+      "edge": "move from=1",
+      "from": "begin",
+      "to": "move from=1",
+      "conditions": []
+    },
+    {
+      "edge": "move from=2",
+      "from": "begin",
+      "to": "move from=2",
+      "conditions": []
+    },
+    {
+      "edge": "move from=3",
+      "from": "begin",
+      "to": "move from=3",
+      "conditions": []
+    },
+    {
+      "edge": "move from=4",
+      "from": "begin",
+      "to": "move from=4",
+      "conditions": []
+    },
+    {
+      "edge": "move from=5",
+      "from": "begin",
+      "to": "move from=5",
+      "conditions": []
+    },
+    {
+      "edge": "move from=6",
+      "from": "begin",
+      "to": "move from=6",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7",
+      "from": "begin",
+      "to": "move from=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8",
+      "from": "begin",
+      "to": "move from=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9",
+      "from": "begin",
+      "to": "move from=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10",
+      "from": "begin",
+      "to": "move from=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=11",
+      "from": "begin",
+      "to": "move from=11",
+      "conditions": []
+    },
+    {
+      "edge": "move from=12",
+      "from": "begin",
+      "to": "move from=12",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13",
+      "from": "begin",
+      "to": "move from=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14",
+      "from": "begin",
+      "to": "move from=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15",
+      "from": "begin",
+      "to": "move from=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16",
+      "from": "begin",
+      "to": "move from=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=17",
+      "from": "begin",
+      "to": "move from=17",
+      "conditions": []
+    },
+    {
+      "edge": "move from=18",
+      "from": "begin",
+      "to": "move from=18",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19",
+      "from": "begin",
+      "to": "move from=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20",
+      "from": "begin",
+      "to": "move from=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21",
+      "from": "begin",
+      "to": "move from=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22",
+      "from": "begin",
+      "to": "move from=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=23",
+      "from": "begin",
+      "to": "move from=23",
+      "conditions": []
+    },
+    {
+      "edge": "move from=24",
+      "from": "begin",
+      "to": "move from=24",
+      "conditions": []
+    },
+    {
+      "edge": "move from=25",
+      "from": "begin",
+      "to": "move from=25",
+      "conditions": []
+    },
+    {
+      "edge": "move from=26",
+      "from": "begin",
+      "to": "move from=26",
+      "conditions": []
+    },
+    {
+      "edge": "move from=27",
+      "from": "begin",
+      "to": "move from=27",
+      "conditions": []
+    },
+    {
+      "edge": "move from=28",
+      "from": "begin",
+      "to": "move from=28",
+      "conditions": []
+    },
+    {
+      "edge": "move from=29",
+      "from": "begin",
+      "to": "move from=29",
+      "conditions": []
+    },
+    {
+      "edge": "move from=0, move to=1",
+      "from": "move from=0",
+      "to": "move to=1",
+      "conditions": []
+    },
+    {
+      "edge": "move from=0, move to=2",
+      "from": "move from=0",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=3",
+      "from": "move from=0",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=001",
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=4",
+      "from": "move from=0",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=001",
+        "empty,layer=002",
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=5",
+      "from": "move from=0",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=001",
+        "empty,layer=002",
+        "empty,layer=003",
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=6",
+      "from": "move from=0",
+      "to": "move to=6",
+      "conditions": []
+    },
+    {
+      "edge": "move from=0, move to=7",
+      "from": "move from=0",
+      "to": "move to=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=0, move to=12",
+      "from": "move from=0",
+      "to": "move to=12",
+      "conditions": [
+        "empty,layer=006"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=14",
+      "from": "move from=0",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=18",
+      "from": "move from=0",
+      "to": "move to=18",
+      "conditions": [
+        "empty,layer=006",
+        "empty,layer=012"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=21",
+      "from": "move from=0",
+      "to": "move to=21",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=24",
+      "from": "move from=0",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=006",
+        "empty,layer=012",
+        "empty,layer=018"
+      ]
+    },
+    {
+      "edge": "move from=0, move to=28",
+      "from": "move from=0",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=014",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=0",
+      "from": "move from=1",
+      "to": "move to=0",
+      "conditions": []
+    },
+    {
+      "edge": "move from=1, move to=2",
+      "from": "move from=1",
+      "to": "move to=2",
+      "conditions": []
+    },
+    {
+      "edge": "move from=1, move to=3",
+      "from": "move from=1",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=4",
+      "from": "move from=1",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=002",
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=5",
+      "from": "move from=1",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=002",
+        "empty,layer=003",
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=6",
+      "from": "move from=1",
+      "to": "move to=6",
+      "conditions": []
+    },
+    {
+      "edge": "move from=1, move to=7",
+      "from": "move from=1",
+      "to": "move to=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=1, move to=8",
+      "from": "move from=1",
+      "to": "move to=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=1, move to=13",
+      "from": "move from=1",
+      "to": "move to=13",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=15",
+      "from": "move from=1",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=19",
+      "from": "move from=1",
+      "to": "move to=19",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=22",
+      "from": "move from=1",
+      "to": "move to=22",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=25",
+      "from": "move from=1",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=013",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=1, move to=29",
+      "from": "move from=1",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=015",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=0",
+      "from": "move from=2",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=1",
+      "from": "move from=2",
+      "to": "move to=1",
+      "conditions": []
+    },
+    {
+      "edge": "move from=2, move to=3",
+      "from": "move from=2",
+      "to": "move to=3",
+      "conditions": []
+    },
+    {
+      "edge": "move from=2, move to=4",
+      "from": "move from=2",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=5",
+      "from": "move from=2",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=003",
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=7",
+      "from": "move from=2",
+      "to": "move to=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=2, move to=8",
+      "from": "move from=2",
+      "to": "move to=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=2, move to=9",
+      "from": "move from=2",
+      "to": "move to=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=2, move to=12",
+      "from": "move from=2",
+      "to": "move to=12",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=14",
+      "from": "move from=2",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=16",
+      "from": "move from=2",
+      "to": "move to=16",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=20",
+      "from": "move from=2",
+      "to": "move to=20",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=23",
+      "from": "move from=2",
+      "to": "move to=23",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=2, move to=26",
+      "from": "move from=2",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=014",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=0",
+      "from": "move from=3",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=002",
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=1",
+      "from": "move from=3",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=2",
+      "from": "move from=3",
+      "to": "move to=2",
+      "conditions": []
+    },
+    {
+      "edge": "move from=3, move to=4",
+      "from": "move from=3",
+      "to": "move to=4",
+      "conditions": []
+    },
+    {
+      "edge": "move from=3, move to=5",
+      "from": "move from=3",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=8",
+      "from": "move from=3",
+      "to": "move to=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=3, move to=9",
+      "from": "move from=3",
+      "to": "move to=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=3, move to=10",
+      "from": "move from=3",
+      "to": "move to=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=3, move to=13",
+      "from": "move from=3",
+      "to": "move to=13",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=15",
+      "from": "move from=3",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=17",
+      "from": "move from=3",
+      "to": "move to=17",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=18",
+      "from": "move from=3",
+      "to": "move to=18",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=21",
+      "from": "move from=3",
+      "to": "move to=21",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=3, move to=27",
+      "from": "move from=3",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=015",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=0",
+      "from": "move from=4",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=003",
+        "empty,layer=002",
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=1",
+      "from": "move from=4",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=003",
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=2",
+      "from": "move from=4",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=3",
+      "from": "move from=4",
+      "to": "move to=3",
+      "conditions": []
+    },
+    {
+      "edge": "move from=4, move to=5",
+      "from": "move from=4",
+      "to": "move to=5",
+      "conditions": []
+    },
+    {
+      "edge": "move from=4, move to=9",
+      "from": "move from=4",
+      "to": "move to=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=4, move to=10",
+      "from": "move from=4",
+      "to": "move to=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=4, move to=11",
+      "from": "move from=4",
+      "to": "move to=11",
+      "conditions": []
+    },
+    {
+      "edge": "move from=4, move to=14",
+      "from": "move from=4",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=16",
+      "from": "move from=4",
+      "to": "move to=16",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=19",
+      "from": "move from=4",
+      "to": "move to=19",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=22",
+      "from": "move from=4",
+      "to": "move to=22",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=24",
+      "from": "move from=4",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=014",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=4, move to=28",
+      "from": "move from=4",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=016",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=0",
+      "from": "move from=5",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=004",
+        "empty,layer=003",
+        "empty,layer=002",
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=1",
+      "from": "move from=5",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=004",
+        "empty,layer=003",
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=2",
+      "from": "move from=5",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=004",
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=3",
+      "from": "move from=5",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=4",
+      "from": "move from=5",
+      "to": "move to=4",
+      "conditions": []
+    },
+    {
+      "edge": "move from=5, move to=10",
+      "from": "move from=5",
+      "to": "move to=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=5, move to=11",
+      "from": "move from=5",
+      "to": "move to=11",
+      "conditions": []
+    },
+    {
+      "edge": "move from=5, move to=15",
+      "from": "move from=5",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=17",
+      "from": "move from=5",
+      "to": "move to=17",
+      "conditions": [
+        "empty,layer=011"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=20",
+      "from": "move from=5",
+      "to": "move to=20",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=23",
+      "from": "move from=5",
+      "to": "move to=23",
+      "conditions": [
+        "empty,layer=011",
+        "empty,layer=017"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=25",
+      "from": "move from=5",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=015",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=5, move to=29",
+      "from": "move from=5",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=011",
+        "empty,layer=017",
+        "empty,layer=023"
+      ]
+    },
+    {
+      "edge": "move from=6, move to=0",
+      "from": "move from=6",
+      "to": "move to=0",
+      "conditions": []
+    },
+    {
+      "edge": "move from=6, move to=1",
+      "from": "move from=6",
+      "to": "move to=1",
+      "conditions": []
+    },
+    {
+      "edge": "move from=6, move to=7",
+      "from": "move from=6",
+      "to": "move to=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=6, move to=8",
+      "from": "move from=6",
+      "to": "move to=8",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=6, move to=9",
+      "from": "move from=6",
+      "to": "move to=9",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=6, move to=10",
+      "from": "move from=6",
+      "to": "move to=10",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=008",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=6, move to=11",
+      "from": "move from=6",
+      "to": "move to=11",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=008",
+        "empty,layer=009",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=6, move to=12",
+      "from": "move from=6",
+      "to": "move to=12",
+      "conditions": []
+    },
+    {
+      "edge": "move from=6, move to=13",
+      "from": "move from=6",
+      "to": "move to=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=6, move to=18",
+      "from": "move from=6",
+      "to": "move to=18",
+      "conditions": [
+        "empty,layer=012"
+      ]
+    },
+    {
+      "edge": "move from=6, move to=20",
+      "from": "move from=6",
+      "to": "move to=20",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=6, move to=24",
+      "from": "move from=6",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=012",
+        "empty,layer=018"
+      ]
+    },
+    {
+      "edge": "move from=6, move to=27",
+      "from": "move from=6",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=7, move to=0",
+      "from": "move from=7",
+      "to": "move to=0",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7, move to=1",
+      "from": "move from=7",
+      "to": "move to=1",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7, move to=2",
+      "from": "move from=7",
+      "to": "move to=2",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7, move to=6",
+      "from": "move from=7",
+      "to": "move to=6",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7, move to=8",
+      "from": "move from=7",
+      "to": "move to=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7, move to=9",
+      "from": "move from=7",
+      "to": "move to=9",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=7, move to=10",
+      "from": "move from=7",
+      "to": "move to=10",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=7, move to=11",
+      "from": "move from=7",
+      "to": "move to=11",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=009",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=7, move to=12",
+      "from": "move from=7",
+      "to": "move to=12",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7, move to=13",
+      "from": "move from=7",
+      "to": "move to=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7, move to=14",
+      "from": "move from=7",
+      "to": "move to=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=7, move to=19",
+      "from": "move from=7",
+      "to": "move to=19",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=7, move to=21",
+      "from": "move from=7",
+      "to": "move to=21",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=7, move to=25",
+      "from": "move from=7",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=7, move to=28",
+      "from": "move from=7",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=8, move to=1",
+      "from": "move from=8",
+      "to": "move to=1",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8, move to=2",
+      "from": "move from=8",
+      "to": "move to=2",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8, move to=3",
+      "from": "move from=8",
+      "to": "move to=3",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8, move to=6",
+      "from": "move from=8",
+      "to": "move to=6",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=8, move to=7",
+      "from": "move from=8",
+      "to": "move to=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8, move to=9",
+      "from": "move from=8",
+      "to": "move to=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8, move to=10",
+      "from": "move from=8",
+      "to": "move to=10",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=8, move to=11",
+      "from": "move from=8",
+      "to": "move to=11",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=8, move to=13",
+      "from": "move from=8",
+      "to": "move to=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8, move to=14",
+      "from": "move from=8",
+      "to": "move to=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8, move to=15",
+      "from": "move from=8",
+      "to": "move to=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=8, move to=18",
+      "from": "move from=8",
+      "to": "move to=18",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=8, move to=20",
+      "from": "move from=8",
+      "to": "move to=20",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=8, move to=22",
+      "from": "move from=8",
+      "to": "move to=22",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=8, move to=26",
+      "from": "move from=8",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=8, move to=29",
+      "from": "move from=8",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=9, move to=2",
+      "from": "move from=9",
+      "to": "move to=2",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9, move to=3",
+      "from": "move from=9",
+      "to": "move to=3",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9, move to=4",
+      "from": "move from=9",
+      "to": "move to=4",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9, move to=6",
+      "from": "move from=9",
+      "to": "move to=6",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=9, move to=7",
+      "from": "move from=9",
+      "to": "move to=7",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=9, move to=8",
+      "from": "move from=9",
+      "to": "move to=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9, move to=10",
+      "from": "move from=9",
+      "to": "move to=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9, move to=11",
+      "from": "move from=9",
+      "to": "move to=11",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=9, move to=14",
+      "from": "move from=9",
+      "to": "move to=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9, move to=15",
+      "from": "move from=9",
+      "to": "move to=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9, move to=16",
+      "from": "move from=9",
+      "to": "move to=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=9, move to=19",
+      "from": "move from=9",
+      "to": "move to=19",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=9, move to=21",
+      "from": "move from=9",
+      "to": "move to=21",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=9, move to=23",
+      "from": "move from=9",
+      "to": "move to=23",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=9, move to=24",
+      "from": "move from=9",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=9, move to=27",
+      "from": "move from=9",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=10, move to=3",
+      "from": "move from=10",
+      "to": "move to=3",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10, move to=4",
+      "from": "move from=10",
+      "to": "move to=4",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10, move to=5",
+      "from": "move from=10",
+      "to": "move to=5",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10, move to=6",
+      "from": "move from=10",
+      "to": "move to=6",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=008",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=10, move to=7",
+      "from": "move from=10",
+      "to": "move to=7",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=10, move to=8",
+      "from": "move from=10",
+      "to": "move to=8",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=10, move to=9",
+      "from": "move from=10",
+      "to": "move to=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10, move to=11",
+      "from": "move from=10",
+      "to": "move to=11",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10, move to=15",
+      "from": "move from=10",
+      "to": "move to=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10, move to=16",
+      "from": "move from=10",
+      "to": "move to=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10, move to=17",
+      "from": "move from=10",
+      "to": "move to=17",
+      "conditions": []
+    },
+    {
+      "edge": "move from=10, move to=20",
+      "from": "move from=10",
+      "to": "move to=20",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=10, move to=22",
+      "from": "move from=10",
+      "to": "move to=22",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=10, move to=25",
+      "from": "move from=10",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=10, move to=28",
+      "from": "move from=10",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=11, move to=4",
+      "from": "move from=11",
+      "to": "move to=4",
+      "conditions": []
+    },
+    {
+      "edge": "move from=11, move to=5",
+      "from": "move from=11",
+      "to": "move to=5",
+      "conditions": []
+    },
+    {
+      "edge": "move from=11, move to=6",
+      "from": "move from=11",
+      "to": "move to=6",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=009",
+        "empty,layer=008",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=11, move to=7",
+      "from": "move from=11",
+      "to": "move to=7",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=009",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=11, move to=8",
+      "from": "move from=11",
+      "to": "move to=8",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=11, move to=9",
+      "from": "move from=11",
+      "to": "move to=9",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=11, move to=10",
+      "from": "move from=11",
+      "to": "move to=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=11, move to=16",
+      "from": "move from=11",
+      "to": "move to=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=11, move to=17",
+      "from": "move from=11",
+      "to": "move to=17",
+      "conditions": []
+    },
+    {
+      "edge": "move from=11, move to=21",
+      "from": "move from=11",
+      "to": "move to=21",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=11, move to=23",
+      "from": "move from=11",
+      "to": "move to=23",
+      "conditions": [
+        "empty,layer=017"
+      ]
+    },
+    {
+      "edge": "move from=11, move to=26",
+      "from": "move from=11",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=11, move to=29",
+      "from": "move from=11",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=017",
+        "empty,layer=023"
+      ]
+    },
+    {
+      "edge": "move from=12, move to=0",
+      "from": "move from=12",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=006"
+      ]
+    },
+    {
+      "edge": "move from=12, move to=2",
+      "from": "move from=12",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=12, move to=6",
+      "from": "move from=12",
+      "to": "move to=6",
+      "conditions": []
+    },
+    {
+      "edge": "move from=12, move to=7",
+      "from": "move from=12",
+      "to": "move to=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=12, move to=13",
+      "from": "move from=12",
+      "to": "move to=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=12, move to=14",
+      "from": "move from=12",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=12, move to=15",
+      "from": "move from=12",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=12, move to=16",
+      "from": "move from=12",
+      "to": "move to=16",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=014",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=12, move to=17",
+      "from": "move from=12",
+      "to": "move to=17",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=014",
+        "empty,layer=015",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=12, move to=18",
+      "from": "move from=12",
+      "to": "move to=18",
+      "conditions": []
+    },
+    {
+      "edge": "move from=12, move to=19",
+      "from": "move from=12",
+      "to": "move to=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=12, move to=24",
+      "from": "move from=12",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=018"
+      ]
+    },
+    {
+      "edge": "move from=12, move to=26",
+      "from": "move from=12",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=13, move to=1",
+      "from": "move from=13",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=13, move to=3",
+      "from": "move from=13",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=13, move to=6",
+      "from": "move from=13",
+      "to": "move to=6",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13, move to=7",
+      "from": "move from=13",
+      "to": "move to=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13, move to=8",
+      "from": "move from=13",
+      "to": "move to=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13, move to=12",
+      "from": "move from=13",
+      "to": "move to=12",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13, move to=14",
+      "from": "move from=13",
+      "to": "move to=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13, move to=15",
+      "from": "move from=13",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=13, move to=16",
+      "from": "move from=13",
+      "to": "move to=16",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=13, move to=17",
+      "from": "move from=13",
+      "to": "move to=17",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=015",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=13, move to=18",
+      "from": "move from=13",
+      "to": "move to=18",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13, move to=19",
+      "from": "move from=13",
+      "to": "move to=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13, move to=20",
+      "from": "move from=13",
+      "to": "move to=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=13, move to=25",
+      "from": "move from=13",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=13, move to=27",
+      "from": "move from=13",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=0",
+      "from": "move from=14",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=2",
+      "from": "move from=14",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=4",
+      "from": "move from=14",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=7",
+      "from": "move from=14",
+      "to": "move to=7",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14, move to=8",
+      "from": "move from=14",
+      "to": "move to=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14, move to=9",
+      "from": "move from=14",
+      "to": "move to=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14, move to=12",
+      "from": "move from=14",
+      "to": "move to=12",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=13",
+      "from": "move from=14",
+      "to": "move to=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14, move to=15",
+      "from": "move from=14",
+      "to": "move to=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14, move to=16",
+      "from": "move from=14",
+      "to": "move to=16",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=17",
+      "from": "move from=14",
+      "to": "move to=17",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=19",
+      "from": "move from=14",
+      "to": "move to=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14, move to=20",
+      "from": "move from=14",
+      "to": "move to=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14, move to=21",
+      "from": "move from=14",
+      "to": "move to=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=14, move to=24",
+      "from": "move from=14",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=26",
+      "from": "move from=14",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=14, move to=28",
+      "from": "move from=14",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=1",
+      "from": "move from=15",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=3",
+      "from": "move from=15",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=5",
+      "from": "move from=15",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=8",
+      "from": "move from=15",
+      "to": "move to=8",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15, move to=9",
+      "from": "move from=15",
+      "to": "move to=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15, move to=10",
+      "from": "move from=15",
+      "to": "move to=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15, move to=12",
+      "from": "move from=15",
+      "to": "move to=12",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=13",
+      "from": "move from=15",
+      "to": "move to=13",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=14",
+      "from": "move from=15",
+      "to": "move to=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15, move to=16",
+      "from": "move from=15",
+      "to": "move to=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15, move to=17",
+      "from": "move from=15",
+      "to": "move to=17",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=20",
+      "from": "move from=15",
+      "to": "move to=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15, move to=21",
+      "from": "move from=15",
+      "to": "move to=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15, move to=22",
+      "from": "move from=15",
+      "to": "move to=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=15, move to=25",
+      "from": "move from=15",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=27",
+      "from": "move from=15",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=15, move to=29",
+      "from": "move from=15",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=16, move to=2",
+      "from": "move from=16",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=16, move to=4",
+      "from": "move from=16",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=16, move to=9",
+      "from": "move from=16",
+      "to": "move to=9",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16, move to=10",
+      "from": "move from=16",
+      "to": "move to=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16, move to=11",
+      "from": "move from=16",
+      "to": "move to=11",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16, move to=12",
+      "from": "move from=16",
+      "to": "move to=12",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=014",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=16, move to=13",
+      "from": "move from=16",
+      "to": "move to=13",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=16, move to=14",
+      "from": "move from=16",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=16, move to=15",
+      "from": "move from=16",
+      "to": "move to=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16, move to=17",
+      "from": "move from=16",
+      "to": "move to=17",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16, move to=21",
+      "from": "move from=16",
+      "to": "move to=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16, move to=22",
+      "from": "move from=16",
+      "to": "move to=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16, move to=23",
+      "from": "move from=16",
+      "to": "move to=23",
+      "conditions": []
+    },
+    {
+      "edge": "move from=16, move to=26",
+      "from": "move from=16",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=16, move to=28",
+      "from": "move from=16",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=17, move to=3",
+      "from": "move from=17",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=17, move to=5",
+      "from": "move from=17",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=011"
+      ]
+    },
+    {
+      "edge": "move from=17, move to=10",
+      "from": "move from=17",
+      "to": "move to=10",
+      "conditions": []
+    },
+    {
+      "edge": "move from=17, move to=11",
+      "from": "move from=17",
+      "to": "move to=11",
+      "conditions": []
+    },
+    {
+      "edge": "move from=17, move to=12",
+      "from": "move from=17",
+      "to": "move to=12",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=015",
+        "empty,layer=014",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=17, move to=13",
+      "from": "move from=17",
+      "to": "move to=13",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=015",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=17, move to=14",
+      "from": "move from=17",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=17, move to=15",
+      "from": "move from=17",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=17, move to=16",
+      "from": "move from=17",
+      "to": "move to=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=17, move to=22",
+      "from": "move from=17",
+      "to": "move to=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=17, move to=23",
+      "from": "move from=17",
+      "to": "move to=23",
+      "conditions": []
+    },
+    {
+      "edge": "move from=17, move to=27",
+      "from": "move from=17",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=17, move to=29",
+      "from": "move from=17",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=023"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=0",
+      "from": "move from=18",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=012",
+        "empty,layer=006"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=3",
+      "from": "move from=18",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=6",
+      "from": "move from=18",
+      "to": "move to=6",
+      "conditions": [
+        "empty,layer=012"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=8",
+      "from": "move from=18",
+      "to": "move to=8",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=12",
+      "from": "move from=18",
+      "to": "move to=12",
+      "conditions": []
+    },
+    {
+      "edge": "move from=18, move to=13",
+      "from": "move from=18",
+      "to": "move to=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=18, move to=19",
+      "from": "move from=18",
+      "to": "move to=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=18, move to=20",
+      "from": "move from=18",
+      "to": "move to=20",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=21",
+      "from": "move from=18",
+      "to": "move to=21",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=22",
+      "from": "move from=18",
+      "to": "move to=22",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=020",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=23",
+      "from": "move from=18",
+      "to": "move to=23",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=020",
+        "empty,layer=021",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=18, move to=24",
+      "from": "move from=18",
+      "to": "move to=24",
+      "conditions": []
+    },
+    {
+      "edge": "move from=18, move to=25",
+      "from": "move from=18",
+      "to": "move to=25",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19, move to=1",
+      "from": "move from=19",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=19, move to=4",
+      "from": "move from=19",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=19, move to=7",
+      "from": "move from=19",
+      "to": "move to=7",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=19, move to=9",
+      "from": "move from=19",
+      "to": "move to=9",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=19, move to=12",
+      "from": "move from=19",
+      "to": "move to=12",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19, move to=13",
+      "from": "move from=19",
+      "to": "move to=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19, move to=14",
+      "from": "move from=19",
+      "to": "move to=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19, move to=18",
+      "from": "move from=19",
+      "to": "move to=18",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19, move to=20",
+      "from": "move from=19",
+      "to": "move to=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19, move to=21",
+      "from": "move from=19",
+      "to": "move to=21",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=19, move to=22",
+      "from": "move from=19",
+      "to": "move to=22",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=19, move to=23",
+      "from": "move from=19",
+      "to": "move to=23",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=021",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=19, move to=24",
+      "from": "move from=19",
+      "to": "move to=24",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19, move to=25",
+      "from": "move from=19",
+      "to": "move to=25",
+      "conditions": []
+    },
+    {
+      "edge": "move from=19, move to=26",
+      "from": "move from=19",
+      "to": "move to=26",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20, move to=2",
+      "from": "move from=20",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=20, move to=5",
+      "from": "move from=20",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=20, move to=6",
+      "from": "move from=20",
+      "to": "move to=6",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=20, move to=8",
+      "from": "move from=20",
+      "to": "move to=8",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=20, move to=10",
+      "from": "move from=20",
+      "to": "move to=10",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=20, move to=13",
+      "from": "move from=20",
+      "to": "move to=13",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20, move to=14",
+      "from": "move from=20",
+      "to": "move to=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20, move to=15",
+      "from": "move from=20",
+      "to": "move to=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20, move to=18",
+      "from": "move from=20",
+      "to": "move to=18",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=20, move to=19",
+      "from": "move from=20",
+      "to": "move to=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20, move to=21",
+      "from": "move from=20",
+      "to": "move to=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20, move to=22",
+      "from": "move from=20",
+      "to": "move to=22",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=20, move to=23",
+      "from": "move from=20",
+      "to": "move to=23",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=20, move to=25",
+      "from": "move from=20",
+      "to": "move to=25",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20, move to=26",
+      "from": "move from=20",
+      "to": "move to=26",
+      "conditions": []
+    },
+    {
+      "edge": "move from=20, move to=27",
+      "from": "move from=20",
+      "to": "move to=27",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21, move to=0",
+      "from": "move from=21",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=21, move to=3",
+      "from": "move from=21",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=21, move to=7",
+      "from": "move from=21",
+      "to": "move to=7",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=21, move to=9",
+      "from": "move from=21",
+      "to": "move to=9",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=21, move to=11",
+      "from": "move from=21",
+      "to": "move to=11",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=21, move to=14",
+      "from": "move from=21",
+      "to": "move to=14",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21, move to=15",
+      "from": "move from=21",
+      "to": "move to=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21, move to=16",
+      "from": "move from=21",
+      "to": "move to=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21, move to=18",
+      "from": "move from=21",
+      "to": "move to=18",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=21, move to=19",
+      "from": "move from=21",
+      "to": "move to=19",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=21, move to=20",
+      "from": "move from=21",
+      "to": "move to=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21, move to=22",
+      "from": "move from=21",
+      "to": "move to=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21, move to=23",
+      "from": "move from=21",
+      "to": "move to=23",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=21, move to=26",
+      "from": "move from=21",
+      "to": "move to=26",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21, move to=27",
+      "from": "move from=21",
+      "to": "move to=27",
+      "conditions": []
+    },
+    {
+      "edge": "move from=21, move to=28",
+      "from": "move from=21",
+      "to": "move to=28",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22, move to=1",
+      "from": "move from=22",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=22, move to=4",
+      "from": "move from=22",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=22, move to=8",
+      "from": "move from=22",
+      "to": "move to=8",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=22, move to=10",
+      "from": "move from=22",
+      "to": "move to=10",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=22, move to=15",
+      "from": "move from=22",
+      "to": "move to=15",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22, move to=16",
+      "from": "move from=22",
+      "to": "move to=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22, move to=17",
+      "from": "move from=22",
+      "to": "move to=17",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22, move to=18",
+      "from": "move from=22",
+      "to": "move to=18",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=020",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=22, move to=19",
+      "from": "move from=22",
+      "to": "move to=19",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=22, move to=20",
+      "from": "move from=22",
+      "to": "move to=20",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=22, move to=21",
+      "from": "move from=22",
+      "to": "move to=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22, move to=23",
+      "from": "move from=22",
+      "to": "move to=23",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22, move to=27",
+      "from": "move from=22",
+      "to": "move to=27",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22, move to=28",
+      "from": "move from=22",
+      "to": "move to=28",
+      "conditions": []
+    },
+    {
+      "edge": "move from=22, move to=29",
+      "from": "move from=22",
+      "to": "move to=29",
+      "conditions": []
+    },
+    {
+      "edge": "move from=23, move to=2",
+      "from": "move from=23",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=23, move to=5",
+      "from": "move from=23",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=017",
+        "empty,layer=011"
+      ]
+    },
+    {
+      "edge": "move from=23, move to=9",
+      "from": "move from=23",
+      "to": "move to=9",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=23, move to=11",
+      "from": "move from=23",
+      "to": "move to=11",
+      "conditions": [
+        "empty,layer=017"
+      ]
+    },
+    {
+      "edge": "move from=23, move to=16",
+      "from": "move from=23",
+      "to": "move to=16",
+      "conditions": []
+    },
+    {
+      "edge": "move from=23, move to=17",
+      "from": "move from=23",
+      "to": "move to=17",
+      "conditions": []
+    },
+    {
+      "edge": "move from=23, move to=18",
+      "from": "move from=23",
+      "to": "move to=18",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=021",
+        "empty,layer=020",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=23, move to=19",
+      "from": "move from=23",
+      "to": "move to=19",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=021",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=23, move to=20",
+      "from": "move from=23",
+      "to": "move to=20",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=23, move to=21",
+      "from": "move from=23",
+      "to": "move to=21",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=23, move to=22",
+      "from": "move from=23",
+      "to": "move to=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=23, move to=28",
+      "from": "move from=23",
+      "to": "move to=28",
+      "conditions": []
+    },
+    {
+      "edge": "move from=23, move to=29",
+      "from": "move from=23",
+      "to": "move to=29",
+      "conditions": []
+    },
+    {
+      "edge": "move from=24, move to=0",
+      "from": "move from=24",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=018",
+        "empty,layer=012",
+        "empty,layer=006"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=4",
+      "from": "move from=24",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=014",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=6",
+      "from": "move from=24",
+      "to": "move to=6",
+      "conditions": [
+        "empty,layer=018",
+        "empty,layer=012"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=9",
+      "from": "move from=24",
+      "to": "move to=9",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=12",
+      "from": "move from=24",
+      "to": "move to=12",
+      "conditions": [
+        "empty,layer=018"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=14",
+      "from": "move from=24",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=18",
+      "from": "move from=24",
+      "to": "move to=18",
+      "conditions": []
+    },
+    {
+      "edge": "move from=24, move to=19",
+      "from": "move from=24",
+      "to": "move to=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=24, move to=25",
+      "from": "move from=24",
+      "to": "move to=25",
+      "conditions": []
+    },
+    {
+      "edge": "move from=24, move to=26",
+      "from": "move from=24",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=27",
+      "from": "move from=24",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=025",
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=28",
+      "from": "move from=24",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=025",
+        "empty,layer=026",
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move from=24, move to=29",
+      "from": "move from=24",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=025",
+        "empty,layer=026",
+        "empty,layer=027",
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=1",
+      "from": "move from=25",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=013",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=5",
+      "from": "move from=25",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=015",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=7",
+      "from": "move from=25",
+      "to": "move to=7",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=10",
+      "from": "move from=25",
+      "to": "move to=10",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=13",
+      "from": "move from=25",
+      "to": "move to=13",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=15",
+      "from": "move from=25",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=18",
+      "from": "move from=25",
+      "to": "move to=18",
+      "conditions": []
+    },
+    {
+      "edge": "move from=25, move to=19",
+      "from": "move from=25",
+      "to": "move to=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=25, move to=20",
+      "from": "move from=25",
+      "to": "move to=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=25, move to=24",
+      "from": "move from=25",
+      "to": "move to=24",
+      "conditions": []
+    },
+    {
+      "edge": "move from=25, move to=26",
+      "from": "move from=25",
+      "to": "move to=26",
+      "conditions": []
+    },
+    {
+      "edge": "move from=25, move to=27",
+      "from": "move from=25",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=28",
+      "from": "move from=25",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=026",
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move from=25, move to=29",
+      "from": "move from=25",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=026",
+        "empty,layer=027",
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=2",
+      "from": "move from=26",
+      "to": "move to=2",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=014",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=8",
+      "from": "move from=26",
+      "to": "move to=8",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=11",
+      "from": "move from=26",
+      "to": "move to=11",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=12",
+      "from": "move from=26",
+      "to": "move to=12",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=14",
+      "from": "move from=26",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=16",
+      "from": "move from=26",
+      "to": "move to=16",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=19",
+      "from": "move from=26",
+      "to": "move to=19",
+      "conditions": []
+    },
+    {
+      "edge": "move from=26, move to=20",
+      "from": "move from=26",
+      "to": "move to=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=26, move to=21",
+      "from": "move from=26",
+      "to": "move to=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=26, move to=24",
+      "from": "move from=26",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=25",
+      "from": "move from=26",
+      "to": "move to=25",
+      "conditions": []
+    },
+    {
+      "edge": "move from=26, move to=27",
+      "from": "move from=26",
+      "to": "move to=27",
+      "conditions": []
+    },
+    {
+      "edge": "move from=26, move to=28",
+      "from": "move from=26",
+      "to": "move to=28",
+      "conditions": [
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move from=26, move to=29",
+      "from": "move from=26",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=027",
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=3",
+      "from": "move from=27",
+      "to": "move to=3",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=015",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=6",
+      "from": "move from=27",
+      "to": "move to=6",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=9",
+      "from": "move from=27",
+      "to": "move to=9",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=13",
+      "from": "move from=27",
+      "to": "move to=13",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=15",
+      "from": "move from=27",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=17",
+      "from": "move from=27",
+      "to": "move to=17",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=20",
+      "from": "move from=27",
+      "to": "move to=20",
+      "conditions": []
+    },
+    {
+      "edge": "move from=27, move to=21",
+      "from": "move from=27",
+      "to": "move to=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=27, move to=22",
+      "from": "move from=27",
+      "to": "move to=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=27, move to=24",
+      "from": "move from=27",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=026",
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=25",
+      "from": "move from=27",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move from=27, move to=26",
+      "from": "move from=27",
+      "to": "move to=26",
+      "conditions": []
+    },
+    {
+      "edge": "move from=27, move to=28",
+      "from": "move from=27",
+      "to": "move to=28",
+      "conditions": []
+    },
+    {
+      "edge": "move from=27, move to=29",
+      "from": "move from=27",
+      "to": "move to=29",
+      "conditions": [
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=0",
+      "from": "move from=28",
+      "to": "move to=0",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=014",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=4",
+      "from": "move from=28",
+      "to": "move to=4",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=016",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=7",
+      "from": "move from=28",
+      "to": "move to=7",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=10",
+      "from": "move from=28",
+      "to": "move to=10",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=14",
+      "from": "move from=28",
+      "to": "move to=14",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=16",
+      "from": "move from=28",
+      "to": "move to=16",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=21",
+      "from": "move from=28",
+      "to": "move to=21",
+      "conditions": []
+    },
+    {
+      "edge": "move from=28, move to=22",
+      "from": "move from=28",
+      "to": "move to=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=28, move to=23",
+      "from": "move from=28",
+      "to": "move to=23",
+      "conditions": []
+    },
+    {
+      "edge": "move from=28, move to=24",
+      "from": "move from=28",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=027",
+        "empty,layer=026",
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=25",
+      "from": "move from=28",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=027",
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=26",
+      "from": "move from=28",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move from=28, move to=27",
+      "from": "move from=28",
+      "to": "move to=27",
+      "conditions": []
+    },
+    {
+      "edge": "move from=28, move to=29",
+      "from": "move from=28",
+      "to": "move to=29",
+      "conditions": []
+    },
+    {
+      "edge": "move from=29, move to=1",
+      "from": "move from=29",
+      "to": "move to=1",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=015",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=5",
+      "from": "move from=29",
+      "to": "move to=5",
+      "conditions": [
+        "empty,layer=023",
+        "empty,layer=017",
+        "empty,layer=011"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=8",
+      "from": "move from=29",
+      "to": "move to=8",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=11",
+      "from": "move from=29",
+      "to": "move to=11",
+      "conditions": [
+        "empty,layer=023",
+        "empty,layer=017"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=15",
+      "from": "move from=29",
+      "to": "move to=15",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=17",
+      "from": "move from=29",
+      "to": "move to=17",
+      "conditions": [
+        "empty,layer=023"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=22",
+      "from": "move from=29",
+      "to": "move to=22",
+      "conditions": []
+    },
+    {
+      "edge": "move from=29, move to=23",
+      "from": "move from=29",
+      "to": "move to=23",
+      "conditions": []
+    },
+    {
+      "edge": "move from=29, move to=24",
+      "from": "move from=29",
+      "to": "move to=24",
+      "conditions": [
+        "empty,layer=028",
+        "empty,layer=027",
+        "empty,layer=026",
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=25",
+      "from": "move from=29",
+      "to": "move to=25",
+      "conditions": [
+        "empty,layer=028",
+        "empty,layer=027",
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=26",
+      "from": "move from=29",
+      "to": "move to=26",
+      "conditions": [
+        "empty,layer=028",
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=27",
+      "from": "move from=29",
+      "to": "move to=27",
+      "conditions": [
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move from=29, move to=28",
+      "from": "move from=29",
+      "to": "move to=28",
+      "conditions": []
+    },
+    {
+      "edge": "move to=0, shot at=1",
+      "from": "move to=0",
+      "to": "shot at=1",
+      "conditions": []
+    },
+    {
+      "edge": "move to=0, shot at=2",
+      "from": "move to=0",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=3",
+      "from": "move to=0",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=001",
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=4",
+      "from": "move to=0",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=001",
+        "empty,layer=002",
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=5",
+      "from": "move to=0",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=001",
+        "empty,layer=002",
+        "empty,layer=003",
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=6",
+      "from": "move to=0",
+      "to": "shot at=6",
+      "conditions": []
+    },
+    {
+      "edge": "move to=0, shot at=7",
+      "from": "move to=0",
+      "to": "shot at=7",
+      "conditions": []
+    },
+    {
+      "edge": "move to=0, shot at=12",
+      "from": "move to=0",
+      "to": "shot at=12",
+      "conditions": [
+        "empty,layer=006"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=14",
+      "from": "move to=0",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=18",
+      "from": "move to=0",
+      "to": "shot at=18",
+      "conditions": [
+        "empty,layer=006",
+        "empty,layer=012"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=21",
+      "from": "move to=0",
+      "to": "shot at=21",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=24",
+      "from": "move to=0",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=006",
+        "empty,layer=012",
+        "empty,layer=018"
+      ]
+    },
+    {
+      "edge": "move to=0, shot at=28",
+      "from": "move to=0",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=014",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=0",
+      "from": "move to=1",
+      "to": "shot at=0",
+      "conditions": []
+    },
+    {
+      "edge": "move to=1, shot at=2",
+      "from": "move to=1",
+      "to": "shot at=2",
+      "conditions": []
+    },
+    {
+      "edge": "move to=1, shot at=3",
+      "from": "move to=1",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=4",
+      "from": "move to=1",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=002",
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=5",
+      "from": "move to=1",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=002",
+        "empty,layer=003",
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=6",
+      "from": "move to=1",
+      "to": "shot at=6",
+      "conditions": []
+    },
+    {
+      "edge": "move to=1, shot at=7",
+      "from": "move to=1",
+      "to": "shot at=7",
+      "conditions": []
+    },
+    {
+      "edge": "move to=1, shot at=8",
+      "from": "move to=1",
+      "to": "shot at=8",
+      "conditions": []
+    },
+    {
+      "edge": "move to=1, shot at=13",
+      "from": "move to=1",
+      "to": "shot at=13",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=15",
+      "from": "move to=1",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=19",
+      "from": "move to=1",
+      "to": "shot at=19",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=22",
+      "from": "move to=1",
+      "to": "shot at=22",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=25",
+      "from": "move to=1",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=013",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=1, shot at=29",
+      "from": "move to=1",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=015",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=0",
+      "from": "move to=2",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=1",
+      "from": "move to=2",
+      "to": "shot at=1",
+      "conditions": []
+    },
+    {
+      "edge": "move to=2, shot at=3",
+      "from": "move to=2",
+      "to": "shot at=3",
+      "conditions": []
+    },
+    {
+      "edge": "move to=2, shot at=4",
+      "from": "move to=2",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=5",
+      "from": "move to=2",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=003",
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=7",
+      "from": "move to=2",
+      "to": "shot at=7",
+      "conditions": []
+    },
+    {
+      "edge": "move to=2, shot at=8",
+      "from": "move to=2",
+      "to": "shot at=8",
+      "conditions": []
+    },
+    {
+      "edge": "move to=2, shot at=9",
+      "from": "move to=2",
+      "to": "shot at=9",
+      "conditions": []
+    },
+    {
+      "edge": "move to=2, shot at=12",
+      "from": "move to=2",
+      "to": "shot at=12",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=14",
+      "from": "move to=2",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=16",
+      "from": "move to=2",
+      "to": "shot at=16",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=20",
+      "from": "move to=2",
+      "to": "shot at=20",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=23",
+      "from": "move to=2",
+      "to": "shot at=23",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=2, shot at=26",
+      "from": "move to=2",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=014",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=0",
+      "from": "move to=3",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=002",
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=1",
+      "from": "move to=3",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=2",
+      "from": "move to=3",
+      "to": "shot at=2",
+      "conditions": []
+    },
+    {
+      "edge": "move to=3, shot at=4",
+      "from": "move to=3",
+      "to": "shot at=4",
+      "conditions": []
+    },
+    {
+      "edge": "move to=3, shot at=5",
+      "from": "move to=3",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=8",
+      "from": "move to=3",
+      "to": "shot at=8",
+      "conditions": []
+    },
+    {
+      "edge": "move to=3, shot at=9",
+      "from": "move to=3",
+      "to": "shot at=9",
+      "conditions": []
+    },
+    {
+      "edge": "move to=3, shot at=10",
+      "from": "move to=3",
+      "to": "shot at=10",
+      "conditions": []
+    },
+    {
+      "edge": "move to=3, shot at=13",
+      "from": "move to=3",
+      "to": "shot at=13",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=15",
+      "from": "move to=3",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=17",
+      "from": "move to=3",
+      "to": "shot at=17",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=18",
+      "from": "move to=3",
+      "to": "shot at=18",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=21",
+      "from": "move to=3",
+      "to": "shot at=21",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=3, shot at=27",
+      "from": "move to=3",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=015",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=0",
+      "from": "move to=4",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=003",
+        "empty,layer=002",
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=1",
+      "from": "move to=4",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=003",
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=2",
+      "from": "move to=4",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=3",
+      "from": "move to=4",
+      "to": "shot at=3",
+      "conditions": []
+    },
+    {
+      "edge": "move to=4, shot at=5",
+      "from": "move to=4",
+      "to": "shot at=5",
+      "conditions": []
+    },
+    {
+      "edge": "move to=4, shot at=9",
+      "from": "move to=4",
+      "to": "shot at=9",
+      "conditions": []
+    },
+    {
+      "edge": "move to=4, shot at=10",
+      "from": "move to=4",
+      "to": "shot at=10",
+      "conditions": []
+    },
+    {
+      "edge": "move to=4, shot at=11",
+      "from": "move to=4",
+      "to": "shot at=11",
+      "conditions": []
+    },
+    {
+      "edge": "move to=4, shot at=14",
+      "from": "move to=4",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=16",
+      "from": "move to=4",
+      "to": "shot at=16",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=19",
+      "from": "move to=4",
+      "to": "shot at=19",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=22",
+      "from": "move to=4",
+      "to": "shot at=22",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=24",
+      "from": "move to=4",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=014",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=4, shot at=28",
+      "from": "move to=4",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=016",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=0",
+      "from": "move to=5",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=004",
+        "empty,layer=003",
+        "empty,layer=002",
+        "empty,layer=001"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=1",
+      "from": "move to=5",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=004",
+        "empty,layer=003",
+        "empty,layer=002"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=2",
+      "from": "move to=5",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=004",
+        "empty,layer=003"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=3",
+      "from": "move to=5",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=004"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=4",
+      "from": "move to=5",
+      "to": "shot at=4",
+      "conditions": []
+    },
+    {
+      "edge": "move to=5, shot at=10",
+      "from": "move to=5",
+      "to": "shot at=10",
+      "conditions": []
+    },
+    {
+      "edge": "move to=5, shot at=11",
+      "from": "move to=5",
+      "to": "shot at=11",
+      "conditions": []
+    },
+    {
+      "edge": "move to=5, shot at=15",
+      "from": "move to=5",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=17",
+      "from": "move to=5",
+      "to": "shot at=17",
+      "conditions": [
+        "empty,layer=011"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=20",
+      "from": "move to=5",
+      "to": "shot at=20",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=23",
+      "from": "move to=5",
+      "to": "shot at=23",
+      "conditions": [
+        "empty,layer=011",
+        "empty,layer=017"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=25",
+      "from": "move to=5",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=015",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=5, shot at=29",
+      "from": "move to=5",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=011",
+        "empty,layer=017",
+        "empty,layer=023"
+      ]
+    },
+    {
+      "edge": "move to=6, shot at=0",
+      "from": "move to=6",
+      "to": "shot at=0",
+      "conditions": []
+    },
+    {
+      "edge": "move to=6, shot at=1",
+      "from": "move to=6",
+      "to": "shot at=1",
+      "conditions": []
+    },
+    {
+      "edge": "move to=6, shot at=7",
+      "from": "move to=6",
+      "to": "shot at=7",
+      "conditions": []
+    },
+    {
+      "edge": "move to=6, shot at=8",
+      "from": "move to=6",
+      "to": "shot at=8",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=6, shot at=9",
+      "from": "move to=6",
+      "to": "shot at=9",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=6, shot at=10",
+      "from": "move to=6",
+      "to": "shot at=10",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=008",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=6, shot at=11",
+      "from": "move to=6",
+      "to": "shot at=11",
+      "conditions": [
+        "empty,layer=007",
+        "empty,layer=008",
+        "empty,layer=009",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=6, shot at=12",
+      "from": "move to=6",
+      "to": "shot at=12",
+      "conditions": []
+    },
+    {
+      "edge": "move to=6, shot at=13",
+      "from": "move to=6",
+      "to": "shot at=13",
+      "conditions": []
+    },
+    {
+      "edge": "move to=6, shot at=18",
+      "from": "move to=6",
+      "to": "shot at=18",
+      "conditions": [
+        "empty,layer=012"
+      ]
+    },
+    {
+      "edge": "move to=6, shot at=20",
+      "from": "move to=6",
+      "to": "shot at=20",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=6, shot at=24",
+      "from": "move to=6",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=012",
+        "empty,layer=018"
+      ]
+    },
+    {
+      "edge": "move to=6, shot at=27",
+      "from": "move to=6",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=7, shot at=0",
+      "from": "move to=7",
+      "to": "shot at=0",
+      "conditions": []
+    },
+    {
+      "edge": "move to=7, shot at=1",
+      "from": "move to=7",
+      "to": "shot at=1",
+      "conditions": []
+    },
+    {
+      "edge": "move to=7, shot at=2",
+      "from": "move to=7",
+      "to": "shot at=2",
+      "conditions": []
+    },
+    {
+      "edge": "move to=7, shot at=6",
+      "from": "move to=7",
+      "to": "shot at=6",
+      "conditions": []
+    },
+    {
+      "edge": "move to=7, shot at=8",
+      "from": "move to=7",
+      "to": "shot at=8",
+      "conditions": []
+    },
+    {
+      "edge": "move to=7, shot at=9",
+      "from": "move to=7",
+      "to": "shot at=9",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=7, shot at=10",
+      "from": "move to=7",
+      "to": "shot at=10",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=7, shot at=11",
+      "from": "move to=7",
+      "to": "shot at=11",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=009",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=7, shot at=12",
+      "from": "move to=7",
+      "to": "shot at=12",
+      "conditions": []
+    },
+    {
+      "edge": "move to=7, shot at=13",
+      "from": "move to=7",
+      "to": "shot at=13",
+      "conditions": []
+    },
+    {
+      "edge": "move to=7, shot at=14",
+      "from": "move to=7",
+      "to": "shot at=14",
+      "conditions": []
+    },
+    {
+      "edge": "move to=7, shot at=19",
+      "from": "move to=7",
+      "to": "shot at=19",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=7, shot at=21",
+      "from": "move to=7",
+      "to": "shot at=21",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=7, shot at=25",
+      "from": "move to=7",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=7, shot at=28",
+      "from": "move to=7",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=8, shot at=1",
+      "from": "move to=8",
+      "to": "shot at=1",
+      "conditions": []
+    },
+    {
+      "edge": "move to=8, shot at=2",
+      "from": "move to=8",
+      "to": "shot at=2",
+      "conditions": []
+    },
+    {
+      "edge": "move to=8, shot at=3",
+      "from": "move to=8",
+      "to": "shot at=3",
+      "conditions": []
+    },
+    {
+      "edge": "move to=8, shot at=6",
+      "from": "move to=8",
+      "to": "shot at=6",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=8, shot at=7",
+      "from": "move to=8",
+      "to": "shot at=7",
+      "conditions": []
+    },
+    {
+      "edge": "move to=8, shot at=9",
+      "from": "move to=8",
+      "to": "shot at=9",
+      "conditions": []
+    },
+    {
+      "edge": "move to=8, shot at=10",
+      "from": "move to=8",
+      "to": "shot at=10",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=8, shot at=11",
+      "from": "move to=8",
+      "to": "shot at=11",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=8, shot at=13",
+      "from": "move to=8",
+      "to": "shot at=13",
+      "conditions": []
+    },
+    {
+      "edge": "move to=8, shot at=14",
+      "from": "move to=8",
+      "to": "shot at=14",
+      "conditions": []
+    },
+    {
+      "edge": "move to=8, shot at=15",
+      "from": "move to=8",
+      "to": "shot at=15",
+      "conditions": []
+    },
+    {
+      "edge": "move to=8, shot at=18",
+      "from": "move to=8",
+      "to": "shot at=18",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=8, shot at=20",
+      "from": "move to=8",
+      "to": "shot at=20",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=8, shot at=22",
+      "from": "move to=8",
+      "to": "shot at=22",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=8, shot at=26",
+      "from": "move to=8",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=8, shot at=29",
+      "from": "move to=8",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=9, shot at=2",
+      "from": "move to=9",
+      "to": "shot at=2",
+      "conditions": []
+    },
+    {
+      "edge": "move to=9, shot at=3",
+      "from": "move to=9",
+      "to": "shot at=3",
+      "conditions": []
+    },
+    {
+      "edge": "move to=9, shot at=4",
+      "from": "move to=9",
+      "to": "shot at=4",
+      "conditions": []
+    },
+    {
+      "edge": "move to=9, shot at=6",
+      "from": "move to=9",
+      "to": "shot at=6",
+      "conditions": [
+        "empty,layer=008",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=9, shot at=7",
+      "from": "move to=9",
+      "to": "shot at=7",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=9, shot at=8",
+      "from": "move to=9",
+      "to": "shot at=8",
+      "conditions": []
+    },
+    {
+      "edge": "move to=9, shot at=10",
+      "from": "move to=9",
+      "to": "shot at=10",
+      "conditions": []
+    },
+    {
+      "edge": "move to=9, shot at=11",
+      "from": "move to=9",
+      "to": "shot at=11",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=9, shot at=14",
+      "from": "move to=9",
+      "to": "shot at=14",
+      "conditions": []
+    },
+    {
+      "edge": "move to=9, shot at=15",
+      "from": "move to=9",
+      "to": "shot at=15",
+      "conditions": []
+    },
+    {
+      "edge": "move to=9, shot at=16",
+      "from": "move to=9",
+      "to": "shot at=16",
+      "conditions": []
+    },
+    {
+      "edge": "move to=9, shot at=19",
+      "from": "move to=9",
+      "to": "shot at=19",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=9, shot at=21",
+      "from": "move to=9",
+      "to": "shot at=21",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=9, shot at=23",
+      "from": "move to=9",
+      "to": "shot at=23",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=9, shot at=24",
+      "from": "move to=9",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=9, shot at=27",
+      "from": "move to=9",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=10, shot at=3",
+      "from": "move to=10",
+      "to": "shot at=3",
+      "conditions": []
+    },
+    {
+      "edge": "move to=10, shot at=4",
+      "from": "move to=10",
+      "to": "shot at=4",
+      "conditions": []
+    },
+    {
+      "edge": "move to=10, shot at=5",
+      "from": "move to=10",
+      "to": "shot at=5",
+      "conditions": []
+    },
+    {
+      "edge": "move to=10, shot at=6",
+      "from": "move to=10",
+      "to": "shot at=6",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=008",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=10, shot at=7",
+      "from": "move to=10",
+      "to": "shot at=7",
+      "conditions": [
+        "empty,layer=009",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=10, shot at=8",
+      "from": "move to=10",
+      "to": "shot at=8",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=10, shot at=9",
+      "from": "move to=10",
+      "to": "shot at=9",
+      "conditions": []
+    },
+    {
+      "edge": "move to=10, shot at=11",
+      "from": "move to=10",
+      "to": "shot at=11",
+      "conditions": []
+    },
+    {
+      "edge": "move to=10, shot at=15",
+      "from": "move to=10",
+      "to": "shot at=15",
+      "conditions": []
+    },
+    {
+      "edge": "move to=10, shot at=16",
+      "from": "move to=10",
+      "to": "shot at=16",
+      "conditions": []
+    },
+    {
+      "edge": "move to=10, shot at=17",
+      "from": "move to=10",
+      "to": "shot at=17",
+      "conditions": []
+    },
+    {
+      "edge": "move to=10, shot at=20",
+      "from": "move to=10",
+      "to": "shot at=20",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=10, shot at=22",
+      "from": "move to=10",
+      "to": "shot at=22",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=10, shot at=25",
+      "from": "move to=10",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=10, shot at=28",
+      "from": "move to=10",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=11, shot at=4",
+      "from": "move to=11",
+      "to": "shot at=4",
+      "conditions": []
+    },
+    {
+      "edge": "move to=11, shot at=5",
+      "from": "move to=11",
+      "to": "shot at=5",
+      "conditions": []
+    },
+    {
+      "edge": "move to=11, shot at=6",
+      "from": "move to=11",
+      "to": "shot at=6",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=009",
+        "empty,layer=008",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=11, shot at=7",
+      "from": "move to=11",
+      "to": "shot at=7",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=009",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=11, shot at=8",
+      "from": "move to=11",
+      "to": "shot at=8",
+      "conditions": [
+        "empty,layer=010",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=11, shot at=9",
+      "from": "move to=11",
+      "to": "shot at=9",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=11, shot at=10",
+      "from": "move to=11",
+      "to": "shot at=10",
+      "conditions": []
+    },
+    {
+      "edge": "move to=11, shot at=16",
+      "from": "move to=11",
+      "to": "shot at=16",
+      "conditions": []
+    },
+    {
+      "edge": "move to=11, shot at=17",
+      "from": "move to=11",
+      "to": "shot at=17",
+      "conditions": []
+    },
+    {
+      "edge": "move to=11, shot at=21",
+      "from": "move to=11",
+      "to": "shot at=21",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=11, shot at=23",
+      "from": "move to=11",
+      "to": "shot at=23",
+      "conditions": [
+        "empty,layer=017"
+      ]
+    },
+    {
+      "edge": "move to=11, shot at=26",
+      "from": "move to=11",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=11, shot at=29",
+      "from": "move to=11",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=017",
+        "empty,layer=023"
+      ]
+    },
+    {
+      "edge": "move to=12, shot at=0",
+      "from": "move to=12",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=006"
+      ]
+    },
+    {
+      "edge": "move to=12, shot at=2",
+      "from": "move to=12",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=12, shot at=6",
+      "from": "move to=12",
+      "to": "shot at=6",
+      "conditions": []
+    },
+    {
+      "edge": "move to=12, shot at=7",
+      "from": "move to=12",
+      "to": "shot at=7",
+      "conditions": []
+    },
+    {
+      "edge": "move to=12, shot at=13",
+      "from": "move to=12",
+      "to": "shot at=13",
+      "conditions": []
+    },
+    {
+      "edge": "move to=12, shot at=14",
+      "from": "move to=12",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=12, shot at=15",
+      "from": "move to=12",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=12, shot at=16",
+      "from": "move to=12",
+      "to": "shot at=16",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=014",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=12, shot at=17",
+      "from": "move to=12",
+      "to": "shot at=17",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=014",
+        "empty,layer=015",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=12, shot at=18",
+      "from": "move to=12",
+      "to": "shot at=18",
+      "conditions": []
+    },
+    {
+      "edge": "move to=12, shot at=19",
+      "from": "move to=12",
+      "to": "shot at=19",
+      "conditions": []
+    },
+    {
+      "edge": "move to=12, shot at=24",
+      "from": "move to=12",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=018"
+      ]
+    },
+    {
+      "edge": "move to=12, shot at=26",
+      "from": "move to=12",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=13, shot at=1",
+      "from": "move to=13",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=13, shot at=3",
+      "from": "move to=13",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=13, shot at=6",
+      "from": "move to=13",
+      "to": "shot at=6",
+      "conditions": []
+    },
+    {
+      "edge": "move to=13, shot at=7",
+      "from": "move to=13",
+      "to": "shot at=7",
+      "conditions": []
+    },
+    {
+      "edge": "move to=13, shot at=8",
+      "from": "move to=13",
+      "to": "shot at=8",
+      "conditions": []
+    },
+    {
+      "edge": "move to=13, shot at=12",
+      "from": "move to=13",
+      "to": "shot at=12",
+      "conditions": []
+    },
+    {
+      "edge": "move to=13, shot at=14",
+      "from": "move to=13",
+      "to": "shot at=14",
+      "conditions": []
+    },
+    {
+      "edge": "move to=13, shot at=15",
+      "from": "move to=13",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=13, shot at=16",
+      "from": "move to=13",
+      "to": "shot at=16",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=13, shot at=17",
+      "from": "move to=13",
+      "to": "shot at=17",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=015",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=13, shot at=18",
+      "from": "move to=13",
+      "to": "shot at=18",
+      "conditions": []
+    },
+    {
+      "edge": "move to=13, shot at=19",
+      "from": "move to=13",
+      "to": "shot at=19",
+      "conditions": []
+    },
+    {
+      "edge": "move to=13, shot at=20",
+      "from": "move to=13",
+      "to": "shot at=20",
+      "conditions": []
+    },
+    {
+      "edge": "move to=13, shot at=25",
+      "from": "move to=13",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=13, shot at=27",
+      "from": "move to=13",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=0",
+      "from": "move to=14",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=2",
+      "from": "move to=14",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=4",
+      "from": "move to=14",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=7",
+      "from": "move to=14",
+      "to": "shot at=7",
+      "conditions": []
+    },
+    {
+      "edge": "move to=14, shot at=8",
+      "from": "move to=14",
+      "to": "shot at=8",
+      "conditions": []
+    },
+    {
+      "edge": "move to=14, shot at=9",
+      "from": "move to=14",
+      "to": "shot at=9",
+      "conditions": []
+    },
+    {
+      "edge": "move to=14, shot at=12",
+      "from": "move to=14",
+      "to": "shot at=12",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=13",
+      "from": "move to=14",
+      "to": "shot at=13",
+      "conditions": []
+    },
+    {
+      "edge": "move to=14, shot at=15",
+      "from": "move to=14",
+      "to": "shot at=15",
+      "conditions": []
+    },
+    {
+      "edge": "move to=14, shot at=16",
+      "from": "move to=14",
+      "to": "shot at=16",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=17",
+      "from": "move to=14",
+      "to": "shot at=17",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=19",
+      "from": "move to=14",
+      "to": "shot at=19",
+      "conditions": []
+    },
+    {
+      "edge": "move to=14, shot at=20",
+      "from": "move to=14",
+      "to": "shot at=20",
+      "conditions": []
+    },
+    {
+      "edge": "move to=14, shot at=21",
+      "from": "move to=14",
+      "to": "shot at=21",
+      "conditions": []
+    },
+    {
+      "edge": "move to=14, shot at=24",
+      "from": "move to=14",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=26",
+      "from": "move to=14",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=14, shot at=28",
+      "from": "move to=14",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=1",
+      "from": "move to=15",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=3",
+      "from": "move to=15",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=5",
+      "from": "move to=15",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=8",
+      "from": "move to=15",
+      "to": "shot at=8",
+      "conditions": []
+    },
+    {
+      "edge": "move to=15, shot at=9",
+      "from": "move to=15",
+      "to": "shot at=9",
+      "conditions": []
+    },
+    {
+      "edge": "move to=15, shot at=10",
+      "from": "move to=15",
+      "to": "shot at=10",
+      "conditions": []
+    },
+    {
+      "edge": "move to=15, shot at=12",
+      "from": "move to=15",
+      "to": "shot at=12",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=13",
+      "from": "move to=15",
+      "to": "shot at=13",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=14",
+      "from": "move to=15",
+      "to": "shot at=14",
+      "conditions": []
+    },
+    {
+      "edge": "move to=15, shot at=16",
+      "from": "move to=15",
+      "to": "shot at=16",
+      "conditions": []
+    },
+    {
+      "edge": "move to=15, shot at=17",
+      "from": "move to=15",
+      "to": "shot at=17",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=20",
+      "from": "move to=15",
+      "to": "shot at=20",
+      "conditions": []
+    },
+    {
+      "edge": "move to=15, shot at=21",
+      "from": "move to=15",
+      "to": "shot at=21",
+      "conditions": []
+    },
+    {
+      "edge": "move to=15, shot at=22",
+      "from": "move to=15",
+      "to": "shot at=22",
+      "conditions": []
+    },
+    {
+      "edge": "move to=15, shot at=25",
+      "from": "move to=15",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=27",
+      "from": "move to=15",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=15, shot at=29",
+      "from": "move to=15",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=16, shot at=2",
+      "from": "move to=16",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=16, shot at=4",
+      "from": "move to=16",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=16, shot at=9",
+      "from": "move to=16",
+      "to": "shot at=9",
+      "conditions": []
+    },
+    {
+      "edge": "move to=16, shot at=10",
+      "from": "move to=16",
+      "to": "shot at=10",
+      "conditions": []
+    },
+    {
+      "edge": "move to=16, shot at=11",
+      "from": "move to=16",
+      "to": "shot at=11",
+      "conditions": []
+    },
+    {
+      "edge": "move to=16, shot at=12",
+      "from": "move to=16",
+      "to": "shot at=12",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=014",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=16, shot at=13",
+      "from": "move to=16",
+      "to": "shot at=13",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=16, shot at=14",
+      "from": "move to=16",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=16, shot at=15",
+      "from": "move to=16",
+      "to": "shot at=15",
+      "conditions": []
+    },
+    {
+      "edge": "move to=16, shot at=17",
+      "from": "move to=16",
+      "to": "shot at=17",
+      "conditions": []
+    },
+    {
+      "edge": "move to=16, shot at=21",
+      "from": "move to=16",
+      "to": "shot at=21",
+      "conditions": []
+    },
+    {
+      "edge": "move to=16, shot at=22",
+      "from": "move to=16",
+      "to": "shot at=22",
+      "conditions": []
+    },
+    {
+      "edge": "move to=16, shot at=23",
+      "from": "move to=16",
+      "to": "shot at=23",
+      "conditions": []
+    },
+    {
+      "edge": "move to=16, shot at=26",
+      "from": "move to=16",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=16, shot at=28",
+      "from": "move to=16",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=17, shot at=3",
+      "from": "move to=17",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=17, shot at=5",
+      "from": "move to=17",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=011"
+      ]
+    },
+    {
+      "edge": "move to=17, shot at=10",
+      "from": "move to=17",
+      "to": "shot at=10",
+      "conditions": []
+    },
+    {
+      "edge": "move to=17, shot at=11",
+      "from": "move to=17",
+      "to": "shot at=11",
+      "conditions": []
+    },
+    {
+      "edge": "move to=17, shot at=12",
+      "from": "move to=17",
+      "to": "shot at=12",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=015",
+        "empty,layer=014",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=17, shot at=13",
+      "from": "move to=17",
+      "to": "shot at=13",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=015",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=17, shot at=14",
+      "from": "move to=17",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=17, shot at=15",
+      "from": "move to=17",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=17, shot at=16",
+      "from": "move to=17",
+      "to": "shot at=16",
+      "conditions": []
+    },
+    {
+      "edge": "move to=17, shot at=22",
+      "from": "move to=17",
+      "to": "shot at=22",
+      "conditions": []
+    },
+    {
+      "edge": "move to=17, shot at=23",
+      "from": "move to=17",
+      "to": "shot at=23",
+      "conditions": []
+    },
+    {
+      "edge": "move to=17, shot at=27",
+      "from": "move to=17",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=17, shot at=29",
+      "from": "move to=17",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=023"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=0",
+      "from": "move to=18",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=012",
+        "empty,layer=006"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=3",
+      "from": "move to=18",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=6",
+      "from": "move to=18",
+      "to": "shot at=6",
+      "conditions": [
+        "empty,layer=012"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=8",
+      "from": "move to=18",
+      "to": "shot at=8",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=12",
+      "from": "move to=18",
+      "to": "shot at=12",
+      "conditions": []
+    },
+    {
+      "edge": "move to=18, shot at=13",
+      "from": "move to=18",
+      "to": "shot at=13",
+      "conditions": []
+    },
+    {
+      "edge": "move to=18, shot at=19",
+      "from": "move to=18",
+      "to": "shot at=19",
+      "conditions": []
+    },
+    {
+      "edge": "move to=18, shot at=20",
+      "from": "move to=18",
+      "to": "shot at=20",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=21",
+      "from": "move to=18",
+      "to": "shot at=21",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=22",
+      "from": "move to=18",
+      "to": "shot at=22",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=020",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=23",
+      "from": "move to=18",
+      "to": "shot at=23",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=020",
+        "empty,layer=021",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=18, shot at=24",
+      "from": "move to=18",
+      "to": "shot at=24",
+      "conditions": []
+    },
+    {
+      "edge": "move to=18, shot at=25",
+      "from": "move to=18",
+      "to": "shot at=25",
+      "conditions": []
+    },
+    {
+      "edge": "move to=19, shot at=1",
+      "from": "move to=19",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=013",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=19, shot at=4",
+      "from": "move to=19",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=19, shot at=7",
+      "from": "move to=19",
+      "to": "shot at=7",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=19, shot at=9",
+      "from": "move to=19",
+      "to": "shot at=9",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=19, shot at=12",
+      "from": "move to=19",
+      "to": "shot at=12",
+      "conditions": []
+    },
+    {
+      "edge": "move to=19, shot at=13",
+      "from": "move to=19",
+      "to": "shot at=13",
+      "conditions": []
+    },
+    {
+      "edge": "move to=19, shot at=14",
+      "from": "move to=19",
+      "to": "shot at=14",
+      "conditions": []
+    },
+    {
+      "edge": "move to=19, shot at=18",
+      "from": "move to=19",
+      "to": "shot at=18",
+      "conditions": []
+    },
+    {
+      "edge": "move to=19, shot at=20",
+      "from": "move to=19",
+      "to": "shot at=20",
+      "conditions": []
+    },
+    {
+      "edge": "move to=19, shot at=21",
+      "from": "move to=19",
+      "to": "shot at=21",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=19, shot at=22",
+      "from": "move to=19",
+      "to": "shot at=22",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=19, shot at=23",
+      "from": "move to=19",
+      "to": "shot at=23",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=021",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=19, shot at=24",
+      "from": "move to=19",
+      "to": "shot at=24",
+      "conditions": []
+    },
+    {
+      "edge": "move to=19, shot at=25",
+      "from": "move to=19",
+      "to": "shot at=25",
+      "conditions": []
+    },
+    {
+      "edge": "move to=19, shot at=26",
+      "from": "move to=19",
+      "to": "shot at=26",
+      "conditions": []
+    },
+    {
+      "edge": "move to=20, shot at=2",
+      "from": "move to=20",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=20, shot at=5",
+      "from": "move to=20",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=20, shot at=6",
+      "from": "move to=20",
+      "to": "shot at=6",
+      "conditions": [
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=20, shot at=8",
+      "from": "move to=20",
+      "to": "shot at=8",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=20, shot at=10",
+      "from": "move to=20",
+      "to": "shot at=10",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=20, shot at=13",
+      "from": "move to=20",
+      "to": "shot at=13",
+      "conditions": []
+    },
+    {
+      "edge": "move to=20, shot at=14",
+      "from": "move to=20",
+      "to": "shot at=14",
+      "conditions": []
+    },
+    {
+      "edge": "move to=20, shot at=15",
+      "from": "move to=20",
+      "to": "shot at=15",
+      "conditions": []
+    },
+    {
+      "edge": "move to=20, shot at=18",
+      "from": "move to=20",
+      "to": "shot at=18",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=20, shot at=19",
+      "from": "move to=20",
+      "to": "shot at=19",
+      "conditions": []
+    },
+    {
+      "edge": "move to=20, shot at=21",
+      "from": "move to=20",
+      "to": "shot at=21",
+      "conditions": []
+    },
+    {
+      "edge": "move to=20, shot at=22",
+      "from": "move to=20",
+      "to": "shot at=22",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=20, shot at=23",
+      "from": "move to=20",
+      "to": "shot at=23",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=20, shot at=25",
+      "from": "move to=20",
+      "to": "shot at=25",
+      "conditions": []
+    },
+    {
+      "edge": "move to=20, shot at=26",
+      "from": "move to=20",
+      "to": "shot at=26",
+      "conditions": []
+    },
+    {
+      "edge": "move to=20, shot at=27",
+      "from": "move to=20",
+      "to": "shot at=27",
+      "conditions": []
+    },
+    {
+      "edge": "move to=21, shot at=0",
+      "from": "move to=21",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=014",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=21, shot at=3",
+      "from": "move to=21",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=21, shot at=7",
+      "from": "move to=21",
+      "to": "shot at=7",
+      "conditions": [
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=21, shot at=9",
+      "from": "move to=21",
+      "to": "shot at=9",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=21, shot at=11",
+      "from": "move to=21",
+      "to": "shot at=11",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=21, shot at=14",
+      "from": "move to=21",
+      "to": "shot at=14",
+      "conditions": []
+    },
+    {
+      "edge": "move to=21, shot at=15",
+      "from": "move to=21",
+      "to": "shot at=15",
+      "conditions": []
+    },
+    {
+      "edge": "move to=21, shot at=16",
+      "from": "move to=21",
+      "to": "shot at=16",
+      "conditions": []
+    },
+    {
+      "edge": "move to=21, shot at=18",
+      "from": "move to=21",
+      "to": "shot at=18",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=21, shot at=19",
+      "from": "move to=21",
+      "to": "shot at=19",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=21, shot at=20",
+      "from": "move to=21",
+      "to": "shot at=20",
+      "conditions": []
+    },
+    {
+      "edge": "move to=21, shot at=22",
+      "from": "move to=21",
+      "to": "shot at=22",
+      "conditions": []
+    },
+    {
+      "edge": "move to=21, shot at=23",
+      "from": "move to=21",
+      "to": "shot at=23",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=21, shot at=26",
+      "from": "move to=21",
+      "to": "shot at=26",
+      "conditions": []
+    },
+    {
+      "edge": "move to=21, shot at=27",
+      "from": "move to=21",
+      "to": "shot at=27",
+      "conditions": []
+    },
+    {
+      "edge": "move to=21, shot at=28",
+      "from": "move to=21",
+      "to": "shot at=28",
+      "conditions": []
+    },
+    {
+      "edge": "move to=22, shot at=1",
+      "from": "move to=22",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=015",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=22, shot at=4",
+      "from": "move to=22",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=22, shot at=8",
+      "from": "move to=22",
+      "to": "shot at=8",
+      "conditions": [
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=22, shot at=10",
+      "from": "move to=22",
+      "to": "shot at=10",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=22, shot at=15",
+      "from": "move to=22",
+      "to": "shot at=15",
+      "conditions": []
+    },
+    {
+      "edge": "move to=22, shot at=16",
+      "from": "move to=22",
+      "to": "shot at=16",
+      "conditions": []
+    },
+    {
+      "edge": "move to=22, shot at=17",
+      "from": "move to=22",
+      "to": "shot at=17",
+      "conditions": []
+    },
+    {
+      "edge": "move to=22, shot at=18",
+      "from": "move to=22",
+      "to": "shot at=18",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=020",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=22, shot at=19",
+      "from": "move to=22",
+      "to": "shot at=19",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=22, shot at=20",
+      "from": "move to=22",
+      "to": "shot at=20",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=22, shot at=21",
+      "from": "move to=22",
+      "to": "shot at=21",
+      "conditions": []
+    },
+    {
+      "edge": "move to=22, shot at=23",
+      "from": "move to=22",
+      "to": "shot at=23",
+      "conditions": []
+    },
+    {
+      "edge": "move to=22, shot at=27",
+      "from": "move to=22",
+      "to": "shot at=27",
+      "conditions": []
+    },
+    {
+      "edge": "move to=22, shot at=28",
+      "from": "move to=22",
+      "to": "shot at=28",
+      "conditions": []
+    },
+    {
+      "edge": "move to=22, shot at=29",
+      "from": "move to=22",
+      "to": "shot at=29",
+      "conditions": []
+    },
+    {
+      "edge": "move to=23, shot at=2",
+      "from": "move to=23",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=016",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=23, shot at=5",
+      "from": "move to=23",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=017",
+        "empty,layer=011"
+      ]
+    },
+    {
+      "edge": "move to=23, shot at=9",
+      "from": "move to=23",
+      "to": "shot at=9",
+      "conditions": [
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=23, shot at=11",
+      "from": "move to=23",
+      "to": "shot at=11",
+      "conditions": [
+        "empty,layer=017"
+      ]
+    },
+    {
+      "edge": "move to=23, shot at=16",
+      "from": "move to=23",
+      "to": "shot at=16",
+      "conditions": []
+    },
+    {
+      "edge": "move to=23, shot at=17",
+      "from": "move to=23",
+      "to": "shot at=17",
+      "conditions": []
+    },
+    {
+      "edge": "move to=23, shot at=18",
+      "from": "move to=23",
+      "to": "shot at=18",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=021",
+        "empty,layer=020",
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=23, shot at=19",
+      "from": "move to=23",
+      "to": "shot at=19",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=021",
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=23, shot at=20",
+      "from": "move to=23",
+      "to": "shot at=20",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=23, shot at=21",
+      "from": "move to=23",
+      "to": "shot at=21",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=23, shot at=22",
+      "from": "move to=23",
+      "to": "shot at=22",
+      "conditions": []
+    },
+    {
+      "edge": "move to=23, shot at=28",
+      "from": "move to=23",
+      "to": "shot at=28",
+      "conditions": []
+    },
+    {
+      "edge": "move to=23, shot at=29",
+      "from": "move to=23",
+      "to": "shot at=29",
+      "conditions": []
+    },
+    {
+      "edge": "move to=24, shot at=0",
+      "from": "move to=24",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=018",
+        "empty,layer=012",
+        "empty,layer=006"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=4",
+      "from": "move to=24",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=014",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=6",
+      "from": "move to=24",
+      "to": "shot at=6",
+      "conditions": [
+        "empty,layer=018",
+        "empty,layer=012"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=9",
+      "from": "move to=24",
+      "to": "shot at=9",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=12",
+      "from": "move to=24",
+      "to": "shot at=12",
+      "conditions": [
+        "empty,layer=018"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=14",
+      "from": "move to=24",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=18",
+      "from": "move to=24",
+      "to": "shot at=18",
+      "conditions": []
+    },
+    {
+      "edge": "move to=24, shot at=19",
+      "from": "move to=24",
+      "to": "shot at=19",
+      "conditions": []
+    },
+    {
+      "edge": "move to=24, shot at=25",
+      "from": "move to=24",
+      "to": "shot at=25",
+      "conditions": []
+    },
+    {
+      "edge": "move to=24, shot at=26",
+      "from": "move to=24",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=27",
+      "from": "move to=24",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=025",
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=28",
+      "from": "move to=24",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=025",
+        "empty,layer=026",
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move to=24, shot at=29",
+      "from": "move to=24",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=025",
+        "empty,layer=026",
+        "empty,layer=027",
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=1",
+      "from": "move to=25",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=013",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=5",
+      "from": "move to=25",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=015",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=7",
+      "from": "move to=25",
+      "to": "shot at=7",
+      "conditions": [
+        "empty,layer=019",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=10",
+      "from": "move to=25",
+      "to": "shot at=10",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=13",
+      "from": "move to=25",
+      "to": "shot at=13",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=15",
+      "from": "move to=25",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=18",
+      "from": "move to=25",
+      "to": "shot at=18",
+      "conditions": []
+    },
+    {
+      "edge": "move to=25, shot at=19",
+      "from": "move to=25",
+      "to": "shot at=19",
+      "conditions": []
+    },
+    {
+      "edge": "move to=25, shot at=20",
+      "from": "move to=25",
+      "to": "shot at=20",
+      "conditions": []
+    },
+    {
+      "edge": "move to=25, shot at=24",
+      "from": "move to=25",
+      "to": "shot at=24",
+      "conditions": []
+    },
+    {
+      "edge": "move to=25, shot at=26",
+      "from": "move to=25",
+      "to": "shot at=26",
+      "conditions": []
+    },
+    {
+      "edge": "move to=25, shot at=27",
+      "from": "move to=25",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=28",
+      "from": "move to=25",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=026",
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move to=25, shot at=29",
+      "from": "move to=25",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=026",
+        "empty,layer=027",
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=2",
+      "from": "move to=26",
+      "to": "shot at=2",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=014",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=8",
+      "from": "move to=26",
+      "to": "shot at=8",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=11",
+      "from": "move to=26",
+      "to": "shot at=11",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=12",
+      "from": "move to=26",
+      "to": "shot at=12",
+      "conditions": [
+        "empty,layer=019"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=14",
+      "from": "move to=26",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=16",
+      "from": "move to=26",
+      "to": "shot at=16",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=19",
+      "from": "move to=26",
+      "to": "shot at=19",
+      "conditions": []
+    },
+    {
+      "edge": "move to=26, shot at=20",
+      "from": "move to=26",
+      "to": "shot at=20",
+      "conditions": []
+    },
+    {
+      "edge": "move to=26, shot at=21",
+      "from": "move to=26",
+      "to": "shot at=21",
+      "conditions": []
+    },
+    {
+      "edge": "move to=26, shot at=24",
+      "from": "move to=26",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=25",
+      "from": "move to=26",
+      "to": "shot at=25",
+      "conditions": []
+    },
+    {
+      "edge": "move to=26, shot at=27",
+      "from": "move to=26",
+      "to": "shot at=27",
+      "conditions": []
+    },
+    {
+      "edge": "move to=26, shot at=28",
+      "from": "move to=26",
+      "to": "shot at=28",
+      "conditions": [
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move to=26, shot at=29",
+      "from": "move to=26",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=027",
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=3",
+      "from": "move to=27",
+      "to": "shot at=3",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=015",
+        "empty,layer=009"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=6",
+      "from": "move to=27",
+      "to": "shot at=6",
+      "conditions": [
+        "empty,layer=020",
+        "empty,layer=013"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=9",
+      "from": "move to=27",
+      "to": "shot at=9",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=13",
+      "from": "move to=27",
+      "to": "shot at=13",
+      "conditions": [
+        "empty,layer=020"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=15",
+      "from": "move to=27",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=17",
+      "from": "move to=27",
+      "to": "shot at=17",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=20",
+      "from": "move to=27",
+      "to": "shot at=20",
+      "conditions": []
+    },
+    {
+      "edge": "move to=27, shot at=21",
+      "from": "move to=27",
+      "to": "shot at=21",
+      "conditions": []
+    },
+    {
+      "edge": "move to=27, shot at=22",
+      "from": "move to=27",
+      "to": "shot at=22",
+      "conditions": []
+    },
+    {
+      "edge": "move to=27, shot at=24",
+      "from": "move to=27",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=026",
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=25",
+      "from": "move to=27",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move to=27, shot at=26",
+      "from": "move to=27",
+      "to": "shot at=26",
+      "conditions": []
+    },
+    {
+      "edge": "move to=27, shot at=28",
+      "from": "move to=27",
+      "to": "shot at=28",
+      "conditions": []
+    },
+    {
+      "edge": "move to=27, shot at=29",
+      "from": "move to=27",
+      "to": "shot at=29",
+      "conditions": [
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=0",
+      "from": "move to=28",
+      "to": "shot at=0",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=014",
+        "empty,layer=007"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=4",
+      "from": "move to=28",
+      "to": "shot at=4",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=016",
+        "empty,layer=010"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=7",
+      "from": "move to=28",
+      "to": "shot at=7",
+      "conditions": [
+        "empty,layer=021",
+        "empty,layer=014"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=10",
+      "from": "move to=28",
+      "to": "shot at=10",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=016"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=14",
+      "from": "move to=28",
+      "to": "shot at=14",
+      "conditions": [
+        "empty,layer=021"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=16",
+      "from": "move to=28",
+      "to": "shot at=16",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=21",
+      "from": "move to=28",
+      "to": "shot at=21",
+      "conditions": []
+    },
+    {
+      "edge": "move to=28, shot at=22",
+      "from": "move to=28",
+      "to": "shot at=22",
+      "conditions": []
+    },
+    {
+      "edge": "move to=28, shot at=23",
+      "from": "move to=28",
+      "to": "shot at=23",
+      "conditions": []
+    },
+    {
+      "edge": "move to=28, shot at=24",
+      "from": "move to=28",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=027",
+        "empty,layer=026",
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=25",
+      "from": "move to=28",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=027",
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=26",
+      "from": "move to=28",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move to=28, shot at=27",
+      "from": "move to=28",
+      "to": "shot at=27",
+      "conditions": []
+    },
+    {
+      "edge": "move to=28, shot at=29",
+      "from": "move to=28",
+      "to": "shot at=29",
+      "conditions": []
+    },
+    {
+      "edge": "move to=29, shot at=1",
+      "from": "move to=29",
+      "to": "shot at=1",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=015",
+        "empty,layer=008"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=5",
+      "from": "move to=29",
+      "to": "shot at=5",
+      "conditions": [
+        "empty,layer=023",
+        "empty,layer=017",
+        "empty,layer=011"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=8",
+      "from": "move to=29",
+      "to": "shot at=8",
+      "conditions": [
+        "empty,layer=022",
+        "empty,layer=015"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=11",
+      "from": "move to=29",
+      "to": "shot at=11",
+      "conditions": [
+        "empty,layer=023",
+        "empty,layer=017"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=15",
+      "from": "move to=29",
+      "to": "shot at=15",
+      "conditions": [
+        "empty,layer=022"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=17",
+      "from": "move to=29",
+      "to": "shot at=17",
+      "conditions": [
+        "empty,layer=023"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=22",
+      "from": "move to=29",
+      "to": "shot at=22",
+      "conditions": []
+    },
+    {
+      "edge": "move to=29, shot at=23",
+      "from": "move to=29",
+      "to": "shot at=23",
+      "conditions": []
+    },
+    {
+      "edge": "move to=29, shot at=24",
+      "from": "move to=29",
+      "to": "shot at=24",
+      "conditions": [
+        "empty,layer=028",
+        "empty,layer=027",
+        "empty,layer=026",
+        "empty,layer=025"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=25",
+      "from": "move to=29",
+      "to": "shot at=25",
+      "conditions": [
+        "empty,layer=028",
+        "empty,layer=027",
+        "empty,layer=026"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=26",
+      "from": "move to=29",
+      "to": "shot at=26",
+      "conditions": [
+        "empty,layer=028",
+        "empty,layer=027"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=27",
+      "from": "move to=29",
+      "to": "shot at=27",
+      "conditions": [
+        "empty,layer=028"
+      ]
+    },
+    {
+      "edge": "move to=29, shot at=28",
+      "from": "move to=29",
+      "to": "shot at=28",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=0",
+      "from": "shot at=0",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=1",
+      "from": "shot at=1",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=2",
+      "from": "shot at=2",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=3",
+      "from": "shot at=3",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=4",
+      "from": "shot at=4",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=5",
+      "from": "shot at=5",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=6",
+      "from": "shot at=6",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=7",
+      "from": "shot at=7",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=8",
+      "from": "shot at=8",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=9",
+      "from": "shot at=9",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=10",
+      "from": "shot at=10",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=11",
+      "from": "shot at=11",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=12",
+      "from": "shot at=12",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=13",
+      "from": "shot at=13",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=14",
+      "from": "shot at=14",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=15",
+      "from": "shot at=15",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=16",
+      "from": "shot at=16",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=17",
+      "from": "shot at=17",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=18",
+      "from": "shot at=18",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=19",
+      "from": "shot at=19",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=20",
+      "from": "shot at=20",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=21",
+      "from": "shot at=21",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=22",
+      "from": "shot at=22",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=23",
+      "from": "shot at=23",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=24",
+      "from": "shot at=24",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=25",
+      "from": "shot at=25",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=26",
+      "from": "shot at=26",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=27",
+      "from": "shot at=27",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=28",
+      "from": "shot at=28",
+      "to": "end",
+      "conditions": []
+    },
+    {
+      "edge": "shot at=29",
+      "from": "shot at=29",
+      "to": "end",
+      "conditions": []
+    }
+  ]
+}
