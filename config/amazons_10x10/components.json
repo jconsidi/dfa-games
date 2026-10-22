@@ -1,5 +1,1030 @@
 {
   "components": {
+    "bound,ply=000": {
+      "inputs": {
+        "0": 0,
+        "1": 0,
+        "2": 0,
+        "3": 1,
+        "4": 0,
+        "5": 0,
+        "6": 1,
+        "7": 0,
+        "8": 0,
+        "9": 0,
+        "10": 0,
+        "11": 0,
+        "12": 0,
+        "13": 0,
+        "14": 0,
+        "15": 0,
+        "16": 0,
+        "17": 0,
+        "18": 0,
+        "19": 0,
+        "20": 0,
+        "21": 0,
+        "22": 0,
+        "23": 0,
+        "24": 0,
+        "25": 0,
+        "26": 0,
+        "27": 0,
+        "28": 0,
+        "29": 0,
+        "30": 1,
+        "31": 0,
+        "32": 0,
+        "33": 0,
+        "34": 0,
+        "35": 0,
+        "36": 0,
+        "37": 0,
+        "38": 0,
+        "39": 1,
+        "40": 0,
+        "41": 0,
+        "42": 0,
+        "43": 0,
+        "44": 0,
+        "45": 0,
+        "46": 0,
+        "47": 0,
+        "48": 0,
+        "49": 0,
+        "50": 0,
+        "51": 0,
+        "52": 0,
+        "53": 0,
+        "54": 0,
+        "55": 0,
+        "56": 0,
+        "57": 0,
+        "58": 0,
+        "59": 0,
+        "60": 2,
+        "61": 0,
+        "62": 0,
+        "63": 0,
+        "64": 0,
+        "65": 0,
+        "66": 0,
+        "67": 0,
+        "68": 0,
+        "69": 2,
+        "70": 0,
+        "71": 0,
+        "72": 0,
+        "73": 0,
+        "74": 0,
+        "75": 0,
+        "76": 0,
+        "77": 0,
+        "78": 0,
+        "79": 0,
+        "80": 0,
+        "81": 0,
+        "82": 0,
+        "83": 0,
+        "84": 0,
+        "85": 0,
+        "86": 0,
+        "87": 0,
+        "88": 0,
+        "89": 0,
+        "90": 0,
+        "91": 0,
+        "92": 0,
+        "93": 2,
+        "94": 0,
+        "95": 0,
+        "96": 2,
+        "97": 0,
+        "98": 0,
+        "99": 0
+      },
+      "type": "fixed"
+    },
+    "bound,ply=001": {
+      "inputs": {
+        "c": 0,
+        "count_max": 91,
+        "count_min": 91,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=002": {
+      "inputs": {
+        "c": 0,
+        "count_max": 90,
+        "count_min": 90,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=003": {
+      "inputs": {
+        "c": 0,
+        "count_max": 89,
+        "count_min": 89,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=004": {
+      "inputs": {
+        "c": 0,
+        "count_max": 88,
+        "count_min": 88,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=005": {
+      "inputs": {
+        "c": 0,
+        "count_max": 87,
+        "count_min": 87,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=006": {
+      "inputs": {
+        "c": 0,
+        "count_max": 86,
+        "count_min": 86,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=007": {
+      "inputs": {
+        "c": 0,
+        "count_max": 85,
+        "count_min": 85,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=008": {
+      "inputs": {
+        "c": 0,
+        "count_max": 84,
+        "count_min": 84,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=009": {
+      "inputs": {
+        "c": 0,
+        "count_max": 83,
+        "count_min": 83,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=010": {
+      "inputs": {
+        "c": 0,
+        "count_max": 82,
+        "count_min": 82,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=011": {
+      "inputs": {
+        "c": 0,
+        "count_max": 81,
+        "count_min": 81,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=012": {
+      "inputs": {
+        "c": 0,
+        "count_max": 80,
+        "count_min": 80,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=013": {
+      "inputs": {
+        "c": 0,
+        "count_max": 79,
+        "count_min": 79,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=014": {
+      "inputs": {
+        "c": 0,
+        "count_max": 78,
+        "count_min": 78,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=015": {
+      "inputs": {
+        "c": 0,
+        "count_max": 77,
+        "count_min": 77,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=016": {
+      "inputs": {
+        "c": 0,
+        "count_max": 76,
+        "count_min": 76,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=017": {
+      "inputs": {
+        "c": 0,
+        "count_max": 75,
+        "count_min": 75,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=018": {
+      "inputs": {
+        "c": 0,
+        "count_max": 74,
+        "count_min": 74,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=019": {
+      "inputs": {
+        "c": 0,
+        "count_max": 73,
+        "count_min": 73,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=020": {
+      "inputs": {
+        "c": 0,
+        "count_max": 72,
+        "count_min": 72,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=021": {
+      "inputs": {
+        "c": 0,
+        "count_max": 71,
+        "count_min": 71,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=022": {
+      "inputs": {
+        "c": 0,
+        "count_max": 70,
+        "count_min": 70,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=023": {
+      "inputs": {
+        "c": 0,
+        "count_max": 69,
+        "count_min": 69,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=024": {
+      "inputs": {
+        "c": 0,
+        "count_max": 68,
+        "count_min": 68,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=025": {
+      "inputs": {
+        "c": 0,
+        "count_max": 67,
+        "count_min": 67,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=026": {
+      "inputs": {
+        "c": 0,
+        "count_max": 66,
+        "count_min": 66,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=027": {
+      "inputs": {
+        "c": 0,
+        "count_max": 65,
+        "count_min": 65,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=028": {
+      "inputs": {
+        "c": 0,
+        "count_max": 64,
+        "count_min": 64,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=029": {
+      "inputs": {
+        "c": 0,
+        "count_max": 63,
+        "count_min": 63,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=030": {
+      "inputs": {
+        "c": 0,
+        "count_max": 62,
+        "count_min": 62,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=031": {
+      "inputs": {
+        "c": 0,
+        "count_max": 61,
+        "count_min": 61,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=032": {
+      "inputs": {
+        "c": 0,
+        "count_max": 60,
+        "count_min": 60,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=033": {
+      "inputs": {
+        "c": 0,
+        "count_max": 59,
+        "count_min": 59,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=034": {
+      "inputs": {
+        "c": 0,
+        "count_max": 58,
+        "count_min": 58,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=035": {
+      "inputs": {
+        "c": 0,
+        "count_max": 57,
+        "count_min": 57,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=036": {
+      "inputs": {
+        "c": 0,
+        "count_max": 56,
+        "count_min": 56,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=037": {
+      "inputs": {
+        "c": 0,
+        "count_max": 55,
+        "count_min": 55,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=038": {
+      "inputs": {
+        "c": 0,
+        "count_max": 54,
+        "count_min": 54,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=039": {
+      "inputs": {
+        "c": 0,
+        "count_max": 53,
+        "count_min": 53,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=040": {
+      "inputs": {
+        "c": 0,
+        "count_max": 52,
+        "count_min": 52,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=041": {
+      "inputs": {
+        "c": 0,
+        "count_max": 51,
+        "count_min": 51,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=042": {
+      "inputs": {
+        "c": 0,
+        "count_max": 50,
+        "count_min": 50,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=043": {
+      "inputs": {
+        "c": 0,
+        "count_max": 49,
+        "count_min": 49,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=044": {
+      "inputs": {
+        "c": 0,
+        "count_max": 48,
+        "count_min": 48,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=045": {
+      "inputs": {
+        "c": 0,
+        "count_max": 47,
+        "count_min": 47,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=046": {
+      "inputs": {
+        "c": 0,
+        "count_max": 46,
+        "count_min": 46,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=047": {
+      "inputs": {
+        "c": 0,
+        "count_max": 45,
+        "count_min": 45,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=048": {
+      "inputs": {
+        "c": 0,
+        "count_max": 44,
+        "count_min": 44,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=049": {
+      "inputs": {
+        "c": 0,
+        "count_max": 43,
+        "count_min": 43,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=050": {
+      "inputs": {
+        "c": 0,
+        "count_max": 42,
+        "count_min": 42,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=051": {
+      "inputs": {
+        "c": 0,
+        "count_max": 41,
+        "count_min": 41,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=052": {
+      "inputs": {
+        "c": 0,
+        "count_max": 40,
+        "count_min": 40,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=053": {
+      "inputs": {
+        "c": 0,
+        "count_max": 39,
+        "count_min": 39,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=054": {
+      "inputs": {
+        "c": 0,
+        "count_max": 38,
+        "count_min": 38,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=055": {
+      "inputs": {
+        "c": 0,
+        "count_max": 37,
+        "count_min": 37,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=056": {
+      "inputs": {
+        "c": 0,
+        "count_max": 36,
+        "count_min": 36,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=057": {
+      "inputs": {
+        "c": 0,
+        "count_max": 35,
+        "count_min": 35,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=058": {
+      "inputs": {
+        "c": 0,
+        "count_max": 34,
+        "count_min": 34,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=059": {
+      "inputs": {
+        "c": 0,
+        "count_max": 33,
+        "count_min": 33,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=060": {
+      "inputs": {
+        "c": 0,
+        "count_max": 32,
+        "count_min": 32,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=061": {
+      "inputs": {
+        "c": 0,
+        "count_max": 31,
+        "count_min": 31,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=062": {
+      "inputs": {
+        "c": 0,
+        "count_max": 30,
+        "count_min": 30,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=063": {
+      "inputs": {
+        "c": 0,
+        "count_max": 29,
+        "count_min": 29,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=064": {
+      "inputs": {
+        "c": 0,
+        "count_max": 28,
+        "count_min": 28,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=065": {
+      "inputs": {
+        "c": 0,
+        "count_max": 27,
+        "count_min": 27,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=066": {
+      "inputs": {
+        "c": 0,
+        "count_max": 26,
+        "count_min": 26,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=067": {
+      "inputs": {
+        "c": 0,
+        "count_max": 25,
+        "count_min": 25,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=068": {
+      "inputs": {
+        "c": 0,
+        "count_max": 24,
+        "count_min": 24,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=069": {
+      "inputs": {
+        "c": 0,
+        "count_max": 23,
+        "count_min": 23,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=070": {
+      "inputs": {
+        "c": 0,
+        "count_max": 22,
+        "count_min": 22,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=071": {
+      "inputs": {
+        "c": 0,
+        "count_max": 21,
+        "count_min": 21,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=072": {
+      "inputs": {
+        "c": 0,
+        "count_max": 20,
+        "count_min": 20,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=073": {
+      "inputs": {
+        "c": 0,
+        "count_max": 19,
+        "count_min": 19,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=074": {
+      "inputs": {
+        "c": 0,
+        "count_max": 18,
+        "count_min": 18,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=075": {
+      "inputs": {
+        "c": 0,
+        "count_max": 17,
+        "count_min": 17,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=076": {
+      "inputs": {
+        "c": 0,
+        "count_max": 16,
+        "count_min": 16,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=077": {
+      "inputs": {
+        "c": 0,
+        "count_max": 15,
+        "count_min": 15,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=078": {
+      "inputs": {
+        "c": 0,
+        "count_max": 14,
+        "count_min": 14,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=079": {
+      "inputs": {
+        "c": 0,
+        "count_max": 13,
+        "count_min": 13,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=080": {
+      "inputs": {
+        "c": 0,
+        "count_max": 12,
+        "count_min": 12,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=081": {
+      "inputs": {
+        "c": 0,
+        "count_max": 11,
+        "count_min": 11,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=082": {
+      "inputs": {
+        "c": 0,
+        "count_max": 10,
+        "count_min": 10,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=083": {
+      "inputs": {
+        "c": 0,
+        "count_max": 9,
+        "count_min": 9,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=084": {
+      "inputs": {
+        "c": 0,
+        "count_max": 8,
+        "count_min": 8,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=085": {
+      "inputs": {
+        "c": 0,
+        "count_max": 7,
+        "count_min": 7,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=086": {
+      "inputs": {
+        "c": 0,
+        "count_max": 6,
+        "count_min": 6,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=087": {
+      "inputs": {
+        "c": 0,
+        "count_max": 5,
+        "count_min": 5,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=088": {
+      "inputs": {
+        "c": 0,
+        "count_max": 4,
+        "count_min": 4,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=089": {
+      "inputs": {
+        "c": 0,
+        "count_max": 3,
+        "count_min": 3,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=090": {
+      "inputs": {
+        "c": 0,
+        "count_max": 2,
+        "count_min": 2,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=091": {
+      "inputs": {
+        "c": 0,
+        "count_max": 1,
+        "count_min": 1,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "bound,ply=092": {
+      "inputs": {
+        "c": 0,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 99,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
     "empty,layer=000": {
       "inputs": {
         "0": 0

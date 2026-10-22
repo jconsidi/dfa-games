@@ -132,6 +132,25 @@ def generate_size(width, height):
     for layer in range(ndim):
         game_config.add_component(get_empty_name(layer), "fixed", {layer: 0})
 
+    # components - every move empties the from square, fills the to square
+    # with the queen and fills the shot square with an arrow, so each ply
+    # leaves exactly one fewer empty square.
+
+    initial_empty = initial_position.count(0)
+
+    for ply in range(1, initial_empty + 1):
+        game_config.add_component(
+            f"bound,ply={ply:03d}",
+            "count",
+            {
+                "c": 0,
+                "count_min": initial_empty - ply,
+                "count_max": initial_empty - ply,
+                "layer_min": 0,
+                "layer_max": ndim - 1,
+            },
+        )
+
     queen_moves = get_queen_moves(width, height)
 
     for side_to_move in range(2):
