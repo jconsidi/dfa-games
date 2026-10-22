@@ -119,6 +119,10 @@ def discover_games():
         if not game_dir.is_dir():
             continue
         game = game_dir.name
+        if game.startswith("."):
+            # hidden directories are tooling state, such as the .claude
+            # directory Claude Code leaves behind, never game config
+            continue
         if "_" not in game:
             raise RuntimeError(f"config/{game} has no _SIZE suffix to group it by")
         family, size = game.rsplit("_", 1)
