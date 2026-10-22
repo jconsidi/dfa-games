@@ -110,6 +110,23 @@ Every move therefore removes exactly one piece from the board.
 Normal play: a player with no legal move loses. Pieces with no enemy neighbour
 are stuck, so a player can be beaten while still holding most of their pieces.
 
+## cram
+
+`cram_WxH` — a board `W` columns wide and `H` rows tall.
+
+The board starts empty.
+
+There is exactly one kind of move: a player places a domino on two empty squares that are orthogonally adjacent — side by side in a row, or one above the other in a column.
+The domino may be placed either way round and lies flat, so it covers exactly those two squares.
+Covered squares stay covered for the rest of the game.
+A domino may not cover a square that is already covered, and may not be placed diagonally.
+Every move therefore covers exactly two more squares.
+
+The dominoes belong to no one, so both players always have the same moves available.
+
+Normal play: a player with no legal move loses.
+A move is available exactly when two adjacent squares are both still empty, so isolated empty squares do not count.
+
 ## normalnim
 
 `normalnim_NxM` — `N` heaps, each starting with `M` tokens.

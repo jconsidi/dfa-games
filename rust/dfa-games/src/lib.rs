@@ -10,6 +10,7 @@
 pub mod amazons;
 pub mod breakthrough;
 pub mod clobber;
+pub mod cram;
 pub mod game;
 pub mod load;
 pub mod normalnim;

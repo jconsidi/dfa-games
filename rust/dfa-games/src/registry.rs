@@ -6,6 +6,7 @@ use anyhow::{bail, Result};
 use crate::amazons::AmazonsGame;
 use crate::breakthrough::BreakthroughGame;
 use crate::clobber::ClobberGame;
+use crate::cram::CramGame;
 use crate::game::Game;
 use crate::normalnim::NormalNimGame;
 use crate::tictactoe::TicTacToeGame;
@@ -49,6 +50,16 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
             bail!("clobber needs a board at least 1x1, got {width}x{height}");
         }
         Box::new(ClobberGame::new(width, height))
+    } else if let Some(rest) = game_name.strip_prefix("cram_") {
+        let (width, height) = parse_dimensions(rest).ok_or_else(|| {
+            anyhow::anyhow!(
+                "could not parse cram game name \"{game_name}\", expected cram_WIDTHxHEIGHT"
+            )
+        })?;
+        if width < 1 || height < 1 {
+            bail!("cram needs a board at least 1x1, got {width}x{height}");
+        }
+        Box::new(CramGame::new(width, height))
     } else if let Some(rest) = game_name.strip_prefix("normalnim_") {
         let (num_heaps, heap_max) = parse_dimensions(rest)
             .ok_or_else(|| anyhow::anyhow!("could not parse normalnim game name \"{game_name}\", expected normalnim_HEAPSxHEAPMAX"))?;
@@ -76,7 +87,7 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
     } else {
         bail!(
             "unrecognized game name \"{game_name}\"; ported games are amazons_WxH, \
-             breakthrough_WxH, clobber_WxH, normalnim_HEAPSxHEAPMAX and tictactoe_N"
+             breakthrough_WxH, clobber_WxH, cram_WxH, normalnim_HEAPSxHEAPMAX and tictactoe_N"
         );
     };
 
