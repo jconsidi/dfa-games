@@ -247,7 +247,6 @@ int main(int argc, char **argv)
 	  continue;
 	}
 
-      bool manual = (config_filename == "positions-manual.json");
       size_t count = 0;
 
       for(const TestGroup& test_group : get_test_cases(config_filename, "positions", game_name))
@@ -272,11 +271,7 @@ int main(int argc, char **argv)
 				      {"text", game->position_to_string(position)},
 				      {"always_checked_by", {"test_move_graph", "test_validate"}}};
 
-	      std::vector<std::string> expectation_checkers = {"test_validate"};
-	      if(manual)
-		{
-		  expectation_checkers.push_back("Rust positions_manual, for games with Rust rules");
-		}
+	      std::vector<std::string> expectation_checkers = {"test_validate", "Rust positions_manual"};
 
 	      if(test_case.contains("expected_moves"))
 		{
@@ -299,7 +294,7 @@ int main(int argc, char **argv)
 	      if(test_case.contains("expected_perft_u"))
 		{
 		  entry["expected_perft_u"] = test_case.at("expected_perft_u").get<std::vector<size_t>>();
-		  entry["perft_checked_by"] = {"test_perft_u"};
+		  entry["perft_checked_by"] = {"test_perft_u", "Rust positions_manual"};
 		}
 
 	      positions.push_back(entry);
@@ -325,7 +320,7 @@ int main(int argc, char **argv)
   programs.push_back({"test_validate", "Every position in both files: validate_moves returns no moves exactly when validate_outcome reports the game over. Where given, expected_moves must equal validate_moves as a set, and expected_result must equal validate_outcome."});
   programs.push_back({"test_move_graph", "Every position in both files: the moves the game's move graph generates equal validate_moves, with and without join splitting."});
   programs.push_back({"test_perft_u", "Positions with expected_perft_u: the number of distinct positions reached after each depth, generated with the move graph."});
-  programs.push_back({"Rust positions_manual", "positions-manual.json only, for games with Rust rules: expected_moves and expected_result against independently written rules."});
+  programs.push_back({"Rust positions_manual", "Every position in both files: expected_moves, expected_result and expected_perft_u, wherever given, against rules written independently from GAMES.md. A file naming a game without Rust rules fails the test rather than being skipped."});
 
   nlohmann::json data = {{"game", game_name},
 			 {"summary", summary},
