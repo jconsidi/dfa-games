@@ -257,3 +257,29 @@ while doing it: neither game has hand written positions today, and amazons in
 particular has a move rule (queen slide plus arrow, both needing a clear path,
 the arrow allowed back into the vacated square) with several ways to be subtly
 wrong.
+
+## why are the verifiers slower than the C++
+
+On amazons the Rust verifiers look roughly 10× slower per position than the C++ ones, though that ratio comes from different runs and has not been measured directly.
+`verify-backward-sound amazons_4x4 1` checked about 2×10⁹ positions in 1287 s of wall time and 6155 s of CPU, so only about 4.8 cores were busy on average.
+Bounding amazons_4x4 needed the C++ verifiers alone, because the Rust ones over the same DFAs were projected to take hours.
+
+The move generators are not the cause: `amazons.rs` `validate_moves` and `AmazonsGame::validate_moves` are nearly line for line the same, and the C++ even allocates a `shot_between` vector per shot.
+`verify.rs::for_each_position` has the same shape as `DFAUtil::for_each_position`: serial enumeration, 4096-position batches, then a parallel check per batch.
+
+Candidates, not yet measured:
+
+- Poor parallelism.
+  Enumeration is serial and every batch ends with a barrier, so a slow `iter.rs` `Positions` would keep the workers idle.
+  The 4.8-core average points this way.
+- The DFA lookup.
+  `Dfa::accepts` reaches each transition through `entry`, which computes `entry_offset` and decodes a variable-width little-endian entry byte by byte from a bounds-checked slice.
+  `DFA::contains` is a plain array index.
+  Amazons makes one lookup per move, and there are hundreds of moves per position.
+- `accepts` checks the alphabet over the whole string before walking it.
+  Keep that check.
+  It guards against bad input, so make it cheaper rather than removing it.
+
+Start by profiling `verify-winning-sound` against `./verify_winning_sound` on one mid-sized amazons_4x4 ply, with `samply` or `cargo flamegraph`.
+Compare both wall time and CPU time for the two programs, as **Benchmarking and verifying changes** in `CLAUDE.md` describes.
+Any speedup has to leave every check in place.
