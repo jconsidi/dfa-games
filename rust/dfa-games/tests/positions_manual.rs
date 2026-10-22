@@ -111,7 +111,7 @@ fn perft_u(game: &dyn Game, side_to_move: u32, position: &[u32], depth: usize) -
     let mut output = Vec::with_capacity(depth);
     let mut frontier: BTreeSet<Vec<u32>> = BTreeSet::from([position.to_vec()]);
     for ply in 0..depth {
-        let side = (side_to_move + ply as u32) % 2;
+        let side = (side_to_move + ply as u32) % game.sides();
         frontier = frontier
             .iter()
             .flat_map(|p| game.validate_moves(side, p))
@@ -137,8 +137,9 @@ fn run_case(game: &dyn Game, filename: &str, index: usize, case: &Value) {
         .and_then(|s| s.as_u64())
         .unwrap_or_else(|| panic!("{label} has no \"side_to_move\""));
     assert!(
-        side_to_move < 2,
-        "{label} has side_to_move {side_to_move}, which is neither 0 nor 1"
+        side_to_move < u64::from(game.sides()),
+        "{label} has side_to_move {side_to_move}, but the game has only {} side(s)",
+        game.sides()
     );
     let side_to_move = side_to_move as u32;
 

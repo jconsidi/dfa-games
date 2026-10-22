@@ -187,8 +187,10 @@ executes is worse than none.
 
 Coverage is narrower than the C++ and the gaps matter:
 
-- **amazons**, **row-wise breakthrough**, **clobber**, **cram**, **normalnim**
-  and **tictactoe** have Rust rules. `breakthroughcw_`, `chess+` and `othello_` are
+- **amazons**, **row-wise breakthrough**, **clobber**, **cram**, **normalnim**,
+  **slidingtile** and **tictactoe** have Rust rules. slidingtile is a
+  one-player puzzle (`Game::sides` is 1), so `cargo test` checks its moves but
+  the verifiers refuse it: every claim they check is a two-player result. `breakthroughcw_`, `chess+` and `othello_` are
   recognized by name so the error says "not ported" rather than
   "unrecognized" — but they are genuinely not verifiable from Rust.
 - The rules those modules implement are written down in `GAMES.md`, which

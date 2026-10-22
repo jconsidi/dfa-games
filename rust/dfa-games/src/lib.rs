@@ -15,6 +15,7 @@ pub mod game;
 pub mod load;
 pub mod normalnim;
 pub mod registry;
+pub mod slidingtile;
 pub mod tictactoe;
 pub mod verify;
 

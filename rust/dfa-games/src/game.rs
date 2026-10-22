@@ -16,6 +16,12 @@ pub trait Game: Send + Sync {
 
     fn shape(&self) -> &[u32];
 
+    /// How many sides take turns, as `GameBase::get_sides`: 2 for a game, 1
+    /// for a puzzle.  Sides are numbered from 0.
+    fn sides(&self) -> u32 {
+        2
+    }
+
     /// Every position reachable by one legal move.  Empty means terminal.
     fn validate_moves(&self, side_to_move: Side, position: &Position) -> Vec<Vec<u32>>;
 

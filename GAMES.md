@@ -163,6 +163,21 @@ can happen sooner.
 and equal counts are a draw. Being unable to move is not itself a loss here —
 it is a pass, and it can even be the winning side that runs out of moves.
 
+## slidingtile
+
+`slidingtile_WxH` — the sliding tile puzzle on a board `W` columns wide and `H` rows tall, of which the 15 puzzle is `slidingtile_4x4`.
+
+The board holds `W * H − 1` tiles, numbered from 1 up, and one gap.
+The puzzle may start from any arrangement of the tiles.
+
+There is exactly one kind of move: a tile orthogonally adjacent to the gap — up, down, left or right — slides into it, so the gap moves to where the tile was.
+Tiles may not move diagonally, and nothing is ever added or removed.
+
+**A puzzle, not a game.** There is one player, who makes every move, and no opponent to win or lose against.
+The goal is the solved arrangement: the tiles in numerical order row by row, starting from one corner, with the gap in the opposite corner.
+On any board of two or more squares a move is always available, since the gap always has a neighbouring tile, so the puzzle never ends by running out of moves.
+Half of all arrangements can never reach the solved one, because every move preserves a parity of the arrangement.
+
 ## tictactoe
 
 `tictactoe_N` — an `N x N` board, with `N` in a row needed to win. The familiar

@@ -9,6 +9,7 @@ use crate::clobber::ClobberGame;
 use crate::cram::CramGame;
 use crate::game::Game;
 use crate::normalnim::NormalNimGame;
+use crate::slidingtile::SlidingTilePuzzle;
 use crate::tictactoe::TicTacToeGame;
 
 /// Games the C++ knows about that have no Rust rules yet.  Named separately so
@@ -69,6 +70,16 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
         let heap_max = u32::try_from(heap_max)
             .map_err(|_| anyhow::anyhow!("normalnim heap maximum {heap_max} is too large"))?;
         Box::new(NormalNimGame::new(num_heaps, heap_max))
+    } else if let Some(rest) = game_name.strip_prefix("slidingtile_") {
+        let (width, height) = parse_dimensions(rest).ok_or_else(|| {
+            anyhow::anyhow!(
+                "could not parse slidingtile game name \"{game_name}\", expected slidingtile_WIDTHxHEIGHT"
+            )
+        })?;
+        if width < 1 || height < 1 {
+            bail!("slidingtile needs a board at least 1x1, got {width}x{height}");
+        }
+        Box::new(SlidingTilePuzzle::new(width, height))
     } else if let Some(rest) = game_name.strip_prefix("tictactoe_") {
         let n: usize = rest.parse().map_err(|_| {
             anyhow::anyhow!(
@@ -87,7 +98,7 @@ pub fn get_game(game_name: &str) -> Result<Box<dyn Game>> {
     } else {
         bail!(
             "unrecognized game name \"{game_name}\"; ported games are amazons_WxH, \
-             breakthrough_WxH, clobber_WxH, cram_WxH, normalnim_HEAPSxHEAPMAX and tictactoe_N"
+             breakthrough_WxH, clobber_WxH, cram_WxH, normalnim_HEAPSxHEAPMAX, slidingtile_WxH and tictactoe_N"
         );
     };
 

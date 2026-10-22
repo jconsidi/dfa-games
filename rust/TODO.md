@@ -219,8 +219,8 @@ where every number in it has actually been checked.
 ## rules for the rest of the games
 
 `registry.rs` still lists three prefixes with no Rust rules: `breakthroughcw_`,
-`chess+` and `othello_`. Amazons, breakthrough, clobber, cram, normalnim and
-tictactoe are done. The rules for anything new come from `GAMES.md` or from the
+`chess+` and `othello_`. Amazons, breakthrough, clobber, cram, normalnim,
+slidingtile and tictactoe are done. The rules for anything new come from `GAMES.md` or from the
 game itself, never from porting the C++ move graph.
 
 - `breakthroughcw_` — breakthrough over a transposed square numbering. The

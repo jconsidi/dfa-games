@@ -173,6 +173,16 @@ pub fn verify_sound(
     label: &str,
     claim: &Claim,
 ) -> Result<u64> {
+    // Every claim here is a two-player result: lost, won, losing or winning
+    // for the side to move. None of them means anything for a puzzle.
+    if game.sides() != 2 {
+        bail!(
+            "{} has {} side(s), but the verifiers only check two-player results",
+            game.name(),
+            game.sides()
+        );
+    }
+
     // The count is f64, and exact below 2^53. Printed first because it is what
     // makes the progress of a long run legible, as in the C++.
     let expected_count = dfa_format::stats::count_accepted(dfa)?;

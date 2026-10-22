@@ -1,4 +1,38 @@
 {
   "game": "slidingtile_3x3",
-  "positions": []
+  "positions": [
+    {
+      "comment": "solved position: the gap is in a corner, so only two tiles can slide",
+      "position": [1, 2, 3, 4, 5, 6, 7, 8, 0],
+      "side_to_move": 0,
+      "expected_moves": [
+        [1, 2, 3, 4, 5, 0, 7, 8, 6],
+        [1, 2, 3, 4, 5, 6, 7, 0, 8]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "gap on an edge: three tiles can slide, the two beside it and the one inward",
+      "position": [1, 0, 2, 3, 4, 5, 6, 7, 8],
+      "side_to_move": 0,
+      "expected_moves": [
+        [0, 1, 2, 3, 4, 5, 6, 7, 8],
+        [1, 2, 0, 3, 4, 5, 6, 7, 8],
+        [1, 4, 2, 3, 0, 5, 6, 7, 8]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "gap in the centre: all four orthogonal neighbours can slide, and the diagonal ones cannot",
+      "position": [1, 2, 3, 4, 0, 5, 6, 7, 8],
+      "side_to_move": 0,
+      "expected_moves": [
+        [1, 0, 3, 4, 2, 5, 6, 7, 8],
+        [1, 2, 3, 0, 4, 5, 6, 7, 8],
+        [1, 2, 3, 4, 5, 0, 6, 7, 8],
+        [1, 2, 3, 4, 7, 5, 6, 0, 8]
+      ],
+      "expected_result": null
+    }
+  ]
 }
