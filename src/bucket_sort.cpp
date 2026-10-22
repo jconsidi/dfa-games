@@ -91,3 +91,22 @@ void bucket_append_bytes(const std::string& path, const void *buffer, size_t byt
       throw std::system_error(errno, std::generic_category(), "bucket_append_bytes: close " + path);
     }
 }
+
+void bucket_resize_file(const std::string& path, size_t bytes)
+{
+  int fd = ::open(path.c_str(), O_WRONLY | O_CREAT, 0600);
+  if(fd < 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "bucket_resize_file: open " + path);
+    }
+  if(::ftruncate(fd, off_t(bytes)) != 0)
+    {
+      int saved_errno = errno;
+      ::close(fd);
+      throw std::system_error(saved_errno, std::generic_category(), std::format("bucket_resize_file: ftruncate {:s} to {:d} bytes", path, bytes));
+    }
+  if(::close(fd) != 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "bucket_resize_file: close " + path);
+    }
+}
