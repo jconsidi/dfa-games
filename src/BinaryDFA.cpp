@@ -568,9 +568,21 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
       }
 
     profile.tic("next pair outputs");
+    // The lookups below binary search these pairs, so they must strictly
+    // increase; a run of zeros or any other damage to the file stops here,
+    // naming the rank.
     MemoryMap<next_pair_output_t> merged(binary_dir() + "/next_pair_outputs", next_layer_count, [&](size_t next_pair_rank)
     {
-      return next_pair_output_t{next_pairs[next_pair_rank], next_pair_rank_to_output[next_pair_rank]};
+      const next_pair_t& next_pair = next_pairs[next_pair_rank];
+      if(next_pair_rank > 0)
+        {
+          const next_pair_t& previous = next_pairs[next_pair_rank - 1];
+          if(!(previous < next_pair))
+            {
+              throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " pairs do not strictly increase at rank " + std::to_string(next_pair_rank) + ": (" + std::to_string(previous.get_left_state()) + ", " + std::to_string(previous.get_right_state()) + ") then (" + std::to_string(next_pair.get_left_state()) + ", " + std::to_string(next_pair.get_right_state()) + ")");
+            }
+        }
+      return next_pair_output_t{next_pair, next_pair_rank_to_output[next_pair_rank]};
     });
 
     // The merged file holds every next pair, and this is the last layer that
