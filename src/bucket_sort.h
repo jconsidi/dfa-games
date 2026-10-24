@@ -89,10 +89,6 @@ bool bucket_sort_out_of_core(size_t bytes);
 // wide, holds values below bound.
 int bucket_digit_bit(int field_bits, uint64_t bound);
 
-// Opens path for writing, writes bytes at offset, and closes it, checking
-// each step.
-void bucket_append_bytes(const std::string& path, const void *buffer, size_t bytes, size_t offset);
-
 // What a bucket_sort did, for its log lines and for tests.
 struct BucketSortStats
 {
@@ -266,9 +262,11 @@ public:
 // Appends records to bucket files from many threads. Each thread holds a
 // buffer per bucket; a full buffer reserves the next range of its bucket's
 // file with an atomic add and writes it there, so writers never share
-// bytes. Each thread also tracks, per bucket, a record and the key bits its
-// bucket's records share with it. finish() checks every file's length
-// against what was reserved for it, and returns the bucket files.
+// bytes, each write going through the bucket's SharedFileWrites. Each
+// thread also tracks, per bucket, a record and the key bits its bucket's
+// records share with it. finish() reads back each file's partial blocks,
+// checks every file's length against what was reserved for it, and returns
+// the bucket files.
 template <class T>
 class BucketAppender
 {
@@ -277,6 +275,7 @@ class BucketAppender
   BucketSpec<T> spec;
   size_t buffer_records;
   std::vector<std::atomic<size_t>> reserved;
+  std::vector<std::unique_ptr<SharedFileWrites>> writes;
   std::atomic<bool> finished;
 
   // per writer, per bucket: a record seen, and the bits shared with it
@@ -374,7 +373,7 @@ public:
           return;
         }
       size_t start = appender.reserved[bucket].fetch_add(buffer.size());
-      bucket_append_bytes(appender.path(bucket), buffer.data(), buffer.size() * sizeof(T), start * sizeof(T));
+      appender.writes[bucket]->pwrite(buffer.data(), buffer.size() * sizeof(T), start * sizeof(T));
       buffer.clear();
     }
 
@@ -408,6 +407,7 @@ public:
 
     for(size_t b = 0; b < spec.bucket_count(); ++b)
       {
+        writes.push_back(std::make_unique<SharedFileWrites>(path(b)));
         struct stat stat_buffer;
         if(::stat(path(b).c_str(), &stat_buffer) == 0)
           {
@@ -421,6 +421,10 @@ public:
   BucketFiles<T> abandon()
   {
     finished = true;
+    for(std::unique_ptr<SharedFileWrites>& bucket_writes : writes)
+      {
+        bucket_writes->abandon();
+      }
     std::vector<size_t> counts(spec.bucket_count());
     for(size_t b = 0; b < counts.size(); ++b)
       {
@@ -454,6 +458,7 @@ public:
           {
             continue;
           }
+        writes[b]->verify();
         struct stat stat_buffer;
         if(::stat(path(b).c_str(), &stat_buffer) != 0)
           {
@@ -905,11 +910,12 @@ struct BucketObserver
 template <class T>
 void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, BucketSortStats& stats, const BucketObserver<T> *observer = nullptr)
 {
-  int fd = ::open(path.c_str(), O_WRONLY);
+  int fd = ::open(path.c_str(), O_RDWR);
   if(fd < 0)
     {
       throw std::system_error(errno, std::generic_category(), "bucket_sort_write_back: open " + path);
     }
+  SharedFileWrites writes(fd, path);
 
   std::optional<T> previous_last;
   size_t checked_boundaries = 0;
@@ -918,7 +924,7 @@ void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, Buc
   auto process = [&](size_t offset, std::span<T> records)
   {
     FlashSort<T>().sort(records.data(), records.data() + records.size());
-    pwrite_bytes(fd, records.data(), records.size() * sizeof(T), offset * sizeof(T));
+    writes.pwrite(records.data(), records.size() * sizeof(T), offset * sizeof(T));
     if(observer && observer->sorted)
       {
         observer->sorted(offset, std::span<const T>(records.data(), records.size()));
@@ -952,6 +958,7 @@ void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, Buc
   try
     {
       for_each_bucket<T>(std::move(files), 0, process, commit, stats, 0);
+      writes.verify();
     }
   catch(...)
     {

@@ -69,25 +69,3 @@ int bucket_digit_bit(int field_bits, uint64_t bound)
   int used = (bound <= 1) ? 0 : int(std::bit_width(bound - 1));
   return field_bits - used;
 }
-
-void bucket_append_bytes(const std::string& path, const void *buffer, size_t bytes, size_t offset)
-{
-  int fd = ::open(path.c_str(), O_WRONLY | O_CREAT, 0600);
-  if(fd < 0)
-    {
-      throw std::system_error(errno, std::generic_category(), "bucket_append_bytes: open " + path);
-    }
-  try
-    {
-      pwrite_bytes(fd, buffer, bytes, offset);
-    }
-  catch(...)
-    {
-      ::close(fd);
-      throw;
-    }
-  if(::close(fd) != 0)
-    {
-      throw std::system_error(errno, std::generic_category(), "bucket_append_bytes: close " + path);
-    }
-}
