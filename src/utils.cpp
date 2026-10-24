@@ -5,11 +5,18 @@
 #include <cassert>
 #include <cerrno>
 #include <climits>
+#include <cstdlib>
+#include <exception>
 #include <format>
+#include <iostream>
 #include <stdexcept>
 #include <system_error>
 #include <unistd.h>
 #include <vector>
+
+#include <fcntl.h>
+#include <openssl/evp.h>
+#include <sys/statvfs.h>
 
 #include "Profile.h"
 #include "parallel.h"
@@ -181,6 +188,217 @@ void pread_bytes(int fildes, void *buffer, size_t bytes, size_t offset, size_t b
         }
       bytes_read += size_t(ret);
     }
+}
+
+static std::array<unsigned char, 32> sha256_digest(const void *buffer, size_t bytes)
+{
+  std::array<unsigned char, 32> digest;
+  static const EVP_MD *hash_implementation = EVP_sha256();
+  EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+  unsigned int digest_bytes = 0;
+  bool ok = (hash_context != nullptr) &&
+    (EVP_DigestInit_ex(hash_context, hash_implementation, NULL) == 1) &&
+    (EVP_DigestUpdate(hash_context, buffer, bytes) == 1) &&
+    (EVP_DigestFinal_ex(hash_context, digest.data(), &digest_bytes) == 1);
+  EVP_MD_CTX_destroy(hash_context);
+  if(!ok || (digest_bytes != digest.size()))
+    {
+      throw std::runtime_error("SHA-256 digest failed");
+    }
+  return digest;
+}
+
+void SharedFileWrites::check_block_size(const char *what, int statvfs_ret, unsigned long block) const
+{
+  if(statvfs_ret != 0)
+    {
+      throw std::system_error(errno, std::generic_category(), std::format("SharedFileWrites: {:s} {:s}", what, name));
+    }
+  if((block == 0) || (block_bytes % block != 0))
+    {
+      throw std::runtime_error(std::format("SharedFileWrites: {:s} is on a file system with {:d} byte blocks, which do not divide {:d}", name, block, block_bytes));
+    }
+}
+
+SharedFileWrites::SharedFileWrites(int fildes_in, std::string name_in)
+  : fildes(fildes_in),
+    name(name_in),
+    uncaught_at_construction(std::uncaught_exceptions()),
+    written(false),
+    finished(false)
+{
+  struct statvfs file_system;
+  int ret = ::fstatvfs(fildes, &file_system);
+  check_block_size("fstatvfs", ret, ret == 0 ? file_system.f_frsize : 0);
+}
+
+SharedFileWrites::SharedFileWrites(std::string path_in)
+  : fildes(-1),
+    name(path_in),
+    uncaught_at_construction(std::uncaught_exceptions()),
+    written(false),
+    finished(false)
+{
+  size_t slash = name.find_last_of('/');
+  std::string dir = (slash == std::string::npos) ? "." : ((slash == 0) ? "/" : name.substr(0, slash));
+  struct statvfs file_system;
+  int ret = ::statvfs(dir.c_str(), &file_system);
+  check_block_size("statvfs", ret, ret == 0 ? file_system.f_frsize : 0);
+}
+
+SharedFileWrites::~SharedFileWrites()
+{
+  if(written && !finished && (std::uncaught_exceptions() <= uncaught_at_construction))
+    {
+      std::cerr << "SharedFileWrites: " << name << " was written but never verified or abandoned" << std::endl;
+      std::abort();
+    }
+}
+
+void SharedFileWrites::pwrite_bytes_to_file(const void *buffer, size_t bytes, size_t offset)
+{
+  if(fildes >= 0)
+    {
+      pwrite_bytes(fildes, buffer, bytes, offset);
+      return;
+    }
+  int fd = ::open(name.c_str(), O_WRONLY | O_CREAT, 0600);
+  if(fd < 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "SharedFileWrites: open " + name);
+    }
+  try
+    {
+      pwrite_bytes(fd, buffer, bytes, offset);
+    }
+  catch(...)
+    {
+      ::close(fd);
+      throw;
+    }
+  if(::close(fd) != 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "SharedFileWrites: close " + name);
+    }
+}
+
+void SharedFileWrites::pwrite(const void *buffer, size_t bytes, size_t offset)
+{
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    if(finished)
+      {
+        throw std::logic_error("SharedFileWrites: " + name + " written after verify or abandon");
+      }
+    written = true;
+  }
+  if(bytes == 0)
+    {
+      return;
+    }
+
+  const unsigned char *data = static_cast<const unsigned char *>(buffer);
+  size_t end = offset + bytes;
+  size_t whole_begin = (offset + block_bytes - 1) / block_bytes * block_bytes;
+  size_t whole_end = end / block_bytes * block_bytes;
+
+  // [begin, end) pieces of partial blocks
+  std::vector<std::pair<size_t, size_t>> partial;
+  if(whole_begin < whole_end)
+    {
+      pwrite_bytes_to_file(data + (whole_begin - offset), whole_end - whole_begin, whole_begin);
+      if(offset < whole_begin)
+        {
+          partial.emplace_back(offset, whole_begin);
+        }
+      if(whole_end < end)
+        {
+          partial.emplace_back(whole_end, end);
+        }
+    }
+  else
+    {
+      partial.emplace_back(offset, end);
+    }
+
+  std::vector<Piece> written_pieces;
+  for(const auto& [piece_begin, piece_end] : partial)
+    {
+      written_pieces.push_back(Piece{piece_begin, piece_end - piece_begin, sha256_digest(data + (piece_begin - offset), piece_end - piece_begin)});
+    }
+
+  std::lock_guard<std::mutex> lock(mutex);
+  for(const Piece& piece : written_pieces)
+    {
+      pwrite_bytes_to_file(data + (piece.offset - offset), piece.bytes, piece.offset);
+      pieces.push_back(piece);
+    }
+}
+
+size_t SharedFileWrites::verify()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  if(finished)
+    {
+      throw std::logic_error("SharedFileWrites: " + name + " verified after verify or abandon");
+    }
+  finished = true;
+
+  int fd = fildes;
+  if((fd < 0) && !pieces.empty())
+    {
+      fd = ::open(name.c_str(), O_RDONLY);
+      if(fd < 0)
+        {
+          throw std::system_error(errno, std::generic_category(), "SharedFileWrites: open " + name);
+        }
+    }
+
+  auto check = [&]()
+  {
+    std::sort(pieces.begin(), pieces.end(), [](const Piece& a, const Piece& b) {return a.offset < b.offset;});
+    std::vector<unsigned char> back;
+    for(size_t i = 0; i < pieces.size(); ++i)
+      {
+        const Piece& piece = pieces[i];
+        if((i > 0) && (pieces[i - 1].offset + pieces[i - 1].bytes > piece.offset))
+          {
+            throw std::logic_error(std::format("SharedFileWrites: {:s} bytes [{:d}, {:d}) and [{:d}, {:d}) were both written", name, pieces[i - 1].offset, pieces[i - 1].offset + pieces[i - 1].bytes, piece.offset, piece.offset + piece.bytes));
+          }
+        back.resize(piece.bytes);
+        pread_bytes(fd, back.data(), piece.bytes, piece.offset);
+        if(sha256_digest(back.data(), back.size()) != piece.digest)
+          {
+            throw std::runtime_error(std::format("SharedFileWrites: {:s} bytes [{:d}, {:d}) read back differ from what was written", name, piece.offset, piece.offset + piece.bytes));
+          }
+      }
+  };
+
+  if(fd == fildes)
+    {
+      check();
+      return pieces.size();
+    }
+  try
+    {
+      check();
+    }
+  catch(...)
+    {
+      ::close(fd);
+      throw;
+    }
+  if(::close(fd) != 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "SharedFileWrites: close " + name);
+    }
+  return pieces.size();
+}
+
+void SharedFileWrites::abandon()
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  finished = true;
 }
 
 void pwrite_filled(int fildes, size_t offset, size_t count, size_t element_bytes,

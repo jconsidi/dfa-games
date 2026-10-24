@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -351,6 +352,162 @@ static size_t test_pread_pwrite()
   return cases;
 }
 
+// SharedFileWrites from threads writing disjoint ranges of one sparse
+// file at unaligned offsets, ranges inside one block, ranges of whole
+// blocks, and empty ranges, through a descriptor and by path; then verify
+// catching a changed piece and overlapping pieces, and use after verify or
+// abandon throwing.
+static size_t test_shared_file_writes()
+{
+  size_t cases = 0;
+  std::string path = test_path("shared-file-writes");
+  const size_t block = SharedFileWrites::block_bytes;
+
+  // range k is [starts[k], starts[k + 1])
+  std::vector<size_t> starts = {0, 1, 100, block - 1, block, 2 * block, 2 * block + 5, 2 * block + 9, 5 * block + 3, 9 * block, 9 * block, 12 * block - 7, 12 * block + 1};
+  for(size_t k = 0; k < 400; ++k)
+    {
+      starts.push_back(starts.back() + (k * 7919) % (3 * block) + 1);
+    }
+  size_t n = starts.back();
+  std::vector<unsigned char> pattern(n);
+  for(size_t i = 0; i < n; ++i)
+    {
+      pattern[i] = (unsigned char)((i * 131 + 7) % 251 + 1);
+    }
+
+  // the partial pieces each range makes
+  size_t expected_pieces = 0;
+  for(size_t k = 0; k + 1 < starts.size(); ++k)
+    {
+      size_t begin = starts[k];
+      size_t end = starts[k + 1];
+      size_t whole_begin = (begin + block - 1) / block * block;
+      size_t whole_end = end / block * block;
+      if(begin == end)
+        {
+          continue;
+        }
+      if(whole_begin < whole_end)
+        {
+          expected_pieces += (begin < whole_begin) ? 1 : 0;
+          expected_pieces += (whole_end < end) ? 1 : 0;
+        }
+      else
+        {
+          ++expected_pieces;
+        }
+    }
+
+  for(bool by_path : {false, true})
+    {
+      std::string name = by_path ? "shared_file_writes by path" : "shared_file_writes by descriptor";
+      int fd = open_test_file(path);
+      std::optional<SharedFileWrites> writes;
+      if(by_path)
+        {
+          writes.emplace(path);
+        }
+      else
+        {
+          writes.emplace(fd, path);
+        }
+
+      const size_t threads = 8;
+      std::atomic<size_t> next{0};
+      std::vector<std::thread> workers;
+      for(size_t t = 0; t < threads; ++t)
+        {
+          workers.emplace_back([&]()
+          {
+            for(size_t p = next++; p + 1 < starts.size(); p = next++)
+              {
+                size_t k = starts.size() - 2 - p;
+                writes->pwrite(pattern.data() + starts[k], starts[k + 1] - starts[k], starts[k]);
+              }
+          });
+        }
+      for(std::thread& worker : workers)
+        {
+          worker.join();
+        }
+
+      size_t pieces = writes->verify();
+      if(pieces != expected_pieces)
+        {
+          throw std::logic_error(name + ": verify checked " + std::to_string(pieces) + " pieces, expected " + std::to_string(expected_pieces));
+        }
+      std::vector<unsigned char> back(n);
+      pread_bytes(fd, back.data(), n, 0);
+      for(size_t i = 0; i < n; ++i)
+        {
+          if(back[i] != pattern[i])
+            {
+              throw std::logic_error(name + ": byte " + std::to_string(i) + " differs");
+            }
+        }
+      require_throws(name + " pwrite after verify", [&]()
+      {
+        writes->pwrite(pattern.data(), 1, 0);
+      });
+      require_throws(name + " verify twice", [&]()
+      {
+        writes->verify();
+      });
+      ::close(fd);
+      ++cases;
+    }
+
+  // a byte of a piece changed after its write
+  {
+    int fd = open_test_file(path);
+    SharedFileWrites writes(fd, path);
+    writes.pwrite(pattern.data(), 4, 2 * block + 5);
+    unsigned char zero = 0;
+    pwrite_bytes(fd, &zero, 1, 2 * block + 6);
+    require_throws("shared_file_writes changed piece", [&]()
+    {
+      writes.verify();
+    });
+    ::close(fd);
+    ++cases;
+  }
+
+  // two writes of one byte
+  {
+    int fd = open_test_file(path);
+    SharedFileWrites writes(fd, path);
+    writes.pwrite(pattern.data(), 10, 0);
+    writes.pwrite(pattern.data() + 5, 10, 5);
+    require_throws("shared_file_writes overlapping pieces", [&]()
+    {
+      writes.verify();
+    });
+    ::close(fd);
+    ++cases;
+  }
+
+  // abandoned, so no verify, and no write after
+  {
+    int fd = open_test_file(path);
+    SharedFileWrites writes(fd, path);
+    writes.pwrite(pattern.data(), 10, 3);
+    writes.abandon();
+    require_throws("shared_file_writes pwrite after abandon", [&]()
+    {
+      writes.pwrite(pattern.data(), 1, 0);
+    });
+    ::close(fd);
+    ++cases;
+  }
+
+  if(::unlink(path.c_str()) != 0)
+    {
+      throw std::runtime_error("unlink " + path + " failed");
+    }
+  return cases;
+}
+
 static long blocks_written()
 {
   struct rusage usage;
@@ -527,6 +684,8 @@ int main(int argc, char **argv)
 	  std::cout << "test_memory_map: " << unlink_cases << " unlink cases removed the file, and other links kept every element" << std::endl;
 	  size_t io_cases = test_pread_pwrite();
 	  std::cout << "test_memory_map: " << io_cases << " pread_bytes and pwrite_bytes cases read back what was written or threw" << std::endl;
+	  size_t shared_cases = test_shared_file_writes();
+	  std::cout << "test_memory_map: " << shared_cases << " SharedFileWrites cases read back what threads wrote, or threw on a changed or overlapping piece or use after verify or abandon" << std::endl;
 	  size_t filled_cases = test_pwrite_filled();
 	  std::cout << "test_memory_map: " << filled_cases << " pwrite_filled and populate cases wrote every element at its offset, or threw from fill" << std::endl;
 	}

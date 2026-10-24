@@ -3,10 +3,14 @@
 #ifndef CHESS_H
 #define CHESS_H
 
+#include <array>
 #include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <mutex>
+#include <string>
+#include <vector>
 
 #include "Board.h"
 
@@ -26,6 +30,73 @@ void write_buffer(int fildes, const T *buffer, size_t elements);
 // read that reaches end of file first.
 void pwrite_bytes(int fildes, const void *buffer, size_t bytes, size_t offset, size_t bytes_per_call_max = INT_MAX);
 void pread_bytes(int fildes, void *buffer, size_t bytes, size_t offset, size_t bytes_per_call_max = INT_MAX);
+
+// Writes to one file from many threads at once, with no two writes in
+// flight sharing a block of block_bytes. APFS on macOS 26 loses bytes when
+// they do: while one pwrite that ends partway into an unwritten block is
+// running, another writing the rest of that block can return the full count
+// and later read back as zeros. pwrite writes the whole blocks of its range
+// with pwrite_bytes in the calling thread, then the partial blocks at either
+// end one write at a time under this file's lock, keeping each partial
+// piece's offset, length and SHA-256 digest. verify reads back the partial
+// pieces, where every lost byte found so far lay, and throws naming the
+// first whose bytes differ.
+//
+// Once anything is written, each object must end in verify or abandon, or
+// be destroyed by an exception unwinding past it; otherwise its destructor
+// aborts.
+class SharedFileWrites
+{
+public:
+
+  static constexpr size_t block_bytes = 4096;
+
+  // Writes through fildes, which must be open for reading and writing and
+  // stay open until verify. name labels errors.
+  SharedFileWrites(int fildes_in, std::string name_in);
+
+  // Opens path for each write (creating it) and for verify, for callers
+  // that cannot hold a descriptor per file.
+  explicit SharedFileWrites(std::string path_in);
+
+  ~SharedFileWrites();
+
+  SharedFileWrites(const SharedFileWrites&) = delete;
+  SharedFileWrites& operator=(const SharedFileWrites&) = delete;
+
+  // Writes bytes at offset, like pwrite_bytes. Ranges written from
+  // different threads must not overlap.
+  void pwrite(const void *buffer, size_t bytes, size_t offset);
+
+  // Reads back every partial piece. Call once, after every pwrite has
+  // returned. Also throws if two pieces overlap. Returns the pieces
+  // checked.
+  size_t verify();
+
+  // Ends this object without verifying, for files being removed.
+  void abandon();
+
+private:
+
+  struct Piece
+  {
+    size_t offset;
+    size_t bytes;
+    std::array<unsigned char, 32> digest;
+  };
+
+  // descriptor, or -1 to open path per call
+  int fildes;
+  std::string name;
+  int uncaught_at_construction;
+  std::mutex mutex;
+  std::vector<Piece> pieces;
+  bool written;
+  bool finished;
+
+  void check_block_size(const char *what, int statvfs_ret, unsigned long block) const;
+  void pwrite_bytes_to_file(const void *buffer, size_t bytes, size_t offset);
+};
 
 // Write count elements of element_bytes bytes each, element i at offset +
 // i * element_bytes, with fill(begin, n, out) writing elements [begin,
