@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -51,13 +52,19 @@ public:
 
   static constexpr size_t block_bytes = 4096;
 
-  // Writes through fildes, which must be open for reading and writing and
-  // stay open until verify. name labels errors.
-  SharedFileWrites(int fildes_in, std::string name_in);
+  // Opens path for reading and writing, with open_flags added (O_CREAT |
+  // O_TRUNC for a new file), and sets its length to size if given. verify
+  // and abandon close it, as does the destructor if neither ran.
+  SharedFileWrites(std::string path_in, int open_flags, std::optional<size_t> size = std::nullopt);
+
+  struct OpenPerWrite
+  {
+  };
+  static constexpr OpenPerWrite open_per_write{};
 
   // Opens path for each write (creating it) and for verify, for callers
   // that cannot hold a descriptor per file.
-  explicit SharedFileWrites(std::string path_in);
+  SharedFileWrites(std::string path_in, OpenPerWrite);
 
   ~SharedFileWrites();
 
@@ -68,12 +75,13 @@ public:
   // different threads must not overlap.
   void pwrite(const void *buffer, size_t bytes, size_t offset);
 
-  // Reads back every partial piece. Call once, after every pwrite has
-  // returned. Also throws if two pieces overlap. Returns the pieces
-  // checked.
+  // Reads back every partial piece, then closes the file, checking the
+  // close. Call once, after every pwrite has returned. Also throws if two
+  // pieces overlap. Returns the pieces checked.
   size_t verify();
 
-  // Ends this object without verifying, for files being removed.
+  // Ends this object without verifying, for files being removed. Closes
+  // the file without checking the close.
   void abandon();
 
 private:
@@ -85,7 +93,8 @@ private:
     std::array<unsigned char, 32> digest;
   };
 
-  // descriptor, or -1 to open path per call
+  bool per_write;
+  // the open descriptor, or -1
   int fildes;
   std::string name;
   int uncaught_at_construction;
@@ -95,6 +104,7 @@ private:
   bool finished;
 
   void check_block_size(const char *what, int statvfs_ret, unsigned long block) const;
+  void close_checked();
   void pwrite_bytes_to_file(const void *buffer, size_t bytes, size_t offset);
 };
 

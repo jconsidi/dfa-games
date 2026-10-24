@@ -407,7 +407,7 @@ public:
 
     for(size_t b = 0; b < spec.bucket_count(); ++b)
       {
-        writes.push_back(std::make_unique<SharedFileWrites>(path(b)));
+        writes.push_back(std::make_unique<SharedFileWrites>(path(b), SharedFileWrites::open_per_write));
         struct stat stat_buffer;
         if(::stat(path(b).c_str(), &stat_buffer) == 0)
           {
@@ -910,12 +910,7 @@ struct BucketObserver
 template <class T>
 void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, BucketSortStats& stats, const BucketObserver<T> *observer = nullptr)
 {
-  int fd = ::open(path.c_str(), O_RDWR);
-  if(fd < 0)
-    {
-      throw std::system_error(errno, std::generic_category(), "bucket_sort_write_back: open " + path);
-    }
-  SharedFileWrites writes(fd, path);
+  SharedFileWrites writes(path, 0);
 
   std::optional<T> previous_last;
   size_t checked_boundaries = 0;
@@ -955,21 +950,8 @@ void bucket_sort_write_back(BucketFiles<T>&& files, const std::string& path, Buc
   };
 
   size_t total = files.total();
-  try
-    {
-      for_each_bucket<T>(std::move(files), 0, process, commit, stats, 0);
-      writes.verify();
-    }
-  catch(...)
-    {
-      ::close(fd);
-      throw;
-    }
-
-  if(::close(fd) != 0)
-    {
-      throw std::system_error(errno, std::generic_category(), "bucket_sort_write_back: close " + path);
-    }
+  for_each_bucket<T>(std::move(files), 0, process, commit, stats, 0);
+  writes.verify();
   if(written != total)
     {
       throw std::logic_error(std::format("bucket_sort: {:d} records written back to {:s}, expected {:d}", written, path, total));

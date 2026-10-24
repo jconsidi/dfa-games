@@ -220,20 +220,39 @@ void SharedFileWrites::check_block_size(const char *what, int statvfs_ret, unsig
     }
 }
 
-SharedFileWrites::SharedFileWrites(int fildes_in, std::string name_in)
-  : fildes(fildes_in),
-    name(name_in),
+SharedFileWrites::SharedFileWrites(std::string path_in, int open_flags, std::optional<size_t> size)
+  : per_write(false),
+    fildes(-1),
+    name(path_in),
     uncaught_at_construction(std::uncaught_exceptions()),
     written(false),
     finished(false)
 {
-  struct statvfs file_system;
-  int ret = ::fstatvfs(fildes, &file_system);
-  check_block_size("fstatvfs", ret, ret == 0 ? file_system.f_frsize : 0);
+  fildes = ::open(name.c_str(), O_RDWR | open_flags, 0600);
+  if(fildes < 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "SharedFileWrites: open " + name);
+    }
+  try
+    {
+      struct statvfs file_system;
+      int ret = ::fstatvfs(fildes, &file_system);
+      check_block_size("fstatvfs", ret, ret == 0 ? file_system.f_frsize : 0);
+      if(size && (::ftruncate(fildes, off_t(*size)) != 0))
+        {
+          throw std::system_error(errno, std::generic_category(), std::format("SharedFileWrites: ftruncate {:s} to {:d} bytes", name, *size));
+        }
+    }
+  catch(...)
+    {
+      ::close(fildes);
+      throw;
+    }
 }
 
-SharedFileWrites::SharedFileWrites(std::string path_in)
-  : fildes(-1),
+SharedFileWrites::SharedFileWrites(std::string path_in, OpenPerWrite)
+  : per_write(true),
+    fildes(-1),
     name(path_in),
     uncaught_at_construction(std::uncaught_exceptions()),
     written(false),
@@ -253,11 +272,25 @@ SharedFileWrites::~SharedFileWrites()
       std::cerr << "SharedFileWrites: " << name << " was written but never verified or abandoned" << std::endl;
       std::abort();
     }
+  if(fildes >= 0)
+    {
+      ::close(fildes);
+    }
+}
+
+void SharedFileWrites::close_checked()
+{
+  int fd = fildes;
+  fildes = -1;
+  if(::close(fd) != 0)
+    {
+      throw std::system_error(errno, std::generic_category(), "SharedFileWrites: close " + name);
+    }
 }
 
 void SharedFileWrites::pwrite_bytes_to_file(const void *buffer, size_t bytes, size_t offset)
 {
-  if(fildes >= 0)
+  if(!per_write)
     {
       pwrite_bytes(fildes, buffer, bytes, offset);
       return;
@@ -345,7 +378,7 @@ size_t SharedFileWrites::verify()
   finished = true;
 
   int fd = fildes;
-  if((fd < 0) && !pieces.empty())
+  if(per_write && !pieces.empty())
     {
       fd = ::open(name.c_str(), O_RDONLY);
       if(fd < 0)
@@ -374,10 +407,15 @@ size_t SharedFileWrites::verify()
       }
   };
 
-  if(fd == fildes)
+  if(!per_write)
     {
       check();
+      close_checked();
       return pieces.size();
+    }
+  if(fd < 0)
+    {
+      return 0;
     }
   try
     {
@@ -399,6 +437,11 @@ void SharedFileWrites::abandon()
 {
   std::lock_guard<std::mutex> lock(mutex);
   finished = true;
+  if(fildes >= 0)
+    {
+      ::close(fildes);
+      fildes = -1;
+    }
 }
 
 void pwrite_filled(int fildes, size_t offset, size_t count, size_t element_bytes,

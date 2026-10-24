@@ -854,18 +854,7 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
 
     std::string state_rows_name = binary_dir() + "/state_rows";
     size_t state_row_bytes = size_t(shape) * sizeof(next_id_t);
-    int states_fd = ::open(state_rows_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
-    if(states_fd < 0)
-      {
-        throw std::system_error(errno, std::generic_category(), "BinaryDFA: open " + state_rows_name);
-      }
-    if(::ftruncate(states_fd, off_t(new_states * state_row_bytes)) != 0)
-      {
-        int saved_errno = errno;
-        ::close(states_fd);
-        throw std::system_error(saved_errno, std::generic_category(), "BinaryDFA: ftruncate " + state_rows_name);
-      }
-    SharedFileWrites states_writes(states_fd, state_rows_name);
+    SharedFileWrites states_writes(state_rows_name, O_CREAT | O_TRUNC, new_states * state_row_bytes);
 
     // The row before a block has a constant's id, or the last new state's
     // id before the block, 1 + base.
@@ -908,21 +897,8 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
       return next_id - 2 - base;
     };
 
-    size_t states_pieces = 0;
-    try
-      {
-        counted.emit(emit_rows);
-        states_pieces = states_writes.verify();
-      }
-    catch(...)
-      {
-        ::close(states_fd);
-        throw;
-      }
-    if(::close(states_fd) != 0)
-      {
-        throw std::system_error(errno, std::generic_category(), "BinaryDFA: close " + state_rows_name);
-      }
+    counted.emit(emit_rows);
+    size_t states_pieces = states_writes.verify();
 
     std::cout << "layer=" << layer << " rows: " << curr_layer_count << " rows sorted " << (counted.stats.out_of_core ? "by bucket" : "in place") << " and numbered in " << counted.stats.blocks << " blocks, " << new_states << " new states, each block numbering the new states counted for it; " << counted.stats.buckets.repartitioned << " buckets partitioned again; " << states_pieces << " pieces of partial blocks of state_rows read back as written" << std::endl;
 
@@ -956,18 +932,7 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
     // sorted record k holds rank k. Each record's output id goes to its
     // rank.
     std::string output_name = binary_build_file_prefix(layer) + "-pair_rank_to_output";
-    int output_fd = ::open(output_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
-    if(output_fd < 0)
-      {
-        throw std::system_error(errno, std::generic_category(), "BinaryDFA: open " + output_name);
-      }
-    if(::ftruncate(output_fd, off_t(curr_layer_count * sizeof(curr_id_t))) != 0)
-      {
-        int saved_errno = errno;
-        ::close(output_fd);
-        throw std::system_error(saved_errno, std::generic_category(), "BinaryDFA: ftruncate " + output_name);
-      }
-    SharedFileWrites output_writes(output_fd, output_name);
+    SharedFileWrites output_writes(output_name, O_CREAT | O_TRUNC, curr_layer_count * sizeof(curr_id_t));
 
     auto count_ranks = [](size_t, std::span<const rank_output_t> block, const rank_output_t *)
     {
@@ -988,22 +953,8 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_rows(int layer,
       return block.size();
     };
 
-    SortedBlocksStats rank_stats;
-    size_t output_pieces = 0;
-    try
-      {
-        rank_stats = sorted_emit<rank_output_t>(rank_sink.finish(), std::nullopt, count_ranks, emit_ranks);
-        output_pieces = output_writes.verify();
-      }
-    catch(...)
-      {
-        ::close(output_fd);
-        throw;
-      }
-    if(::close(output_fd) != 0)
-      {
-        throw std::system_error(errno, std::generic_category(), "BinaryDFA: close " + output_name);
-      }
+    SortedBlocksStats rank_stats = sorted_emit<rank_output_t>(rank_sink.finish(), std::nullopt, count_ranks, emit_ranks);
+    size_t output_pieces = output_writes.verify();
     if(rank_stats.records != curr_layer_count)
       {
         throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " rank outputs held " + std::to_string(rank_stats.records) + " ranks, expected " + std::to_string(curr_layer_count));
@@ -1629,12 +1580,7 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
   profile.tic("sort and unique");
 
   std::string next_pairs_unique_name = binary_dir() + "/next_pairs_unique";
-  int next_pairs_fd = ::open(next_pairs_unique_name.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
-  if(next_pairs_fd < 0)
-    {
-      throw std::system_error(errno, std::generic_category(), "BinaryDFA: open " + next_pairs_unique_name);
-    }
-  SharedFileWrites next_pairs_writes(next_pairs_fd, next_pairs_unique_name);
+  SharedFileWrites next_pairs_writes(next_pairs_unique_name, O_CREAT | O_TRUNC);
 
   auto count_distinct = [](size_t, std::span<const next_pair_t> block, const next_pair_t *before)
   {
@@ -1672,22 +1618,8 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
     return distinct.size();
   };
 
-  SortedBlocksStats unique_stats;
-  size_t next_pairs_pieces = 0;
-  try
-    {
-      unique_stats = sorted_emit<next_pair_t>(std::move(populated_pairs), std::optional<next_pair_t>(sentinel), count_distinct, emit_distinct);
-      next_pairs_pieces = next_pairs_writes.verify();
-    }
-  catch(...)
-    {
-      ::close(next_pairs_fd);
-      throw;
-    }
-  if(::close(next_pairs_fd) != 0)
-    {
-      throw std::system_error(errno, std::generic_category(), "BinaryDFA: close " + next_pairs_unique_name);
-    }
+  SortedBlocksStats unique_stats = sorted_emit<next_pair_t>(std::move(populated_pairs), std::optional<next_pair_t>(sentinel), count_distinct, emit_distinct);
+  size_t next_pairs_pieces = next_pairs_writes.verify();
 
   if((unique_stats.records != working_count - marked_count) || (unique_stats.sentinels != marked_count))
     {
