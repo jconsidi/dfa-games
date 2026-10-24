@@ -93,10 +93,6 @@ int bucket_digit_bit(int field_bits, uint64_t bound);
 // each step.
 void bucket_append_bytes(const std::string& path, const void *buffer, size_t bytes, size_t offset);
 
-// Creates path if it does not exist, and sets its length to bytes, checking
-// each step.
-void bucket_resize_file(const std::string& path, size_t bytes);
-
 // What a bucket_sort did, for its log lines and for tests.
 struct BucketSortStats
 {
@@ -270,12 +266,9 @@ public:
 // Appends records to bucket files from many threads. Each thread holds a
 // buffer per bucket; a full buffer reserves the next range of its bucket's
 // file with an atomic add and writes it there, so writers never share
-// bytes. A file is grown, under a lock, before any write would reach past
-// its end, so no write extends a file; writes that did left a hole of zeros
-// in a forward pairs file of cram_7x7. Each thread also tracks, per bucket,
-// a record and the key bits its bucket's records share with it. finish()
-// checks that every reserved record was written, cuts each file to what was
-// reserved for it, checks its length, and returns the bucket files.
+// bytes. Each thread also tracks, per bucket, a record and the key bits its
+// bucket's records share with it. finish() checks every file's length
+// against what was reserved for it, and returns the bucket files.
 template <class T>
 class BucketAppender
 {
@@ -284,10 +277,6 @@ class BucketAppender
   BucketSpec<T> spec;
   size_t buffer_records;
   std::vector<std::atomic<size_t>> reserved;
-  // records written, and records each file is sized for
-  std::vector<std::atomic<size_t>> written;
-  std::vector<std::atomic<size_t>> allocated;
-  std::mutex allocate_mutex;
   std::atomic<bool> finished;
 
   // per writer, per bucket: a record seen, and the bits shared with it
@@ -298,25 +287,6 @@ class BucketAppender
   std::string path(size_t bucket) const
   {
     return dir + "/" + prefix + "." + std::to_string(bucket);
-  }
-
-  // Sizes bucket's file for at least records records, growing it by a
-  // quarter or 64MB at a time.
-  void allocate(size_t bucket, size_t records)
-  {
-    if(allocated[bucket].load() >= records)
-      {
-        return;
-      }
-    std::lock_guard<std::mutex> lock(allocate_mutex);
-    size_t current = allocated[bucket].load();
-    if(current >= records)
-      {
-        return;
-      }
-    size_t target = std::max(records, current + current / 4 + ((size_t(1) << 26) / sizeof(T)));
-    bucket_resize_file(path(bucket), target * sizeof(T));
-    allocated[bucket].store(target);
   }
 
   // Merges the writers' samples: a record agreeing with its writer's
@@ -404,9 +374,7 @@ public:
           return;
         }
       size_t start = appender.reserved[bucket].fetch_add(buffer.size());
-      appender.allocate(bucket, start + buffer.size());
       bucket_append_bytes(appender.path(bucket), buffer.data(), buffer.size() * sizeof(T), start * sizeof(T));
-      appender.written[bucket].fetch_add(buffer.size());
       buffer.clear();
     }
 
@@ -430,8 +398,6 @@ public:
       prefix(prefix_in),
       spec(spec_in),
       reserved(spec_in.bucket_count()),
-      written(spec_in.bucket_count()),
-      allocated(spec_in.bucket_count()),
       finished(false)
   {
     // Each buffer is at most 4MB. A buffer is allocated when its bucket
@@ -484,15 +450,10 @@ public:
 
     for(size_t b = 0; b < counts.size(); ++b)
       {
-        if(written[b].load() != counts[b])
-          {
-            throw std::logic_error(std::format("BucketAppender: {:s} had {:d} records written, but {:d} reserved", path(b), written[b].load(), counts[b]));
-          }
         if(counts[b] == 0)
           {
             continue;
           }
-        bucket_resize_file(path(b), counts[b] * sizeof(T));
         struct stat stat_buffer;
         if(::stat(path(b).c_str(), &stat_buffer) != 0)
           {

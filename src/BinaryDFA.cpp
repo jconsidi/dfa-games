@@ -1628,21 +1628,6 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
     {
       throw std::system_error(errno, std::generic_category(), "BinaryDFA: open " + next_pairs_unique_name);
     }
-  // The emits below write their blocks from many threads at once. The file
-  // is sized for every real pair first, so no write extends it: a hole of
-  // zeros in layer 35's pairs of cram_7x7 begin.join_16_24 (2,504 bytes,
-  // ending on a page boundary) came from writes that did. It is cut to the
-  // distinct pairs after.
-  auto resize_next_pairs = [&](size_t pairs)
-  {
-    if(::ftruncate(next_pairs_fd, off_t(pairs * sizeof(next_pair_t))) != 0)
-      {
-        int saved_errno = errno;
-        ::close(next_pairs_fd);
-        throw std::system_error(saved_errno, std::generic_category(), "BinaryDFA: ftruncate " + next_pairs_unique_name);
-      }
-  };
-  resize_next_pairs(working_count - marked_count);
 
   auto count_distinct = [](size_t, std::span<const next_pair_t> block, const next_pair_t *before)
   {
@@ -1690,12 +1675,6 @@ size_t BinaryDFA::build_quadratic_forward_layer(const DFA& left_in,
       ::close(next_pairs_fd);
       throw;
     }
-  if(unique_stats.total > working_count - marked_count)
-    {
-      ::close(next_pairs_fd);
-      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " has " + std::to_string(unique_stats.total) + " distinct pairs, more than its " + std::to_string(working_count - marked_count) + " real pairs");
-    }
-  resize_next_pairs(unique_stats.total);
   if(::close(next_pairs_fd) != 0)
     {
       throw std::system_error(errno, std::generic_category(), "BinaryDFA: close " + next_pairs_unique_name);
