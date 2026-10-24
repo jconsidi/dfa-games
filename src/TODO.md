@@ -525,3 +525,18 @@ Rows whose first transition is reject or accept crowd one bucket of the rows sor
 The whole rows sort took 9 minutes of `begin.join_24_32`, so this is low priority.
 
 - Give the constant first transitions buckets of their own, split by the next transition, using the distribution measured on a large layer.
+
+## whole-file checks of files written from many threads
+
+`SharedFileWrites` (`utils.h`) keeps concurrent writes off shared 4 KiB blocks and reads back the partial-block pieces, where every byte lost to the APFS bug lay.
+The whole blocks between them are not read back.
+
+- Each writer records a checksum per block it writes (offset, length, digest) in a small table beside the file.
+- The next stage to read the file recomputes each block's checksum as it reads, in order, and throws naming the file and offset on any mismatch.
+  The readers are `build_layer` for `state_rows`, the next layer's merge for `pair_rank_to_output`, the backward pass's merge for the forward pairs (hours later, so its table is saved with the file), and the bucket pass for bucket files.
+- This adds no extra IO, and runs after every write to the file has returned.
+
+A `make test` regression for the bug itself also belongs here.
+The minimal repro (scratchpad `pwrite_minimal.cpp`) loses data deterministically when one pwrite ends partway into an unwritten block and, while it runs, a second pwrite writes the rest of that block through an `F_NOCACHE` descriptor.
+The test would confirm that a raw `pwrite` pair loses data on the platform, and that the same writes through `SharedFileWrites` lose nothing.
+If the raw pair stops losing data (a fixed macOS, or Linux), the test should say so rather than fail.
