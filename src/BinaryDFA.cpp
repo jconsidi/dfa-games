@@ -482,6 +482,8 @@ bool binary_dfa_rows_enabled = true;
 BinaryDFASortJoin binary_dfa_sort_join = BinaryDFASortJoin::environment;
 size_t binary_dfa_backward_layers = 0;
 size_t binary_dfa_sort_join_layers = 0;
+std::function<void(size_t, uint64_t&, uint64_t&, uint64_t&)> binary_dfa_sort_join_lookup_fault;
+std::function<void(size_t, uint64_t&, uint64_t&)> binary_dfa_sort_join_next_pair_fault;
 
 // Whether a backward layer whose next layer's pairs and outputs take
 // table_bytes finds its transitions' outputs by the sort join.
@@ -871,10 +873,17 @@ MemoryMap<next_id_t> BinaryDFA::build_quadratic_backward_join(const DFA& left_in
   std::function<lookup_t(const next_pair_t&, size_t)> to_lookup = [&](const next_pair_t& next_pair, size_t transition_index)
   {
     next_pair.check(next_left_size, next_right_size);
+    uint64_t left = next_pair.get_left_state();
+    uint64_t right = next_pair.get_right_state();
+    uint64_t index = transition_index;
+    if(binary_dfa_sort_join_lookup_fault)
+      {
+        binary_dfa_sort_join_lookup_fault(transition_index, left, right, index);
+      }
     lookup_t lookup;
-    lookup.row[0] = next_state_t(next_pair.get_left_state());
-    lookup.row[1] = next_state_t(next_pair.get_right_state());
-    lookup.rank = transition_index;
+    lookup.row[0] = next_state_t(left);
+    lookup.row[1] = next_state_t(right);
+    lookup.rank = index;
     return lookup;
   };
 
@@ -954,7 +963,14 @@ MemoryMap<next_id_t> BinaryDFA::build_quadratic_backward_join(const DFA& left_in
                 throw std::logic_error(std::format("BinaryDFA: layer {:d} transition {:d} at sorted position {:d} has distinct pair {:d}, past the {:d} pairs of layer {:d}", layer, lookup.rank, offset + i, rank_end, next_layer_count, layer + 1));
               }
             size_t next_pair_rank = rank_end - 1;
-            const next_pair_t& expected = next_pairs[next_pair_rank];
+            next_pair_t expected = next_pairs[next_pair_rank];
+            if(binary_dfa_sort_join_next_pair_fault)
+              {
+                uint64_t left = expected.get_left_state();
+                uint64_t right = expected.get_right_state();
+                binary_dfa_sort_join_next_pair_fault(next_pair_rank, left, right);
+                expected = next_pair_t(left, right);
+              }
             if(!(expected == pair_of(lookup)))
               {
                 throw std::logic_error(std::format("BinaryDFA: layer {:d} transition {:d} at sorted position {:d} has pair ({:d}, {:d}), but layer {:d} pair rank {:d} is ({:d}, {:d})", layer, lookup.rank, offset + i, lookup.row[0], lookup.row[1], layer + 1, next_pair_rank, expected.get_left_state(), expected.get_right_state()));

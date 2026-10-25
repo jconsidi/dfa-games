@@ -420,5 +420,10 @@ extern BinaryDFASortJoin binary_dfa_sort_join;
 // sort join, so tests can confirm which way each layer went.
 extern size_t binary_dfa_backward_layers;
 extern size_t binary_dfa_sort_join_layers;
+// Faults for testing the sort join's checks, empty in production.
+// lookup_fault may change a transition's next pair and index as its record
+// is made; next_pair_fault may change a next pair as the merge reads it.
+extern std::function<void(size_t transition_index, uint64_t& left, uint64_t& right, uint64_t& index)> binary_dfa_sort_join_lookup_fault;
+extern std::function<void(size_t rank, uint64_t& left, uint64_t& right)> binary_dfa_sort_join_next_pair_fault;
 
 #endif
