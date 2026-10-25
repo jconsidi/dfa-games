@@ -67,7 +67,7 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
   Their minutes are a + b × G states, fitted to this solve's built move nodes, or with fewer than 3, the latest earlier solve's, and their DFA files come out of free space until the union consumes them.
   The `move min` column gives those minutes since the union row before it in the table.
   In ply 9 of cram_7x7 the fit's fixed part was about 7 minutes a node, against about 2 in ply 10, so a fit from the ply before would undercount the small nodes.
-- Plans a gc before any union whose low point, free space less 1.3 times its peak, would fall under the floor, 1 TiB by default.
+- Plans a gc before any union whose low point, free space less its peak, would fall under the floor, 1 TiB by default.
   A gc keeps what scratch links outside the caches: the other games' DFAs, the live join results and the move nodes not yet consumed.
 - Rows past the largest pair count the time fit has seen say so, since minutes per pair grow with pairs and the fit is extrapolating there.
 

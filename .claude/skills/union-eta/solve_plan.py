@@ -26,7 +26,7 @@ each covers:
 
 A span with no finished join uses the largest finished span below it. A
 union gets a gc stop before it when its low point, free space less
-PEAK_MARGIN times its peak, would be under the floor. A gc keeps the DFAs
+its peak, would be under the floor. A gc keeps the DFAs
 linked from scratch outside the caches, and frees the rest.
 
 The union in progress takes its ETA from union_eta.py.
@@ -54,8 +54,6 @@ TIB = 2**40
 # files, transition pairs, next pair outputs, rank outputs) came to about
 # 2.5 times the forward pass's pairs files, at 8 bytes per unique pair.
 PEAK_BYTES_PER_PAIR = 2.5 * 8
-# Peaks are projected, so gc is planned for this multiple of each.
-PEAK_MARGIN = 1.3
 # Minutes per G unique pairs are flat up to about this many G pairs, and
 # grow linearly above it.
 KNEE_GPAIRS = 20
@@ -468,7 +466,7 @@ def main():
                     t = time.time()
                 to_build = [placed[k[0]] for k in kids if k[1] - k[0] == 1 and placed[k[0]] in unbuilt_left]
                 build_bytes = sum(dfa_bytes(move_states[e]) for e in to_build)
-                if free - build_bytes - PEAK_MARGIN * peak < args.floor * TIB:
+                if free - build_bytes - peak < args.floor * TIB:
                     kept = other_kept + sum(dfa_bytes(size[x]) for x in live) + sum(move_disk.values())
                     t += 60 * GC_MINUTES
                     rows.append(dict(gc=True, when=t, before=free, after=total - kept))
@@ -482,7 +480,7 @@ def main():
                 t += 60 * (move_m + m)
                 status = "planned"
             rows.append(dict(node=node, span=span, status=status, ins=sum(ins), out=out, minutes=m, when=t, peak=peak, pairs=pairs,
-                             low=free - PEAK_MARGIN * peak, move_minutes=move_m))
+                             low=free - peak, move_minutes=move_m))
             free -= dfa_bytes(out)
             size[node] = out
         for k in kids:
@@ -499,7 +497,7 @@ def main():
         print(f"  {s:3d} moves: result/sum {result_ratio[s]:.2f}" + (f", unique pairs/input {pairs_ratio[s]:.2f}" if s in pairs_ratio else "")
               + f" ({len(by_span_result[s])} joins, {span_source[s]})")
     print(f"  minutes = G pairs x ({c0:.3f} + {c1:.4f} x max(0, G pairs - {KNEE_GPAIRS})), fitted to {len(points)} unions at the latest code;"
-          f" peak = {PEAK_BYTES_PER_PAIR:.0f} B per unique pair; low point = free - {PEAK_MARGIN} x peak")
+          f" peak = {PEAK_BYTES_PER_PAIR:.0f} B per unique pair; low point = free - peak")
     if out_scale is not None:
         print(f"  unions an earlier solve built take their result there times {out_scale:.2f} and their unique pairs there times"
               f" {pairs_scale:.2f}, the median ratios of the {len(out_growth)} and {len(pairs_growth)} finished here to theirs there"
