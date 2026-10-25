@@ -183,6 +183,11 @@ class BinaryDFA : public DFA
 
   template <class curr_pair_t, class next_pair_t>
   PopulatedRecords<next_pair_t> build_quadratic_transition_pairs(const DFA&, const DFA&, int layer, transition_pairs_marking<next_pair_t> *marking = nullptr, std::optional<int> sort_digit_bit = std::nullopt, bool keep_buckets = false);
+  // The transition pairs of layer as records, record i being
+  // to_record(pair i, i), with sort_digit_bit, sentinel and keep_buckets as
+  // for bucket_populate.
+  template <class curr_pair_t, class next_pair_t, class record_t>
+  PopulatedRecords<record_t> build_quadratic_transition_records(const DFA&, const DFA&, int layer, const std::function<record_t(const next_pair_t&, size_t)>& to_record, std::optional<int> sort_digit_bit, std::optional<record_t> sentinel, bool keep_buckets);
 
   std::function<bool(dfa_state_t, dfa_state_t)> get_filter_func() const;
   std::function<dfa_state_t(dfa_state_t, dfa_state_t)> get_shortcircuit_func() const;

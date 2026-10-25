@@ -1676,6 +1676,40 @@ PopulatedRecords<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const 
                                                                          std::optional<int> sort_digit_bit,
                                                                          bool keep_buckets)
 {
+  std::function<next_pair_t(const next_pair_t&, size_t)> to_record = [&](const next_pair_t& next_pair, size_t)
+  {
+    if(marking)
+      {
+        if(next_pair == marking->sentinel)
+          {
+            marking->found_sentinel = true;
+          }
+        if(marking->filter_func(next_pair.get_left_state(), next_pair.get_right_state()))
+          {
+            ++marking->marked;
+            return marking->sentinel;
+          }
+      }
+    return next_pair;
+  };
+
+  std::optional<next_pair_t> sentinel;
+  if(marking)
+    {
+      sentinel = marking->sentinel;
+    }
+  return build_quadratic_transition_records<curr_pair_t, next_pair_t, next_pair_t>(left_in, right_in, layer, to_record, sort_digit_bit, sentinel, keep_buckets);
+}
+
+template <class curr_pair_t, class next_pair_t, class record_t>
+PopulatedRecords<record_t> BinaryDFA::build_quadratic_transition_records(const DFA& left_in,
+                                                                         const DFA& right_in,
+                                                                         int layer,
+                                                                         const std::function<record_t(const next_pair_t&, size_t)>& to_record,
+                                                                         std::optional<int> sort_digit_bit,
+                                                                         std::optional<record_t> sentinel,
+                                                                         bool keep_buckets)
+{
   typedef typename next_pair_t::state_type next_state_t;
 
   Profile profile2("build_quadratic_transition_pairs");
@@ -1719,7 +1753,7 @@ PopulatedRecords<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const 
 
   right_in.get_transitions(layer, 0);
 
-  std::function<next_pair_t(size_t)> make_pair = [&](size_t transition_index)
+  std::function<record_t(size_t)> make_record = [&](size_t transition_index)
   {
     size_t curr_i = transition_index / curr_layer_shape;
     size_t curr_j = transition_index % curr_layer_shape;
@@ -1730,19 +1764,7 @@ PopulatedRecords<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const 
 
     DFATransitionsReference right_transitions = right_in.get_transitions(layer, curr_right_state);
     next_pair_t next_pair(transition_pairs_left[transition_index], right_transitions.at(curr_j));
-    if(marking)
-      {
-        if(next_pair == marking->sentinel)
-          {
-            marking->found_sentinel = true;
-          }
-        if(marking->filter_func(next_pair.get_left_state(), next_pair.get_right_state()))
-          {
-            ++marking->marked;
-            return marking->sentinel;
-          }
-      }
-    return next_pair;
+    return to_record(next_pair, transition_index);
   };
 
   // cleanup, once every pair is made
@@ -1756,12 +1778,7 @@ PopulatedRecords<next_pair_t> BinaryDFA::build_quadratic_transition_pairs(const 
   // With sort_digit_bit, pairs above the cutoff go straight to bucket files
   // and come back sorted, or with keep_buckets, still in the bucket files.
   std::string transition_pairs_name = binary_dir() + "/transition_pairs";
-  std::optional<next_pair_t> sentinel;
-  if(marking)
-    {
-      sentinel = marking->sentinel;
-    }
-  PopulatedRecords<next_pair_t> curr_transition_pairs = sort_digit_bit ? bucket_populate<next_pair_t>(transition_pairs_name, transition_pairs_size, make_pair, *sort_digit_bit, sentinel, unlink_left, keep_buckets) : PopulatedRecords<next_pair_t>{MemoryMap<next_pair_t>(transition_pairs_name, transition_pairs_size, make_pair), std::nullopt, false, BucketSortStats()};
+  PopulatedRecords<record_t> curr_transition_pairs = sort_digit_bit ? bucket_populate<record_t>(transition_pairs_name, transition_pairs_size, make_record, *sort_digit_bit, sentinel, unlink_left, keep_buckets) : PopulatedRecords<record_t>{MemoryMap<record_t>(transition_pairs_name, transition_pairs_size, make_record), std::nullopt, false, BucketSortStats()};
   if(!sort_digit_bit)
     {
       unlink_left();
