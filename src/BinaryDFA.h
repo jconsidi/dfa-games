@@ -237,6 +237,8 @@ protected:
   DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, const DFAStateIdMap&);
   template <bool wide, class next_pair_t, class next_id_t>
   DFAStateIdMap build_quadratic_backward_layer(const DFA&, const DFA&, int, size_t, const MemoryMap<next_id_t>&, bool curr_pairs_wide);
+  template <class curr_pair_t, class next_pair_t, class next_id_t>
+  MemoryMap<next_id_t> build_quadratic_backward_join(const DFA&, const DFA&, int layer, MemoryMap<next_pair_t>& next_pairs, const MemoryMap<next_id_t>& next_pair_rank_to_output, Profile& profile);
   template <class record_t, class F>
   DFAStateIdMap build_quadratic_backward_layer_rows(int layer, size_t curr_layer_count, const F& transition_for, const std::function<void()>& release_inputs, const std::string& state_bytes, Profile& profile);
   template <bool wide, class next_id_t, class F>
@@ -396,5 +398,27 @@ extern bool binary_dfa_rows_enabled;
 // count to physical memory. Tests raise it to run several passes on small
 // inputs, where it must produce the same DFA.
 extern size_t binary_dfa_output_slices_min;
+
+// How build_quadratic_backward_layer finds each transition's output: by a
+// binary search of the next layer's pairs per transition, or by a sort
+// join, bucket sorting the transitions by next pair, merging them in order
+// against the next layer's pairs, and sorting the outputs back by
+// transition. The join reads every file in order but holds more disk at
+// once.
+enum class BinaryDFASortJoin
+{
+  // DFA_BINARY_SORT_JOIN: 0 for never, 1 for always, unset for automatic;
+  // anything else throws. The production value.
+  environment,
+  never,
+  always,
+  // When the next layer's pairs and outputs are over the bucket sort cutoff.
+  automatic,
+};
+extern BinaryDFASortJoin binary_dfa_sort_join;
+// Quadratic backward layers built so far, and those of them built by the
+// sort join, so tests can confirm which way each layer went.
+extern size_t binary_dfa_backward_layers;
+extern size_t binary_dfa_sort_join_layers;
 
 #endif

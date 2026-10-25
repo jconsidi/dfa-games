@@ -6,8 +6,10 @@
 #include <atomic>
 #include <bit>
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include <execution>
+#include <format>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -477,6 +479,50 @@ size_t binary_dfa_output_slices_min = 1;
 uint64_t binary_dfa_key_narrow_max = UINT32_MAX;
 bool binary_dfa_rows_enabled = true;
 
+BinaryDFASortJoin binary_dfa_sort_join = BinaryDFASortJoin::environment;
+size_t binary_dfa_backward_layers = 0;
+size_t binary_dfa_sort_join_layers = 0;
+
+// Whether a backward layer whose next layer's pairs and outputs take
+// table_bytes finds its transitions' outputs by the sort join.
+static bool binary_dfa_sort_join_for(size_t table_bytes)
+{
+  BinaryDFASortJoin mode = binary_dfa_sort_join;
+  if(mode == BinaryDFASortJoin::environment)
+    {
+      const char *value = std::getenv("DFA_BINARY_SORT_JOIN");
+      if(!value)
+        {
+          mode = BinaryDFASortJoin::automatic;
+        }
+      else if(std::string(value) == "0")
+        {
+          mode = BinaryDFASortJoin::never;
+        }
+      else if(std::string(value) == "1")
+        {
+          mode = BinaryDFASortJoin::always;
+        }
+      else
+        {
+          throw std::runtime_error(std::format("DFA_BINARY_SORT_JOIN=\"{:s}\" must be 0 or 1, or unset", value));
+        }
+    }
+
+  switch(mode)
+    {
+    case BinaryDFASortJoin::never:
+      return false;
+    case BinaryDFASortJoin::always:
+      return true;
+    case BinaryDFASortJoin::automatic:
+      return bucket_sort_out_of_core(table_bytes);
+    case BinaryDFASortJoin::environment:
+      break;
+    }
+  throw std::logic_error("binary_dfa_sort_join_for: unresolved mode");
+}
+
 DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
                                                               const DFA& right_in,
                                                               int layer,
@@ -484,6 +530,8 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
 {
   size_t curr_layer_count = build_quadratic_pair_count(left_in, right_in, layer);
   assert(curr_layer_count > 0);
+
+  ++binary_dfa_backward_layers;
 
   if(binary_dfa_narrow_pair_count_max > BinaryDFATransitionsHashPlusIndex<false>::pair_rank_max)
     {
@@ -549,24 +597,78 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
 
   profile.tic("next pair mmap");
 
+  MemoryMap<next_pair_t> next_pairs = build_quadratic_read_pairs<next_pair_t>(layer + 1);
+  size_t next_layer_count = next_pairs.size();
+  // A next layer without pairs is past the top of the backward pass, every
+  // transition into it short circuits, and its outputs are the one entry
+  // placeholder build_quadratic_backward starts from.
+  size_t outputs_expected = (next_layer_count > 0) ? next_layer_count : 1;
+  if(next_pair_rank_to_output.size() != outputs_expected)
+    {
+      throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " has " + std::to_string(next_layer_count) + " pairs but " + std::to_string(next_pair_rank_to_output.size()) + " pair outputs");
+    }
+
+  typedef dfa_pair_output<next_pair_t, next_id_t> next_pair_output_t;
+
+  // Up to direct_max transitions that each fit 32 bits, the sort key is the
+  // transitions themselves, so the sort leaves states in canonical order
+  // (FORMAT-DFA.md section 8) and the scan below numbers them 2, 3, ... in
+  // that order. Otherwise the key is a hash and the order is arbitrary.
+  bool direct_key = key_narrow && (curr_layer_shape <= hash_plus_index_t::direct_max);
+
+  std::string state_bytes = std::to_string(sizeof(typename next_pair_t::state_type)) + " next pairs, " + std::to_string(sizeof(next_id_t)) + " next ids";
+
+  // Builds the layer from transition_for(transition index), the output
+  // state of each transition, calling release_inputs once every transition
+  // has been read.
+  auto build_from_transitions = [&](const auto& transition_for, const std::function<void()>& release_inputs) -> DFAStateIdMap
+  {
+    // Rows sorted as themselves number states the same way direct keys do,
+    // so they replace the hashed path wherever its keys are direct, keeping
+    // those layers byte identical, and wherever the next layer is too big
+    // for 4 byte keys, which only wide layers reach. Each record carries its
+    // row, so every step after the sort reads the rows in order.
+    if(binary_dfa_rows_enabled && (curr_layer_shape <= binary_dfa_row_shape_max) && (direct_key || !key_narrow))
+      {
+        return with_row_shape(curr_layer_shape, [&](auto shape_tag) -> DFAStateIdMap
+        {
+          // Fixed width, so a record type is the same on every platform.
+          typedef std::conditional_t<wide, uint64_t, uint32_t> record_rank_t;
+          static_assert(sizeof(record_rank_t) >= sizeof(pair_rank_t));
+          typedef RowRankRecord<next_id_t, decltype(shape_tag)::value, record_rank_t> record_t;
+          return build_quadratic_backward_layer_rows<record_t>(layer, curr_layer_count, transition_for, release_inputs, state_bytes, profile);
+        });
+      }
+
+    return build_quadratic_backward_layer_hashed<wide, next_id_t>(layer, curr_layer_count, key_narrow, transition_for, release_inputs, state_bytes, profile);
+  };
+
+  if(binary_dfa_sort_join_for(next_layer_count * sizeof(next_pair_output_t)))
+    {
+      MemoryMap<next_id_t> transition_outputs = with_state_type(curr_pairs_wide, [&](auto curr_tag)
+      {
+        typedef dfa_state_pair<typename decltype(curr_tag)::type> curr_pair_t;
+        return build_quadratic_backward_join<curr_pair_t, next_pair_t, next_id_t>(left_in, right_in, layer, next_pairs, next_pair_rank_to_output, profile);
+      });
+
+      auto transition_for = [&](size_t transition_index)
+      {
+        return transition_outputs[transition_index];
+      };
+      auto release_inputs = [&]()
+      {
+        profile.tic("unlink transition_outputs");
+
+        transition_outputs.unlink();
+      };
+      return build_from_transitions(transition_for, release_inputs);
+    }
+
   // The next layer's pairs and their outputs, merged in rank order so each
   // lookup below finds its pair and reads its output from one block. Both
   // inputs are read sequentially.
-  typedef dfa_pair_output<next_pair_t, next_id_t> next_pair_output_t;
-  size_t next_layer_count = 0;
   MemoryMap<next_pair_output_t> next_pair_outputs = [&]()
   {
-    MemoryMap<next_pair_t> next_pairs = build_quadratic_read_pairs<next_pair_t>(layer + 1);
-    next_layer_count = next_pairs.size();
-    // A next layer without pairs is past the top of the backward pass, every
-    // transition into it short circuits, and its outputs are the one entry
-    // placeholder build_quadratic_backward starts from.
-    size_t outputs_expected = (next_layer_count > 0) ? next_layer_count : 1;
-    if(next_pair_rank_to_output.size() != outputs_expected)
-      {
-        throw std::logic_error("BinaryDFA: layer " + std::to_string(layer + 1) + " has " + std::to_string(next_layer_count) + " pairs but " + std::to_string(next_pair_rank_to_output.size()) + " pair outputs");
-      }
-
     profile.tic("next pair outputs");
     // The lookups below binary search these pairs, so they must strictly
     // increase; a run of zeros or any other damage to the file stops here,
@@ -707,14 +809,6 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
       }
   };
 
-  // Up to direct_max transitions that each fit 32 bits, the sort key is the
-  // transitions themselves, so the sort leaves states in canonical order
-  // (FORMAT-DFA.md section 8) and the scan below numbers them 2, 3, ... in
-  // that order. Otherwise the key is a hash and the order is arbitrary.
-  bool direct_key = key_narrow && (curr_layer_shape <= hash_plus_index_t::direct_max);
-
-  std::string state_bytes = std::to_string(sizeof(typename next_pair_t::state_type)) + " next pairs, " + std::to_string(sizeof(next_id_t)) + " next ids";
-
   // Every transition has been read once the chosen path has its rows, so
   // it calls this to drop the inputs they were read from.
   auto release_inputs = [&]()
@@ -736,24 +830,202 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer(const DFA& left_in,
     next_pair_outputs.unlink();
   };
 
-  // Rows sorted as themselves number states the same way direct keys do, so
-  // they replace the hashed path wherever its keys are direct, keeping those
-  // layers byte identical, and wherever the next layer is too big for 4 byte
-  // keys, which only wide layers reach. Each record carries its row, so
-  // every step after the sort reads the rows in order.
-  if(binary_dfa_rows_enabled && (curr_layer_shape <= binary_dfa_row_shape_max) && (direct_key || !key_narrow))
-    {
-      return with_row_shape(curr_layer_shape, [&](auto shape_tag) -> DFAStateIdMap
+  return build_from_transitions(transition_for, release_inputs);
+}
+
+// The sort join for build_quadratic_backward_layer: every transition's
+// output, in transition order, as a file of next ids.
+//
+// Each transition is a record of its next pair and its index, made as the
+// transition pairs are rebuilt and bucket sorted by the pair. In pair
+// order, the distinct pairs that do not short circuit are the next layer's
+// pairs in rank order, so the k-th of them must equal next_pairs[k], and a
+// sorted block's first new pair has as its rank the count of distinct pairs
+// before the block. Each transition's output, with its index, goes to a
+// sink sorted by index, and the outputs are written in that order.
+//
+// Checks, all throwing: every distinct pair equals the next pair at its
+// rank, the distinct pairs number exactly the next layer's pairs (so every
+// next pair is some transition's, in strictly increasing order), and every
+// transition index comes back exactly once.
+template <class curr_pair_t, class next_pair_t, class next_id_t>
+MemoryMap<next_id_t> BinaryDFA::build_quadratic_backward_join(const DFA& left_in,
+                                                              const DFA& right_in,
+                                                              int layer,
+                                                              MemoryMap<next_pair_t>& next_pairs,
+                                                              const MemoryMap<next_id_t>& next_pair_rank_to_output,
+                                                              Profile& profile)
+{
+  typedef typename next_pair_t::state_type next_state_t;
+  // A transition's next pair as the row (left, right), and its index.
+  typedef RowRankRecord<next_state_t, 2, uint64_t> lookup_t;
+  // A transition's index, and its output.
+  typedef RankOutputRecord<uint64_t, next_id_t> output_t;
+
+  size_t next_left_size = left_in.get_layer_size(layer + 1);
+  size_t next_right_size = right_in.get_layer_size(layer + 1);
+  size_t next_layer_count = next_pairs.size();
+
+  profile.tic("join transitions");
+
+  std::function<lookup_t(const next_pair_t&, size_t)> to_lookup = [&](const next_pair_t& next_pair, size_t transition_index)
+  {
+    next_pair.check(next_left_size, next_right_size);
+    lookup_t lookup;
+    lookup.row[0] = next_state_t(next_pair.get_left_state());
+    lookup.row[1] = next_state_t(next_pair.get_right_state());
+    lookup.rank = transition_index;
+    return lookup;
+  };
+
+  // Left states are below next_left_size, which places the out of core
+  // path's digit.
+  int lookups_digit_bit = bucket_digit_bit(int(8 * sizeof(next_state_t)), next_left_size);
+  PopulatedRecords<lookup_t> lookups = build_quadratic_transition_records<curr_pair_t, next_pair_t, lookup_t>(left_in, right_in, layer, to_lookup, lookups_digit_bit, std::nullopt, true);
+  size_t transitions_count = lookups.map ? lookups.map->size() : lookups.buckets->total();
+
+  profile.tic("join merge");
+
+  auto filter_func = get_filter_func();
+  auto shortcircuit_func = get_shortcircuit_func();
+
+  auto pair_of = [](const lookup_t& lookup)
+  {
+    return next_pair_t(lookup.row[0], lookup.row[1]);
+  };
+  // Whether lookup's pair is a next pair, rather than short circuiting.
+  auto is_real = [&](const lookup_t& lookup)
+  {
+    return !filter_func(dfa_state_t(lookup.row[0]), dfa_state_t(lookup.row[1]));
+  };
+  // Whether lookup's pair is a real pair not seen just before it.
+  auto is_new = [&](const lookup_t& lookup, const lookup_t *previous)
+  {
+    return is_real(lookup) && !(previous && previous->row_equal(lookup));
+  };
+
+  // Indices are below transitions_count, which places the out of core
+  // path's digit.
+  int outputs_digit_bit = bucket_digit_bit(64, transitions_count);
+  RecordSink<output_t> output_sink(binary_dir() + "/transition_outputs_by_index", transitions_count, outputs_digit_bit);
+  std::atomic<size_t> short_circuits{0};
+
+  auto count_new = [&](size_t, std::span<const lookup_t> block, const lookup_t *before)
+  {
+    size_t found = 0;
+    for(size_t i = 0; i < block.size(); ++i)
       {
-        // Fixed width, so a record type is the same on every platform.
-        typedef std::conditional_t<wide, uint64_t, uint32_t> record_rank_t;
-        static_assert(sizeof(record_rank_t) >= sizeof(pair_rank_t));
-        typedef RowRankRecord<next_id_t, decltype(shape_tag)::value, record_rank_t> record_t;
-        return build_quadratic_backward_layer_rows<record_t>(layer, curr_layer_count, transition_for, release_inputs, state_bytes, profile);
-      });
+        if(is_new(block[i], (i > 0) ? &block[i - 1] : before))
+          {
+            ++found;
+          }
+      }
+    return found;
+  };
+  auto emit_outputs = [&](size_t offset, std::span<const lookup_t> block, const lookup_t *before, size_t base)
+  {
+    std::vector<output_t> outputs(block.size());
+    size_t rank_end = base;
+    size_t block_short_circuits = 0;
+    for(size_t i = 0; i < block.size(); ++i)
+      {
+        const lookup_t& lookup = block[i];
+        next_id_t output;
+        if(!is_real(lookup))
+          {
+            dfa_state_t shortcircuit_state = shortcircuit_func(dfa_state_t(lookup.row[0]), dfa_state_t(lookup.row[1]));
+            if(shortcircuit_state >= 2)
+              {
+                throw std::logic_error(std::format("BinaryDFA: layer {:d} transition {:d} short circuits to state {:d}", layer, lookup.rank, shortcircuit_state));
+              }
+            output = next_id_t(shortcircuit_state);
+            ++block_short_circuits;
+          }
+        else
+          {
+            if(is_new(lookup, (i > 0) ? &block[i - 1] : before))
+              {
+                ++rank_end;
+              }
+            // A repeat at the start of the block takes the rank of the last
+            // new pair of the block before, which is base - 1.
+            if((rank_end == 0) || (rank_end > next_layer_count))
+              {
+                throw std::logic_error(std::format("BinaryDFA: layer {:d} transition {:d} at sorted position {:d} has distinct pair {:d}, past the {:d} pairs of layer {:d}", layer, lookup.rank, offset + i, rank_end, next_layer_count, layer + 1));
+              }
+            size_t next_pair_rank = rank_end - 1;
+            const next_pair_t& expected = next_pairs[next_pair_rank];
+            if(!(expected == pair_of(lookup)))
+              {
+                throw std::logic_error(std::format("BinaryDFA: layer {:d} transition {:d} at sorted position {:d} has pair ({:d}, {:d}), but layer {:d} pair rank {:d} is ({:d}, {:d})", layer, lookup.rank, offset + i, lookup.row[0], lookup.row[1], layer + 1, next_pair_rank, expected.get_left_state(), expected.get_right_state()));
+              }
+            output = next_pair_rank_to_output[next_pair_rank];
+          }
+        outputs[i].row[0] = lookup.rank;
+        outputs[i].rank = output;
+      }
+    output_sink.put(offset, std::span<const output_t>(outputs));
+    short_circuits += block_short_circuits;
+    return rank_end - base;
+  };
+
+  SortedBlocksStats join_stats = sorted_emit<lookup_t>(std::move(lookups), std::nullopt, count_new, emit_outputs);
+  if(join_stats.records != transitions_count)
+    {
+      throw std::logic_error(std::format("BinaryDFA: layer {:d} join sorted {:d} transitions, expected {:d}", layer, join_stats.records, transitions_count));
+    }
+  if(join_stats.total != next_layer_count)
+    {
+      throw std::logic_error(std::format("BinaryDFA: layer {:d} transitions reach {:d} distinct pairs of layer {:d}, which has {:d}", layer, join_stats.total, layer + 1, next_layer_count));
     }
 
-  return build_quadratic_backward_layer_hashed<wide, next_id_t>(layer, curr_layer_count, key_narrow, transition_for, release_inputs, state_bytes, profile);
+  std::cout << "layer=" << layer << " next pair join: " << transitions_count << " transitions sorted by next pair " << (join_stats.out_of_core ? "by bucket" : "in place") << " in " << join_stats.blocks << " blocks, " << short_circuits << " short circuited, the rest reaching each of the " << next_layer_count << " pairs of layer " << (layer + 1) << " in rank order; " << join_stats.buckets.repartitioned << " buckets partitioned again" << std::endl;
+
+  // The join is the last reader of the next layer's pairs.
+  profile.tic("unlink next pairs");
+
+  next_pairs.unlink();
+
+  profile.tic("join outputs");
+
+  std::string outputs_name = binary_dir() + "/transition_outputs";
+  SharedFileWrites outputs_writes(outputs_name, O_CREAT | O_TRUNC, transitions_count * sizeof(next_id_t));
+
+  auto count_indices = [](size_t, std::span<const output_t> block, const output_t *)
+  {
+    return block.size();
+  };
+  auto emit_indices = [&](size_t offset, std::span<const output_t> block, const output_t *, size_t)
+  {
+    std::vector<next_id_t> ids(block.size());
+    for(size_t i = 0; i < block.size(); ++i)
+      {
+        if(size_t(block[i].row[0]) != offset + i)
+          {
+            throw std::logic_error(std::format("BinaryDFA: layer {:d} sorted transition outputs hold index {:d} at position {:d}, so transition {:d} is missing or repeated", layer, block[i].row[0], offset + i, offset + i));
+          }
+        ids[i] = block[i].rank;
+      }
+    outputs_writes.pwrite(ids.data(), ids.size() * sizeof(next_id_t), offset * sizeof(next_id_t));
+    return block.size();
+  };
+
+  SortedBlocksStats outputs_stats = sorted_emit<output_t>(output_sink.finish(), std::nullopt, count_indices, emit_indices);
+  size_t outputs_pieces = outputs_writes.verify();
+  if(outputs_stats.records != transitions_count)
+    {
+      throw std::logic_error(std::format("BinaryDFA: layer {:d} transition outputs held {:d} indices, expected {:d}", layer, outputs_stats.records, transitions_count));
+    }
+
+  std::cout << "layer=" << layer << " transition outputs: " << transitions_count << " indices sorted " << (outputs_stats.out_of_core ? "by bucket" : "in place") << " and written in order, every index found once, " << outputs_pieces << " pieces of partial blocks read back as written" << std::endl;
+
+  MemoryMap<next_id_t> transition_outputs(outputs_name);
+  if(transition_outputs.size() != transitions_count)
+    {
+      throw std::logic_error(std::format("BinaryDFA: layer {:d} transition outputs file holds {:d} ids, expected {:d}", layer, transition_outputs.size(), transitions_count));
+    }
+  ++binary_dfa_sort_join_layers;
+  return transition_outputs;
 }
 
 // The row sort path of build_quadratic_backward_layer: each pair's row and
