@@ -7,6 +7,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -636,6 +637,113 @@ void test_rows_path(const dfa_shape_t& shape)
   std::cout.flush();
 }
 
+// Build each binary operation with the backward pass's sort join and with
+// its binary search, which must give byte identical DFAs: at production
+// settings, on the hashed path (binary_dfa_rows_enabled cleared), with wide
+// pair ranks (binary_dfa_narrow_pair_count_max at 0), and with every sort
+// through bucket files (cutoff 1 byte, in-core limit 4096 bytes, so
+// buckets are partitioned again). A build on the join must have used it on
+// every quadratic backward layer, and one on the search on none; every
+// shape must have some.
+void test_sort_join(const dfa_shape_t& shape)
+{
+  std::string shape_name = get_parameter_string(shape);
+
+  CountDFA count1(shape, 1);
+  CountDFA count2(shape, 2);
+  CountCharacterDFA zero1(shape, 0, 1);
+
+  typedef std::function<std::shared_ptr<const DFA>()> build_func;
+  std::vector<std::pair<std::string, build_func>> builds = {
+    {"union count1+count2", [&]() {return std::make_shared<UnionDFA>(count1, count2);}},
+    {"intersection count2+zero1", [&]() {return std::make_shared<IntersectionDFA>(count2, zero1);}},
+    {"difference count2-zero1", [&]() {return std::make_shared<DifferenceDFA>(count2, zero1);}}};
+
+  struct setting
+  {
+    std::string name;
+    bool rows_enabled;
+    size_t narrow_pair_count_max;
+    size_t bucket_min_bytes;
+    size_t bucket_memory_max;
+  };
+  std::vector<setting> settings = {
+    {"production", true, UINT32_MAX, 0, 0},
+    {"hashed path", false, UINT32_MAX, 0, 0},
+    {"wide pair ranks", true, 0, 0, 0},
+    {"bucket files", true, UINT32_MAX, 1, 4096}};
+
+  // Builds with the hooks at the given values, restoring them after, and
+  // returns the DFA and how many layers the sort join built.
+  auto build_with = [](const build_func& build, const setting& s, BinaryDFASortJoin sort_join)
+  {
+    bool saved_rows_enabled = binary_dfa_rows_enabled;
+    size_t saved_narrow_pair_count_max = binary_dfa_narrow_pair_count_max;
+    size_t saved_min_bytes = bucket_sort_min_bytes;
+    size_t saved_memory_max = bucket_sort_memory_max;
+    BinaryDFASortJoin saved_sort_join = binary_dfa_sort_join;
+    auto restore = [&]()
+    {
+      binary_dfa_rows_enabled = saved_rows_enabled;
+      binary_dfa_narrow_pair_count_max = saved_narrow_pair_count_max;
+      bucket_sort_min_bytes = saved_min_bytes;
+      bucket_sort_memory_max = saved_memory_max;
+      binary_dfa_sort_join = saved_sort_join;
+    };
+
+    binary_dfa_rows_enabled = s.rows_enabled;
+    binary_dfa_narrow_pair_count_max = s.narrow_pair_count_max;
+    bucket_sort_min_bytes = s.bucket_min_bytes;
+    bucket_sort_memory_max = s.bucket_memory_max;
+    binary_dfa_sort_join = sort_join;
+    size_t backward_before = binary_dfa_backward_layers;
+    size_t joined_before = binary_dfa_sort_join_layers;
+    std::shared_ptr<const DFA> output;
+    try
+      {
+        output = build();
+      }
+    catch(...)
+      {
+        restore();
+        throw;
+      }
+    restore();
+    return std::make_tuple(output, binary_dfa_backward_layers - backward_before, binary_dfa_sort_join_layers - joined_before);
+  };
+
+  size_t shape_joined = 0;
+  for(const auto& [build_name, build] : builds)
+    {
+      for(const setting& s : settings)
+        {
+          std::string full_name = shape_name + " sort join " + s.name + " " + build_name;
+
+          auto [searched, searched_backward, searched_joined] = build_with(build, s, BinaryDFASortJoin::never);
+          auto [joined, joined_backward, joined_joined] = build_with(build, s, BinaryDFASortJoin::always);
+          if(searched_joined != 0)
+            {
+              throw std::logic_error(full_name + ": the search build used the sort join on " + std::to_string(searched_joined) + " layers");
+            }
+          if((joined_joined != joined_backward) || (joined_backward != searched_backward))
+            {
+              throw std::logic_error(full_name + ": the join build used the sort join on " + std::to_string(joined_joined) + " of " + std::to_string(joined_backward) + " backward layers, against " + std::to_string(searched_backward) + " for the search build");
+            }
+          if(joined->get_hash() != searched->get_hash())
+            {
+              throw std::logic_error(full_name + ": the sort join and the search give different DFAs");
+            }
+          shape_joined += joined_joined;
+          std::cout << full_name << ": passed (" << joined->states() << " states, byte identical, " << joined_joined << " backward layers by the join)" << std::endl;
+        }
+    }
+  if(shape_joined == 0)
+    {
+      throw std::logic_error(shape_name + " sort join: no build had a quadratic backward layer");
+    }
+  std::cout.flush();
+}
+
 // Build each binary operation with binary_dfa_key_narrow_max at its
 // production value and again at 0, which keys every layer by hashing its
 // transitions at 8 bytes each. The states are numbered differently, so the
@@ -998,6 +1106,10 @@ int main()
       test_rows_path(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_rows_path(dfa_shape_t({2, 2, 2, 2, 2, 2}));
       test_rows_path(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
+      test_sort_join(dfa_shape_t({TEST3_DFA_SHAPE}));
+      test_sort_join(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_sort_join(dfa_shape_t({2, 2, 2, 2, 2, 2}));
+      test_sort_join(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
       test_key_narrow_max(dfa_shape_t({TEST3_DFA_SHAPE}));
       test_key_narrow_max(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_key_narrow_max(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
