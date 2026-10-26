@@ -412,7 +412,9 @@ enum class BinaryDFASortJoin
   environment,
   never,
   always,
-  // When the next layer's pairs and outputs are over the bucket sort cutoff.
+  // When the next layer's outputs are bigger than physical memory. On
+  // cram_7x7's join_0_32, that picks backward layers 40, 39 and 38, where the
+  // binary search took 208 of its 280 minutes.
   automatic,
 };
 extern BinaryDFASortJoin binary_dfa_sort_join;

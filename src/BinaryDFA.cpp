@@ -485,9 +485,9 @@ size_t binary_dfa_sort_join_layers = 0;
 std::function<void(size_t, uint64_t&, uint64_t&, uint64_t&)> binary_dfa_sort_join_lookup_fault;
 std::function<void(size_t, uint64_t&, uint64_t&)> binary_dfa_sort_join_next_pair_fault;
 
-// Whether a backward layer whose next layer's pairs and outputs take
-// table_bytes finds its transitions' outputs by the sort join.
-static bool binary_dfa_sort_join_for(size_t table_bytes)
+// Whether a backward layer whose next layer's outputs take outputs_bytes
+// finds its transitions' outputs by the sort join.
+static bool binary_dfa_sort_join_for(size_t outputs_bytes)
 {
   BinaryDFASortJoin mode = binary_dfa_sort_join;
   if(mode == BinaryDFASortJoin::environment)
@@ -518,7 +518,7 @@ static bool binary_dfa_sort_join_for(size_t table_bytes)
     case BinaryDFASortJoin::always:
       return true;
     case BinaryDFASortJoin::automatic:
-      return bucket_sort_out_of_core(table_bytes);
+      return outputs_bytes > physical_memory_bytes();
     case BinaryDFASortJoin::environment:
       break;
     }
