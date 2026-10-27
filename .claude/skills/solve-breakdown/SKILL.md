@@ -44,6 +44,7 @@ They also show the union-eta skill's `solve_plan.py GAME` table, which projects 
   2. the right lookup into the right input;
   3. the backward pass's rebuild of the transition pairs, which repeats 1 and 2;
   4. the backward pass's next pair lookup in `transition_for`.
+  5. the sort join, on a layer that takes it in place of 3 and 4: its transitions, which it builds itself, its merge against the next layer's pairs, and its outputs.
   The prep phases and the sorts are their own rows.
 - Each division gets minutes, share of the union, cores busy, and its own major faults, excluding its children's.
 - Per layer, it gives each lookup's minutes and faults, the backward pass's in-order input and table sizes, and the input DFAs' layer sizes while their files are still in `scratch/dfas_by_hash`.

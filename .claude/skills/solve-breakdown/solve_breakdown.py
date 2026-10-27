@@ -59,6 +59,9 @@ GROUPS = [
     ("save: serialize digest", lambda k: k == "serialize serialize digest"),
     ("load: calculate_digest", lambda k: k == "calculate_digest"),
     ("states write", lambda k: k.endswith("states write")),
+    ("join: transitions", lambda k: k.endswith("join transitions")),
+    ("join: merge", lambda k: k.endswith("join merge")),
+    ("join: outputs", lambda k: k.endswith("join outputs")),
     ("get_union / bounds", lambda k: k.startswith("get_union") or k.startswith("get_linear_bound")),
 ]
 
@@ -277,6 +280,13 @@ def classify(labels):
         return (p, n, "3 rebuild: other")
     if has("|transitions populate"):
         return (p, n, "4 next pair lookup")
+    # The sort join in place of 3 and 4, which builds its own transitions.
+    if has("|join transitions"):
+        return (p, n, "5 join: transitions")
+    if has("|join merge"):
+        return (p, n, "5 join: merge")
+    if has("|join outputs") or has("|unlink transition_outputs"):
+        return (p, n, "5 join: outputs")
     if has("|next pair outputs") or has("|next pair mmap") or has("|unlink next pairs"):
         return (p, n, "prep: next pair outputs")
     if has("|next pair index"):
@@ -385,7 +395,7 @@ def lookups(args):
             t = divisions[c]
             print(f'  {c:26s} {t[0] / 6e7:6.1f} {100 * t[0] / union["wall_us"]:6.1f} {t[1] / max(t[0], 1):5.2f} {t[2] / max(t[0], 1):5.2f} {t[3]:>13,} {t[3] * PAGE_BYTES / 1e9:10.0f}')
 
-        shown = [c for c in sorted(divisions) if c[0] in "1234"]
+        shown = [c for c in sorted(divisions) if c[0] in "12345"]
         header = "  layer  lookups(G) " + " ".join(f"{c[:24]:>24s}" for c in shown)
         if have_sizes:
             header += "  left GB right GB"
