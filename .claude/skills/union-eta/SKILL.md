@@ -60,9 +60,12 @@ It imports the solve-breakdown skill's `solve_breakdown.py` for its parsing.
 - Projects each union from this solve's finished joins, by the number of moves it covers: result states from the median result/sum ratio, forward unique pairs from the median pairs/input ratio, minutes from a fit of minutes per G pairs to the unions at the latest code, peak working space at 20 bytes per unique pair, and free space lost until gc as the result's DFA file.
 - The move nodes not yet consumed fill the edges in order of node name, since the log gives no edge names; the edges the log names are placed exactly, in this solve or else the latest earlier one, whose tree is the same.
   Move nodes not built yet take their states in the latest earlier solve, one ply on, times the median ratio of the nodes built here to theirs there, or without that, the median of those built.
+  When the log names fewer move nodes than begin's fan-in, as when the log of the solve's start is lost, the other edges are placeholders, not built yet, taking that median, and the output says how many.
+  A union inside a finished one is consumed, whether or not the log has its build.
 - A union the latest earlier solve built is projected from its result and unique pairs there, times the median ratio of this solve's finished unions to the same unions there, or before any has finished, the move nodes' ratio.
   Joins of moves differ too much by where they sit in the tree for one ratio by span to fit them all: in ply 10, `join_0_2` kept 0.96 of its inputs and the joins over rows 5 and 6 kept about 0.35.
   Unions without that use the ratios by span, from this solve or, for a span it has not finished, the latest earlier one.
+  A span no solve has finished, such as 64 moves or an uneven 20, takes the median ratios of the 3 finished joins of any span nearest it in input states, and the output names them.
 - The move nodes a union consumes that are not built yet are built just before it, after any gc stop there.
   Their minutes are a + b × G states, fitted to this solve's built move nodes, or with fewer than 3, the latest earlier solve's, and their DFA files come out of free space until the union consumes them.
   The `move min` column gives those minutes since the union row before it in the table.

@@ -24,7 +24,11 @@ each covers:
   it: minutes a + b x G states, fitted to this solve's built move nodes,
   and their DFA files taken from free space.
 
-A span with no finished join uses the largest finished span below it. A
+A span with no finished join uses the median ratios of the 3 finished
+joins of any span nearest it in input states. Edges the log names no move
+node for are placeholders, not built yet, with the median states of those
+built, and unions inside a finished one are consumed whether or not the
+log has them. A
 union gets a gc stop before it when its low point, free space less
 its peak, would be under the floor. A gc keeps the DFAs
 linked from scratch outside the caches, and frees the rest.
@@ -36,6 +40,7 @@ Exits nonzero, with the reason, on anything it does not recognize.
 
 import argparse
 import datetime
+import math
 import os
 import re
 import shutil
@@ -63,6 +68,9 @@ SMALL_DFA_STATES = 5e9
 SMALL_BYTES_PER_STATE = 8.0
 LARGE_BYTES_PER_STATE = 13.2
 GC_MINUTES = 5
+# A union over a number of moves no finished join covers takes its ratios
+# from this many finished joins nearest it in input states.
+NEAREST_JOINS = 3
 
 
 def dfa_bytes(states):
@@ -144,11 +152,17 @@ def working_bytes():
     return total
 
 
-def ratio_for(table, span):
-    spans = [s for s in table if s <= span]
-    if not spans:
-        sb.fail(f"no finished join over {span} moves or fewer to project from")
-    return table[max(spans)]
+def ratio_for(table, joins, span, ins):
+    """(ratio, basis) for a union over span moves with ins input states:
+    the median over the finished joins of the same span, or with none, over
+    the NEAREST_JOINS finished joins of any span nearest it in log input
+    states. joins holds (span, input states, ratio, node)."""
+    if span in table:
+        return table[span], None
+    if not joins:
+        sb.fail(f"no finished join to project a union over {span} moves from")
+    near = sorted(joins, key=lambda j: abs(math.log(j[1] / ins)))[:NEAREST_JOINS]
+    return statistics.median(j[2] for j in near), [j[3] for j in near]
 
 
 def fit_minutes(points):
@@ -232,8 +246,12 @@ def main():
     move_dir = os.path.join(sb.SRC_DIR, "scratch", "move_nodes")
     files = {f.split(",node=", 1)[1] for f in os.listdir(move_dir) if f.startswith(prefix + ",node=move_")}
     moves = sorted({m.group(1) for l in lines for m in [re.match(r"node \d+/\d+ \((move_[^)]*)\)$", l)] if m})
-    if len(moves) != n:
+    if len(moves) > n:
         sb.fail(f"found {len(moves)} move node names in the log, but begin has fan-in {n}")
+    # Edges the log names no move node for, as when the log of a solve's
+    # start is lost, are placeholders, unbuilt, which take the states of a
+    # move node not built yet below.
+    unnamed = [f"unnamed_edge_{i}" for i in range(n - len(moves))]
     # Edges this solve has not logged take their places from the latest
     # earlier solve, whose tree has the same edges in the same order.
     placed = {}
@@ -252,6 +270,7 @@ def main():
                 elif k not in placed and e not in placed.values():
                     placed[k] = e
     move_states = {e: ue.file_states(prefix, e) if e in files else states.get(e) for e in moves}
+    move_states.update({e: None for e in unnamed})
     known = [v for v in move_states.values() if v is not None]
     unbuilt = [e for e, v in move_states.items() if v is None]
     # A move node not built yet takes the same node's states in the latest
@@ -268,11 +287,24 @@ def main():
     scaled = [e for e in unbuilt if move_scale is not None and e in earlier]
     for e in unbuilt:
         move_states[e] = earlier[e] * move_scale if e in scaled else statistics.median(known)
-    pool = [e for e in moves if e not in placed.values()]
+    pool = [e for e in moves if e not in placed.values()] + unnamed
     for i, e in zip([i for i in range(n) if i not in placed], pool):
         placed[i] = e
+    if len(placed) != n:
+        sb.fail(f"placed {len(placed)} of {n} edges")
 
     move_file_bytes = {e: os.path.getsize(os.path.join(move_dir, prefix + ",node=" + e)) for e in files}
+
+    done_items = [(int(m.group(1)), int(m.group(2))) for node in done for m in [re.match(r"begin\.join_(\d+)_(\d+)$", node)] if m]
+
+    def inside_done(start, end):
+        """Whether a finished union covers the edges [start, end), so a
+        union over them was consumed whether or not the log has it."""
+        return any(s <= start and end <= e for s, e in done_items)
+
+    # Move nodes still to build: those not built, on edges no finished
+    # union covers.
+    unbuilt = [placed[i] for i in range(n) if placed[i] in unbuilt and not inside_done(i, i + 1)]
 
     # Move node build minutes = a + b x G states, fitted to this solve's
     # built move nodes, or with fewer than 3, to the latest earlier solve's.
@@ -318,6 +350,7 @@ def main():
         if m:
             prefix_states[(m.group(1), m.group(2))] = int(m.group(3))
     ratios_by_prefix = {}
+    joins_by_prefix = {}
     input_sum, span_of = {}, {}
     for b in all_builds:
         m = re.match(r"begin\.join_(\d+)_(\d+)$", b["node"])
@@ -331,8 +364,10 @@ def main():
         input_sum[(p, b["node"])], span_of[(p, b["node"])] = sum(ins), span
         result, pairs = ratios_by_prefix.setdefault(p, ({}, {}))
         result.setdefault(span, []).append(out / sum(ins))
+        joins_by_prefix.setdefault(p, ([], []))[0].append((span, sum(ins), out / sum(ins), b["node"]))
         if b["unique"]:
             pairs.setdefault(span, []).append(sum(b["unique"].values()) / sum(ins))
+            joins_by_prefix[p][1].append((span, sum(ins), sum(b["unique"].values()) / sum(ins), b["node"]))
     # This solve's ratios, and for a span it has not finished, those of the
     # latest earlier solve that has.
     by_span_result, by_span_pairs = {}, {}
@@ -350,6 +385,11 @@ def main():
         sb.fail("no finished join with its input and result state counts in the log")
     result_ratio = {s: statistics.median(v) for s, v in by_span_result.items()}
     pairs_ratio = {s: statistics.median(v) for s, v in by_span_pairs.items()}
+    # The joins a union over a span with none finished is projected from:
+    # this solve's, or before it has any, the latest earlier solve's.
+    near_source = next(p for p in [prefix] + [q for q in reversed(prefix_order) if q != prefix] if p in joins_by_prefix)
+    result_joins, pairs_joins = joins_by_prefix[near_source]
+    near_notes = []
 
     # Minutes of the unions finished at the latest code version, in every
     # solve for the time fit, and in this one for the table.
@@ -433,6 +473,8 @@ def main():
     free = None
     for start, end, kids in order + ([(0, n, tops)] if len(tops) > 1 else []):
         node, span = name_of((start, end), n), end - start
+        if inside_done(start, end) and node not in done:
+            continue
         ins = inputs_of((start, end), kids, size if node not in done else {**size, **states})
         if node in done:
             out = states.get(node)
@@ -446,11 +488,17 @@ def main():
             if node in earlier_out and out_scale is not None:
                 out = earlier_out[node] * out_scale
             else:
-                out = sum(ins) * ratio_for(result_ratio, span)
+                r, near = ratio_for(result_ratio, result_joins, span, sum(ins))
+                out = sum(ins) * r
+                if near:
+                    near_notes.append(f"{node} result/sum {r:.2f} from {', '.join(near)}")
             if node in earlier_pairs and pairs_scale is not None:
                 pairs = earlier_pairs[node] * pairs_scale
             else:
-                pairs = sum(ins) * ratio_for(pairs_ratio, span)
+                r, near = ratio_for(pairs_ratio, pairs_joins, span, sum(ins))
+                pairs = sum(ins) * r
+                if near:
+                    near_notes.append(f"{node} unique pairs/input {r:.2f} from {', '.join(near)}")
             peak = pairs * PEAK_BYTES_PER_PAIR
             if node == current:
                 free = free_now + in_use
@@ -502,6 +550,13 @@ def main():
         print(f"  unions an earlier solve built take their result there times {out_scale:.2f} and their unique pairs there times"
               f" {pairs_scale:.2f}, the median ratios of the {len(out_growth)} and {len(pairs_growth)} finished here to theirs there"
               + ("" if out_growth else ", or before any has finished, the move nodes' ratio"))
+    if near_notes:
+        print(f"  unions over a number of moves no finished join covers take the median of the {NEAREST_JOINS} finished joins"
+              " nearest them in input states:")
+        for note in near_notes:
+            print(f"    {note.replace('begin.', '')}")
+    if unnamed:
+        print(f"  the log names {len(moves)} move nodes of {n}; the other {len(unnamed)} edges are placeholders, not built yet")
     if scaled:
         print(f"  {len(scaled)} move nodes not built yet take their states in an earlier solve times {move_scale:.2f},"
               f" the median ratio of the {len(growth)} built here to theirs there")
