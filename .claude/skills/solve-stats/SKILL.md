@@ -31,6 +31,7 @@ The script:
   - `stats_forward GAME`, only when there is no `forward_backward` family, whose reachable column already covers it.
 - Prints Markdown: the family summary, then one table per run.
   The tables give positions and DFA states per ply.
+  Each table ends with a positions/state column: the sum of the row's positions over its results, divided by the sum of their DFA states.
   Before printing, it checks that winning + losing + unknown positions equal the total at every ply, within the binaries' 6 significant digits.
   The notes under each table confirm that check, list missing plies and remaining unknowns, and give ply 0's verdict when ply 0 is a single position.
 - Exits nonzero with the reason, and prints no tables, if a binary fails, a binary is not built, the output does not parse, or the positions at some ply do not add up to the total.

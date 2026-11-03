@@ -108,6 +108,17 @@ def fmt_states(n):
     return f"{n:,d}"
 
 
+def fmt_per_state(positions, states):
+    # Positions per DFA state, over every result's positions and states summed.
+    if states == 0:
+        return "-"
+    x = positions / states
+    if x < 1e6:
+        return f"{x:,.1f}"
+    mantissa, exponent = f"{x:.3e}".split("e")
+    return f"{mantissa}e{int(exponent)}"
+
+
 def partition_ok(total, parts):
     # Each figure is rounded to 6 significant digits, so allow for that.
     return abs(sum(parts) - total) <= 2e-5 * max(total, 1) + 0.5
@@ -125,14 +136,16 @@ def solved_table(title, command, rows, total_key, total_label, plies_expected, m
         fail(f"{command}: winning + losing + unknown positions do not match the total:\n" + "\n".join(mismatches))
 
     out = [f"### {title}", "", f"`{command}` ({elapsed:.0f}s)", ""]
-    out.append(f"| Ply | {total_label} positions | Winning | Losing | Unknown | {total_label} states | Winning states | Losing states | Unknown states |")
-    out.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    out.append(f"| Ply | {total_label} positions | Winning | Losing | Unknown | {total_label} states | Winning states | Losing states | Unknown states | Positions/state |")
+    out.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for row in rows:
         out.append("| " + " | ".join(
             [str(row["ply"]), fmt_positions(row[f"{total_key}_positions"])]
             + [fmt_positions(row[f"{r}_positions"]) for r in RESULTS]
             + [fmt_states(row[f"{total_key}_states"])]
-            + [fmt_states(row[f"{r}_states"]) for r in RESULTS]) + " |")
+            + [fmt_states(row[f"{r}_states"]) for r in RESULTS]
+            + [fmt_per_state(sum(row[f"{r}_positions"] for r in RESULTS),
+                             sum(row[f"{r}_states"] for r in RESULTS))]) + " |")
     out.append("")
 
     present = {row["ply"] for row in rows}
@@ -224,22 +237,24 @@ def main():
         else:
             command, rows, missing, elapsed = run_stats("stats_backward", [args.game, complete])
             out += [f"### backward, ply_max 0-{complete}", "", f"`{command}` ({elapsed:.0f}s)", ""]
-            out.append("| Ply max | " + " | ".join(f"{r.capitalize()} {s} positions" for s in (0, 1) for r in RESULTS) + " | " + " | ".join(f"{r.capitalize()} {s} states" for s in (0, 1) for r in RESULTS) + " |")
-            out.append("|---:" * 13 + "|")
+            out.append("| Ply max | " + " | ".join(f"{r.capitalize()} {s} positions" for s in (0, 1) for r in RESULTS) + " | " + " | ".join(f"{r.capitalize()} {s} states" for s in (0, 1) for r in RESULTS) + " | Positions/state |")
+            out.append("|---:" * 14 + "|")
             for row in rows:
                 out.append("| " + " | ".join([str(row["ply"])]
                                              + [fmt_positions(row[f"{r}_positions_{s}"]) for s in (0, 1) for r in RESULTS]
-                                             + [fmt_states(row[f"{r}_states_{s}"]) for s in (0, 1) for r in RESULTS]) + " |")
+                                             + [fmt_states(row[f"{r}_states_{s}"]) for s in (0, 1) for r in RESULTS]
+                                             + [fmt_per_state(sum(row[f"{r}_positions_{s}"] for s in (0, 1) for r in RESULTS),
+                                                              sum(row[f"{r}_states_{s}"] for s in (0, 1) for r in RESULTS))]) + " |")
             out.append("")
             ran = True
 
     if "forward" in families and "forward_backward" not in families:
         command, rows, missing, elapsed = run_stats("stats_forward", [args.game])
         out += ["### forward", "", f"`{command}` ({elapsed:.0f}s)", ""]
-        out.append("| Ply | Reachable positions | Reachable states |")
-        out.append("|---:|---:|---:|")
+        out.append("| Ply | Reachable positions | Reachable states | Positions/state |")
+        out.append("|---:|---:|---:|---:|")
         for row in rows:
-            out.append(f"| {row['ply']} | {fmt_positions(row['reachable_positions'])} | {fmt_states(row['reachable_states'])} |")
+            out.append(f"| {row['ply']} | {fmt_positions(row['reachable_positions'])} | {fmt_states(row['reachable_states'])} | {fmt_per_state(row['reachable_positions'], row['reachable_states'])} |")
         out.append("")
         ran = True
     elif "forward" in families:
