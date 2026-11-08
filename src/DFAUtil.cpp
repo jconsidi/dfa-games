@@ -17,6 +17,7 @@
 
 #include "AcceptDFA.h"
 #include "ChangeDFA.h"
+#include "ConnectedDFA.h"
 #include "CountCharacterDFA.h"
 #include "DFA.h"
 #include "DifferenceDFA.h"
@@ -447,6 +448,15 @@ shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& c
 // node conditions, which lives for the life of the game object. Left
 // temporary, that DFA's build/ staging directory would stay open for as
 // long as the game object does.
+
+shared_dfa_ptr DFAUtil::get_connected(const dfa_shape_t& shape_in, const ConnectedSpec& spec_in)
+{
+  std::string name_in = "connected_cache/" + _shape_path(shape_in) + "_" + spec_in.cache_key();
+  return load_or_build(shape_in, name_in, [&]()
+  {
+    return shared_dfa_ptr(new ConnectedDFA(shape_in, spec_in));
+  });
+}
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_in)
 {
