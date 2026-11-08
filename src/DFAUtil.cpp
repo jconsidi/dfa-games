@@ -451,7 +451,7 @@ shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& c
 
 shared_dfa_ptr DFAUtil::get_connected(const dfa_shape_t& shape_in, const ConnectedSpec& spec_in)
 {
-  std::string name_in = "connected_cache/" + _shape_path(shape_in) + "_" + spec_in.cache_key();
+  std::string name_in = "connected_cache/" + spec_in.cache_key(shape_in);
   return load_or_build(shape_in, name_in, [&]()
   {
     return shared_dfa_ptr(new ConnectedDFA(shape_in, spec_in));

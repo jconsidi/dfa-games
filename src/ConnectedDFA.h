@@ -43,8 +43,10 @@ struct ConnectedSpec
   int count_min = 1;
   int count_max = -1;
 
-  // sha256 of a canonical serialization, for naming cached DFAs.
-  std::string cache_key() const;
+  // sha256 of a canonical serialization of the shape and spec, for naming
+  // cached DFAs. The shape is hashed rather than spelled out in the name, so
+  // the name stays short on any board.
+  std::string cache_key(const dfa_shape_t&) const;
 
   // Throws std::invalid_argument if the spec does not fit the shape.
   void validate(const dfa_shape_t&) const;

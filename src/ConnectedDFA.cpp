@@ -49,11 +49,17 @@ static std::vector<std::pair<int, int>> sorted_edges(const std::vector<std::pair
   return output;
 }
 
-std::string ConnectedSpec::cache_key() const
+std::string ConnectedSpec::cache_key(const dfa_shape_t& shape) const
 {
   std::ostringstream builder;
 
-  builder << "edges";
+  builder << "shape";
+  for(int layer_shape : shape)
+    {
+      builder << " " << layer_shape;
+    }
+
+  builder << "\nedges";
   for(auto [a, b] : sorted_edges(edges))
     {
       builder << " " << a << "-" << b;
