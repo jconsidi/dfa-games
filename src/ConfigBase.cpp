@@ -4,9 +4,154 @@
 
 #include <format>
 #include <fstream>
+#include <map>
+#include <set>
 #include <stdexcept>
 
+#include "ConnectedDFA.h"
 #include "DFAUtil.h"
+
+// Builds a ConnectedSpec from a "connected" component's inputs, where
+// classes and labels are named. Names are numbered in sorted order. Any key,
+// name, character or layer that does not fit throws.
+static ConnectedSpec build_connected_spec(const dfa_shape_t& shape, const nlohmann::json& inputs, const std::string& key)
+{
+  auto fail = [&](const std::string& message)
+  {
+    throw std::runtime_error("component " + key + ": " + message);
+  };
+
+  static const std::set<std::string> known_keys = {
+    "edges", "classes", "labels", "group_classes",
+    "labels_required", "labels_forbidden",
+    "adjacent_required", "adjacent_forbidden",
+    "count_min", "count_max"
+  };
+  for(const auto& item : inputs.items())
+    {
+      if(!known_keys.contains(item.key()))
+        {
+          fail("unknown input " + item.key());
+        }
+    }
+
+  int ndim = int(shape.size());
+  ConnectedSpec spec;
+
+  for(const auto& edge : inputs.at("edges"))
+    {
+      std::vector<int> ends = edge.get<std::vector<int>>();
+      if(ends.size() != 2)
+        {
+          fail("an edge does not have two ends");
+        }
+      spec.edges.emplace_back(ends[0], ends[1]);
+    }
+
+  // classes: name -> characters, the same at every layer
+
+  std::map<std::string, int> class_index;
+  spec.class_of.resize(ndim);
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      spec.class_of[layer].assign(shape[layer], -1);
+    }
+  for(const auto& item : inputs.at("classes").items())
+    {
+      int k = int(class_index.size());
+      if(k >= 32)
+        {
+          fail("more than 32 classes");
+        }
+      class_index[item.key()] = k;
+
+      for(int c : item.value().get<std::vector<int>>())
+        {
+          for(int layer = 0; layer < ndim; ++layer)
+            {
+              if((c < 0) || (c >= shape[layer]))
+                {
+                  fail(std::format("class {:s} has character {:d}, outside layer {:d}'s alphabet", item.key(), c, layer));
+                }
+              if(spec.class_of[layer][c] >= 0)
+                {
+                  fail(std::format("character {:d} is in more than one class", c));
+                }
+              spec.class_of[layer][c] = k;
+            }
+        }
+    }
+
+  // labels: name -> layers
+
+  std::map<std::string, int> label_index;
+  spec.labels.assign(ndim, 0);
+  if(inputs.contains("labels"))
+    {
+      for(const auto& item : inputs.at("labels").items())
+        {
+          int bit = int(label_index.size());
+          if(bit >= 32)
+            {
+              fail("more than 32 labels");
+            }
+          label_index[item.key()] = bit;
+
+          for(int layer : item.value().get<std::vector<int>>())
+            {
+              if((layer < 0) || (layer >= ndim))
+                {
+                  fail(std::format("label {:s} has layer {:d}, outside [0, {:d})", item.key(), layer, ndim));
+                }
+              spec.labels[layer] |= connected_mask_t(1) << bit;
+            }
+        }
+    }
+
+  auto mask_of = [&](const std::string& input_key, const std::map<std::string, int>& index)
+  {
+    connected_mask_t mask = 0;
+    if(inputs.contains(input_key))
+      {
+        for(const std::string& name : inputs.at(input_key).get<std::vector<std::string>>())
+          {
+            auto search = index.find(name);
+            if(search == index.end())
+              {
+                fail(input_key + " names unknown " + name);
+              }
+            mask |= connected_mask_t(1) << search->second;
+          }
+      }
+    return mask;
+  };
+
+  spec.group_classes = mask_of("group_classes", class_index);
+  spec.labels_required = mask_of("labels_required", label_index);
+  spec.labels_forbidden = mask_of("labels_forbidden", label_index);
+  spec.adjacent_required = mask_of("adjacent_required", class_index);
+  spec.adjacent_forbidden = mask_of("adjacent_forbidden", class_index);
+
+  if(inputs.contains("count_min"))
+    {
+      spec.count_min = inputs.at("count_min").get<int>();
+    }
+  if(inputs.contains("count_max"))
+    {
+      spec.count_max = inputs.at("count_max").get<int>();
+    }
+
+  try
+    {
+      spec.validate(shape);
+    }
+  catch(const std::invalid_argument& e)
+    {
+      fail(e.what());
+    }
+
+  return spec;
+}
 
 // Directory creation for whatever this game ends up saving -- durable
 // results under the archive root, component_<key> under the local root --
@@ -108,6 +253,11 @@ shared_dfa_ptr ConfigBase::get_component(const GameBase& game, std::string key_i
   {
     std::string component_type = component_config.at("type").get<std::string>();
     const nlohmann::json component_inputs = component_config.at("inputs");
+
+    if(component_type == "connected")
+      {
+        return DFAUtil::get_connected(get_shape(), build_connected_spec(get_shape(), component_inputs, key_in));
+      }
 
     if(component_type == "count")
       {
