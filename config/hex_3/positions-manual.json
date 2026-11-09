@@ -1,4 +1,100 @@
 {
   "game": "hex_3",
-  "positions": []
+  "positions": [
+    {
+      "comment": "empty board: nine cells to fill",
+      "position": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [
+        [1, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "0 holds column 0, joining row 0 to row 2",
+      "position": [1, 0, 0, 1, 0, 0, 1, 0, 0],
+      "side_to_move": 1,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "comment": "0 holds the skew diagonal (0,2), (1,1), (2,0)",
+      "position": [0, 0, 1, 0, 1, 0, 1, 0, 0],
+      "side_to_move": 1,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "comment": "0 holds the other diagonal (0,0), (1,1), (2,2), which is not a chain",
+      "position": [1, 0, 0, 0, 1, 0, 0, 0, 1],
+      "side_to_move": 1,
+      "expected_moves": [
+        [1, 2, 0, 0, 1, 0, 0, 0, 1],
+        [1, 0, 2, 0, 1, 0, 0, 0, 1],
+        [1, 0, 0, 2, 1, 0, 0, 0, 1],
+        [1, 0, 0, 0, 1, 2, 0, 0, 1],
+        [1, 0, 0, 0, 1, 0, 2, 0, 1],
+        [1, 0, 0, 0, 1, 0, 0, 2, 1]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "1 holds row 1, joining column 0 to column 2",
+      "position": [0, 0, 0, 2, 2, 2, 0, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "comment": "1 holds the skew diagonal (2,0), (1,1), (0,2)",
+      "position": [0, 0, 2, 0, 2, 0, 2, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "comment": "1 holds row 1 but it is 1 to move: only the opponent's chain stops the side to move",
+      "position": [0, 0, 0, 2, 2, 2, 0, 0, 0],
+      "side_to_move": 1,
+      "expected_moves": [
+        [2, 0, 0, 2, 2, 2, 0, 0, 0],
+        [0, 2, 0, 2, 2, 2, 0, 0, 0],
+        [0, 0, 2, 2, 2, 2, 0, 0, 0],
+        [0, 0, 0, 2, 2, 2, 2, 0, 0],
+        [0, 0, 0, 2, 2, 2, 0, 2, 0],
+        [0, 0, 0, 2, 2, 2, 0, 0, 2]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "0 holds column 0 except (2,0): one stone short",
+      "position": [1, 0, 0, 1, 0, 0, 0, 0, 0],
+      "side_to_move": 1,
+      "expected_moves": [
+        [1, 2, 0, 1, 0, 0, 0, 0, 0],
+        [1, 0, 2, 1, 0, 0, 0, 0, 0],
+        [1, 0, 0, 1, 2, 0, 0, 0, 0],
+        [1, 0, 0, 1, 0, 2, 0, 0, 0],
+        [1, 0, 0, 1, 0, 0, 2, 0, 0],
+        [1, 0, 0, 1, 0, 0, 0, 2, 0],
+        [1, 0, 0, 1, 0, 0, 0, 0, 2]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "1 bends around a 0 stone: (1,0), (0,1), (0,2) join column 0 to column 2",
+      "position": [0, 2, 2, 2, 1, 0, 0, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [],
+      "expected_result": -1
+    }
+  ]
 }

@@ -1,4 +1,67 @@
 {
   "game": "hex_2",
-  "positions": []
+  "positions": [
+    {
+      "comment": "empty board: four cells to fill",
+      "position": [0, 0, 0, 0],
+      "side_to_move": 0,
+      "expected_moves": [
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "the second player places 2",
+      "position": [0, 0, 0, 0],
+      "side_to_move": 1,
+      "expected_moves": [
+        [2, 0, 0, 0],
+        [0, 2, 0, 0],
+        [0, 0, 2, 0],
+        [0, 0, 0, 2]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "0 at (0,1) and (1,0) are adjacent along the skew diagonal and join row 0 to row 1",
+      "position": [0, 1, 1, 0],
+      "side_to_move": 1,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "comment": "0 at (0,0) and (1,1) lie on the other diagonal, which is not adjacent: no chain",
+      "position": [1, 0, 0, 1],
+      "side_to_move": 1,
+      "expected_moves": [
+        [1, 2, 0, 1],
+        [1, 0, 2, 1]
+      ],
+      "expected_result": null
+    },
+    {
+      "comment": "1 at (0,1) and (1,0) join column 0 to column 1",
+      "position": [0, 2, 2, 0],
+      "side_to_move": 0,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "comment": "full board where 1 holds the skew diagonal: 0 to move has lost",
+      "position": [1, 2, 2, 1],
+      "side_to_move": 0,
+      "expected_moves": [],
+      "expected_result": -1
+    },
+    {
+      "comment": "the same full board with 1 to move cannot arise in play; no empty cell, so no moves and a loss under normal play",
+      "position": [1, 2, 2, 1],
+      "side_to_move": 1,
+      "expected_moves": [],
+      "expected_result": -1
+    }
+  ]
 }
