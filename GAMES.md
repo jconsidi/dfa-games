@@ -127,6 +127,23 @@ The dominoes belong to no one, so both players always have the same moves availa
 Normal play: a player with no legal move loses.
 A move is available exactly when two adjacent squares are both still empty, so isolated empty squares do not count.
 
+## hex
+
+`hex_N` — a rhombus of `N x N` hexagonal cells.
+The rhombus has two pairs of opposite edges, and each player owns one pair.
+Each cell touches up to six others: the two beside it in its own row, two in the row on one side, and two in the row on the other side.
+
+The board starts empty.
+A move puts one of the mover's stones on any empty cell.
+Stones never move and are never removed.
+There is no swap rule.
+
+A player wins by completing a chain of their own stones, each touching the next, that connects their two edges.
+The game ends the moment such a chain appears.
+
+Hex cannot be drawn, because a full board always holds exactly one such chain.
+It is scored by normal play: a move is only allowed if the opponent has not completed a chain, so the player whose opponent has just connected their edges has no legal move and loses.
+
 ## normalnim
 
 `normalnim_NxM` — `N` heaps, each starting with `M` tokens.
