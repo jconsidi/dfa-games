@@ -22,6 +22,9 @@ void populate_solved_games()
   solved_games.try_emplace("breakthrough_3x7", 55, -1);
   solved_games.try_emplace("breakthrough_5x5", 51, -1);
   solved_games.try_emplace("breakthrough_6x5", 61, -1); /* Saffidine 2011 */
+  solved_games.try_emplace("hex_2", 4, 1); /* strategy stealing */
+  solved_games.try_emplace("hex_3", 9, 1); /* strategy stealing */
+  solved_games.try_emplace("hex_4", 16, 1); /* strategy stealing */
   solved_games.try_emplace("normalnim_1x16", 16, 1);
   solved_games.try_emplace("normalnim_2x16", 32, -1);
   solved_games.try_emplace("normalnim_3x16", 48, 1);

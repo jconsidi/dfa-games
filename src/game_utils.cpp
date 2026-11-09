@@ -12,6 +12,7 @@
 #include "ChessGame.h"
 #include "ClobberGame.h"
 #include "CramGame.h"
+#include "HexGame.h"
 #include "NormalNimGame.h"
 #include "OthelloGame.h"
 #include "SlidingTilePuzzle.h"
@@ -173,6 +174,10 @@ GameBase *get_gamebase(std::string game_name)
       int height = 0;
       parse_dims(game_name, "cram_", width, height);
       output = new CramGame(width, height);
+    }
+  else if(game_name.starts_with("hex_"))
+    {
+      output = new HexGame(parse_int_after(game_name, "hex_"));
     }
   else if(game_name.starts_with("normalnim_"))
     {

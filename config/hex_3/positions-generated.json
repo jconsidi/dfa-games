@@ -1,0 +1,299 @@
+{
+  "game": "hex_3",
+  "positions": [
+    {
+      "comment": "initial position",
+      "position": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 0,
+      "expected_result": null,
+      "expected_perft_u": [
+        9,
+        72,
+        252,
+        756,
+        1260,
+        1520,
+        1140,
+        420,
+        84
+      ]
+    },
+    {
+      "comment": "lost position",
+      "position": [
+        2,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 0,
+      "expected_result": -1,
+      "expected_moves": [],
+      "expected_perft_u": [
+        0
+      ]
+    },
+    {
+      "comment": "opponent one stone short",
+      "position": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 0,
+      "expected_result": null,
+      "expected_moves": [
+        [
+          2,
+          2,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]
+      ],
+      "expected_perft_u": [
+        7,
+        42,
+        90
+      ]
+    },
+    {
+      "comment": "initial position",
+      "position": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 1,
+      "expected_result": null,
+      "expected_perft_u": [
+        9,
+        72,
+        252,
+        756,
+        1260,
+        1520,
+        1140,
+        420,
+        84
+      ]
+    },
+    {
+      "comment": "lost position",
+      "position": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "side_to_move": 1,
+      "expected_result": -1,
+      "expected_moves": [],
+      "expected_perft_u": [
+        0
+      ]
+    },
+    {
+      "comment": "opponent one stone short",
+      "position": [
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "side_to_move": 1,
+      "expected_result": null,
+      "expected_moves": [
+        [
+          1,
+          2,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          2,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          1,
+          2,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          1,
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          2
+        ]
+      ],
+      "expected_perft_u": [
+        7,
+        42,
+        90
+      ]
+    }
+  ]
+}
