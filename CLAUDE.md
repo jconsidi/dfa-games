@@ -187,7 +187,7 @@ executes is worse than none.
 
 Coverage is narrower than the C++ and the gaps matter:
 
-- **amazons**, **row-wise breakthrough**, **clobber**, **cram**, **normalnim**,
+- **amazons**, **row-wise breakthrough**, **clobber**, **cram**, **hex**, **normalnim**,
   **slidingtile** and **tictactoe** have Rust rules. slidingtile is a
   one-player puzzle (`Game::sides` is 1), so `cargo test` checks its moves but
   the verifiers refuse it: every claim they check is a two-player result. `breakthroughcw_`, `chess+` and `othello_` are

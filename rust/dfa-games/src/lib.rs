@@ -12,6 +12,7 @@ pub mod breakthrough;
 pub mod clobber;
 pub mod cram;
 pub mod game;
+pub mod hex;
 pub mod load;
 pub mod normalnim;
 pub mod registry;

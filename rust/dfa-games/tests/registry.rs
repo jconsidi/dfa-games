@@ -18,6 +18,8 @@ fn ported_games_round_trip() {
         "amazons_4x6",
         "clobber_2x2",
         "clobber_4x5",
+        "hex_1",
+        "hex_3",
         "normalnim_3x3",
         "normalnim_1x7",
         "tictactoe_2",
@@ -51,6 +53,8 @@ fn a_malformed_size_is_rejected() {
         "amazons_xx",
         "amazons_-1x4",
         "clobber_2",
+        "hex_",
+        "hex_3x3",
         "normalnim_3",
         "tictactoe_",
         "tictactoe_3x3",
@@ -63,7 +67,13 @@ fn a_malformed_size_is_rejected() {
 fn a_board_with_nothing_on_it_is_rejected() {
     // Not a rule of any of these games: a game with no squares or no heaps has
     // no positions to describe at all.
-    for name in ["clobber_0x2", "clobber_2x0", "normalnim_0x3", "tictactoe_0"] {
+    for name in [
+        "clobber_0x2",
+        "clobber_2x0",
+        "hex_0",
+        "normalnim_0x3",
+        "tictactoe_0",
+    ] {
         assert!(get_game(name).is_err(), "{name} should not parse");
     }
 
