@@ -373,7 +373,8 @@ void Profile::trace_end(std::chrono::time_point<std::chrono::steady_clock> finis
                        {"oublock", usage.oublock - phase_usage.oublock}});
 }
 
-// static object to output profile totals on shutdown
+// static object to output profile totals on shutdown, to stderr so that
+// stdout holds only what the program reports
 
 class ProfileReport
 {
@@ -390,7 +391,7 @@ ProfileReport::~ProfileReport()
 
       if(total_s.count() > 0)
 	{
-	  std::cout << "Profile : " << label << " = " << total_s.count() << std::endl;
+	  std::cerr << "Profile : " << label << " = " << total_s.count() << std::endl;
 	}
     }
 }

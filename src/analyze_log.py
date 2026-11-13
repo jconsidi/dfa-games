@@ -4,8 +4,8 @@
     ./analyze_log.py [--run N] <file>
 
 <file> is either a Profile trace (written when DFA_PROFILE_TRACE=<path> is set;
-see Profile.cpp) or a solver's captured stdout. The format is detected from
-the first line.
+see Profile.cpp) or a solver's captured output. The output must include stderr,
+where the "Profile :" totals go. The format is detected from the first line.
 
 A trace is the reliable input: per-phase self time (time spent while the phase
 was innermost) and CPU time come straight from the process, so cores in use are
@@ -15,7 +15,7 @@ them are listed, numbered from 1; --run N restricts the time tables to run N
 (negative counts from the end, so --run -1 is the latest). Without it the tables
 add up every run.
 
-Stdout logs are the fallback for runs without a trace. Their limits bound what
+Captured output is the fallback for runs without a trace. Its limits bound what
 this can say:
   * Profile::tic only prints phases that took more than 1s, floored to whole
     seconds. Anything shorter is invisible here except as residual time in its
