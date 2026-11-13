@@ -15,6 +15,12 @@
 #   without saving a new move graph node: gc and restart then free too
 #   little to make progress.
 #
+# Logs go to the --src directory, each appended to across runs:
+# - GAME.log: solve_backward's output, stdout and stderr.
+# - GAME.restart.log: this driver's lines, one per attempt and per gc, also
+#   printed on stdout.
+# - GAME.gc.log: gc's output, under a header line per run.
+#
 # Exit status: 0 once every game is decided, 2 for a usage error, 3 if the
 # solver check does not pass, 4 if gc fails, 5 on giving up, 6 if a solve
 # fails other than by being killed.
@@ -45,22 +51,29 @@ free_gb() { df -g $MAIN/scratch/ | awk 'NR==2 {print $4}' }
 stamp() { date '+%Y-%m-%d %H:%M:%S' }
 saved_nodes() { ls $MAIN/scratch/move_nodes | grep -c "^$1," }
 
+# say LINE: print a timestamped line and append it to the game's restart log.
+say() { echo "$(stamp) $*" | tee -a $restart_log }
+
 run_gc() {
-  echo "$(stamp) $1: $(free_gb) GB free, running gc"
-  if ! (cd $MAIN && python3 ../.claude/skills/gc/check_no_solver.py); then
-    echo "$(stamp) solver check did not pass, stopping"
+  say "$1: $(free_gb) GB free, running gc"
+  (cd $MAIN && python3 ../.claude/skills/gc/check_no_solver.py) 2>&1 | tee -a $restart_log
+  if (( pipestatus[1] != 0 )); then
+    say "solver check did not pass, stopping"
     exit 3
   fi
-  if ! (cd $MAIN && ./gc.sh scratch) > $TMPDIR/gc-$1.log 2>&1; then
-    echo "$(stamp) gc failed, see $TMPDIR/gc-$1.log"
+  echo "=== $(stamp) gc for $1" >> $gc_log
+  if ! (cd $MAIN && ./gc.sh scratch) >> $gc_log 2>&1; then
+    say "gc failed, see $gc_log"
     exit 4
   fi
-  echo "$(stamp) gc done, $(free_gb) GB free"
+  say "gc done, $(free_gb) GB free"
 }
 
 for game in "$@"; do
-  log=$TMPDIR/solve-$game.log
-  echo "$(stamp) $game: solving from $SRC, log $log"
+  log=$SRC/$game.log
+  restart_log=$SRC/$game.restart.log
+  gc_log=$SRC/$game.gc.log
+  say "$game: solving from $SRC, logs $log, $restart_log and $gc_log"
   for ply in {0..100}; do
     attempt=1
     after_gc=0
@@ -81,7 +94,7 @@ for game in "$@"; do
         free=$(free_gb)
         (( free < min_free )) && min_free=$free
         if (( free < 100 && ! killed )); then
-          echo "$(stamp) $game ply $ply attempt $attempt: ${free} GB free, killing the solve"
+          say "$game ply $ply attempt $attempt: ${free} GB free, killing the solve"
           kill $pid
           killed=1
         fi
@@ -89,11 +102,11 @@ for game in "$@"; do
       wait $pid
       rc=$?
       nodes_after=$(saved_nodes $game)
-      echo "$(stamp) $game ply $ply attempt $attempt: exit $rc after $(( $(date +%s) - start ))s, lowest free ${min_free} GB, move graph nodes saved $nodes_before -> $nodes_after"
+      say "$game ply $ply attempt $attempt: exit $rc after $(( $(date +%s) - start ))s, lowest free ${min_free} GB, move graph nodes saved $nodes_before -> $nodes_after"
 
       (( killed )) || break
       if (( after_gc && nodes_after <= nodes_before )); then
-        echo "$(stamp) $game ply $ply: the attempt after gc saved no new move graph node, giving up"
+        say "$game ply $ply: the attempt after gc saved no new move graph node, giving up"
         exit 5
       fi
       run_gc "$game-ply$ply-after-attempt$attempt"
@@ -102,11 +115,11 @@ for game in "$@"; do
     done
 
     if (( rc == 0 )); then
-      grep -E "wins in|loses in" $log | tail -1
+      say "$game: $(grep -E "wins in|loses in" $log | tail -1)"
       break
     fi
     if ! grep -q "^solution not found within $ply ply\.$" $log; then
-      echo "$(stamp) $game ply $ply: failed, see $log"
+      say "$game ply $ply: failed, see $log"
       exit 6
     fi
   done

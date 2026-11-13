@@ -29,8 +29,11 @@ For each game, it calls `solve_backward GAME PLY` for ply 0, 1, 2, …; earlier 
 - It gives up (exit 5) only when an attempt that started after gc is killed without saving a new move graph node.
 - It stops on anything else: the solver check not passing (3), gc failing (4), or a solve failing other than by being killed (6).
 
-The solve's own output goes to `$TMPDIR/solve-GAME.log`, and gc's to `$TMPDIR/gc-*.log`.
-The driver prints one line per attempt with its exit status, time, lowest free space and move graph nodes saved, plus one per gc.
+Logs go to the `--src` directory (by default `src/`), each appended to across runs:
+
+- `GAME.log`: the solve's output, stdout and stderr.
+- `GAME.restart.log`: the driver's lines, one per attempt with its exit status, time, lowest free space and move graph nodes saved, plus one per gc. The driver also prints these on stdout.
+- `GAME.gc.log`: gc's output, under a header line per run.
 
 ## 3. Report
 
