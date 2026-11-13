@@ -23,6 +23,7 @@
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
+#include "LayerPermutationDFA.h"
 #include "Profile.h"
 #include "RejectDFA.h"
 #include "StringDFA.h"
@@ -696,6 +697,18 @@ shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
   return load_or_build(dfa_in->get_shape(), inverse_name, [&]()
   {
     return shared_dfa_ptr(new InverseDFA(*dfa_in));
+  });
+}
+
+shared_dfa_ptr DFAUtil::get_layer_permutation(shared_dfa_ptr dfa_in, const std::vector<std::vector<int>>& permutations)
+{
+  Profile profile("get_layer_permutation");
+
+  std::string name = "layer_permutation_cache/" + dfa_in->get_hash() + "_" + LayerPermutationDFA::cache_key(dfa_in->get_shape(), permutations);
+
+  return load_or_build(dfa_in->get_shape(), name, [&]()
+  {
+    return shared_dfa_ptr(new LayerPermutationDFA(*dfa_in, permutations));
   });
 }
 

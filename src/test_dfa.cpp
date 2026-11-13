@@ -4,6 +4,8 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <numeric>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -23,6 +25,7 @@
 #include "FixedDFA.h"
 #include "IntersectionDFA.h"
 #include "InverseDFA.h"
+#include "LayerPermutationDFA.h"
 #include "RejectDFA.h"
 #include "TestDFAParams.h"
 #include "bucket_sort.h"
@@ -850,6 +853,191 @@ void test_string_dfa(const dfa_shape_t& shape)
     }
 }
 
+// LayerPermutationDFA over random string sets and random permutations,
+// checked against every string of the shape: the output must accept t
+// exactly when the input accepts the string t came from, keep each layer's
+// state count, and give back the input row for row under the inverse
+// permutations.
+void test_layer_permutation(const dfa_shape_t& shape)
+{
+  std::string test_name = "test_layer_permutation " + std::to_string(shape.size()) + " layers";
+  int ndim = int(shape.size());
+  std::vector<DFAString> all_positions = get_all_positions(shape);
+  std::mt19937 rng(20261112);
+
+  auto random_permutations = [&]()
+  {
+    std::vector<std::vector<int>> permutations;
+    for(int layer_shape : shape)
+      {
+        std::vector<int> permutation(static_cast<size_t>(layer_shape));
+        std::iota(permutation.begin(), permutation.end(), 0);
+        std::shuffle(permutation.begin(), permutation.end(), rng);
+        permutations.push_back(permutation);
+      }
+    return permutations;
+  };
+
+  auto apply = [&](const std::vector<std::vector<int>>& permutations, const DFAString& position)
+  {
+    std::vector<int> characters;
+    for(int layer = 0; layer < ndim; ++layer)
+      {
+        characters.push_back(permutations[size_t(layer)][size_t(position[layer])]);
+      }
+    return DFAString(shape, characters);
+  };
+
+  std::vector<shared_dfa_ptr> inputs = {std::make_shared<AcceptDFA>(shape), std::make_shared<RejectDFA>(shape)};
+  for(int trial = 0; trial < 40; ++trial)
+    {
+      std::bernoulli_distribution keep(double(trial % 8 + 1) / 9.0);
+      std::vector<DFAString> subset;
+      for(const DFAString& position : all_positions)
+        {
+          if(keep(rng))
+            {
+              subset.push_back(position);
+            }
+        }
+      inputs.push_back(DFAUtil::from_strings(shape, subset));
+    }
+
+  size_t strings_checked = 0;
+  for(size_t input_index = 0; input_index < inputs.size(); ++input_index)
+    {
+      const DFA& input = *inputs[input_index];
+      std::string case_name = test_name + " input " + std::to_string(input_index);
+
+      std::vector<std::vector<int>> permutations = random_permutations();
+      LayerPermutationDFA output(input, permutations);
+
+      for(const DFAString& position : all_positions)
+        {
+          if(output.contains(apply(permutations, position)) != input.contains(position))
+            {
+              throw std::logic_error(case_name + ": membership differs");
+            }
+          ++strings_checked;
+        }
+
+      for(int layer = 0; layer < ndim; ++layer)
+        {
+          if(output.get_layer_size(layer) != input.get_layer_size(layer))
+            {
+              throw std::logic_error(case_name + ": layer " + std::to_string(layer) + " size changed");
+            }
+        }
+
+      std::vector<std::vector<int>> inverses;
+      for(const auto& permutation : permutations)
+        {
+          std::vector<int> inverse(permutation.size());
+          for(size_t c = 0; c < permutation.size(); ++c)
+            {
+              inverse[size_t(permutation[c])] = int(c);
+            }
+          inverses.push_back(inverse);
+        }
+      LayerPermutationDFA back(output, inverses);
+      if(back.get_initial_state() != input.get_initial_state())
+        {
+          throw std::logic_error(case_name + ": round trip changed the initial state");
+        }
+      for(int layer = 0; layer < ndim; ++layer)
+        {
+          for(size_t state = 0; state < input.get_layer_size(layer); ++state)
+            {
+              DFATransitionsReference expected = input.get_transitions(layer, state);
+              DFATransitionsReference actual = back.get_transitions(layer, state);
+              for(int c = 0; c < shape[size_t(layer)]; ++c)
+                {
+                  if(actual[c] != expected[c])
+                    {
+                      throw std::logic_error(case_name + ": round trip changed a transition");
+                    }
+                }
+            }
+        }
+    }
+
+  // the cached path gives the same language.
+  std::vector<std::vector<int>> permutations = random_permutations();
+  shared_dfa_ptr cached = DFAUtil::get_layer_permutation(inputs.back(), permutations);
+  for(const DFAString& position : all_positions)
+    {
+      if(cached->contains(apply(permutations, position)) != inputs.back()->contains(position))
+        {
+          throw std::logic_error(test_name + ": get_layer_permutation membership differs");
+        }
+    }
+
+  // malformed permutations fail validation.
+  auto require_invalid = [&](std::string label, std::vector<std::vector<int>> bad)
+  {
+    try
+      {
+        LayerPermutationDFA::validate(shape, bad);
+      }
+    catch(const std::invalid_argument&)
+      {
+        return;
+      }
+    throw std::logic_error(test_name + ": " + label + " did not throw");
+  };
+
+  std::vector<std::vector<int>> bad = permutations;
+  bad.pop_back();
+  require_invalid("too few layers", bad);
+
+  bad = permutations;
+  bad[0].push_back(int(bad[0].size()));
+  require_invalid("long permutation", bad);
+
+  bad = permutations;
+  bad.back().back() = shape.back();
+  require_invalid("out of range", bad);
+
+  if(shape.back() >= 2)
+    {
+      bad = permutations;
+      bad.back()[1] = bad.back()[0];
+      require_invalid("repeated character", bad);
+    }
+
+  std::cout << test_name << ": " << inputs.size() << " DFAs, " << strings_checked << " strings: passed" << std::endl;
+}
+
+// cache keys group runs of equal permutations and refuse to outgrow a file
+// name.
+void test_layer_permutation_cache_key()
+{
+  dfa_shape_t shape = {3, 3, 3, 2, 3};
+  std::vector<std::vector<int>> permutations = {{0, 2, 1}, {0, 2, 1}, {0, 2, 1}, {1, 0}, {0, 1, 2}};
+  std::string key = LayerPermutationDFA::cache_key(shape, permutations);
+  if(key != "0-2-1x3_1-0x1_0-1-2x1")
+    {
+      throw std::logic_error("test_layer_permutation_cache_key: got " + key);
+    }
+
+  dfa_shape_t long_shape(64, 3);
+  std::vector<std::vector<int>> alternating;
+  for(int layer = 0; layer < 64; ++layer)
+    {
+      alternating.push_back((layer % 2) ? std::vector<int>({0, 2, 1}) : std::vector<int>({0, 1, 2}));
+    }
+  try
+    {
+      LayerPermutationDFA::cache_key(long_shape, alternating);
+    }
+  catch(const std::length_error&)
+    {
+      std::cout << "test_layer_permutation_cache_key: passed" << std::endl;
+      return;
+    }
+  throw std::logic_error("test_layer_permutation_cache_key: a long key did not throw");
+}
+
 void test_suite(const dfa_shape_t& shape)
 {
 
@@ -1115,6 +1303,11 @@ int main()
       test_key_narrow_max(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
 
       test_linear_bound();
+
+      test_layer_permutation(dfa_shape_t({TEST3_DFA_SHAPE}));
+      test_layer_permutation(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_layer_permutation(dfa_shape_t({3, 3, 3, 3, 3}));
+      test_layer_permutation_cache_key();
 
       // Must run last: a build abandoned by an exception deliberately
       // leaves build_in_progress set (see DFA.cpp), so any later DFA
