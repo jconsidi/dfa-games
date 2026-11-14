@@ -6,6 +6,7 @@
 #include <format>
 #include <sstream>
 
+#include "DFAUtil.h"
 #include "GameUtil.h"
 
 static std::string build_name(int width, int height)
@@ -39,38 +40,9 @@ AmazonsGame::AmazonsGame(int width_in, int height_in)
 
 shared_dfa_ptr AmazonsGame::build_positions_reversed(shared_dfa_ptr positions_in) const
 {
-  MoveGraph reverse_graph(get_shape());
-
-  reverse_graph.add_node("begin");
-  std::string previous_join = "begin";
-
-  for(int layer = 0; layer < get_shape().size(); ++layer)
-    {
-      std::vector<std::string> current_changes;
-      for(int c_from = 0; c_from < 4; ++c_from)
-        {
-          int c_to = ((c_from == 1) || (c_from == 2)) ? (3 - c_from) : c_from;
-
-          std::string node_name = std::format("layer={:d},c={:d}", layer, c_from);
-          change_vector node_changes(width * height);
-          node_changes[layer] = change_type(c_from, c_to);
-
-          reverse_graph.add_node(node_name, node_changes);
-          current_changes.push_back(node_name);
-        }
-
-      std::string next_join = std::format("layers={:d} done", layer);
-      reverse_graph.add_node(next_join);
-      for(std::string node_name : current_changes)
-        {
-          reverse_graph.add_edge(previous_join, node_name);
-          reverse_graph.add_edge(node_name, next_join);
-        }
-      previous_join = next_join;
-    }
-
-  std::string name_prefix = std::format("{:s},reversed", get_name());
-  return reverse_graph.get_moves(name_prefix, positions_in);
+  // 0 empty and 3 arrow stay, 1 (side 0) and 2 (side 1) swap.
+  std::vector<std::vector<int>> permutations(get_shape().size(), std::vector<int>({0, 2, 1, 3}));
+  return DFAUtil::get_layer_permutation(positions_in, permutations);
 }
 
 std::string AmazonsGame::position_to_string(const DFAString& string_in) const
