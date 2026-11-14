@@ -26,13 +26,14 @@ For each game, it calls `solve_backward GAME PLY` for ply 0, 1, 2, …; earlier 
 
 - Before each attempt, gc runs if under 1 TiB is free.
 - During an attempt, free space is checked every 20 s. Under 100 GB the solve is killed, gc runs, and the same ply restarts.
-- It gives up (exit 5) only when an attempt that started after gc is killed without saving a new move graph node.
+- It gives up (exit 5) only when an attempt that started after gc is killed without building a new move graph node.
+  It counts the `built move_nodes/GAME,` lines the attempt added to the solve log, since the solver deletes a node's link under `scratch/move_nodes` once every node using it is built.
 - It stops on anything else: the solver check not passing (3), gc failing (4), or a solve failing other than by being killed (6).
 
 Logs go to the `--src` directory (by default `src/`), each appended to across runs:
 
 - `GAME.log`: the solve's output, stdout and stderr.
-- `GAME.restart.log`: the driver's lines, one per attempt with its exit status, time, lowest free space and move graph nodes saved, plus one per gc. The driver also prints these on stdout.
+- `GAME.restart.log`: the driver's lines, one per attempt with its exit status, time, lowest free space and move graph nodes built, plus one per gc. The driver also prints these on stdout.
 - `GAME.gc.log`: gc's output, under a header line per run.
 
 ## 3. Report

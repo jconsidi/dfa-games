@@ -49,7 +49,11 @@ fi
 
 free_gb() { df -g $MAIN/scratch/ | awk 'NR==2 {print $4}' }
 stamp() { date '+%Y-%m-%d %H:%M:%S' }
-saved_nodes() { ls $MAIN/scratch/move_nodes | grep -c "^$1," }
+# built_nodes GAME LOG LINE: how many move graph nodes the solve built and
+# saved in LOG after line LINE. Counting links under scratch/move_nodes
+# would not do, since the solver deletes each node's link once every node
+# using it is built.
+built_nodes() { tail -n +$(( $3 + 1 )) $2 | grep -c "^built move_nodes/$1," }
 
 # say LINE: print a timestamped line and append it to the game's restart log.
 say() { echo "$(stamp) $*" | tee -a $restart_log }
@@ -83,7 +87,8 @@ for game in "$@"; do
         after_gc=1
       fi
 
-      nodes_before=$(saved_nodes $game)
+      log_lines=0
+      [[ -e $log ]] && log_lines=$(( $(wc -l < $log) ))
       start=$(date +%s)
       min_free=$(free_gb)
       (cd $SRC && exec ./solve_backward $game $ply) >> $log 2>&1 &
@@ -101,12 +106,12 @@ for game in "$@"; do
       done
       wait $pid
       rc=$?
-      nodes_after=$(saved_nodes $game)
-      say "$game ply $ply attempt $attempt: exit $rc after $(( $(date +%s) - start ))s, lowest free ${min_free} GB, move graph nodes saved $nodes_before -> $nodes_after"
+      nodes_built=$(built_nodes $game $log $log_lines)
+      say "$game ply $ply attempt $attempt: exit $rc after $(( $(date +%s) - start ))s, lowest free ${min_free} GB, move graph nodes built $nodes_built"
 
       (( killed )) || break
-      if (( after_gc && nodes_after <= nodes_before )); then
-        say "$game ply $ply: the attempt after gc saved no new move graph node, giving up"
+      if (( after_gc && nodes_built == 0 )); then
+        say "$game ply $ply: the attempt after gc built no move graph node, giving up"
         exit 5
       fi
       run_gc "$game-ply$ply-after-attempt$attempt"
