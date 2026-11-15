@@ -30,14 +30,20 @@ The script:
   - `stats_backward GAME N`, where N is the highest ply_max complete for both sides and all results;
   - `stats_forward GAME`, only when there is no `forward_backward` family, whose reachable column already covers it.
 - Prints Markdown: the family summary, then one table per run.
-  The tables give positions and DFA states per ply.
-  Each table ends with a positions/state column: the sum of the row's positions over its results, divided by the sum of their DFA states.
+  Each run's table is the binary's TSV output as a Markdown table, with the TSV's column names, order and values as printed, except that underscores in the names become spaces, so they wrap between words, and values in scientific notation are cut to 2 digits after the decimal point.
+  The checks use the values as printed, before that rounding.
+  `stats_backward` prints both sides in one row, which is too wide for a terminal to draw, so `backward` gets one table per side to move, each with that side's columns and the `_0` or `_1` suffix dropped from their names.
+  When every value is the same for both sides, it prints one table headed "Both Sides" instead.
+  The script appends one column, "positions per state": the sum of the row's positions over its results, divided by the sum of their DFA states.
   Before printing, it checks that winning + losing + unknown positions equal the total at every ply, within the binaries' 6 significant digits.
+  For `forward_backward` and `bound_backward` the total is the binary's own reachable or bound column.
+  `stats_backward` prints no total, so for `backward` the total is the number of strings of the shape in `config/GAME/game.json`, checked for both sides at every ply_max.
+  A game without a config is checked against the first row's sum instead, which shows only that every row agrees, and the note says so.
   The notes under each table confirm that check, list missing plies and remaining unknowns, and give ply 0's verdict when ply 0 is a single position.
 - Exits nonzero with the reason, and prints no tables, if a binary fails, a binary is not built, the output does not parse, or the positions at some ply do not add up to the total.
 
 The binaries need a DFA's position count.
-`DFA::size()` caches it under `scratch/sizes/`, and gc ages those entries out.
+`DFA::size()` caches it under `scratch/sizes/`, and gc keeps each entry until its DFA is deleted.
 An uncached size costs a full digest check and count over the file, so a first run on a large game can take many minutes.
 Run the script with `run_in_background` and say so, then report when it finishes.
 A second run reads the cached sizes and is fast.
@@ -47,8 +53,8 @@ They do compete for disk bandwidth, so mention that when a solve is running.
 
 ## 3. Present the results
 
-- Show the script's tables as they are.
-  Do not retype or recompute the numbers.
+- Show the script's output as it is, including the notes under each table.
+  Do not retype or recompute the numbers, rename or reorder columns, or drop columns, rows or notes.
 - Above the tables, sum up in a few lines:
   - which solve was run, with its parameters;
   - how far it got, including missing plies or remaining unknown positions;

@@ -12,6 +12,7 @@ directory that is missing.
 
 import argparse
 import collections
+import json
 import os
 import re
 import subprocess
@@ -79,6 +80,7 @@ def run_stats(binary, args):
     if header[0] != "ply":
         fail(f"{' '.join(command)}: unexpected header {lines[0]!r}")
     rows = []
+    raw = [header]
     for line in lines[1:]:
         fields = line.split("\t")
         if len(fields) != len(header):
@@ -90,22 +92,36 @@ def run_stats(binary, args):
         except ValueError:
             fail(f"{' '.join(command)}: could not parse row {line!r}")
         rows.append(row)
+        raw.append(fields)
     # stats_forward_backward and stats_bound_backward report a missing DFA on
     # stderr and skip the ply.
     missing = [line for line in proc.stderr.split("\n") if line.startswith("DFA ")]
-    return " ".join(command), rows, missing, elapsed
+    return " ".join(command), rows, raw, missing, elapsed
 
 
-def fmt_positions(x):
-    # The binaries print positions with ostream's default 6 significant digits.
-    if x < 1e6:
-        return f"{x:,.0f}"
-    mantissa, exponent = f"{x:.3e}".split("e")
-    return f"{mantissa}e{int(exponent)}"
+def tsv_table(raw, per_state, columns=None, suffix=""):
+    """The binary's TSV as a Markdown table: its column names, order and
+    values as printed, with a positions_per_state column appended. columns
+    picks a subset of the TSV's columns, in their TSV order, and suffix is
+    dropped from the end of their names."""
+    header = raw[0]
+    keep = [i for i, name in enumerate(header) if columns is None or name in columns]
+    names = [header[i].removesuffix(suffix) if suffix else header[i] for i in keep]
+    # Spaces rather than underscores, so a narrow column wraps its name
+    # between words.
+    names = [name.replace("_", " ") for name in names + ["positions_per_state"]]
+    out = ["| " + " | ".join(names) + " |"]
+    out.append("|" + "---:|" * (len(keep) + 1))
+    for fields, value in zip(raw[1:], per_state):
+        out.append("| " + " | ".join([fmt_field(fields[i]) for i in keep] + [value]) + " |")
+    out.append("")
+    return out
 
 
-def fmt_states(n):
-    return f"{n:,d}"
+def fmt_field(text):
+    # A value the binary printed in scientific notation keeps 2 digits after
+    # the decimal point. Integers, such as state counts, stay as printed.
+    return f"{float(text):.2e}" if "e" in text else text
 
 
 def fmt_per_state(positions, states):
@@ -115,8 +131,7 @@ def fmt_per_state(positions, states):
     x = positions / states
     if x < 1e6:
         return f"{x:,.1f}"
-    mantissa, exponent = f"{x:.3e}".split("e")
-    return f"{mantissa}e{int(exponent)}"
+    return f"{x:.2e}"
 
 
 def partition_ok(total, parts):
@@ -124,7 +139,7 @@ def partition_ok(total, parts):
     return abs(sum(parts) - total) <= 2e-5 * max(total, 1) + 0.5
 
 
-def solved_table(title, command, rows, total_key, total_label, plies_expected, missing, elapsed):
+def solved_table(title, command, rows, raw, total_key, plies_expected, missing, elapsed):
     mismatches = []
     for row in rows:
         total = row[total_key + "_positions"]
@@ -136,17 +151,8 @@ def solved_table(title, command, rows, total_key, total_label, plies_expected, m
         fail(f"{command}: winning + losing + unknown positions do not match the total:\n" + "\n".join(mismatches))
 
     out = [f"### {title}", "", f"`{command}` ({elapsed:.0f}s)", ""]
-    out.append(f"| Ply | {total_label} positions | Winning | Losing | Unknown | {total_label} states | Winning states | Losing states | Unknown states | Positions/state |")
-    out.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
-    for row in rows:
-        out.append("| " + " | ".join(
-            [str(row["ply"]), fmt_positions(row[f"{total_key}_positions"])]
-            + [fmt_positions(row[f"{r}_positions"]) for r in RESULTS]
-            + [fmt_states(row[f"{total_key}_states"])]
-            + [fmt_states(row[f"{r}_states"]) for r in RESULTS]
-            + [fmt_per_state(sum(row[f"{r}_positions"] for r in RESULTS),
-                             sum(row[f"{r}_states"] for r in RESULTS))]) + " |")
-    out.append("")
+    out += tsv_table(raw, [fmt_per_state(sum(row[f"{r}_positions"] for r in RESULTS),
+                                         sum(row[f"{r}_states"] for r in RESULTS)) for row in rows])
 
     present = {row["ply"] for row in rows}
     absent = [p for p in plies_expected if p not in present]
@@ -165,6 +171,27 @@ def solved_table(title, command, rows, total_key, total_label, plies_expected, m
     out += notes
     out.append("")
     return out
+
+
+def backward_total(game, rows):
+    """The number of positions every backward side and ply_max must add up
+    to, with a description of where it came from.
+
+    stats_backward prints no total. The game's config shape gives every
+    string of the shape. Without a config, fall back to the first row's sum,
+    which then checks that every side and ply_max agrees with it."""
+    config = os.path.join(SRC_DIR, "config", game, "game.json")
+    if os.path.exists(config):
+        with open(config) as f:
+            shape = json.load(f).get("shape")
+        if not shape:
+            fail(f"{config} has no shape")
+        total = 1
+        for size in shape:
+            total *= size
+        return total, f"all {total:,} strings of the shape in {os.path.relpath(config, SRC_DIR)}"
+    first = sum(rows[0][f"{r}_positions_0"] for r in RESULTS)
+    return first, f"ply_max {rows[0]['ply']} side 0's sum, {first:g} (no config shape to check against)"
 
 
 def compress(plies):
@@ -217,13 +244,13 @@ def main():
 
     ran = False
 
-    for name, binary, total_key, total_label in (
-            ("forward_backward", "stats_forward_backward", "reachable", "Reachable"),
-            ("bound_backward", "stats_bound_backward", "bound", "Bound")):
+    for name, binary, total_key in (
+            ("forward_backward", "stats_forward_backward", "reachable"),
+            ("bound_backward", "stats_bound_backward", "bound")):
         for f, b in sorted({(int(f), int(b)) for f, b, _, _ in families.get(name, [])}):
-            command, rows, missing, elapsed = run_stats(binary, [args.game, f, b])
+            command, rows, raw, missing, elapsed = run_stats(binary, [args.game, f, b])
             out += solved_table(f"{name}, forward_ply_max={f}, backward_ply_max={b}",
-                                command, rows, total_key, total_label, range(f + 1), missing, elapsed)
+                                command, rows, raw, total_key, range(f + 1), missing, elapsed)
             ran = True
 
     if "backward" in families:
@@ -235,27 +262,49 @@ def main():
             out.append(f"`backward` DFAs are present ({len(have)}), but ply_max=000 is not complete for both sides and all of {', '.join(RESULTS)}, so `stats_backward` was not run.")
             out.append("")
         else:
-            command, rows, missing, elapsed = run_stats("stats_backward", [args.game, complete])
-            out += [f"### backward, ply_max 0-{complete}", "", f"`{command}` ({elapsed:.0f}s)", ""]
-            out.append("| Ply max | " + " | ".join(f"{r.capitalize()} {s} positions" for s in (0, 1) for r in RESULTS) + " | " + " | ".join(f"{r.capitalize()} {s} states" for s in (0, 1) for r in RESULTS) + " | Positions/state |")
-            out.append("|---:" * 14 + "|")
+            command, rows, raw, missing, elapsed = run_stats("stats_backward", [args.game, complete])
+            total, total_source = backward_total(args.game, rows)
+            mismatches = []
             for row in rows:
-                out.append("| " + " | ".join([str(row["ply"])]
-                                             + [fmt_positions(row[f"{r}_positions_{s}"]) for s in (0, 1) for r in RESULTS]
-                                             + [fmt_states(row[f"{r}_states_{s}"]) for s in (0, 1) for r in RESULTS]
-                                             + [fmt_per_state(sum(row[f"{r}_positions_{s}"] for s in (0, 1) for r in RESULTS),
-                                                              sum(row[f"{r}_states_{s}"] for s in (0, 1) for r in RESULTS))]) + " |")
+                for s in (0, 1):
+                    parts = [row[f"{r}_positions_{s}"] for r in RESULTS]
+                    if not partition_ok(total, parts):
+                        sum_text = " + ".join("%s %g" % (r, p) for r, p in zip(RESULTS, parts))
+                        mismatches.append("ply_max %d side %d: %s != %g" % (row["ply"], s, sum_text, total))
+            if mismatches:
+                fail(f"{command}: winning + losing + unknown positions do not match {total_source}:\n" + "\n".join(mismatches))
+
+            # Both sides in one table is too wide for a terminal to draw.
+            # When every value is the same for both sides, as for a game
+            # symmetric under swapping the sides, one table covers both.
+            columns = {s: [raw[0].index(f"{r}_{q}_{s}") for r in RESULTS for q in ("states", "positions")] for s in (0, 1)}
+            same = all([fields[i] for i in columns[0]] == [fields[i] for i in columns[1]] for fields in raw[1:])
+            layout = "every value the same for both sides" if same else "one table per side to move"
+            out += [f"### backward, ply_max 0-{complete}", "", f"`{command}` ({elapsed:.0f}s), {layout}", ""]
+            for s in ((0,) if same else (0, 1)):
+                out.append("Both Sides:" if same else f"Side {s}:")
+                out.append("")
+                out += tsv_table(raw,
+                                 [fmt_per_state(sum(row[f"{r}_positions_{s}"] for r in RESULTS),
+                                                sum(row[f"{r}_states_{s}"] for r in RESULTS)) for row in rows],
+                                 {"ply"} | {f"{r}_{q}_{s}" for r in RESULTS for q in ("states", "positions")},
+                                 suffix=f"_{s}")
+            plies_max = {int(p) for p, _, _ in families["backward"]}
+            beyond = sorted(p for p in plies_max if p > complete)
+            notes = [f"{len(rows)} plies reported (ply_max 0-{complete}), the highest complete for both sides and all results."]
+            if beyond:
+                notes.append(f"`backward` DFAs also exist for ply_max {compress(beyond)}, but not every side and result, so those plies are not shown.")
+            notes.append(f"Winning + losing + unknown positions equal {total_source} at every ply_max shown, for both sides.")
+            unknown_left = [row["ply"] for row in rows if any(row[f"unknown_positions_{s}"] > 0 for s in (0, 1))]
+            notes.append(f"Unknown positions remain at ply_max {compress(unknown_left)}." if unknown_left else "No unknown positions at any ply_max shown.")
+            out += notes
             out.append("")
             ran = True
 
     if "forward" in families and "forward_backward" not in families:
-        command, rows, missing, elapsed = run_stats("stats_forward", [args.game])
+        command, rows, raw, missing, elapsed = run_stats("stats_forward", [args.game])
         out += ["### forward", "", f"`{command}` ({elapsed:.0f}s)", ""]
-        out.append("| Ply | Reachable positions | Reachable states | Positions/state |")
-        out.append("|---:|---:|---:|---:|")
-        for row in rows:
-            out.append(f"| {row['ply']} | {fmt_positions(row['reachable_positions'])} | {fmt_states(row['reachable_states'])} | {fmt_per_state(row['reachable_positions'], row['reachable_states'])} |")
-        out.append("")
+        out += tsv_table(raw, [fmt_per_state(row["reachable_positions"], row["reachable_states"]) for row in rows])
         ran = True
     elif "forward" in families:
         out.append("`forward` DFAs are covered by the reachable columns above, so `stats_forward` was not run separately.")
