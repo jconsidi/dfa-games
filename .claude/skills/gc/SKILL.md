@@ -31,6 +31,7 @@ From `src/`:
     ./gc.sh scratch
 
 With no timestamps, `gc.pl` deletes unlinked DFAs and cache entries written up to the newest `move_nodes` link, and removes staging directories whose pid is gone.
+It keeps each cached position count under `scratch/sizes/` until its DFA is deleted, since recounting a large DFA takes many minutes.
 It can take a while on a large scratch volume, so run it with `run_in_background` and wait for it.
 
 ## 3. Report

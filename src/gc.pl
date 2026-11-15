@@ -215,14 +215,55 @@ for my $staging_dir ("build", "binarydfa")
   closedir(STAGING_DIR);
 }
 
+# sizes/<hash> holds one DFA's position count. Each entry is a few bytes,
+# while recomputing one means a digest check and a count over the whole
+# DFA file, which takes many minutes for a DFA of billions of states. So an
+# entry is kept as long as its DFA is in this root's dfas_by_hash, and
+# deleted only once that DFA is gone, when nothing can use it again. A root
+# with no dfas_by_hash keeps every entry, since it cannot tell which DFAs
+# still exist.
+if(-d "$directory/sizes" && -d "$directory/dfas_by_hash")
+{
+  my $sizes_kept = 0;
+  my @sizes_delete;
+  opendir(SIZES_DIR, "$directory/sizes") || die("error opening $directory/sizes : $!\n");
+  for my $entry (readdir(SIZES_DIR))
+  {
+    next if $entry =~ /^\.\.?$/;
+
+    # A name this does not recognize must stop the run rather than be
+    # deleted or skipped without a word.
+    $entry =~ /^[0-9a-f]{64}$/ ||
+      die("$directory/sizes/$entry is not named by a DFA hash\n");
+
+    if(-e "$directory/dfas_by_hash/$entry.dfa")
+    {
+      ++$sizes_kept;
+    }
+    else
+    {
+      push(@sizes_delete, $entry);
+    }
+  }
+  closedir(SIZES_DIR);
+
+  print($sizes_kept, "position counts kept for DFAs still present");
+  print(scalar(@sizes_delete), "position counts to delete, their DFAs gone");
+  for my $entry (@sizes_delete)
+  {
+    my $entry_full = "$directory/sizes/$entry";
+    unlink($entry_full) || die("error deleting $entry_full : $!\n");
+  }
+}
+
 # Disposable caches: change_cache/, difference_cache/, intersection_cache/,
-# inverse_cache/, union_cache/, sizes/. Pure memoization -- nothing durable
-# depends on any entry surviving, whether or not its dfas_by_hash target
-# still exists -- so age is enough on its own, no reference counting.
+# inverse_cache/, union_cache/. Pure memoization -- nothing durable depends
+# on any entry surviving, whether or not its dfas_by_hash target still
+# exists -- so age is enough on its own, no reference counting.
 opendir(ROOT_DIR, $directory) || die("error opening $directory : $!\n");
 for my $cache_dir (readdir(ROOT_DIR))
 {
-  next unless ($cache_dir =~ /_cache$/) || ($cache_dir eq "sizes");
+  next unless $cache_dir =~ /_cache$/;
 
   my $cache_full = "$directory/$cache_dir";
   next unless -d $cache_full;
