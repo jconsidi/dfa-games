@@ -302,9 +302,16 @@ def main():
             ran = True
 
     if "forward" in families and "forward_backward" not in families:
-        command, rows, raw, missing, elapsed = run_stats("stats_forward", [args.game])
+        # Without a ply limit stats_forward reads until an empty ply, which a
+        # game whose last ply still has positions, like tictactoe's full
+        # boards, never reaches. So pass the highest ply present; a gap below
+        # it makes the binary fail on the missing DFA.
+        forward_max = max(int(p) for (p,) in families["forward"])
+        command, rows, raw, missing, elapsed = run_stats("stats_forward", [args.game, str(forward_max)])
         out += ["### forward", "", f"`{command}` ({elapsed:.0f}s)", ""]
         out += tsv_table(raw, [fmt_per_state(row["reachable_positions"], row["reachable_states"]) for row in rows])
+        out.append(f"{len(rows)} plies reported, ply 0-{rows[-1]['ply']} of the 0-{forward_max} present.")
+        out.append("")
         ran = True
     elif "forward" in families:
         out.append("`forward` DFAs are covered by the reachable columns above, so `stats_forward` was not run separately.")

@@ -28,7 +28,8 @@ The script:
   - `stats_forward_backward GAME F B` for each `forward_backward` parameter pair;
   - `stats_bound_backward GAME F B` for each `bound_backward` parameter pair;
   - `stats_backward GAME N`, where N is the highest ply_max complete for both sides and all results;
-  - `stats_forward GAME`, only when there is no `forward_backward` family, whose reachable column already covers it.
+  - `stats_forward GAME F`, where F is the highest `forward` ply present, only when there is no `forward_backward` family, whose reachable column already covers it.
+    Without F the binary reads until an empty ply, which a game like tictactoe, whose last ply still has positions, never reaches.
 - Prints Markdown: the family summary, then one table per run.
   Each run's table is the binary's TSV output as a Markdown table, with the TSV's column names, order and values as printed, except that underscores in the names become spaces, so they wrap between words, and values in scientific notation are cut to 2 digits after the decimal point.
   The checks use the values as printed, before that rounding.
