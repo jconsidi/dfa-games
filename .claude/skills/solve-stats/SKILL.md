@@ -35,6 +35,7 @@ The script:
   The checks use the values as printed, before that rounding.
   `stats_backward` prints both sides in one row, which is too wide for a terminal to draw, so `backward` gets one table per side to move, each with that side's columns and the `_0` or `_1` suffix dropped from their names.
   When every value is the same for both sides, it prints one table headed "Both Sides" instead.
+  A table leaves out the unknown states and unknown positions columns when no ply in it has an unknown position, and its notes say there are none.
   The script appends one column, "positions per state": the sum of the row's positions over its results, divided by the sum of their DFA states.
   Before printing, it checks that winning + losing + unknown positions equal the total at every ply, within the binaries' 6 significant digits.
   For `forward_backward` and `bound_backward` the total is the binary's own reachable or bound column.

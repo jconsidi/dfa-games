@@ -106,6 +106,13 @@ def tsv_table(raw, per_state, columns=None, suffix=""):
     dropped from the end of their names."""
     header = raw[0]
     keep = [i for i, name in enumerate(header) if columns is None or name in columns]
+    # Unknown columns are dropped when no ply has an unknown position. The
+    # notes under the table say so, and positions_per_state still counts the
+    # unknown DFAs' states.
+    unknown_name = "unknown_positions" + suffix
+    unknown_positions = header.index(unknown_name) if unknown_name in header else None
+    if unknown_positions in keep and all(float(fields[unknown_positions]) == 0 for fields in raw[1:]):
+        keep = [i for i in keep if not header[i].startswith("unknown_")]
     names = [header[i].removesuffix(suffix) if suffix else header[i] for i in keep]
     # Spaces rather than underscores, so a narrow column wraps its name
     # between words.
