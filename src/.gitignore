@@ -51,6 +51,7 @@ validate_forward
 validate_forward_backward
 validate_terminal
 verify_backward_sound
+verify_bound_backward_sound
 verify_forward_backward
 verify_losing_sound
 verify_lost_sound
