@@ -4,6 +4,7 @@
 .depend.tmp
 build_backward
 build_bound_backward
+build_bound_backward_proof
 build_chess_database
 build_forward
 build_forward_backward
