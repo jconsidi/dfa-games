@@ -1,39 +1,24 @@
 // build_forward_backward_proof.cpp
 
 #include <cstdlib>
-#include <iomanip>
+#include <format>
 #include <iostream>
-#include <sstream>
 #include <string>
 #include <vector>
 
-#include "DFAUtil.h"
-#include "parallel.h"
 #include "game_utils.h"
+#include "proof_utils.h"
 
 std::string get_name(int forward_ply_max, int backward_ply_max, int ply, std::string result)
 {
-  std::ostringstream output;
-  output << "forward_backward";
-  output << ",forward_ply_max=" << std::setfill('0') << std::setw(3) << forward_ply_max;
-  output << ",backward_ply_max=" << std::setfill('0') << std::setw(3) << backward_ply_max;
-  output << ",ply=" << std::setfill('0') << std::setw(3) << ply;
-  output << "," << result;
-
-  return output.str();
+  return std::format("forward_backward,forward_ply_max={:03d},backward_ply_max={:03d},ply={:03d},{:s}",
+                     forward_ply_max, backward_ply_max, ply, result);
 }
 
-shared_dfa_ptr get_positions(const Game& game, int forward_ply_max, int backward_ply_max, int ply, std::string result)
+std::string get_proof_name(int forward_ply_max, int backward_ply_max, int ply)
 {
-  std::string name = get_name(forward_ply_max, backward_ply_max, ply, result);
-  std::cout << "LOADING " << name << std::endl;
-
-  shared_dfa_ptr dfa = game.load(name);
-  if(!dfa)
-    {
-      throw std::logic_error("failed loading " + name);
-    }
-  return dfa;
+  return std::format("proof_forward_backward,forward_ply_max={:03d},backward_ply_max={:03d},ply={:03d}",
+                     forward_ply_max, backward_ply_max, ply);
 }
 
 int main(int argc, char **argv)
@@ -50,47 +35,20 @@ int main(int argc, char **argv)
   int forward_ply_max = (argc >= 3) ? atoi(argv[2]) : 100;
   int backward_ply_max = (argc >= 4) ? atoi(argv[3]) : 0;
 
-  auto initial_positions = game->get_positions_initial();
-  assert(initial_positions->size() == 1);
-
-  DFAString initial_position = *(initial_positions->cbegin());
-
-  shared_dfa_ptr winning_0 = get_positions(*game, forward_ply_max, backward_ply_max, 0, "winning");
-  bool initial_winning = winning_0->contains(initial_position);
-
-  shared_dfa_ptr curr_positions = initial_positions;
+  std::vector<std::string> winning_names;
+  std::vector<std::string> losing_names;
+  std::vector<std::string> proof_names;
   for(int ply = 0; ply <= forward_ply_max; ++ply)
     {
-      int side_to_move = ply % 2;
-      bool ply_winning = initial_winning ^ (ply % 2);
-
-      std::cout << "PLY " << ply << " " << (ply_winning ? "WINNING" : "LOSING") << " " << curr_positions->size() << " positions to prove." << std::endl;
-
-      std::ostringstream save_name;
-      save_name << "proof_forward_backward,ply=" << std::setfill('0') << std::setw(3) << ply;
-
-      curr_positions = game->load_or_build(save_name.str(), [&]()
-      {
-        if(ply_winning)
-          {
-            // get all moves to winning positions and do not worry
-            // about redundancy.
-
-            shared_dfa_ptr next_positions = game->get_moves_forward(side_to_move, curr_positions);
-            shared_dfa_ptr next_losing = ply_winning ? get_positions(*game, forward_ply_max, backward_ply_max, ply + 1, "losing") : 0;
-
-            return DFAUtil::get_intersection(next_positions, next_losing);
-          }
-        else // ply is losing
-          {
-            // all moves must go to winning positions
-            return game->get_moves_forward(side_to_move, curr_positions);
-          }
-      });
-
-      auto size = curr_positions->size();
-      std::cout << "  compressed " << size << " positions to " << curr_positions->states() << " states" << std::endl;
+      winning_names.push_back(get_name(forward_ply_max, backward_ply_max, ply, "winning"));
+      losing_names.push_back(get_name(forward_ply_max, backward_ply_max, ply, "losing"));
+      proof_names.push_back(get_proof_name(forward_ply_max, backward_ply_max, ply));
     }
+
+  build_proof(*game,
+              load_proof_inputs(*game, winning_names),
+              load_proof_inputs(*game, losing_names),
+              proof_names);
 
   return 0;
 }

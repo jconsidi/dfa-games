@@ -96,6 +96,9 @@ test_chess : all
 time : all
 	time ./test_perft
 
+build_forward_backward_proof : build_forward_backward_proof.o proof_utils.o game_utils.o dfagames.a
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
 build_% : build_%.o build_utils.o game_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
