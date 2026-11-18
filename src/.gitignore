@@ -55,5 +55,6 @@ verify_forward_backward
 verify_losing_sound
 verify_lost_sound
 verify_partition
+verify_proof
 verify_winning_sound
 verify_won_sound
