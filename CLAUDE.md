@@ -208,15 +208,11 @@ Coverage is narrower than the C++ and the gaps matter:
   extras, which resolve within about 2 ply. Rules must not treat such a
   position as a failure: tictactoe stops the side to move only on the
   *opponent's* line for exactly this reason.
-- The Rust verifiers do **not** consult `lost,side_to_move=N` /
-  `won,side_to_move=N` the way `verify_utils.cpp` does. Each position generates
-  its moves once and an empty move list branches to `validate_result`, which
-  must return the base case the DFA asserts. This is deliberate: it keeps DFA
-  construction out of a program that only reads, and `won,side_to_move=N` is
-  the reject DFA for a normal play game so that half was dead code anyway. It
-  is *stricter* than the C++ on both branches. What it gives up is that the
-  losing and winning verifiers no longer incidentally cross check the `lost`
-  DFA, so keep running `verify-lost-sound` on `lost,side_to_move=N` itself.
+- Neither implementation's losing and winning verifiers consult `lost,side_to_move=N` or `won,side_to_move=N`.
+  Both decide terminal positions from the rules, but they branch differently.
+  The Rust generates each position's moves once, and an empty move list branches to `validate_result`, which must return the base case the DFA asserts.
+  The C++ asks `validate_outcome` first: a terminal result must be -1 in a losing DFA and 1 in a winning DFA, and any other result fails; a position with no result has its moves checked.
+  Neither verifier cross checks the `lost` DFA as a side effect, so keep running `verify-lost-sound` on `lost,side_to_move=N` itself.
 
 The two implementations are meant to disagree loudly, so when changing either,
 check both against the same DFAs. `verify-backward-sound breakthrough_4x4 1`

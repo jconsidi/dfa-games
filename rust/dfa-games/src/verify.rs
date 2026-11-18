@@ -6,25 +6,20 @@
 //!
 //! # Terminal positions
 //!
-//! The C++ consults `game.get_positions_lost(side)` and `get_positions_won`
-//! as a fast path before generating moves.  This does not, for three reasons:
-//! those DFAs come from `load_or_build`, so depending on them would drag DFA
-//! construction into a program that only reads DFAs; `won,side_to_move=N` is
-//! the reject DFA for a normal play game, so the `won` half of it is dead code
-//! anyway; and several scratch directories never had `lost,side_to_move=1`
-//! built at all.
+//! Neither this nor the C++ consults `game.get_positions_lost(side)` or
+//! `get_positions_won`: those DFAs come from `load_or_build`, so depending on
+//! them would drag DFA construction into a program that only reads DFAs, and
+//! several scratch directories never had `lost,side_to_move=1` built at all.
 //!
 //! Instead every position generates its moves once, and the empty move list is
 //! the branch to the terminal check, where `validate_result` must return the
-//! base case the DFA asserts.  That is *stricter* than the C++ on both
-//! branches: a position wrongly listed in `lost` still has all of its moves
-//! checked here, and a terminal position in a `losing` DFA has to actually
-//! report a loss, where the C++ move loop passed it vacuously.
+//! base case the DFA asserts.  The C++ branches on `validate_outcome` instead:
+//! a terminal result must match the DFA's claim, and a position with no result
+//! has its moves checked.
 //!
-//! What is given up is that the losing and winning verifiers no longer
-//! incidentally cross check the `lost` DFA.  Running `verify-lost-sound` on
-//! `lost,side_to_move=N` is what covers that, and it should stay part of the
-//! routine.
+//! Neither verifier cross checks the `lost` DFA as a side effect.  Running
+//! `verify-lost-sound` on `lost,side_to_move=N` is what covers that, and it
+//! should stay part of the routine.
 
 use anyhow::{bail, Result};
 use dfa_format::Dfa;

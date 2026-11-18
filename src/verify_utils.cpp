@@ -37,13 +37,18 @@ shared_dfa_ptr verify_load(const Game& game, std::string dfa_name)
   return output;
 }
 
-void verify_losing_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr winning_prev, shared_dfa_ptr lost)
+void verify_losing_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr winning_prev)
 {
-  // lost probably hits less often but will be better cached
-  if(lost->contains(position))
+  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
+  if(outcome)
     {
-      // lost position
-      return;
+      if(*outcome == -1)
+        {
+          // lost position
+          return;
+        }
+
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not lost (-1)");
     }
 
   std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
@@ -61,15 +66,12 @@ void verify_losing_sound(const Game& game, int side_to_move, shared_dfa_ptr losi
 {
   std::cout << "VERIFYING " << losing_curr->size() << " LOSING POSITIONS" << std::endl;
 
-  shared_dfa_ptr lost = game.get_positions_lost(side_to_move);
-
   // for_each_position below only mmaps losing_curr, the DFA it enumerates
   // (see its own comment) -- DFA::mmap() is not safe to call concurrently
   // the first time (it does a one-time digest check), and
-  // verify_losing_position calls ->contains() on lost and winning_prev
-  // from inside that parallel callback. Warm both up here, serially,
-  // before any worker thread can reach them.
-  lost->mmap();
+  // verify_losing_position calls ->contains() on winning_prev from inside
+  // that parallel callback. Warm it up here, serially, before any worker
+  // thread can reach it.
   winning_prev->mmap();
 
   uint64_t verified_count = 0;
@@ -80,7 +82,7 @@ void verify_losing_sound(const Game& game, int side_to_move, shared_dfa_ptr losi
 	{
           try
             {
-              verify_losing_position(game, side_to_move, position, winning_prev, lost);
+              verify_losing_position(game, side_to_move, position, winning_prev);
             }
           catch(const std::runtime_error& e)
             {
@@ -206,13 +208,18 @@ int verify_parse_side_to_move(std::string dfa_name)
   throw std::runtime_error("parsing side_to_move failed");
 }
 
-void verify_winning_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr losing_prev, shared_dfa_ptr won)
+void verify_winning_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr losing_prev)
 {
-  // won probably hits less often but will be better cached
-  if(won->contains(position))
+  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
+  if(outcome)
     {
-      // won position
-      return;
+      if(*outcome == 1)
+        {
+          // won position
+          return;
+        }
+
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not won (1)");
     }
 
   std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
@@ -232,12 +239,9 @@ void verify_winning_sound(const Game& game, int side_to_move, shared_dfa_ptr win
 {
   std::cout << "VERIFYING " << winning_curr->size() << " WINNING POSITIONS" << std::endl;
 
-  shared_dfa_ptr won = game.get_positions_won(side_to_move);
-
   // See the matching comment in verify_losing_sound: for_each_position only
   // mmaps winning_curr, but verify_winning_position calls ->contains() on
-  // won and losing_prev from inside its parallel callback.
-  won->mmap();
+  // losing_prev from inside its parallel callback.
   losing_prev->mmap();
 
   uint64_t verified_count = 0;
@@ -248,7 +252,7 @@ void verify_winning_sound(const Game& game, int side_to_move, shared_dfa_ptr win
 	{
           try
             {
-              verify_winning_position(game, side_to_move, position, losing_prev, won);
+              verify_winning_position(game, side_to_move, position, losing_prev);
             }
           catch(const std::runtime_error& e)
             {
