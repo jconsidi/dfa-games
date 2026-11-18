@@ -52,6 +52,11 @@ void verify_losing_position(const Game& game, int side_to_move, const DFAString&
     }
 
   std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
+  if(moves.size() == 0)
+    {
+      throw std::runtime_error("position has no moves, but validate_outcome says it is not terminal");
+    }
+
   for(const DFAString& move : moves)
     {
       if(!winning_prev->contains(move))
