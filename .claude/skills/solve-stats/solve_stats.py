@@ -127,8 +127,12 @@ def tsv_table(raw, per_state, columns=None, suffix=""):
 
 def fmt_field(text):
     # A value the binary printed in scientific notation keeps 2 digits after
-    # the decimal point. Integers, such as state counts, stay as printed.
-    return f"{float(text):.2e}" if "e" in text else text
+    # the decimal point. Integers, such as state counts, get thousands commas.
+    if "e" in text:
+        return f"{float(text):.2e}"
+    if text.lstrip("-").isdigit():
+        return f"{int(text):,}"
+    return text
 
 
 def fmt_per_state(positions, states):
