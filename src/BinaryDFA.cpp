@@ -1561,15 +1561,15 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_hashed(int layer,
 
     // Constant rows hold the id the scan gave their sorted position until
     // patched here, in rank order so their curr_transitions reads are
-    // sequential.
-    auto patch_constants = [&](curr_id_t *curr_pair_rank_to_output_data, size_t slice_begin, size_t slice_end)
+    // sequential. slice_output[i] is pair rank slice_begin + i.
+    auto patch_constants = [&](curr_id_t *slice_output, size_t slice_begin, size_t slice_end)
     {
       TRY_PARALLEL_3(std::for_each,
-                     curr_pair_rank_to_output_data + slice_begin,
-                     curr_pair_rank_to_output_data + slice_end,
+                     slice_output,
+                     slice_output + (slice_end - slice_begin),
                      [&](curr_id_t& output)
                      {
-                       size_t curr_pair_rank = size_t(&output - curr_pair_rank_to_output_data);
+                       size_t curr_pair_rank = slice_begin + size_t(&output - slice_output);
                        if(check_constant(curr_pair_rank))
                          {
                            output = curr_id_t(curr_transitions[curr_pair_rank * curr_layer_shape]);
@@ -1616,25 +1616,34 @@ DFAStateIdMap BinaryDFA::build_quadratic_backward_layer_hashed(int layer,
 // and every write lands in a distinct slot, since the permutation is a
 // bijection on pair ranks.
 //
-// The writes are random, so the output is split into slices of ranks and
-// each slice gets its own pass over both inputs, writing only the ranks in
-// that slice. A slice is kept to at most 1/8 of physical memory so it stays
-// resident while the inputs stream past. With the whole output as one
-// slice, cram_7x7 layer 42 (9.1e9 pairs, 36.5 GB of output next to 110 GB
-// of streamed input) ran out of free memory, and the kernel wrote each
-// output page back thousands of times: 35% done after 10 hours. Extra
-// passes only cost sequential rereads of the inputs.
+// The writes are random, so they go to an anonymous buffer holding one
+// slice of ranks, and each finished slice is written to the file in order
+// through SharedFileWrites. Random stores into a shared file mapping make
+// the storing threads write pages back themselves once the dirty file
+// pages pass the kernel's limit, and a page dirtied again by the next
+// random store goes back to disk again: on amazons_4x6 a 15 GB layer spent
+// over 8 hours that way at about 8,500 16 KiB page writes a second, with
+// 95% of memory free. cram_7x7 layer 42 did the same with a 36.5 GB output:
+// 35% done after 10 hours.
+//
+// A slice is kept to at most 1/8 of physical memory so the buffer stays
+// resident while the inputs stream past. Each slice gets its own pass over
+// both inputs, writing only the ranks in that slice; extra passes only cost
+// sequential rereads of the inputs.
 //
 // Each pass:
-// 1. Fills its slice with unwritten, the largest curr_id_t, which no
+// 1. Fills the buffer with unwritten, the largest curr_id_t, which no
 //    output id or constant can equal (ids are below layer_size, and
 //    curr_id_t was picked so they stay at or below dfa_state_narrow_max).
-// 2. Scatters the ranks in the slice.
-// 3. Checks no slot in the slice still holds unwritten, which would
+// 2. Scatters the ranks in the slice, rank r to buffer[r - slice_begin].
+// 3. Checks no slot in the buffer still holds unwritten, which would
 //    mean the permutation missed a rank. Across all slices, n writes
 //    filling n slots also rules out duplicate ranks.
-// 4. Calls patch_slice(output, slice_begin, slice_end), for a path whose
-//    permutation_to_output does not yet hold constant rows' ids.
+// 4. Calls patch_slice(buffer, slice_begin, slice_end), for a path whose
+//    permutation_to_output does not yet hold constant rows' ids. buffer[i]
+//    is rank slice_begin + i.
+// 5. Writes the buffer to the file at rank slice_begin.
+// The file's written pieces are read back once every slice is written.
 template <class curr_id_t, class pair_rank_t>
 MemoryMap<curr_id_t> BinaryDFA::build_quadratic_write_pair_rank_to_output(int layer,
                                                                           size_t curr_layer_count,
@@ -1658,21 +1667,29 @@ MemoryMap<curr_id_t> BinaryDFA::build_quadratic_write_pair_rank_to_output(int la
   std::cout << "layer=" << layer << " pair_rank_to_output: " << output_slices << " slice(s) of up to " << output_slice_ranks << " ranks (" << (output_slice_ranks * sizeof(curr_id_t)) << " bytes each)"
             << "; state bytes: " << state_bytes << ", " << sizeof(curr_id_t) << " ids, " << key_description << std::endl;
 
-  MemoryMap<curr_id_t> curr_pair_rank_to_output(binary_build_file_prefix(layer) + "-pair_rank_to_output", curr_layer_count);
+  std::string output_name = binary_build_file_prefix(layer) + "-pair_rank_to_output";
+  SharedFileWrites output_writes(output_name, O_CREAT | O_TRUNC, curr_layer_count * sizeof(curr_id_t));
+  MemoryMap<curr_id_t> buffer(output_slice_ranks);
   const pair_rank_t *curr_pairs_permutation_data = curr_pairs_permutation.begin();
-  curr_id_t *curr_pair_rank_to_output_data = curr_pair_rank_to_output.begin();
 
   for(size_t slice = 0; slice < output_slices; ++slice)
     {
       size_t slice_begin = std::min(slice * output_slice_ranks, curr_layer_count);
       size_t slice_end = std::min(slice_begin + output_slice_ranks, curr_layer_count);
+      size_t slice_ranks = slice_end - slice_begin;
       std::cout << "layer=" << layer << " pair_rank_to_output slice " << (slice + 1) << "/" << output_slices << ": ranks [" << slice_begin << ", " << slice_end << ")" << std::endl;
+      if(slice_ranks == 0)
+        {
+          continue;
+        }
+
+      curr_id_t *buffer_data = buffer.begin();
 
       profile.tic("output slice fill");
 
       TRY_PARALLEL_3(std::fill,
-                     curr_pair_rank_to_output_data + slice_begin,
-                     curr_pair_rank_to_output_data + slice_end,
+                     buffer_data,
+                     buffer_data + slice_ranks,
                      unwritten);
 
       profile.tic("output slice scatter");
@@ -1689,26 +1706,35 @@ MemoryMap<curr_id_t> BinaryDFA::build_quadratic_write_pair_rank_to_output(int la
                            return;
                          }
                        size_t curr_pairs_permutation_index = size_t(&curr_pair_rank_ref - curr_pairs_permutation_data);
-                       curr_pair_rank_to_output_data[curr_pair_rank] = curr_pairs_permutation_to_output[curr_pairs_permutation_index];
+                       buffer_data[curr_pair_rank - slice_begin] = curr_pairs_permutation_to_output[curr_pairs_permutation_index];
                      });
 
       profile.tic("output slice check");
 
       curr_id_t *unwritten_slot = TRY_PARALLEL_3(std::find,
-                                                 curr_pair_rank_to_output_data + slice_begin,
-                                                 curr_pair_rank_to_output_data + slice_end,
+                                                 buffer_data,
+                                                 buffer_data + slice_ranks,
                                                  unwritten);
-      if(unwritten_slot != curr_pair_rank_to_output_data + slice_end)
+      if(unwritten_slot != buffer_data + slice_ranks)
         {
-          throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " pair rank " + std::to_string(unwritten_slot - curr_pair_rank_to_output_data) + " missing from pairs_permutation");
+          throw std::logic_error("BinaryDFA: layer " + std::to_string(layer) + " pair rank " + std::to_string(slice_begin + size_t(unwritten_slot - buffer_data)) + " missing from pairs_permutation");
         }
 
       profile.tic("output slice constants");
 
-      patch_slice(curr_pair_rank_to_output_data, slice_begin, slice_end);
+      patch_slice(buffer_data, slice_begin, slice_end);
+
+      profile.tic("output slice write");
+
+      output_writes.pwrite(buffer_data, slice_ranks * sizeof(curr_id_t), slice_begin * sizeof(curr_id_t));
     }
 
-  return curr_pair_rank_to_output;
+  profile.tic("output verify");
+
+  size_t output_pieces = output_writes.verify();
+  std::cout << "layer=" << layer << " pair_rank_to_output: written in " << output_slices << " slice(s), " << output_pieces << " pieces of partial blocks read back as written" << std::endl;
+
+  return MemoryMap<curr_id_t>(output_name);
 }
 
 bool BinaryDFA::build_quadratic_pairs_wide(const DFA& left_in, const DFA& right_in, int layer)
