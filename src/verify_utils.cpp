@@ -3,6 +3,7 @@
 #include "verify_utils.h"
 
 #include <format>
+#include <functional>
 #include <iostream>
 #include <optional>
 #include <sstream>
@@ -37,6 +38,63 @@ shared_dfa_ptr verify_load(const Game& game, std::string dfa_name)
   return output;
 }
 
+// Calls check(position) for every position of positions, in parallel, and
+// returns how many there were. Prints a VERIFYING line before and a
+// VERIFIED line after, calling the positions label. A check that throws
+// std::runtime_error fails the whole call: the position and the error are
+// printed, and std::runtime_error("position not " + failure) is thrown. The
+// count must match the DFA's size.
+//
+// for_each_position only mmaps positions, the DFA it enumerates, while check
+// may call ->contains() on others from many threads. DFA::mmap() is not
+// safe to call concurrently the first time (it does a one-time digest
+// check), so the DFAs in lookups are mapped here, serially, first.
+static uint64_t verify_each_position(const Game& game,
+                                     shared_dfa_ptr positions,
+                                     const std::string& label,
+                                     const std::string& failure,
+                                     const std::vector<shared_dfa_ptr>& lookups,
+                                     const std::function<void(const DFAString&)>& check)
+{
+  std::cout << "VERIFYING " << positions->size() << " " << label << " POSITIONS" << std::endl;
+
+  for(const shared_dfa_ptr& lookup : lookups)
+    {
+      lookup->mmap();
+    }
+
+  uint64_t verified_count = 0;
+  try
+    {
+      verified_count =
+	DFAUtil::for_each_position(positions, [&](const DFAString& position)
+	{
+          try
+            {
+              check(position);
+            }
+          catch(const std::runtime_error& e)
+            {
+              throw std::runtime_error(game.position_to_string(position) + "\n" + e.what());
+            }
+	});
+    }
+  catch(const std::runtime_error& e)
+    {
+      std::cerr << e.what() << std::endl;
+      throw std::runtime_error("position not " + failure);
+    }
+
+  std::cout << "VERIFIED " << verified_count << " / " << positions->size() << " " << label << " POSITIONS" << std::endl;
+
+  if(verified_count != uint64_t(positions->size()))
+    {
+      throw std::runtime_error("verified count does not match DFA size");
+    }
+
+  return verified_count;
+}
+
 void verify_losing_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr winning_prev)
 {
   std::optional<int> outcome = game.validate_outcome(side_to_move, position);
@@ -69,44 +127,10 @@ void verify_losing_position(const Game& game, int side_to_move, const DFAString&
 
 void verify_losing_sound(const Game& game, int side_to_move, shared_dfa_ptr losing_curr, shared_dfa_ptr winning_prev)
 {
-  std::cout << "VERIFYING " << losing_curr->size() << " LOSING POSITIONS" << std::endl;
-
-  // for_each_position below only mmaps losing_curr, the DFA it enumerates
-  // (see its own comment) -- DFA::mmap() is not safe to call concurrently
-  // the first time (it does a one-time digest check), and
-  // verify_losing_position calls ->contains() on winning_prev from inside
-  // that parallel callback. Warm it up here, serially, before any worker
-  // thread can reach it.
-  winning_prev->mmap();
-
-  uint64_t verified_count = 0;
-  try
-    {
-      verified_count =
-	DFAUtil::for_each_position(losing_curr, [&](const DFAString& position)
-	{
-          try
-            {
-              verify_losing_position(game, side_to_move, position, winning_prev);
-            }
-          catch(const std::runtime_error& e)
-            {
-              throw std::runtime_error(game.position_to_string(position) + "\n" + e.what());
-            }
-	});
-    }
-  catch(const std::runtime_error& e)
-    {
-      std::cerr << e.what() << std::endl;
-      throw std::runtime_error("position not losing");
-    }
-
-  std::cout << "VERIFIED " << verified_count << " / " << losing_curr->size() << " LOSING POSITIONS" << std::endl;
-
-  if(verified_count != uint64_t(losing_curr->size()))
-    {
-      throw std::runtime_error("verified count does not match DFA size");
-    }
+  verify_each_position(game, losing_curr, "LOSING", "losing", {winning_prev}, [&](const DFAString& position)
+  {
+    verify_losing_position(game, side_to_move, position, winning_prev);
+  });
 }
 
 void verify_losing_sound(const Game& game, int side_to_move, std::string losing_curr_name, std::string winning_prev_name)
@@ -131,11 +155,10 @@ void verify_lost_position(const Game& game, int side_to_move, const DFAString& p
     {
       // built up instead of printed so that the caller does the writing.
       // for_each_position may run this on many positions at once, and
-      // interleaved reports would be unreadable.
+      // interleaved reports would be unreadable. The caller adds the
+      // position itself.
 
       std::ostringstream report;
-
-      report << game.position_to_string(position) << "\n";
 
       if(!result_actual)
         {
@@ -159,29 +182,10 @@ void verify_lost_position(const Game& game, int side_to_move, const DFAString& p
 
 void verify_lost_sound(const Game& game, int side_to_move, shared_dfa_ptr positions)
 {
-  std::cout << "VERIFYING " << positions->size() << " LOST POSITIONS" << std::endl;
-  
-  uint64_t verified_count = 0;
-  try
-    {
-      verified_count =
-	DFAUtil::for_each_position(positions, [&](const DFAString& position)
-	{
-	  verify_lost_position(game, side_to_move, position);
-	});
-    }
-  catch(const std::runtime_error& e)
-    {
-      std::cerr << e.what() << std::endl;
-      throw std::runtime_error("position not lost");
-    }
-
-  std::cout << "VERIFIED " << verified_count << " / " << positions->size() << " LOST POSITIONS" << std::endl;
-
-  if(verified_count != uint64_t(positions->size()))
-    {
-      throw std::runtime_error("verified count does not match DFA size");
-    }
+  verify_each_position(game, positions, "LOST", "lost", {}, [&](const DFAString& position)
+  {
+    verify_lost_position(game, side_to_move, position);
+  });
 }
 
 void verify_lost_sound(const Game& game, int side_to_move, std::string lost_name)
@@ -408,41 +412,10 @@ void verify_winning_position(const Game& game, int side_to_move, const DFAString
 
 void verify_winning_sound(const Game& game, int side_to_move, shared_dfa_ptr winning_curr, shared_dfa_ptr losing_prev)
 {
-  std::cout << "VERIFYING " << winning_curr->size() << " WINNING POSITIONS" << std::endl;
-
-  // See the matching comment in verify_losing_sound: for_each_position only
-  // mmaps winning_curr, but verify_winning_position calls ->contains() on
-  // losing_prev from inside its parallel callback.
-  losing_prev->mmap();
-
-  uint64_t verified_count = 0;
-  try
-    {
-      verified_count =
-	DFAUtil::for_each_position(winning_curr, [&](const DFAString& position)
-	{
-          try
-            {
-              verify_winning_position(game, side_to_move, position, losing_prev);
-            }
-          catch(const std::runtime_error& e)
-            {
-              throw std::runtime_error(game.position_to_string(position) + "\n" + e.what());
-            }
-	});
-    }
-  catch(const std::runtime_error& e)
-    {
-      std::cerr << e.what() << std::endl;
-      throw std::runtime_error("position not winning");
-    }
-
-  std::cout << "VERIFIED " << verified_count << " / " << winning_curr->size() << " WINNING POSITIONS" << std::endl;
-
-  if(verified_count != uint64_t(winning_curr->size()))
-    {
-      throw std::runtime_error("verified count does not match DFA size");
-    }
+  verify_each_position(game, winning_curr, "WINNING", "winning", {losing_prev}, [&](const DFAString& position)
+  {
+    verify_winning_position(game, side_to_move, position, losing_prev);
+  });
 }
 
 void verify_winning_sound(const Game& game, int side_to_move, std::string winning_curr_name, std::string losing_prev_name)
@@ -467,11 +440,10 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
     {
       // built up instead of printed so that the caller does the writing.
       // for_each_position may run this on many positions at once, and
-      // interleaved reports would be unreadable.
+      // interleaved reports would be unreadable. The caller adds the
+      // position itself.
 
       std::ostringstream report;
-
-      report << game.position_to_string(position) << "\n";
 
       if(!result_actual)
         {
@@ -495,29 +467,10 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
 
 void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positions)
 {
-  std::cout << "VERIFYING " << positions->size() << " WON POSITIONS" << std::endl;
-  
-  uint64_t verified_count = 0;
-  try
-    {
-      verified_count =
-	DFAUtil::for_each_position(positions, [&](const DFAString& position)
-	{
-	  verify_won_position(game, side_to_move, position);
-	});
-    }
-  catch(const std::runtime_error& e)
-    {
-      std::cerr << e.what() << std::endl;
-      throw std::runtime_error("position not won");
-    }
-
-  std::cout << "VERIFIED " << verified_count << " / " << positions->size() << " WON POSITIONS" << std::endl;
-
-  if(verified_count != uint64_t(positions->size()))
-    {
-      throw std::runtime_error("verified count does not match DFA size");
-    }
+  verify_each_position(game, positions, "WON", "won", {}, [&](const DFAString& position)
+  {
+    verify_won_position(game, side_to_move, position);
+  });
 }
 
 void verify_won_sound(const Game& game, int side_to_move, std::string won_name)
