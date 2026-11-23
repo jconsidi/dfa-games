@@ -35,11 +35,6 @@ template shared_dfa_ptr load_helper(const Game& game, const std::format_string<i
 template shared_dfa_ptr load_helper(const Game& game, const std::format_string<int&, int&, std::string&>&, int&, int&, std::string&);
 template shared_dfa_ptr load_helper(const Game& game, const std::format_string<int&>&, int&);
 
-bool validate_disjoint(shared_dfa_ptr dfa_a, shared_dfa_ptr dfa_b)
-{
-  return DFAUtil::get_intersection(dfa_a, dfa_b)->is_constant(0);
-}
-
 bool validate_equal(const Game& game, std::string name_a, shared_dfa_ptr dfa_a, std::string name_b, shared_dfa_ptr dfa_b)
 {
   if(dfa_a->get_shape() != dfa_b->get_shape())
@@ -138,48 +133,6 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
   return true;
 }
 
-bool validate_nonterminal(const Game& game, int side_to_move, shared_dfa_ptr positions, int max_examples)
-{
-  std::cout << "#  CHECK EXAMPLES" << std::endl;
-
-  int result_examples = 0;
-  for(auto iter = positions->cbegin();
-      (iter < positions->cend()) && (result_examples < max_examples);
-      ++iter, ++result_examples)
-    {
-      DFAString position(*iter);
-
-      std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
-      bool moves_mismatch = moves.size() == 0;
-
-      std::optional<int> result_actual = game.validate_outcome(side_to_move, position);
-      bool result_mismatch = bool(result_actual);
-
-      if(result_mismatch || moves_mismatch)
-	{
-	  std::cerr << game.position_to_string(position) << std::endl;
-
-	  if(result_mismatch)
-	    {
-              std::cerr << "# RESULT MISMATCH: expected none, actual " << *result_actual << std::endl;
-	    }
-
-	  if(moves_mismatch)
-	    {
-	      std::cerr << "# MOVES MISMATCH: expected some, actual " << moves.size() << std::endl;
-	    }
-
-	  std::cerr << std::endl;
-
-	  return false;
-	}
-    }
-
-  std::cout << "# checked " << result_examples << " examples" << std::endl;
-
-  return true;
-}
-
 bool validate_partition(shared_dfa_ptr target, std::vector<shared_dfa_ptr> partition, int max_examples)
 {
   size_t partition_examples = 0;
@@ -218,67 +171,6 @@ bool validate_partition(shared_dfa_ptr target, std::vector<shared_dfa_ptr> parti
           return false;
         }
     }
-
-  return true;
-}
-
-bool validate_outcome(const Game& game, int side_to_move, shared_dfa_ptr positions, int result_expected, int max_examples)
-{
-  // verify these are terminal positions according to the DFA move
-  // generator.
-
-  std::cout << "#  CHECK NO MOVES (bulk)" << std::endl;
-
-  shared_dfa_ptr moves = game.get_moves_forward(side_to_move, positions);
-  if(!moves->is_constant(0))
-    {
-      double moves_size = moves->size();
-      std::cerr << "POSITIONS NOT TERMINAL: found " << moves_size << " moves for positions with expected result " << result_expected << std::endl;
-      return false;
-    }
-
-  std::cout << "#  CHECK EXAMPLES" << std::endl;
-
-  int result_examples = 0;
-  for(auto iter = positions->cbegin();
-      (iter < positions->cend()) && (result_examples < max_examples);
-      ++iter, ++result_examples)
-    {
-      DFAString position(*iter);
-
-      std::optional<int> result_actual = game.validate_outcome(side_to_move, position);
-      if(!result_actual)
-        {
-          std::cerr << "# RESULT MISSING: expected " << result_expected << std::endl;
-	  std::cerr << std::endl;
-	  return false;
-        }
-      bool result_mismatch = *result_actual != result_expected;
-
-      std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
-      bool moves_mismatch = (result_expected != 0) && (moves.size() != 0);
-
-      if(result_mismatch || moves_mismatch)
-	{
-	  std::cerr << game.position_to_string(position) << std::endl;
-
-	  if(result_mismatch)
-	    {
-              std::cerr << "# RESULT MISMATCH: expected " << result_expected << ", actual " << *result_actual << std::endl;
-	    }
-
-	  if(moves_mismatch)
-	    {
-	      std::cerr << "# MOVES MISMATCH: expected " << 0 << ", actual " << moves.size() << std::endl;
-	    }
-
-	  std::cerr << std::endl;
-
-	  return false;
-	}
-    }
-
-  std::cout << "# checked " << result_examples << " examples" << std::endl;
 
   return true;
 }

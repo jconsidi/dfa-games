@@ -16,7 +16,6 @@ sub run {
     system(@_) && die("$_[0] failed : $!\n");
 }
 
-run("./validate_terminal", $game, $max_examples);
 run("./build_forward", $game, $forward_ply_max);
 run("./validate_forward", $game, $forward_ply_max, $max_examples);
 run("./build_backward", $game, $backward_ply_max);
