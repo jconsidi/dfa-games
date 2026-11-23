@@ -47,7 +47,6 @@ test_sort_utils
 test_terminal
 test_validate
 typescript*
-validate_backward
 validate_forward
 verify_backward
 verify_backward_sound
