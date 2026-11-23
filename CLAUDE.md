@@ -211,7 +211,7 @@ Coverage is narrower than the C++ and the gaps matter:
 - Neither implementation's losing and winning verifiers consult `lost,side_to_move=N` or `won,side_to_move=N`.
   Both decide terminal positions from the rules, but they branch differently.
   The Rust generates each position's moves once, and an empty move list branches to `validate_result`, which must return the base case the DFA asserts.
-  The C++ asks `validate_outcome` first: a terminal result must be -1 in a losing DFA and 1 in a winning DFA, and any other result fails; a position with no result has its moves checked.
+  The C++ asks `validate_position` once, which gives either `GameOver{result}` or at least one move, never both: a result must be -1 in a losing DFA and 1 in a winning DFA, and any other result fails; otherwise the moves are checked.
   Neither verifier cross checks the `lost` DFA as a side effect, so keep running `verify-lost-sound` on `lost,side_to_move=N` itself.
 
 The two implementations are meant to disagree loudly, so when changing either,
@@ -239,9 +239,11 @@ the same trap the C++ benchmarking notes below describe.
   than a full re-walk. Constructed only by `DFA::cbegin()` / `cend()`.
 - `DFAUtil` — statics over `shared_dfa_ptr`: set operations, load/build with
   caching, and `for_each_position`.
-- `Game` → `NormalPlayGame` → concrete games. `validate_moves` and
-  `validate_result` take `const DFAString&` and are the position-level oracle
-  the `verify_*` programs check the DFAs against.
+- `Game` → `NormalPlayGame` → concrete games. `validate_position` takes a
+  `const DFAString&` and returns a `ValidatedPosition`, either `GameOver` or a
+  nonempty move list, and is the position-level oracle the `verify_*`
+  programs check the DFAs against. Games implement it through the protected
+  `validate_position_impl`; `validate_position` rejects an empty move list.
 
 ## Parallelism
 
@@ -295,7 +297,7 @@ The convention that worked well here, and is worth repeating:
 Two traps that cost real time in this repo:
 
 - **Pick benchmark DFAs by expected runtime, not position count.** Per-position
-  cost differs by ~100× between terminal DFAs, where `validate_moves` early
+  cost differs by ~100× between terminal DFAs, where `validate_position` early
   returns, and non-terminal ones, where it builds a `DFAString` per legal move.
 - **Gate on a DFA large enough to matter.** breakthrough_4x4 is 3.5×10⁷
   positions and runs in seconds; a parallel-enumeration change passed six cases

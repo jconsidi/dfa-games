@@ -20,8 +20,9 @@ public:
 
   virtual std::string position_to_string(const DFAString&) const;
 
-  // validation
+protected:
 
+  // the side to move's moves, for validate_position_impl
   virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
 };
 

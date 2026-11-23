@@ -64,11 +64,6 @@ public:
   Board position_to_board(int, const DFAString&) const;
   virtual std::string position_to_string(const DFAString&) const;
 
-  // validation
-
-  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
-  virtual std::optional<int> validate_outcome(int, const DFAString&) const;
-
 protected:
 
   // No moves is checkmate in check, otherwise stalemate; with moves, the

@@ -48,9 +48,12 @@ protected:
 
   virtual MoveGraph build_move_graph(int) const = 0;
 
-  // The rules' view of a position, checked by validate_position. The
-  // default combines validate_outcome and validate_moves.
+  // The rules' view of a position, checked by validate_position.
   virtual ValidatedPosition validate_position_impl(int, const DFAString&) const;
+
+  // The side to move's moves, for games whose validate_position_impl
+  // builds on them.
+  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
   
   int get_shape_size() const {return int(shape.size());}
 
@@ -86,9 +89,6 @@ public:
   // one move. Throws std::logic_error if the game's rules give neither or
   // both.
   ValidatedPosition validate_position(int, const DFAString&) const;
-
-  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
-  virtual std::optional<int> validate_outcome(int, const DFAString&) const;
 };
 
 #endif

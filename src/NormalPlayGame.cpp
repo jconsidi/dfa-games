@@ -69,14 +69,3 @@ ValidatedPosition NormalPlayGame::validate_position_impl(int side_to_move, const
   return moves;
 }
 
-std::optional<int> NormalPlayGame::validate_outcome(int side_to_move, const DFAString& position) const
-{
-  std::vector<DFAString> moves = validate_moves(side_to_move, position);
-
-  if(moves.size() == 0)
-    {
-      return std::optional<int>(-1);
-    }
-
-  return std::optional<int>();
-}

@@ -158,21 +158,9 @@ ValidatedPosition GameBase::validate_position(int side_to_move, const DFAString&
   return validated;
 }
 
-ValidatedPosition GameBase::validate_position_impl(int side_to_move, const DFAString& position) const
+ValidatedPosition GameBase::validate_position_impl(int, const DFAString&) const
 {
-  std::optional<int> outcome = validate_outcome(side_to_move, position);
-  std::vector<DFAString> moves = validate_moves(side_to_move, position);
-
-  if(outcome)
-    {
-      if(moves.size() > 0)
-        {
-          throw std::logic_error(get_name() + " rules give " + std::to_string(moves.size()) + " moves and result " + std::to_string(*outcome) + " for side " + std::to_string(side_to_move) + " in\n" + position_to_string(position));
-        }
-      return GameOver{*outcome};
-    }
-
-  return moves;
+  throw std::logic_error(get_name() + " did not implement validate_position_impl()");
 }
 
 std::vector<DFAString> GameBase::validate_moves(int, const DFAString&) const
@@ -180,7 +168,3 @@ std::vector<DFAString> GameBase::validate_moves(int, const DFAString&) const
   throw std::logic_error(get_name() + " did not implement validate_moves()");
 }
 
-std::optional<int> GameBase::validate_outcome(int, const DFAString&) const
-{
-  throw std::logic_error(get_name() + "did not implement validate_outcome()");
-}

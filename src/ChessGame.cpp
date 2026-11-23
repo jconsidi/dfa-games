@@ -1464,22 +1464,6 @@ std::string ChessGame::position_to_string(const DFAString& position_in) const
   return position_to_board(SIDE_WHITE, position_in).to_string();
 }
 
-std::vector<DFAString> ChessGame::validate_moves(int side_to_move, const DFAString& position) const
-{
-  Board board = position_to_board(side_to_move, position);
-
-  Board moves[CHESS_MAX_MOVES];
-  int num_moves = board.generate_moves(moves);
-
-  std::vector<DFAString> output;
-  for(int i = 0; i < num_moves; ++i)
-    {
-      output.push_back(from_board_to_dfa_string(moves[i]));
-    }
-
-  return output;
-}
-
 ValidatedPosition ChessGame::validate_position_impl(int side_to_move, const DFAString& position) const
 {
   Board board = position_to_board(side_to_move, position);
@@ -1502,23 +1486,3 @@ ValidatedPosition ChessGame::validate_position_impl(int side_to_move, const DFAS
   return output;
 }
 
-std::optional<int> ChessGame::validate_outcome(int side_to_move, const DFAString& position) const
-{
-  Board board = position_to_board(side_to_move, position);
-
-  if(board.count_moves() == 0)
-    {
-      if(board.is_check())
-        {
-          // checkmate
-          return std::optional<int>(-1);
-        }
-      else
-        {
-          // stalemate
-          return std::optional<int>(0);
-        }
-    }
-
-  return std::optional<int>();
-}

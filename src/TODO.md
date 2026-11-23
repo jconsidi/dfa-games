@@ -117,7 +117,7 @@ What the design has to settle:
   `tests/positions_manual.rs`. The file holds hand written positions with
   `expected_moves` and `expected_result` in the same envelope `tests.json`
   uses, so `run_test_cases` can read it with a new case type and check
-  `validate_moves` / `validate_outcome` the way `test_perft_u` checks position
+  `validate_position` the way `test_perft_u` checks position
   counts. Today only the Rust rules are held to those positions, which is half
   the point of writing them down: the same file should pin both
   implementations. Merging it into `tests.json` outright would work too, and is
@@ -241,7 +241,7 @@ The whole loop body belongs inside the try.
   The original gate ran six cases but all on breakthrough_4x4, which is 3.5e7
   positions and never reaches the regime where this fails.
 - per position cost varies by about two orders of magnitude between terminal
-  DFAs, where validate_moves early returns, and non terminal ones, where it
+  DFAs, where validate_position early returns, and non terminal ones, where it
   builds a DFAString per legal move. Pick test DFAs by expected runtime, not by
   position count.
 
@@ -290,7 +290,7 @@ Dispatch between the two inside
   only reference in the tree), which is less scratch churn rather than a
   behaviour change.
 - extend `test_move_graph.cpp` to compare the two paths on every configured
-  position, on top of the existing comparison against `validate_moves`. Add a
+  position, on top of the existing comparison against `validate_position`. Add a
   case with more than one input position, since every configured position is a
   singleton today and would only ever exercise `N == 1`.
 

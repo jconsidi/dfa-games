@@ -24,7 +24,3 @@ ValidatedPosition Puzzle::validate_position_impl(int side_to_move, const DFAStri
   return validate_moves(side_to_move, position);
 }
 
-std::optional<int> Puzzle::validate_outcome(int, const DFAString&) const
-{
-  return std::optional<int>();
-}

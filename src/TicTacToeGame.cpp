@@ -59,7 +59,7 @@ std::string TicTacToeGame::position_to_string(const DFAString& position_in) cons
 std::vector<DFAString> TicTacToeGame::validate_moves(int side_to_move, const DFAString& position) const
 {
   std::vector<DFAString> output;
-  if(validate_outcome(side_to_move, position))
+  if(get_result(side_to_move, position))
     {
       return output;
     }
@@ -95,7 +95,7 @@ std::vector<DFAString> TicTacToeGame::validate_moves(int side_to_move, const DFA
 
 ValidatedPosition TicTacToeGame::validate_position_impl(int side_to_move, const DFAString& position) const
 {
-  std::optional<int> outcome = validate_outcome(side_to_move, position);
+  std::optional<int> outcome = get_result(side_to_move, position);
   if(outcome)
     {
       return GameOver{*outcome};
@@ -104,7 +104,7 @@ ValidatedPosition TicTacToeGame::validate_position_impl(int side_to_move, const 
   return validate_moves(side_to_move, position);
 }
 
-std::optional<int> TicTacToeGame::validate_outcome(int side_to_move, const DFAString& position) const
+std::optional<int> TicTacToeGame::get_result(int side_to_move, const DFAString& position) const
 {
   int hostile_char = 1 + (1 - side_to_move);
 
