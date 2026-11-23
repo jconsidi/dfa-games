@@ -2,6 +2,7 @@
 
 #include "verify_utils.h"
 
+#include <chrono>
 #include <format>
 #include <functional>
 #include <iostream>
@@ -479,4 +480,228 @@ void verify_won_sound(const Game& game, int side_to_move, std::string won_name)
   shared_dfa_ptr won_positions = verify_load(game, won_name);
 
   verify_won_sound(game, side_to_move, won_positions);
+}
+
+// A position of a ply's unknown set, against the next ply's winning and
+// unknown sets: tied, or not over with every move in one of them and at
+// least one in the unknown set.
+static void verify_unknown_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr winning_next, shared_dfa_ptr unknown_next)
+{
+  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
+  if(outcome)
+    {
+      if(*outcome == 0)
+        {
+          // tied position
+          return;
+        }
+
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not tied (0) or undecided");
+    }
+
+  bool unknown_move = false;
+  for(const DFAString& move : game.validate_moves(side_to_move, position))
+    {
+      if(winning_next->contains(move))
+        {
+          continue;
+        }
+      if(unknown_next->contains(move))
+        {
+          unknown_move = true;
+          continue;
+        }
+
+      throw std::runtime_error("position is unknown but has a move outside the next winning and unknown sets");
+    }
+
+  if(!unknown_move)
+    {
+      throw std::runtime_error("position is unknown but has no move into the next unknown set");
+    }
+}
+
+// A position of the last ply's unknown set: tied, or not over.
+static void verify_unknown_last_position(const Game& game, int side_to_move, const DFAString& position)
+{
+  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
+  if(outcome)
+    {
+      if(*outcome == 0)
+        {
+          return;
+        }
+
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not tied (0) or undecided");
+    }
+
+  if(game.validate_moves(side_to_move, position).size() == 0)
+    {
+      throw std::runtime_error("position has no moves, but validate_outcome says it is not terminal");
+    }
+}
+
+// A position of a ply's winning set, against the next ply's losing set and
+// domain: won, or a move into the losing set, and every move in the domain.
+// A move found in the losing set needs no domain lookup, since the next
+// ply's partition check shows the losing set is inside the domain.
+static void verify_winning_closed_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr losing_next, shared_dfa_ptr domain_next)
+{
+  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
+  if(outcome)
+    {
+      if(*outcome == 1)
+        {
+          // won position
+          return;
+        }
+
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not won (1)");
+    }
+
+  bool losing_move = false;
+  for(const DFAString& move : game.validate_moves(side_to_move, position))
+    {
+      if(!losing_move && losing_next->contains(move))
+        {
+          losing_move = true;
+          continue;
+        }
+      if(!domain_next->contains(move))
+        {
+          throw std::runtime_error("position has a move outside the next ply's domain");
+        }
+    }
+
+  if(!losing_move)
+    {
+      throw std::runtime_error("position is not won and no moves to losing positions");
+    }
+}
+
+std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
+                                         const std::function<VerifyPlySets(int)>& sets,
+                                         VerifyClosure closure)
+{
+  if(ply_max < 0)
+    {
+      throw std::invalid_argument("verify_solve: ply_max must be at least 0");
+    }
+
+  std::string closure_description = (closure == VerifyClosure::every_move)
+    ? "every move"
+    : "losing positions' moves only";
+  std::cout << "VERIFYING SOLVE PLIES 0-" << ply_max << ", CLOSURE: " << closure_description << std::endl;
+
+  auto get_sets = [&](int ply)
+  {
+    VerifyPlySets ply_sets = sets(ply);
+    if(!ply_sets.domain || !ply_sets.winning || !ply_sets.losing || !ply_sets.unknown)
+      {
+        throw std::logic_error("verify_solve: sets(" + std::to_string(ply) + ") left a DFA out");
+      }
+    return ply_sets;
+  };
+
+  std::vector<VerifyPlyStats> stats(size_t(ply_max + 1));
+
+  auto finish_ply = [&](int ply, const VerifyPlySets& ply_sets, uint64_t winning, uint64_t losing, uint64_t unknown, std::chrono::steady_clock::time_point start)
+  {
+    std::cout << "PLY " << ply << ": CHECKING PARTITION" << std::endl;
+    uint64_t positions = verify_partition(game, ply_sets.domain, {ply_sets.winning, ply_sets.losing, ply_sets.unknown});
+    if(positions != winning + losing + unknown)
+      {
+        throw std::logic_error("ply " + std::to_string(ply) + " partition holds " + std::to_string(positions) + " positions, but its sets were checked with " + std::to_string(winning + losing + unknown));
+      }
+
+    std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+    stats[size_t(ply)] = VerifyPlyStats{ply, positions, winning, losing, unknown, elapsed.count()};
+  };
+
+  // the last ply: results only
+  VerifyPlySets next = get_sets(ply_max);
+  {
+    auto start = std::chrono::steady_clock::now();
+    int side_to_move = ply_max % 2;
+    std::cout << "PLY " << ply_max << " SIDE " << side_to_move << ": LAST PLY, CHECKING RESULTS" << std::endl;
+
+    uint64_t losing = verify_each_position(game, next.losing, "LOST", "lost", {}, [&](const DFAString& position)
+    {
+      verify_lost_position(game, side_to_move, position);
+    });
+    uint64_t unknown = verify_each_position(game, next.unknown, "UNDECIDED", "undecided", {}, [&](const DFAString& position)
+    {
+      verify_unknown_last_position(game, side_to_move, position);
+    });
+    uint64_t winning = verify_each_position(game, next.winning, "WON", "won", {}, [&](const DFAString& position)
+    {
+      verify_won_position(game, side_to_move, position);
+    });
+
+    finish_ply(ply_max, next, winning, losing, unknown, start);
+  }
+
+  for(int ply = ply_max - 1; ply >= 0; --ply)
+    {
+      VerifyPlySets curr = get_sets(ply);
+      auto start = std::chrono::steady_clock::now();
+      int side_to_move = ply % 2;
+      std::cout << "PLY " << ply << " SIDE " << side_to_move << ": CHECKING AGAINST PLY " << (ply + 1) << ", CLOSURE: " << closure_description << std::endl;
+
+      uint64_t losing = verify_each_position(game, curr.losing, "LOSING", "losing", {next.winning}, [&](const DFAString& position)
+      {
+        verify_losing_position(game, side_to_move, position, next.winning);
+      });
+
+      uint64_t unknown = verify_each_position(game, curr.unknown, "UNKNOWN", "unknown", {next.winning, next.unknown}, [&](const DFAString& position)
+      {
+        verify_unknown_position(game, side_to_move, position, next.winning, next.unknown);
+      });
+
+      uint64_t winning = 0;
+      if(closure == VerifyClosure::every_move)
+        {
+          winning = verify_each_position(game, curr.winning, "WINNING", "winning", {next.losing, next.domain}, [&](const DFAString& position)
+          {
+            verify_winning_closed_position(game, side_to_move, position, next.losing, next.domain);
+          });
+        }
+      else
+        {
+          winning = verify_each_position(game, curr.winning, "WINNING", "winning", {next.losing}, [&](const DFAString& position)
+          {
+            verify_winning_position(game, side_to_move, position, next.losing);
+          });
+        }
+
+      finish_ply(ply, curr, winning, losing, unknown, start);
+
+      next = std::move(curr);
+    }
+
+  // next is now ply 0
+  shared_dfa_ptr initial_positions = game.get_positions_initial();
+  if(initial_positions->size() != 1)
+    {
+      throw std::logic_error(std::to_string(initial_positions->size()) + " initial positions, but verify_solve expects exactly one");
+    }
+  DFAString initial = *(initial_positions->cbegin());
+  if(!next.domain->contains(initial))
+    {
+      std::cerr << game.position_to_string(initial) << std::endl;
+      throw std::runtime_error("ply 0's domain does not contain the initial position");
+    }
+  std::string initial_result = next.winning->contains(initial)
+    ? "WINNING"
+    : next.losing->contains(initial) ? "LOSING" : "UNKNOWN";
+
+  std::cout << "VERIFIED SOLVE PLIES 0-" << ply_max << ", CLOSURE: " << closure_description << std::endl;
+  std::cout << std::format("{:>4} {:>16} {:>16} {:>16} {:>16} {:>9}", "ply", "positions", "winning", "losing", "unknown", "seconds") << std::endl;
+  for(const VerifyPlyStats& ply_stats : stats)
+    {
+      std::cout << std::format("{:>4} {:>16} {:>16} {:>16} {:>16} {:>9.0f}", ply_stats.ply, ply_stats.positions, ply_stats.winning, ply_stats.losing, ply_stats.unknown, ply_stats.seconds) << std::endl;
+    }
+  std::cout << "INITIAL POSITION " << initial_result << " for side 0" << std::endl;
+
+  return stats;
 }

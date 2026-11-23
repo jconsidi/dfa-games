@@ -4,6 +4,7 @@
 #define VERIFY_UTILS_H
 
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -36,5 +37,58 @@ void verify_winning_sound(const Game& game, int side_to_move, std::string winnin
 void verify_won_position(const Game& game, int side_to_move, const DFAString& position);
 void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positions);
 void verify_won_sound(const Game& game, int side_to_move, std::string won_name);
+
+// One ply of a solve: domain is every position the solve covers at that ply,
+// and winning, losing and unknown should partition it.
+struct VerifyPlySets
+{
+  shared_dfa_ptr domain;
+  shared_dfa_ptr winning;
+  shared_dfa_ptr losing;
+  shared_dfa_ptr unknown;
+};
+
+struct VerifyPlyStats
+{
+  int ply;
+  uint64_t positions;
+  uint64_t winning;
+  uint64_t losing;
+  uint64_t unknown;
+  double seconds;
+};
+
+enum class VerifyClosure
+{
+  // Every move from a ply's domain is in the next ply's domain.
+  every_move,
+  // Only a losing position's moves are, since a proof keeps just the
+  // winning moves of a winning position.
+  losing_moves_only
+};
+
+// Verifies a solve from ply_max down to ply 0, throwing on the first
+// failure. sets(p) is called exactly once per ply, in decreasing order of p,
+// and its DFAs are used for both ply p's own checks and ply p - 1's lookups.
+//
+// At ply_max, every winning position is won, every losing position lost,
+// and every unknown position tied or not over. At each ply p below it,
+// against ply p + 1:
+//
+// * losing: lost, or at least one move and every move in the next winning
+//   set;
+// * unknown: tied, or not over with every move in the next winning or
+//   unknown set and at least one in the next unknown set;
+// * winning: won, or a move into the next losing set; with
+//   VerifyClosure::every_move, also every move in the next domain.
+//
+// Ply p's checks run before ply p's partition check, so they look up into
+// ply p + 1's DFAs right after its partition check scanned them. Finally,
+// ply 0's domain must contain the initial position. Returns per-ply stats,
+// ply 0 first, and prints them as a table with the initial position's
+// result.
+std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
+                                         const std::function<VerifyPlySets(int)>& sets,
+                                         VerifyClosure closure);
 
 #endif
