@@ -57,6 +57,18 @@ shared_dfa_ptr NormalPlayGame::build_positions_winning(int side_to_move, int ply
   return winning_soon;
 }
 
+ValidatedPosition NormalPlayGame::validate_position_impl(int side_to_move, const DFAString& position) const
+{
+  std::vector<DFAString> moves = validate_moves(side_to_move, position);
+
+  if(moves.size() == 0)
+    {
+      return GameOver{-1};
+    }
+
+  return moves;
+}
+
 std::optional<int> NormalPlayGame::validate_outcome(int side_to_move, const DFAString& position) const
 {
   std::vector<DFAString> moves = validate_moves(side_to_move, position);
