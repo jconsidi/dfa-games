@@ -47,7 +47,6 @@ test_sort_utils
 test_validate
 typescript*
 validate_backward
-validate_dfa
 validate_forward
 validate_forward_backward
 validate_terminal
