@@ -1,26 +1,28 @@
 // verify_proof.cpp
 
-// Verifies a proof built by build_proof (proof_utils.h), from the initial
-// position forward, one ply against the next. Each ply's set is named
-// PROOF_PREFIX,ply=NNN,winning or PROOF_PREFIX,ply=NNN,losing, and that
-// result is what it is checked for:
+// Verifies a proof built by build_proof (proof_utils.h) with verify_solve
+// (verify_utils.h). Each ply's set is named PROOF_PREFIX,ply=NNN,winning or
+// PROOF_PREFIX,ply=NNN,losing, and that result is what it is checked for.
+// From the names alone, before any DFA is loaded:
 //
-// * ply 0 is exactly the initial position, under one of the two names;
-// * the results alternate from ply to ply;
-// * at a losing ply, every move of every position is in the next ply's set;
-// * at a winning ply, every position has a move into the next ply's set;
-// * either way, a position whose validate_outcome is lost (losing ply) or
-//   won (winning ply) needs no move, and any other outcome fails.
+// * exactly one of the two ply 0 names exists, giving the initial result;
+// * the results alternate from ply to ply, with no file under the other
+//   result's name;
+// * the last ply is the last one whose next ply has no file.
 //
-// It continues until a ply's next set is missing or empty, and verifies that
-// last ply against the empty set, so each of its positions must be lost or
-// won outright.
+// Each ply's set is then both its domain and its winning or losing set,
+// with the other two sets empty, for verify_solve with
+// VerifyClosure::losing_moves_only: a winning position needs a move into
+// the next ply's set, and every move of a losing position must be in it.
+// The last ply's positions must be won or lost outright. Finally ply 0 must
+// be exactly the initial position.
 
 #include <filesystem>
 #include <format>
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "RejectDFA.h"
 #include "ScratchConfig.h"
@@ -42,13 +44,6 @@ bool proof_ply_exists(const Game& game, std::string dfa_name)
 
 void verify_proof(const Game& game, std::string proof_prefix)
 {
-  shared_dfa_ptr initial_positions = game.get_positions_initial();
-  if(initial_positions->size() != 1)
-    {
-      throw std::logic_error(std::to_string(initial_positions->size()) +
-                             " initial positions, but a proof starts from exactly one");
-    }
-
   bool initial_winning_exists = proof_ply_exists(game, get_proof_name(proof_prefix, 0, true));
   bool initial_losing_exists = proof_ply_exists(game, get_proof_name(proof_prefix, 0, false));
   if(initial_winning_exists == initial_losing_exists)
@@ -59,70 +54,62 @@ void verify_proof(const Game& game, std::string proof_prefix)
     }
   bool initial_winning = initial_winning_exists;
 
-  std::string curr_name = get_proof_name(proof_prefix, 0, initial_winning);
-  std::cout << "VERIFYING " << curr_name << " IS THE INITIAL POSITION" << std::endl;
-  shared_dfa_ptr curr_positions = verify_load(game, curr_name);
-  if((curr_positions->size() != 1) || !curr_positions->contains(*(initial_positions->cbegin())))
-    {
-      throw std::runtime_error(curr_name + " has " + std::to_string(curr_positions->size()) +
-                               " positions and is not exactly the initial position");
-    }
-  std::cout << "VERIFIED " << curr_name << " IS THE INITIAL POSITION" << std::endl;
+  auto ply_winning = [&](int ply)
+  {
+    return initial_winning ^ bool(ply % 2);
+  };
 
-  double positions_verified = 0;
-  int ply = 0;
+  // the last ply, from the names alone
+  int ply_max = 0;
   while(true)
     {
-      int side_to_move = ply % 2;
-      bool ply_winning = initial_winning ^ (ply % 2);
-
       // the next ply must have the opposite result.
-      std::string mismatch_name = get_proof_name(proof_prefix, ply + 1, ply_winning);
+      std::string mismatch_name = get_proof_name(proof_prefix, ply_max + 1, ply_winning(ply_max));
       if(proof_ply_exists(game, mismatch_name))
         {
-          throw std::runtime_error(mismatch_name + " exists, but ply " + std::to_string(ply + 1) +
-                                   " must be " + (ply_winning ? "losing" : "winning") +
-                                   " after a " + (ply_winning ? "winning" : "losing") + " ply");
+          throw std::runtime_error(mismatch_name + " exists, but ply " + std::to_string(ply_max + 1) +
+                                   " must be " + (ply_winning(ply_max) ? "losing" : "winning") +
+                                   " after a " + (ply_winning(ply_max) ? "winning" : "losing") + " ply");
         }
 
-      std::string next_name = get_proof_name(proof_prefix, ply + 1, !ply_winning);
-      bool last_ply = false;
-      shared_dfa_ptr next_positions;
-      if(proof_ply_exists(game, next_name))
+      std::string next_name = get_proof_name(proof_prefix, ply_max + 1, ply_winning(ply_max + 1));
+      if(!proof_ply_exists(game, next_name))
         {
-          next_positions = verify_load(game, next_name);
-          last_ply = (next_positions->size() == 0);
-        }
-      else
-        {
-          std::cout << "NO " << next_name << ", SO PLY " << ply << " IS THE LAST" << std::endl;
-          last_ply = true;
-          next_name = "the empty set";
-          next_positions = shared_dfa_ptr(new RejectDFA(game.get_shape()));
-        }
-
-      std::cout << "PLY " << ply << " " << (ply_winning ? "WINNING" : "LOSING") << " SIDE " << side_to_move << ": VERIFYING " << curr_name << " WITH " << next_name << std::endl;
-      if(ply_winning)
-        {
-          verify_winning_sound(game, side_to_move, curr_positions, next_positions);
-        }
-      else
-        {
-          verify_losing_sound(game, side_to_move, curr_positions, next_positions);
-        }
-      positions_verified += curr_positions->size();
-
-      if(last_ply)
-        {
+          std::cout << "NO " << next_name << ", SO PLY " << ply_max << " IS THE LAST" << std::endl;
           break;
         }
 
-      ++ply;
-      curr_name = next_name;
-      curr_positions = next_positions;
+      ++ply_max;
     }
 
-  std::cout << "PROOF VERIFIED: " << proof_prefix << " plies 0-" << ply << ", " << positions_verified << " positions, initial position " << (initial_winning ? "WINNING" : "LOSING") << " for side 0" << std::endl;
+  shared_dfa_ptr empty(new RejectDFA(game.get_shape()));
+  std::vector<VerifyPlyStats> stats = verify_solve(game, ply_max, [&](int ply)
+  {
+    std::string name = get_proof_name(proof_prefix, ply, ply_winning(ply));
+    std::cout << "PLY " << ply << " " << (ply_winning(ply) ? "WINNING" : "LOSING") << ": " << name << std::endl;
+    shared_dfa_ptr positions = verify_load(game, name);
+    return VerifyPlySets{positions,
+                         ply_winning(ply) ? positions : empty,
+                         ply_winning(ply) ? empty : positions,
+                         empty};
+  }, VerifyClosure::losing_moves_only);
+
+  // verify_solve checked ply 0 holds the initial position; a proof starts
+  // from it alone.
+  if(stats.at(0).positions != 1)
+    {
+      throw std::runtime_error(get_proof_name(proof_prefix, 0, initial_winning) + " has " +
+                               std::to_string(stats.at(0).positions) +
+                               " positions and is not exactly the initial position");
+    }
+
+  uint64_t positions_verified = 0;
+  for(const VerifyPlyStats& ply_stats : stats)
+    {
+      positions_verified += ply_stats.positions;
+    }
+
+  std::cout << "PROOF VERIFIED: " << proof_prefix << " plies 0-" << ply_max << ", " << positions_verified << " positions, initial position " << (initial_winning ? "WINNING" : "LOSING") << " for side 0" << std::endl;
 }
 
 int main(int argc, char **argv)
