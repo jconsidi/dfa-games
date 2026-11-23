@@ -96,7 +96,7 @@ otherwise incremental builds can miss a rebuild.
     make test
 
 Runs `test_bitset`, `test_scratch_config`, `test_dfa`, `test_sort_utils`,
-`test_change_dfa`, `test_validate`, `test_move_graph` and `test_perft_u`.
+`test_change_dfa`, `test_terminal`, `test_validate`, `test_move_graph` and `test_perft_u`.
 The chess tests are slow, so they are in `make test_chess` instead.
 
 Coverage is uneven and worth knowing before trusting a green run: `config/` only

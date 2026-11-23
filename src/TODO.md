@@ -137,6 +137,14 @@ What the design has to settle:
   - A way to rerecord the hashes, used only when a change is meant to renumber states, with the old and new hashes both shown in the commit so the change is deliberate and reviewable.
   - Hashes pin the bytes, not just the language, so a change that renumbers states correctly still fails; the language check for that case stays with the `verify_*` programs.
 
+- terminal sets: what `test_terminal` does not check.
+  It checks, for each side to move, that won and lost are disjoint and that no position in either has a move under the DFA move generator.
+  - It does not check that every position with no moves is in won or lost, or tied, which would need `has_moves`.
+    For normal-play games this holds by construction, since lost is the complement of the backward moves from every position.
+    For other games (tictactoe, chess) it is unchecked, except within a solve's domain, where `verify_solve` takes every result from the rules.
+  - It runs only on an explicit list of small sizes; every bigger configured size is untested here.
+  - loa-icga and loa-normalplay belong on the list once they are on main, and chess once its `has_moves` has been built.
+
 ## memory maps
 
 - revisit the munmap calls added for mapping pressure, now that a saved DFA
