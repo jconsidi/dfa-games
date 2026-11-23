@@ -192,6 +192,172 @@ void verify_lost_sound(const Game& game, int side_to_move, std::string lost_name
   verify_lost_sound(game, side_to_move, lost_positions);
 }
 
+uint64_t verify_partition(const Game& game, shared_dfa_ptr whole, const std::vector<shared_dfa_ptr>& parts)
+{
+  // One merge-style pass. Every DFA of a shape enumerates its positions in
+  // the same lexicographic order, so if parts partition whole, each position
+  // of whole is the next position (the front) of exactly one part. Each step
+  // checks that and advances that part. A front below the current position
+  // of whole was never matched, so it is a position of its part outside
+  // whole, as is any front left when whole runs out. Each stream's order is
+  // checked as it goes, so an enumeration out of order fails as such rather
+  // than as a discrepancy.
+
+  std::cout << "VERIFYING " << whole->size() << " POSITIONS PARTITIONED BY " << parts.size() << " DFAS" << std::endl;
+
+  for(size_t i = 0; i < parts.size(); ++i)
+    {
+      if(parts[i]->get_shape() != whole->get_shape())
+        {
+          throw std::runtime_error("part " + std::to_string(i) + " has a different shape from the whole");
+        }
+    }
+
+  auto fail = [&](const DFAString& position, const std::string& message)
+  {
+    std::cerr << game.position_to_string(position) << "\n" << message << std::endl;
+    throw std::runtime_error("parts do not partition the whole: " + message);
+  };
+
+  whole->mmap();
+  for(const shared_dfa_ptr& part : parts)
+    {
+      part->mmap();
+    }
+
+  size_t num_parts = parts.size();
+  std::vector<DFAIterator> part_iters;
+  std::vector<DFAIterator> part_ends;
+  std::vector<std::optional<DFAString>> fronts(num_parts);
+  std::vector<uint64_t> part_counts(num_parts, 0);
+  for(size_t i = 0; i < num_parts; ++i)
+    {
+      part_iters.push_back(parts[i]->cbegin());
+      part_ends.push_back(parts[i]->cend());
+      if(part_iters[i] < part_ends[i])
+        {
+          fronts[i] = *part_iters[i];
+        }
+    }
+
+  auto advance = [&](size_t i)
+  {
+    DFAString previous = *fronts[i];
+    ++part_iters[i];
+    ++part_counts[i];
+    fronts[i].reset();
+    if(part_iters[i] < part_ends[i])
+      {
+        fronts[i] = *part_iters[i];
+        if(!(previous < *fronts[i]))
+          {
+            fail(*fronts[i], "part " + std::to_string(i) + " enumerated out of order");
+          }
+      }
+  };
+
+  constexpr uint64_t progress_interval = 1000000000;
+  uint64_t whole_count = 0;
+  std::optional<DFAString> whole_previous;
+  auto whole_end = whole->cend();
+  for(auto whole_iter = whole->cbegin(); whole_iter < whole_end; ++whole_iter)
+    {
+      DFAString position = *whole_iter;
+      if(whole_previous && !(*whole_previous < position))
+        {
+          fail(position, "whole enumerated out of order");
+        }
+
+      std::optional<size_t> match;
+      for(size_t i = 0; i < num_parts; ++i)
+        {
+          if(!fronts[i])
+            {
+              continue;
+            }
+          if(*fronts[i] < position)
+            {
+              fail(*fronts[i], "position of part " + std::to_string(i) + " is not in the whole");
+            }
+          if(*fronts[i] == position)
+            {
+              if(match)
+                {
+                  fail(position, "position of the whole is in parts " + std::to_string(*match) + " and " + std::to_string(i));
+                }
+              match = i;
+            }
+        }
+      if(!match)
+        {
+          fail(position, "position of the whole is in no part");
+        }
+
+      advance(*match);
+      ++whole_count;
+      whole_previous = std::move(position);
+
+      if(whole_count % progress_interval == 0)
+        {
+          std::cout << "VERIFIED " << whole_count << " POSITIONS SO FAR" << std::endl;
+        }
+    }
+
+  for(size_t i = 0; i < num_parts; ++i)
+    {
+      if(fronts[i])
+        {
+          fail(*fronts[i], "position of part " + std::to_string(i) + " is not in the whole (after the whole's last position)");
+        }
+    }
+
+  std::cout << "VERIFIED " << whole_count << " / " << whole->size() << " POSITIONS OF THE WHOLE, EACH THE NEXT POSITION OF EXACTLY ONE PART" << std::endl;
+  if(whole_count != uint64_t(whole->size()))
+    {
+      throw std::runtime_error("verified count does not match the whole's DFA size");
+    }
+
+  uint64_t parts_count = 0;
+  for(size_t i = 0; i < num_parts; ++i)
+    {
+      std::cout << "VERIFIED " << part_counts[i] << " / " << parts[i]->size() << " POSITIONS OF PART " << i << ", ALL IN THE WHOLE" << std::endl;
+      if(part_counts[i] != uint64_t(parts[i]->size()))
+        {
+          throw std::runtime_error("verified count does not match part " + std::to_string(i) + "'s DFA size");
+        }
+      parts_count += part_counts[i];
+    }
+
+  // Implied by the pass, and checked anyway.
+  if(parts_count != whole_count)
+    {
+      throw std::runtime_error("parts hold " + std::to_string(parts_count) + " positions but the whole holds " + std::to_string(whole_count));
+    }
+
+  std::cout << "VERIFIED PARTITION: " << whole_count << " positions in " << num_parts << " parts" << std::endl;
+
+  return whole_count;
+}
+
+uint64_t verify_partition(const Game& game, std::string whole_name, const std::vector<std::string>& part_names)
+{
+  std::cout << "VERIFYING " << whole_name << " PARTITIONED BY";
+  for(const std::string& part_name : part_names)
+    {
+      std::cout << " " << part_name;
+    }
+  std::cout << std::endl;
+
+  shared_dfa_ptr whole = verify_load(game, whole_name);
+  std::vector<shared_dfa_ptr> parts;
+  for(const std::string& part_name : part_names)
+    {
+      parts.push_back(verify_load(game, part_name));
+    }
+
+  return verify_partition(game, whole, parts);
+}
+
 int verify_parse_side_to_move(std::string dfa_name)
 {
   std::vector<std::string> templates = {
