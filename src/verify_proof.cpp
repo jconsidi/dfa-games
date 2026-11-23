@@ -83,7 +83,7 @@ void verify_proof(const Game& game, std::string proof_prefix)
     }
 
   shared_dfa_ptr empty(new RejectDFA(game.get_shape()));
-  std::vector<VerifyPlyStats> stats = verify_solve(game, ply_max, [&](int ply)
+  std::vector<VerifyPlyStats> stats = verify_solve(game, ply_max, 0, [&](int ply)
   {
     std::string name = get_proof_name(proof_prefix, ply, ply_winning(ply));
     std::cout << "PLY " << ply << " " << (ply_winning(ply) ? "WINNING" : "LOSING") << ": " << name << std::endl;

@@ -70,6 +70,7 @@ enum class VerifyClosure
 // Verifies a solve from ply_max down to ply 0, throwing on the first
 // failure. sets(p) is called exactly once per ply, in decreasing order of p,
 // and its DFAs are used for both ply p's own checks and ply p - 1's lookups.
+// Ply p has side (side_to_move_at_ply_0 + p) % 2 to move.
 //
 // At ply_max, every winning position is won, every losing position lost,
 // and every unknown position tied or not over. At each ply p below it,
@@ -84,10 +85,10 @@ enum class VerifyClosure
 //
 // Ply p's checks run before ply p's partition check, so they look up into
 // ply p + 1's DFAs right after its partition check scanned them. Finally,
-// ply 0's domain must contain the initial position. Returns per-ply stats,
-// ply 0 first, and prints them as a table with the initial position's
-// result.
-std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
+// ply 0's domain must contain the initial position, when ply 0 has side 0
+// to move as the initial position does. Returns per-ply stats, ply 0 first,
+// and prints them as a table with the initial position's result.
+std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max, int side_to_move_at_ply_0,
                                          const std::function<VerifyPlySets(int)>& sets,
                                          VerifyClosure closure);
 

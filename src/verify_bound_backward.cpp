@@ -31,7 +31,7 @@ int main(int argc, char **argv)
       return 1;
     }
 
-  verify_solve(*game, forward_ply_max, [&](int ply)
+  verify_solve(*game, forward_ply_max, 0, [&](int ply)
   {
     std::string prefix = std::format("bound_backward,forward_ply_max={:03d},backward_ply_max={:03d},ply={:03d},",
                                      forward_ply_max, backward_ply_max, ply);

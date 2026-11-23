@@ -609,7 +609,7 @@ static void verify_winning_closed_position(const Game& game, int side_to_move, c
     }
 }
 
-std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
+std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max, int side_to_move_at_ply_0,
                                          const std::function<VerifyPlySets(int)>& sets,
                                          VerifyClosure closure)
 {
@@ -617,6 +617,14 @@ std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
     {
       throw std::invalid_argument("verify_solve: ply_max must be at least 0");
     }
+  if((side_to_move_at_ply_0 != 0) && (side_to_move_at_ply_0 != 1))
+    {
+      throw std::invalid_argument("verify_solve: side_to_move_at_ply_0 must be 0 or 1");
+    }
+  auto side_at = [&](int ply)
+  {
+    return (side_to_move_at_ply_0 + ply) % 2;
+  };
 
   std::string closure_description = (closure == VerifyClosure::every_move)
     ? "every move"
@@ -652,7 +660,7 @@ std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
   VerifyPlySets next = get_sets(ply_max);
   {
     auto start = std::chrono::steady_clock::now();
-    int side_to_move = ply_max % 2;
+    int side_to_move = side_at(ply_max);
     std::cout << "PLY " << ply_max << " SIDE " << side_to_move << ": LAST PLY, CHECKING RESULTS" << std::endl;
 
     uint64_t losing = verify_each_position(game, next.losing, "LOST", "lost", {}, [&](const DFAString& position)
@@ -675,7 +683,7 @@ std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
     {
       VerifyPlySets curr = get_sets(ply);
       auto start = std::chrono::steady_clock::now();
-      int side_to_move = ply % 2;
+      int side_to_move = side_at(ply);
       std::cout << "PLY " << ply << " SIDE " << side_to_move << ": CHECKING AGAINST PLY " << (ply + 1) << ", CLOSURE: " << closure_description << std::endl;
 
       uint64_t losing = verify_each_position(game, curr.losing, "LOSING", "losing", {next.winning}, [&](const DFAString& position)
@@ -710,20 +718,29 @@ std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
     }
 
   // next is now ply 0
-  shared_dfa_ptr initial_positions = game.get_positions_initial();
-  if(initial_positions->size() != 1)
+  std::string initial_line;
+  if(side_to_move_at_ply_0 == 0)
     {
-      throw std::logic_error(std::to_string(initial_positions->size()) + " initial positions, but verify_solve expects exactly one");
+      shared_dfa_ptr initial_positions = game.get_positions_initial();
+      if(initial_positions->size() != 1)
+        {
+          throw std::logic_error(std::to_string(initial_positions->size()) + " initial positions, but verify_solve expects exactly one");
+        }
+      DFAString initial = *(initial_positions->cbegin());
+      if(!next.domain->contains(initial))
+        {
+          std::cerr << game.position_to_string(initial) << std::endl;
+          throw std::runtime_error("ply 0's domain does not contain the initial position");
+        }
+      std::string initial_result = next.winning->contains(initial)
+        ? "WINNING"
+        : next.losing->contains(initial) ? "LOSING" : "UNKNOWN";
+      initial_line = "INITIAL POSITION " + initial_result + " for side 0";
     }
-  DFAString initial = *(initial_positions->cbegin());
-  if(!next.domain->contains(initial))
+  else
     {
-      std::cerr << game.position_to_string(initial) << std::endl;
-      throw std::runtime_error("ply 0's domain does not contain the initial position");
+      initial_line = "INITIAL POSITION NOT CHECKED: ply 0 has side 1 to move";
     }
-  std::string initial_result = next.winning->contains(initial)
-    ? "WINNING"
-    : next.losing->contains(initial) ? "LOSING" : "UNKNOWN";
 
   std::cout << "VERIFIED SOLVE PLIES 0-" << ply_max << ", CLOSURE: " << closure_description << std::endl;
   std::cout << std::format("{:>4} {:>16} {:>16} {:>16} {:>16} {:>9}", "ply", "positions", "winning", "losing", "unknown", "seconds") << std::endl;
@@ -731,7 +748,7 @@ std::vector<VerifyPlyStats> verify_solve(const Game& game, int ply_max,
     {
       std::cout << std::format("{:>4} {:>16} {:>16} {:>16} {:>16} {:>9.0f}", ply_stats.ply, ply_stats.positions, ply_stats.winning, ply_stats.losing, ply_stats.unknown, ply_stats.seconds) << std::endl;
     }
-  std::cout << "INITIAL POSITION " << initial_result << " for side 0" << std::endl;
+  std::cout << initial_line << std::endl;
 
   return stats;
 }
