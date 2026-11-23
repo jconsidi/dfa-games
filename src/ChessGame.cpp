@@ -1480,6 +1480,28 @@ std::vector<DFAString> ChessGame::validate_moves(int side_to_move, const DFAStri
   return output;
 }
 
+ValidatedPosition ChessGame::validate_position_impl(int side_to_move, const DFAString& position) const
+{
+  Board board = position_to_board(side_to_move, position);
+
+  Board moves[CHESS_MAX_MOVES];
+  int num_moves = board.generate_moves(moves);
+
+  if(num_moves == 0)
+    {
+      // checkmate or stalemate
+      return GameOver{board.is_check() ? -1 : 0};
+    }
+
+  std::vector<DFAString> output;
+  for(int i = 0; i < num_moves; ++i)
+    {
+      output.push_back(from_board_to_dfa_string(moves[i]));
+    }
+
+  return output;
+}
+
 std::optional<int> ChessGame::validate_outcome(int side_to_move, const DFAString& position) const
 {
   Board board = position_to_board(side_to_move, position);
