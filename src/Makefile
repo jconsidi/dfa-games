@@ -43,7 +43,7 @@ endif
 CXXFLAGS=-Wall -Warith-conversion -Wconversion -Wextra -Werror -Wno-c++11-extensions -Wno-sign-compare --pedantic -std=c++20 -g -O2 -isystem ../third_party/nlohmann_json/include $(PLATFORM_CXXFLAGS)
 LDFLAGS=$(PLATFORM_LDFLAGS) -lcrypto -ltbb
 
-TARGETS=build_backward build_bound_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof build_puzzle divide generate_moves get_intersection get_union get_union_vector play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_bound_backward stats_forward stats_forward_backward stats_move_graph render_move_graph render_test_positions test_bitset test_change_dfa test_chess_game test_dfa test_flash_sort test_memory_map test_move_graph test_normal_nim_game test_perft test_perft_u test_scratch_config test_solved test_sort_join_faults test_sort_utils test_terminal test_validate validate_forward verify_backward verify_backward_sound verify_bound_backward verify_forward_backward verify_forward_exact verify_losing_sound verify_lost_sound verify_partition verify_proof verify_winning_sound verify_won_sound
+TARGETS=build_backward build_bound_backward build_chess_database build_forward build_forward_backward build_forward_backward_proof build_puzzle divide generate_moves get_intersection get_union get_union_vector play_breakthrough print random random_uci restart_difference restart_union solve_backward stats stats_backward stats_bound_backward stats_forward stats_forward_backward stats_move_graph render_move_graph render_test_positions test_bitset test_change_dfa test_chess_game test_dfa test_flash_sort test_memory_map test_move_graph test_normal_nim_game test_perft test_perft_u test_scratch_config test_solved test_sort_join_faults test_sort_utils test_terminal test_validate verify_backward verify_backward_sound verify_bound_backward verify_forward_backward verify_forward_exact verify_losing_sound verify_lost_sound verify_partition verify_proof verify_winning_sound verify_won_sound
 
 all : $(TARGETS)
 
@@ -154,9 +154,6 @@ stats_% : stats_%.o game_utils.o dfagames.a
 test_perft : test_perft.o dfagames.a PerftTestCases.o
 
 test_% : test_%.o test_utils.o game_utils.o dfagames.a
-	$(CXX) -o $@ $^ $(LDFLAGS)
-
-validate_% : validate_%.o game_utils.o validate_utils.o dfagames.a
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 verify_% : verify_%.o verify_utils.o game_utils.o dfagames.a
