@@ -93,6 +93,17 @@ std::vector<DFAString> TicTacToeGame::validate_moves(int side_to_move, const DFA
   return output;
 }
 
+ValidatedPosition TicTacToeGame::validate_position_impl(int side_to_move, const DFAString& position) const
+{
+  std::optional<int> outcome = validate_outcome(side_to_move, position);
+  if(outcome)
+    {
+      return GameOver{*outcome};
+    }
+
+  return validate_moves(side_to_move, position);
+}
+
 std::optional<int> TicTacToeGame::validate_outcome(int side_to_move, const DFAString& position) const
 {
   int hostile_char = 1 + (1 - side_to_move);

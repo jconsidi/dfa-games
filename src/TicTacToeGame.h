@@ -26,6 +26,11 @@ private:
 
   virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
   virtual std::optional<int> validate_outcome(int, const DFAString&) const;
+
+ protected:
+
+  // The opponent's line is lost and a full board tied; otherwise the moves.
+  virtual ValidatedPosition validate_position_impl(int, const DFAString&) const;
 };
 
 #endif
