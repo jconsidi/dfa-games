@@ -231,6 +231,60 @@ uint64_t verify_partition(const Game& game, shared_dfa_ptr whole, const std::vec
     }
 
   size_t num_parts = parts.size();
+
+  // A part that is the whole itself, as verify_proof passes, partitions it
+  // exactly when that part is listed once and every other part is empty.
+  // That needs one walk of the whole, for its count, rather than two in
+  // step.
+  std::vector<size_t> whole_parts;
+  for(size_t i = 0; i < num_parts; ++i)
+    {
+      if(parts[i].get() == whole.get())
+        {
+          whole_parts.push_back(i);
+        }
+    }
+  if(whole_parts.size() > 0)
+    {
+      uint64_t whole_count = 0;
+      auto whole_end = whole->cend();
+      for(auto whole_iter = whole->cbegin(); whole_iter < whole_end; ++whole_iter)
+        {
+          if((whole_count == 0) && (whole_parts.size() > 1))
+            {
+              fail(*whole_iter, "position of the whole is in parts " + std::to_string(whole_parts[0]) + " and " + std::to_string(whole_parts[1]));
+            }
+          ++whole_count;
+        }
+
+      for(size_t i = 0; i < num_parts; ++i)
+        {
+          if(parts[i].get() == whole.get())
+            {
+              continue;
+            }
+          auto part_iter = parts[i]->cbegin();
+          if(part_iter < parts[i]->cend())
+            {
+              DFAString position = *part_iter;
+              if(whole->contains(position))
+                {
+                  fail(position, "position of the whole is in parts " + std::to_string(whole_parts[0]) + " and " + std::to_string(i));
+                }
+              fail(position, "position of part " + std::to_string(i) + " is not in the whole");
+            }
+        }
+
+      std::cout << "VERIFIED " << whole_count << " / " << whole->size() << " POSITIONS OF THE WHOLE, ALL IN PART " << whole_parts[0] << " (THE WHOLE ITSELF), EVERY OTHER PART EMPTY" << std::endl;
+      if(whole_count != uint64_t(whole->size()))
+        {
+          throw std::runtime_error("verified count does not match the whole's DFA size");
+        }
+
+      std::cout << "VERIFIED PARTITION: " << whole_count << " positions in " << num_parts << " parts" << std::endl;
+
+      return whole_count;
+    }
   std::vector<DFAIterator> part_iters;
   std::vector<DFAIterator> part_ends;
   std::vector<std::optional<DFAString>> fronts(num_parts);
