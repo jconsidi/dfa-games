@@ -157,7 +157,7 @@ for (const p of DATA.positions) {
   card.appendChild(board(p.text));
 
   section(card, "Every position", p.always_checked_by);
-  card.appendChild(el("p", null, "Move graph moves equal validate_moves; zero moves exactly when the game is over."));
+  card.appendChild(el("p", null, "Move graph moves equal validate_position's moves; validate_position gives either a result or at least one move."));
 
   if (p.expected_moves) {
     const n = p.expected_moves.length;
@@ -317,8 +317,8 @@ int main(int argc, char **argv)
   summary += ". This page shows what the tests check; make test runs them.";
 
   nlohmann::json programs = nlohmann::json::array();
-  programs.push_back({"test_validate", "Every position in both files: validate_moves returns no moves exactly when validate_outcome reports the game over. Where given, expected_moves must equal validate_moves as a set, and expected_result must equal validate_outcome."});
-  programs.push_back({"test_move_graph", "Every position in both files: the moves the game's move graph generates equal validate_moves, with and without join splitting."});
+  programs.push_back({"test_validate", "Every position in both files: validate_position gives either a result or at least one move, never both or neither. Where given, expected_moves must equal its moves as a set, and expected_result must equal its result."});
+  programs.push_back({"test_move_graph", "Every position in both files: the moves the game's move graph generates equal validate_position's moves, with and without join splitting."});
   programs.push_back({"test_perft_u", "Positions with expected_perft_u: the number of distinct positions reached after each depth, generated with the move graph."});
   programs.push_back({"Rust positions_manual", "Every position in both files: expected_moves, expected_result and expected_perft_u, wherever given, against rules written independently from GAMES.md. A file naming a game without Rust rules fails the test rather than being skipped."});
 
