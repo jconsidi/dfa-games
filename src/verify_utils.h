@@ -38,6 +38,15 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
 void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positions);
 void verify_won_sound(const Game& game, int side_to_move, std::string won_name);
 
+// Checks next is exactly the positions reached by one move from curr, side
+// to move to play: every move of every position of curr is in next, and
+// every position of next is some such move. A position whose game is over
+// has no moves. Each position of next is numbered by its rank in DFA order,
+// and a bit per rank marks it reached, so the check needs memory for next's
+// DFA and one bit per position of next, not for the moves. Throws on the
+// first failure, naming the position. Returns the positions in next.
+uint64_t verify_forward_exact(const Game& game, int side_to_move, shared_dfa_ptr curr, shared_dfa_ptr next);
+
 // One ply of a solve: domain is every position the solve covers at that ply,
 // and winning, losing and unknown should partition it.
 struct VerifyPlySets

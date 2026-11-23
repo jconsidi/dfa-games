@@ -52,6 +52,7 @@ verify_backward
 verify_backward_sound
 verify_bound_backward
 verify_forward_backward
+verify_forward_exact
 verify_losing_sound
 verify_lost_sound
 verify_partition
