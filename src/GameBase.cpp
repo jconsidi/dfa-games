@@ -3,6 +3,7 @@
 #include "GameBase.h"
 
 #include <format>
+#include <stdexcept>
 #include <iostream>
 
 #include "DFAUtil.h"
@@ -140,6 +141,38 @@ shared_dfa_ptr GameBase::load_or_build(std::string dfa_name_in, std::function<sh
 
   std::string dfa_name = name + "/" + dfa_name_in;
   return DFAUtil::load_or_build(shape, dfa_name, build_func, true);
+}
+
+ValidatedPosition GameBase::validate_position(int side_to_move, const DFAString& position) const
+{
+  ValidatedPosition validated = validate_position_impl(side_to_move, position);
+
+  if(const std::vector<DFAString> *moves = std::get_if<std::vector<DFAString>>(&validated))
+    {
+      if(moves->size() == 0)
+        {
+          throw std::logic_error(get_name() + " rules give no moves and no result for side " + std::to_string(side_to_move) + " in\n" + position_to_string(position));
+        }
+    }
+
+  return validated;
+}
+
+ValidatedPosition GameBase::validate_position_impl(int side_to_move, const DFAString& position) const
+{
+  std::optional<int> outcome = validate_outcome(side_to_move, position);
+  std::vector<DFAString> moves = validate_moves(side_to_move, position);
+
+  if(outcome)
+    {
+      if(moves.size() > 0)
+        {
+          throw std::logic_error(get_name() + " rules give " + std::to_string(moves.size()) + " moves and result " + std::to_string(*outcome) + " for side " + std::to_string(side_to_move) + " in\n" + position_to_string(position));
+        }
+      return GameOver{*outcome};
+    }
+
+  return moves;
 }
 
 std::vector<DFAString> GameBase::validate_moves(int, const DFAString&) const
