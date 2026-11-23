@@ -22,6 +22,13 @@ struct GameOver
 // move has at least one move.
 using ValidatedPosition = std::variant<GameOver, std::vector<DFAString>>;
 
+// The moves of a validated position, none if the game is over.
+inline std::vector<DFAString> validated_moves(const ValidatedPosition& validated)
+{
+  const std::vector<DFAString> *moves = std::get_if<std::vector<DFAString>>(&validated);
+  return moves ? *moves : std::vector<DFAString>();
+}
+
 class GameBase
 {
 private:

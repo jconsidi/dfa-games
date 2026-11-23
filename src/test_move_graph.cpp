@@ -20,7 +20,7 @@ void test_position(const GameBase& game, const DFAString& position, const nlohma
 
   std::vector<DFAString> actual_moves = game.get_moves_forward(side_to_move, position);
 
-  std::vector<DFAString> validate_moves = game.validate_moves(side_to_move, position);
+  std::vector<DFAString> validate_moves = validated_moves(game.validate_position(side_to_move, position));
 
   std::set<DFAString> actual_moves_set(actual_moves.begin(), actual_moves.end());
   std::set<DFAString> validate_moves_set(validate_moves.begin(), validate_moves.end());

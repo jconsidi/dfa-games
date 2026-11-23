@@ -89,7 +89,9 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
           continue;
         }
 
-      std::optional<int> result = game.validate_outcome(side_to_move, position);
+      ValidatedPosition validated = game.validate_position(side_to_move, position);
+      const GameOver *over = std::get_if<GameOver>(&validated);
+      std::optional<int> result = over ? std::optional<int>(over->result) : std::optional<int>();
       if(!result)
         {
           std::cerr << "# LOSING EXAMPLE WITHOUT RESULT" << std::endl;
@@ -109,7 +111,7 @@ bool validate_losing(const Game& game, int side_to_move, shared_dfa_ptr curr_los
 	  return false;
 	}
 
-      std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
+      std::vector<DFAString> moves = validated_moves(validated);
       if(moves.size() == 0)
 	{
 	  std::cerr << "NOT LOST EXAMPLE WITHOUT MOVES" << std::endl;
@@ -210,7 +212,9 @@ bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_wi
           continue;
         }
 
-      std::optional<int> result = game.validate_outcome(side_to_move, position);
+      ValidatedPosition validated = game.validate_position(side_to_move, position);
+      const GameOver *over = std::get_if<GameOver>(&validated);
+      std::optional<int> result = over ? std::optional<int>(over->result) : std::optional<int>();
       if(!result)
         {
           std::cerr << "# WINNING EXAMPLE WITHOUT RESULT" << std::endl;
@@ -230,7 +234,7 @@ bool validate_winning(const Game& game, int side_to_move, shared_dfa_ptr curr_wi
 	  return false;
 	}
 
-      std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
+      std::vector<DFAString> moves = validated_moves(validated);
       if(moves.size() == 0)
 	{
 	  std::cerr << "# NOT WON EXAMPLE WITHOUT MOVES" << std::endl;

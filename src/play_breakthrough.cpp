@@ -83,7 +83,7 @@ int main(int argc, char **argv)
   std::cout << "LOSING " << losing_name << std::endl;
 
   shared_dfa_ptr losing = game->load(losing_name);
-  for(auto move : game->validate_moves(ply % 2, position))
+  for(auto move : validated_moves(game->validate_position(ply % 2, position)))
     {
       if(losing->contains(move))
         {

@@ -14,32 +14,19 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
   int side_to_move = test_case.at("side_to_move").get<int>();
   std::cout << "SIDE TO MOVE: " << side_to_move << std::endl;
 
-  const auto validate_moves = game.validate_moves(side_to_move, position);
-  const auto validate_outcome = game.validate_outcome(side_to_move, position);
+  // validate_position throws if the rules give both moves and a result, or
+  // neither.
+  const ValidatedPosition validated = game.validate_position(side_to_move, position);
+  const GameOver *over = std::get_if<GameOver>(&validated);
+  const std::vector<DFAString> moves = validated_moves(validated);
 
-  std::cout << "validate_moves() returned " << validate_moves.size() << " moves." << std::endl;
-  if(validate_outcome)
+  if(over)
     {
-      std::cout << "validate_outcome() returned " << *validate_outcome << std::endl;
+      std::cout << "validate_position() returned game over with result " << over->result << std::endl;
     }
   else
     {
-      std::cout << "validate_outcome() returned none." << std::endl;
-    }
-  
-  if(validate_moves.size() == 0)
-    {
-      if(!validate_outcome)
-        {
-          throw std::logic_error("validate_moves() returned zero moves, but validate_outcome() returned none.");
-        }
-    }
-  else
-    {
-      if(validate_outcome)
-        {
-          throw std::logic_error(std::format("validate_moves() returned {:d} moves, but validate_outcome returned {:d}.", validate_moves.size(), *validate_outcome));
-        }
+      std::cout << "validate_position() returned " << moves.size() << " moves." << std::endl;
     }
 
   if(test_case.contains("expected_result"))
@@ -48,17 +35,17 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
       if(expected_result.is_null())
         {
           std::cout << "expected result none" << std::endl;
-          if(validate_outcome)
+          if(over)
             {
-              throw std::logic_error(std::format("validate_outcome() returned {:d}, but expected none", *validate_outcome));
+              throw std::logic_error(std::format("validate_position() returned result {:d}, but expected none", over->result));
             }
         }
       else
         {
           std::cout << "expected result " << expected_result.get<int>() << std::endl;
-          if(!validate_outcome)
+          if(!over)
             {
-              throw std::logic_error(std::format("validate_outcome() returned none, but expected {:d}", expected_result.get<int>()));
+              throw std::logic_error(std::format("validate_position() returned moves, but expected result {:d}", expected_result.get<int>()));
             }
         }
     }
@@ -72,7 +59,7 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
           expected_moves_set.emplace(game.get_shape(), expected_move_vector);
         }
 
-      std::set<DFAString> validated_moves_set(validate_moves.begin(), validate_moves.end());
+      std::set<DFAString> validated_moves_set(moves.begin(), moves.end());
 
       test_moves(game, validated_moves_set, expected_moves_set);
     }

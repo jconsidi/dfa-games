@@ -95,17 +95,9 @@ int main(int argc, char **argv)
 	{
 	  DFAString position(*iter);
 
-	  std::vector<DFAString> moves = game->validate_moves(side_to_move, position);
-          std::optional<int> result = game->validate_outcome(side_to_move, position);
-
-	  // should not have both moves and a final result
-	  if((moves.size() > 0) && result)
-	    {
-	      std::cerr << "# CONFLICT" << std::endl;
-	      std::cerr << game->position_to_string(position) << std::endl;
-	      std::cerr << "# position has " << moves.size() << " moves and final result " << *result << std::endl;
-	      return 1;
-	    }
+	  // validate_position throws if a position has both moves and a
+	  // final result.
+	  std::vector<DFAString> moves = validated_moves(game->validate_position(side_to_move, position));
 
 	  for(const DFAString& move : moves)
 	    {
