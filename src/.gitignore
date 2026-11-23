@@ -49,6 +49,7 @@ test_validate
 typescript*
 validate_backward
 validate_forward
+verify_backward
 verify_backward_sound
 verify_bound_backward
 verify_forward_backward
