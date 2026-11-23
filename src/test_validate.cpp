@@ -47,6 +47,10 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
             {
               throw std::logic_error(std::format("validate_position() returned moves, but expected result {:d}", expected_result.get<int>()));
             }
+          if(over->result != expected_result.get<int>())
+            {
+              throw std::logic_error(std::format("validate_position() returned result {:d}, but expected {:d}", over->result, expected_result.get<int>()));
+            }
         }
     }
 
