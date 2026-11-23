@@ -9,6 +9,7 @@
 #include <optional>
 #include <sstream>
 #include <stdexcept>
+#include <variant>
 #include <vector>
 
 #include "DFAUtil.h"
@@ -98,25 +99,19 @@ static uint64_t verify_each_position(const Game& game,
 
 void verify_losing_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr winning_prev)
 {
-  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
-  if(outcome)
+  ValidatedPosition validated = game.validate_position(side_to_move, position);
+  if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(*outcome == -1)
+      if(over->result == -1)
         {
           // lost position
           return;
         }
 
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not lost (-1)");
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not lost (-1)");
     }
 
-  std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
-  if(moves.size() == 0)
-    {
-      throw std::runtime_error("position has no moves, but validate_outcome says it is not terminal");
-    }
-
-  for(const DFAString& move : moves)
+  for(const DFAString& move : std::get<std::vector<DFAString>>(validated))
     {
       if(!winning_prev->contains(move))
         {
@@ -146,39 +141,33 @@ void verify_losing_sound(const Game& game, int side_to_move, std::string losing_
 
 void verify_lost_position(const Game& game, int side_to_move, const DFAString& position)
 {
-  std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
-  bool moves_mismatch = moves.size() > 0;
-
-  std::optional<int> result_actual = game.validate_outcome(side_to_move, position);
-  bool result_mismatch = !result_actual || (*result_actual != -1);
-
-  if(result_mismatch || moves_mismatch)
+  ValidatedPosition validated = game.validate_position(side_to_move, position);
+  const GameOver *over = std::get_if<GameOver>(&validated);
+  if(over && (over->result == -1))
     {
-      // built up instead of printed so that the caller does the writing.
-      // for_each_position may run this on many positions at once, and
-      // interleaved reports would be unreadable. The caller adds the
-      // position itself.
-
-      std::ostringstream report;
-
-      if(!result_actual)
-        {
-          report << "# RESULT MISMATCH: not terminal" << "\n";
-        }
-      else if(result_mismatch)
-        {
-          report << "# RESULT MISMATCH: expected lost (-1), actual " << *result_actual << "\n";
-        }
-
-      if(moves_mismatch)
-        {
-          report << "# MOVES MISMATCH: expected none, actual " << moves.size() << "\n";
-        }
-
-      report << "\n";
-
-      throw std::runtime_error(report.str());
+      return;
     }
+
+  // built up instead of printed so that the caller does the writing.
+  // for_each_position may run this on many positions at once, and
+  // interleaved reports would be unreadable. The caller adds the position
+  // itself.
+
+  std::ostringstream report;
+
+  if(!over)
+    {
+      report << "# RESULT MISMATCH: not terminal" << "\n";
+      report << "# MOVES MISMATCH: expected none, actual " << std::get<std::vector<DFAString>>(validated).size() << "\n";
+    }
+  else
+    {
+      report << "# RESULT MISMATCH: expected lost (-1), actual " << over->result << "\n";
+    }
+
+  report << "\n";
+
+  throw std::runtime_error(report.str());
 }
 
 void verify_lost_sound(const Game& game, int side_to_move, shared_dfa_ptr positions)
@@ -440,20 +429,19 @@ int verify_parse_side_to_move(std::string dfa_name)
 
 void verify_winning_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr losing_prev)
 {
-  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
-  if(outcome)
+  ValidatedPosition validated = game.validate_position(side_to_move, position);
+  if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(*outcome == 1)
+      if(over->result == 1)
         {
           // won position
           return;
         }
 
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not won (1)");
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not won (1)");
     }
 
-  std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
-  for(const DFAString& move : moves)
+  for(const DFAString& move : std::get<std::vector<DFAString>>(validated))
     {
       if(losing_prev->contains(move))
         {
@@ -485,39 +473,33 @@ void verify_winning_sound(const Game& game, int side_to_move, std::string winnin
 
 void verify_won_position(const Game& game, int side_to_move, const DFAString& position)
 {
-  std::vector<DFAString> moves = game.validate_moves(side_to_move, position);
-  bool moves_mismatch = moves.size() > 0;
-
-  std::optional<int> result_actual = game.validate_outcome(side_to_move, position);
-  bool result_mismatch = !result_actual || (*result_actual != 1);
-
-  if(result_mismatch || moves_mismatch)
+  ValidatedPosition validated = game.validate_position(side_to_move, position);
+  const GameOver *over = std::get_if<GameOver>(&validated);
+  if(over && (over->result == 1))
     {
-      // built up instead of printed so that the caller does the writing.
-      // for_each_position may run this on many positions at once, and
-      // interleaved reports would be unreadable. The caller adds the
-      // position itself.
-
-      std::ostringstream report;
-
-      if(!result_actual)
-        {
-          report << "# RESULT MISMATCH: not terminal" << "\n";
-        }
-      else if(result_mismatch)
-        {
-          report << "# RESULT MISMATCH: expected won (1), actual " << *result_actual << "\n";
-        }
-
-      if(moves_mismatch)
-        {
-          report << "# MOVES MISMATCH: expected none, actual " << moves.size() << "\n";
-        }
-
-      report << "\n";
-
-      throw std::runtime_error(report.str());
+      return;
     }
+
+  // built up instead of printed so that the caller does the writing.
+  // for_each_position may run this on many positions at once, and
+  // interleaved reports would be unreadable. The caller adds the position
+  // itself.
+
+  std::ostringstream report;
+
+  if(!over)
+    {
+      report << "# RESULT MISMATCH: not terminal" << "\n";
+      report << "# MOVES MISMATCH: expected none, actual " << std::get<std::vector<DFAString>>(validated).size() << "\n";
+    }
+  else
+    {
+      report << "# RESULT MISMATCH: expected won (1), actual " << over->result << "\n";
+    }
+
+  report << "\n";
+
+  throw std::runtime_error(report.str());
 }
 
 void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positions)
@@ -541,20 +523,20 @@ void verify_won_sound(const Game& game, int side_to_move, std::string won_name)
 // least one in the unknown set.
 static void verify_unknown_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr winning_next, shared_dfa_ptr unknown_next)
 {
-  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
-  if(outcome)
+  ValidatedPosition validated = game.validate_position(side_to_move, position);
+  if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(*outcome == 0)
+      if(over->result == 0)
         {
           // tied position
           return;
         }
 
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not tied (0) or undecided");
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not tied (0) or undecided");
     }
 
   bool unknown_move = false;
-  for(const DFAString& move : game.validate_moves(side_to_move, position))
+  for(const DFAString& move : std::get<std::vector<DFAString>>(validated))
     {
       if(winning_next->contains(move))
         {
@@ -578,20 +560,14 @@ static void verify_unknown_position(const Game& game, int side_to_move, const DF
 // A position of the last ply's unknown set: tied, or not over.
 static void verify_unknown_last_position(const Game& game, int side_to_move, const DFAString& position)
 {
-  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
-  if(outcome)
+  // validate_position guarantees a position that is not over has a move.
+  ValidatedPosition validated = game.validate_position(side_to_move, position);
+  if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(*outcome == 0)
+      if(over->result != 0)
         {
-          return;
+          throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not tied (0) or undecided");
         }
-
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not tied (0) or undecided");
-    }
-
-  if(game.validate_moves(side_to_move, position).size() == 0)
-    {
-      throw std::runtime_error("position has no moves, but validate_outcome says it is not terminal");
     }
 }
 
@@ -601,20 +577,20 @@ static void verify_unknown_last_position(const Game& game, int side_to_move, con
 // ply's partition check shows the losing set is inside the domain.
 static void verify_winning_closed_position(const Game& game, int side_to_move, const DFAString& position, shared_dfa_ptr losing_next, shared_dfa_ptr domain_next)
 {
-  std::optional<int> outcome = game.validate_outcome(side_to_move, position);
-  if(outcome)
+  ValidatedPosition validated = game.validate_position(side_to_move, position);
+  if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(*outcome == 1)
+      if(over->result == 1)
         {
           // won position
           return;
         }
 
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(*outcome) + ", not won (1)");
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not won (1)");
     }
 
   bool losing_move = false;
-  for(const DFAString& move : game.validate_moves(side_to_move, position))
+  for(const DFAString& move : std::get<std::vector<DFAString>>(validated))
     {
       if(!losing_move && losing_next->contains(move))
         {
