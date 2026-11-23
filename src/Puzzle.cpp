@@ -19,6 +19,11 @@ shared_dfa_ptr Puzzle::get_positions_won() const
   });
 }
 
+ValidatedPosition Puzzle::validate_position_impl(int side_to_move, const DFAString& position) const
+{
+  return validate_moves(side_to_move, position);
+}
+
 std::optional<int> Puzzle::validate_outcome(int, const DFAString&) const
 {
   return std::optional<int>();

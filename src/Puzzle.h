@@ -21,6 +21,9 @@ protected:
 
   Puzzle(std::string, const dfa_shape_t&);
 
+  // A puzzle position is never over; its moves.
+  virtual ValidatedPosition validate_position_impl(int, const DFAString&) const;
+
   virtual shared_dfa_ptr build_positions_won() const = 0;
 
 public:
