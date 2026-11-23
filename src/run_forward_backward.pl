@@ -22,5 +22,5 @@ run("./validate_forward", $game, $forward_ply_max, $max_examples);
 run("./build_backward", $game, $backward_ply_max);
 run("./validate_backward", $game, $backward_ply_max, $max_examples);
 run("./build_forward_backward", $game, $forward_ply_max, $backward_ply_max);
-run("./validate_forward_backward", $game, $forward_ply_max, $backward_ply_max, $max_examples);
+run("./verify_forward_backward", $game, $forward_ply_max, $backward_ply_max);
 run("./stats_forward_backward", $game, $forward_ply_max, $backward_ply_max);
