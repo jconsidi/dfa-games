@@ -24,6 +24,9 @@ protected:
   // A puzzle position is never over; its moves.
   virtual ValidatedPosition validate_position_impl(int, const DFAString&) const;
 
+  // The moves, for validate_position_impl.
+  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const = 0;
+
   virtual shared_dfa_ptr build_positions_won() const = 0;
 
 public:

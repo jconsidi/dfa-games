@@ -163,8 +163,3 @@ ValidatedPosition GameBase::validate_position_impl(int, const DFAString&) const
   throw std::logic_error(get_name() + " did not implement validate_position_impl()");
 }
 
-std::vector<DFAString> GameBase::validate_moves(int, const DFAString&) const
-{
-  throw std::logic_error(get_name() + " did not implement validate_moves()");
-}
-

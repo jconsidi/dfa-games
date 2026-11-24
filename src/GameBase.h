@@ -50,10 +50,6 @@ protected:
 
   // The rules' view of a position, checked by validate_position.
   virtual ValidatedPosition validate_position_impl(int, const DFAString&) const;
-
-  // The side to move's moves, for games whose validate_position_impl
-  // builds on them.
-  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
   
   int get_shape_size() const {return int(shape.size());}
 

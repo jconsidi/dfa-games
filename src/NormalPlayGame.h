@@ -16,6 +16,9 @@ protected:
   // moves once.
   virtual ValidatedPosition validate_position_impl(int, const DFAString&) const;
 
+  // The side to move's moves, for validate_position_impl.
+  virtual std::vector<DFAString> validate_moves(int, const DFAString&) const = 0;
+
 public:
 
   virtual shared_dfa_ptr build_positions_losing(int, int) const; // side to move loses in at most given ply
