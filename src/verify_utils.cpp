@@ -2,8 +2,6 @@
 
 #include "verify_utils.h"
 
-#include <atomic>
-#include <bit>
 #include <chrono>
 #include <format>
 #include <functional>
@@ -42,23 +40,12 @@ shared_dfa_ptr verify_load(const Game& game, std::string dfa_name)
   return output;
 }
 
-// Calls check(position) for every position of positions, in parallel, and
-// returns how many there were. Prints a VERIFYING line before and a
-// VERIFIED line after, calling the positions label. A check that throws
-// std::runtime_error fails the whole call: the position and the error are
-// printed, and std::runtime_error("position not " + failure) is thrown. The
-// count must match the DFA's size.
-//
-// for_each_position only mmaps positions, the DFA it enumerates, while check
-// may call ->contains() on others from many threads. DFA::mmap() is not
-// safe to call concurrently the first time (it does a one-time digest
-// check), so the DFAs in lookups are mapped here, serially, first.
-static uint64_t verify_each_position(const Game& game,
-                                     shared_dfa_ptr positions,
-                                     const std::string& label,
-                                     const std::string& failure,
-                                     const std::vector<shared_dfa_ptr>& lookups,
-                                     const std::function<void(const DFAString&)>& check)
+uint64_t verify_each_position(const Game& game,
+                              shared_dfa_ptr positions,
+                              const std::string& label,
+                              const std::string& failure,
+                              const std::vector<shared_dfa_ptr>& lookups,
+                              const std::function<void(const DFAString&)>& check)
 {
   std::cout << "VERIFYING " << positions->size() << " " << label << " POSITIONS" << std::endl;
 
@@ -406,146 +393,6 @@ uint64_t verify_partition(const Game& game, std::string whole_name, const std::v
     }
 
   return verify_partition(game, whole, parts);
-}
-
-// The rank of each position of a DFA in its lexicographic order, from the
-// number of accepted suffixes of every state, computed from the transition
-// rows alone. States 0 (reject) and 1 (accept) have rows too, so they need
-// no special case.
-class VerifyRanks
-{
-  shared_dfa_ptr dfa;
-  // suffixes[layer][state]: accepted strings from state at layer
-  std::vector<std::vector<uint64_t>> suffixes;
-
-public:
-
-  explicit VerifyRanks(shared_dfa_ptr dfa_in)
-    : dfa(dfa_in)
-  {
-    int ndim = dfa->get_shape_size();
-    suffixes.resize(size_t(ndim + 1));
-    suffixes[size_t(ndim)] = {0, 1};
-    for(int layer = ndim - 1; layer >= 0; --layer)
-      {
-        size_t layer_size = dfa->get_layer_size(layer);
-        int layer_shape = dfa->get_layer_shape(layer);
-        const std::vector<uint64_t>& next_suffixes = suffixes[size_t(layer + 1)];
-        std::vector<uint64_t>& curr_suffixes = suffixes[size_t(layer)];
-        curr_suffixes.resize(layer_size);
-        for(size_t state = 0; state < layer_size; ++state)
-          {
-            DFATransitionsReference transitions = dfa->get_transitions(layer, state);
-            uint64_t total = 0;
-            for(int c = 0; c < layer_shape; ++c)
-              {
-                uint64_t add = next_suffixes.at(size_t(transitions[c]));
-                if(total + add < total)
-                  {
-                    throw std::overflow_error("DFA has more than 2^64 positions");
-                  }
-                total += add;
-              }
-            curr_suffixes[state] = total;
-          }
-      }
-  }
-
-  uint64_t size() const
-  {
-    return suffixes[0].at(size_t(dfa->get_initial_state()));
-  }
-
-  // The rank of position, or none if the DFA does not accept it.
-  std::optional<uint64_t> rank(const DFAString& position) const
-  {
-    int ndim = dfa->get_shape_size();
-    uint64_t output = 0;
-    size_t state = size_t(dfa->get_initial_state());
-    for(int layer = 0; layer < ndim; ++layer)
-      {
-        DFATransitionsReference transitions = dfa->get_transitions(layer, state);
-        const std::vector<uint64_t>& next_suffixes = suffixes[size_t(layer + 1)];
-        for(int c = 0; c < position[layer]; ++c)
-          {
-            output += next_suffixes[size_t(transitions[c])];
-          }
-        state = size_t(transitions[position[layer]]);
-        if(state == 0)
-          {
-            return std::optional<uint64_t>();
-          }
-      }
-
-    return output;
-  }
-};
-
-uint64_t verify_forward_exact(const Game& game, int side_to_move, shared_dfa_ptr curr, shared_dfa_ptr next)
-{
-  std::cout << "VERIFYING " << next->size() << " POSITIONS ARE EXACTLY THE MOVES FROM " << curr->size() << " POSITIONS" << std::endl;
-
-  if(curr->get_shape() != next->get_shape())
-    {
-      throw std::runtime_error("current and next plies have different shapes");
-    }
-
-  // VerifyRanks and the callbacks below read next's transitions from many
-  // threads; map it first, serially.
-  next->mmap();
-  VerifyRanks ranks(next);
-  uint64_t next_count = ranks.size();
-  if(next_count != uint64_t(next->size()))
-    {
-      throw std::logic_error("ranked position count " + std::to_string(next_count) + " does not match the next ply's DFA size");
-    }
-
-  std::vector<std::atomic<uint64_t>> reached((next_count + 63) / 64);
-  std::atomic<uint64_t> moves_count(0);
-
-  uint64_t curr_count = verify_each_position(game, curr, "CURRENT", "matched by the next ply", {next}, [&](const DFAString& position)
-  {
-    std::vector<DFAString> moves = validated_moves(game.validate_position(side_to_move, position));
-    for(const DFAString& move : moves)
-      {
-        std::optional<uint64_t> move_rank = ranks.rank(move);
-        if(!move_rank)
-          {
-            throw std::runtime_error("position has a move outside the next ply:\n" + game.position_to_string(move));
-          }
-        reached[*move_rank / 64].fetch_or(uint64_t(1) << (*move_rank % 64), std::memory_order_relaxed);
-      }
-    moves_count.fetch_add(moves.size(), std::memory_order_relaxed);
-  });
-
-  // every position of next must have been reached
-  for(size_t word = 0; word < reached.size(); ++word)
-    {
-      uint64_t expected = ~uint64_t(0);
-      if((word == reached.size() - 1) && (next_count % 64 != 0))
-        {
-          expected = (uint64_t(1) << (next_count % 64)) - 1;
-        }
-      uint64_t bits = reached[word].load();
-      if(bits != expected)
-        {
-          uint64_t missing_rank = word * 64 + uint64_t(std::countr_one(bits));
-          uint64_t index = 0;
-          for(auto iter = next->cbegin(); iter < next->cend(); ++iter, ++index)
-            {
-              if(index == missing_rank)
-                {
-                  std::cerr << game.position_to_string(*iter) << std::endl;
-                  break;
-                }
-            }
-          throw std::runtime_error("position " + std::to_string(missing_rank) + " of the next ply is not reached by any move");
-        }
-    }
-
-  std::cout << "VERIFIED " << curr_count << " POSITIONS' " << moves_count.load() << " MOVES REACH EXACTLY THE " << next_count << " POSITIONS OF THE NEXT PLY" << std::endl;
-
-  return next_count;
 }
 
 int verify_parse_side_to_move(std::string dfa_name)

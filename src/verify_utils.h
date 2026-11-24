@@ -38,14 +38,23 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
 void verify_won_sound(const Game& game, int side_to_move, shared_dfa_ptr positions);
 void verify_won_sound(const Game& game, int side_to_move, std::string won_name);
 
-// Checks next is exactly the positions reached by one move from curr, side
-// to move to play: every move of every position of curr is in next, and
-// every position of next is some such move. A position whose game is over
-// has no moves. Each position of next is numbered by its rank in DFA order,
-// and a bit per rank marks it reached, so the check needs memory for next's
-// DFA and one bit per position of next, not for the moves. Throws on the
-// first failure, naming the position. Returns the positions in next.
-uint64_t verify_forward_exact(const Game& game, int side_to_move, shared_dfa_ptr curr, shared_dfa_ptr next);
+// Calls check(position) for every position of positions, in parallel, and
+// returns how many there were. Prints a VERIFYING line before and a
+// VERIFIED line after, calling the positions label. A check that throws
+// std::runtime_error fails the whole call: the position and the error are
+// printed, and std::runtime_error("position not " + failure) is thrown. The
+// count must match the DFA's size.
+//
+// for_each_position only mmaps positions, the DFA it enumerates, while check
+// may call ->contains() on others from many threads. DFA::mmap() is not
+// safe to call concurrently the first time (it does a one-time digest
+// check), so the DFAs in lookups are mapped here, serially, first.
+uint64_t verify_each_position(const Game& game,
+                              shared_dfa_ptr positions,
+                              const std::string& label,
+                              const std::string& failure,
+                              const std::vector<shared_dfa_ptr>& lookups,
+                              const std::function<void(const DFAString&)>& check);
 
 // One ply of a solve: domain is every position the solve covers at that ply,
 // and winning, losing and unknown should partition it.
