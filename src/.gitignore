@@ -48,7 +48,6 @@ test_terminal
 test_validate
 typescript*
 verify_backward
-verify_backward_sound
 verify_bound_backward
 verify_forward_backward
 verify_forward_exact

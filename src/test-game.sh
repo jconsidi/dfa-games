@@ -35,4 +35,4 @@ fi
 
 ./build_forward "$GAME" "${PLY_MAX}"
 ./build_backward "$GAME" "${PLY_MAX}"
-./verify_backward_sound "$GAME" "${PLY_MAX}"
+./verify_backward "$GAME" "${PLY_MAX}"

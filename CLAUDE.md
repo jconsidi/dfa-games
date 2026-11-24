@@ -216,9 +216,11 @@ Coverage is narrower than the C++ and the gaps matter:
 
 The two implementations are meant to disagree loudly, so when changing either,
 check both against the same DFAs. `verify-backward-sound breakthrough_4x4 1`
-and `./verify_backward_sound breakthrough_4x4 1` cover eight DFAs in well under
-two minutes between them. The messages differ by design — only the counts and
-the verdicts are comparable.
+and `./verify_backward breakthrough_4x4 1` cover the same solve in well under
+two minutes between them. The messages differ by design, and so do the counts:
+the Rust counts each DFA it checks, while `verify_backward` also checks
+completeness and prints winning, losing and unknown positions per ply. Only the
+verdicts are directly comparable.
 
 Enumeration costs roughly 100 ns per position on its own; the rules dominate
 after that, and by a lot. Breakthrough is about 0.2 us per position, amazons
