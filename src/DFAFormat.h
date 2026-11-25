@@ -2,7 +2,8 @@
 
 // Byte layout of the single file DFA format. See FORMAT-DFA.md.
 //
-// This is the C++ counterpart of rust/dfa-format/src/layout.rs and must agree
+// This is the C++ counterpart of dfa-format/src/layout.rs in dfa-verify
+// (https://github.com/jconsidi/dfa-verify) and must agree
 // with it exactly: the two write files into the same content addressed store,
 // so a disagreement about where a byte goes becomes a disagreement about the
 // digest, and the same automaton would land under two names.

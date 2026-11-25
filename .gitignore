@@ -1,6 +1,5 @@
 .DS_Store
 *~
-rust/target
 /scratch
 # build-site.py staging, left behind only if a run is killed
 /.docs-building-*

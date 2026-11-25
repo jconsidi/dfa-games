@@ -874,8 +874,8 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
 // Write this DFA to file_name_in in the format of FORMAT-DFA.md and return
 // the hex digest of what was written.
 //
-// Mirrors rust/dfa-format/src/write.rs. The two write into the same content
-// addressed store, so they have to agree byte for byte.
+// Mirrors dfa-format/src/write.rs in dfa-verify. The two write into the same
+// content addressed store, so they have to agree byte for byte.
 std::string DFA::serialize(std::string file_name_in) const
 {
   Profile profile("serialize");

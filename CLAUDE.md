@@ -6,9 +6,8 @@ the language of a DFA over that alphabet. Set operations (union, intersection,
 difference) and move generation are DFA operations, which is what makes solving
 whole games tractable.
 
-The C++ solver is in `src/` and builds and runs from there. `rust/` holds an
-incremental Rust port of the read side, described under **Rust** below; its
-binaries also expect to be run from `src/`.
+The C++ solver is in `src/` and builds and runs from there.
+The Rust port of the read side, the format reader and the verifiers, is in its own repository, described under **dfa-verify** below.
 
 ## Priorities
 
@@ -23,7 +22,7 @@ one is the worst thing it can produce.
   must not return a verdict as a value the caller can drop — and do not offer a
   second, report-shaped entry point alongside, because that form can be called
   and ignored. Where statistics are also wanted, return them on the success
-  path. `verify_dfa_union` (`rust/dfa-format/src/union.rs`) is the worked
+  path. `verify_dfa_union` (dfa-verify's `dfa-format/src/union.rs`) is the worked
   example, and the reason: it once returned a report, a caller discarded it
   with `?`, and the union checks in `verify-backward-sound` passed a corrupted
   DFA while reporting success.
@@ -140,92 +139,33 @@ then commit `docs/` by hand; nothing builds it automatically, since the build is
 `build-site.py` builds into a fresh directory and swaps it in only once every page has been written, so a failed run leaves the old site intact.
 It refuses to replace a directory lacking its `.dfa-games-site` marker.
 
-## Rust
+## dfa-verify
 
-`rust/` is a cargo workspace holding a port of the parts of this repo that
-*read* solver output. Nothing there constructs a DFA — building is still the
-C++'s job.
+The Rust side is https://github.com/jconsidi/dfa-verify.
+It reads solver output and never builds a DFA, so it is an independent oracle over what the C++ writes.
+Its own repository documents how to build, test and run it.
 
-    cd rust && cargo build --release && cargo test --release
+What ties the two together, and so has to change in step:
 
-Both crates build clean under `RUSTFLAGS="-D warnings" cargo clippy --release
---all-targets`, and the workspace is `cargo fmt --all --check` clean. Keep them
-both that way. Clippy is the closest thing here to the C++ side's `-Werror`;
-`fmt` is a gate so that a diff shows what changed rather than how it was
-wrapped. Run
+- **The file format.**
+  `FORMAT-DFA.md` is the specification, `DFAFormat.h` the C++ layout, and dfa-verify's `dfa-format/src/layout.rs` the Rust one.
+  Both write into the same content addressed store, so they must agree byte for byte, or the same automaton lands under two names.
+- **The rules.**
+  `GAMES.md` describes the games and nothing else.
+  The Rust rules come from there or from the game itself, never from porting the C++ move graph, since a transcription reproduces whatever the C++ gets wrong and then agrees with it.
+- **The configs.**
+  dfa-verify's `positions_manual` test reads `config/<game>/positions-manual.json` and `positions-generated.json`, and a config naming a game it cannot build fails its run.
+  Adding a game family here means adding its rules there.
 
-    cd rust && cargo fmt --all && RUSTFLAGS="-D warnings" cargo clippy --release --all-targets
+The two verifiers are meant to disagree loudly, so when changing either side, check both against the same DFAs.
+dfa-verify's `verify-backward-sound breakthrough_4x4 1` and `./verify_backward breakthrough_4x4 1` cover the same solve in well under two minutes between them.
+Only the verdicts are directly comparable; the messages and counts differ by design.
 
-before committing Rust, and never hand-wrap around rustfmt — if a line reads
-badly after formatting, change the code, not the whitespace.
+Neither implementation's losing and winning verifiers consult `lost,side_to_move=N` or `won,side_to_move=N`, so keep running a lost verifier on `lost,side_to_move=N` itself.
 
-- `dfa-format` — the single authority on the `.dfa` file format
-  (`FORMAT-DFA.md`). `layout.rs` owns every byte offset, so the reader and
-  writer cannot drift. `Dfa::positions()` in `iter.rs` is the port of
-  `DFAIterator` and enumerates accepted strings in lexicographic order.
-  Binaries: `dfa-validate`, `dfa-stats`, `dfa-verify-union`.
-- `dfa-games` — position level rules (`validate_moves`, `validate_result`,
-  `position_to_string`) and the verifiers over them. Binaries:
-  `verify-lost-sound`, `verify-won-sound`, `verify-losing-sound`,
-  `verify-winning-sound`, `verify-backward-sound`, taking the same arguments
-  as their C++ namesakes.
-
-Every binary takes `--scratch`, defaulting to `scratch`, so run them from
-`src/` where that resolves:
-
-    cd src && ../rust/target/release/verify-backward-sound breakthrough_4x4 1
-
-`cargo test` includes a config driven check of the rules themselves:
-`config/<game>/positions-manual.json` holds hand written positions with
-`expected_moves` and `expected_result`, read by `tests/positions_manual.rs` the
-way `test_perft_u` reads `tests.json`.
-The same test reads `positions-generated.json` and checks its
-`expected_perft_u` counts against the Rust rules, which covers every
-configured size without storing full move lists. A file naming a game the Rust cannot
-build fails the run rather than being skipped, since test data that never
-executes is worse than none.
-
-Coverage is narrower than the C++ and the gaps matter:
-
-- **amazons**, **row-wise breakthrough**, **clobber**, **cram**, **normalnim**,
-  **slidingtile** and **tictactoe** have Rust rules. slidingtile is a
-  one-player puzzle (`Game::sides` is 1), so `cargo test` checks its moves but
-  the verifiers refuse it: every claim they check is a two-player result. `breakthroughcw_`, `chess+` and `othello_` are
-  recognized by name so the error says "not ported" rather than
-  "unrecognized" — but they are genuinely not verifiable from Rust.
-- The rules those modules implement are written down in `GAMES.md`, which
-  describes the games and nothing else — no shapes, no square numbering, no
-  file names. Rules for a new game come from there, or from the game itself,
-  **not** from porting the C++ move graph: a transcription reproduces whatever
-  the C++ gets wrong and then agrees with it. Only the encoding is read from
-  the C++, because it is the interface the two sides must share; it belongs in
-  the Rust module doc. `breakthrough.rs` and `amazons.rs` predate this and are
-  ports, which `rust/TODO.md` records.
-- Solved sets contain positions unreachable from the starting position — both
-  sides holding a winning condition at once, or the side to move holding one.
-  Backward solving covers every position on purpose, since testing
-  reachability in the set representation would cost more than solving the
-  extras, which resolve within about 2 ply. Rules must not treat such a
-  position as a failure: tictactoe stops the side to move only on the
-  *opponent's* line for exactly this reason.
-- Neither implementation's losing and winning verifiers consult `lost,side_to_move=N` or `won,side_to_move=N`.
-  Both decide terminal positions from the rules, but they branch differently.
-  The Rust generates each position's moves once, and an empty move list branches to `validate_result`, which must return the base case the DFA asserts.
-  The C++ asks `validate_position` once, which gives either `GameOver{result}` or at least one move, never both: a result must be -1 in a losing DFA and 1 in a winning DFA, and any other result fails; otherwise the moves are checked.
-  Neither verifier cross checks the `lost` DFA as a side effect, so keep running `verify-lost-sound` on `lost,side_to_move=N` itself.
-
-The two implementations are meant to disagree loudly, so when changing either,
-check both against the same DFAs. `verify-backward-sound breakthrough_4x4 1`
-and `./verify_backward breakthrough_4x4 1` cover the same solve in well under
-two minutes between them. The messages differ by design, and so do the counts:
-the Rust counts each DFA it checks, while `verify_backward` also checks
-completeness and prints winning, losing and unknown positions per ply. Only the
-verdicts are directly comparable.
-
-Enumeration costs roughly 100 ns per position on its own; the rules dominate
-after that, and by a lot. Breakthrough is about 0.2 us per position, amazons
-about 16 us, so pick a case by expected runtime rather than position count —
-the same trap the C++ benchmarking notes below describe.
+Solved sets contain positions unreachable from the starting position, such as both sides holding a winning condition at once.
+Backward solving covers every position on purpose, since testing reachability in the set representation would cost more than solving the extras, which resolve within about 2 ply.
+Rules on either side must not treat such a position as a failure.
 
 ## Core types
 

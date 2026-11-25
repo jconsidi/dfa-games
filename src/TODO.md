@@ -113,12 +113,12 @@ What the design has to settle:
 - solution tests
   - tictactoe
 
-- a C++ runner over `config/<game>/positions-manual.json`, matching the Rust
-  `tests/positions_manual.rs`. The file holds hand written positions with
+- a C++ runner over `config/<game>/positions-manual.json`, matching
+  dfa-verify's `tests/positions_manual.rs`. The file holds hand written positions with
   `expected_moves` and `expected_result` in the same envelope `tests.json`
   uses, so `run_test_cases` can read it with a new case type and check
   `validate_position` the way `test_perft_u` checks position
-  counts. Today only the Rust rules are held to those positions, which is half
+  counts. Today only dfa-verify's Rust rules are held to those positions, which is half
   the point of writing them down: the same file should pin both
   implementations. Merging it into `tests.json` outright would work too, and is
   where this is headed.
