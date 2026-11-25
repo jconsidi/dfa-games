@@ -271,7 +271,7 @@ int main(int argc, char **argv)
 				      {"text", game->position_to_string(position)},
 				      {"always_checked_by", {"test_move_graph", "test_validate"}}};
 
-	      std::vector<std::string> expectation_checkers = {"test_validate", "Rust positions_manual"};
+	      std::vector<std::string> expectation_checkers = {"test_validate"};
 
 	      if(test_case.contains("expected_moves"))
 		{
@@ -294,7 +294,7 @@ int main(int argc, char **argv)
 	      if(test_case.contains("expected_perft_u"))
 		{
 		  entry["expected_perft_u"] = test_case.at("expected_perft_u").get<std::vector<size_t>>();
-		  entry["perft_checked_by"] = {"test_perft_u", "Rust positions_manual"};
+		  entry["perft_checked_by"] = nlohmann::json::array({"test_perft_u"});
 		}
 
 	      positions.push_back(entry);
@@ -320,7 +320,6 @@ int main(int argc, char **argv)
   programs.push_back({"test_validate", "Every position in both files: validate_position gives either a result or at least one move, never both or neither. Where given, expected_moves must equal its moves as a set, and expected_result must equal its result."});
   programs.push_back({"test_move_graph", "Every position in both files: the moves the game's move graph generates equal validate_position's moves, with and without join splitting."});
   programs.push_back({"test_perft_u", "Positions with expected_perft_u: the number of distinct positions reached after each depth, generated with the move graph."});
-  programs.push_back({"Rust positions_manual", "Every position in both files: expected_moves, expected_result and expected_perft_u, wherever given, against rules written independently from GAMES.md. A file naming a game without Rust rules fails the test rather than being skipped."});
 
   nlohmann::json data = {{"game", game_name},
 			 {"summary", summary},
