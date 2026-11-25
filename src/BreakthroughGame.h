@@ -3,41 +3,28 @@
 #ifndef BREAKTHROUGH_GAME_H
 #define BREAKTHROUGH_GAME_H
 
-#include "NormalPlayGame.h"
+#include <string>
+#include <vector>
+
+#include "ConfigGame.h"
 #include "RowMajorOrderBase.h"
 
-class BreakthroughBase
-  : virtual public RectangularBase,
-    public NormalPlayGame
-    
+class BreakthroughGame
+  : public RowMajorOrderBase,
+    public ConfigNormalPlayGame
 {
 protected:
-
-  BreakthroughBase(std::string, int, int);
 
   virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 
-public:
-
-  virtual MoveGraph build_move_graph(int) const;
-  virtual DFAString get_position_initial() const;
-  virtual std::string position_to_string(const DFAString&) const;
-
-protected:
-
   // the side to move's moves, for validate_position_impl
   virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
-};
 
-class BreakthroughRowWiseGame
-  : public RowMajorOrderBase,
-    public BreakthroughBase
-{
 public:
 
-  BreakthroughRowWiseGame(int, int);
-};
+  BreakthroughGame(int, int);
 
-typedef BreakthroughRowWiseGame BreakthroughGame;
+  virtual std::string position_to_string(const DFAString&) const;
+};
 
 #endif

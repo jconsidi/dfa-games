@@ -7,160 +7,16 @@
 #include <sstream>
 #include <string>
 
-#include "DFAUtil.h"
-
-static dfa_shape_t get_breakthrough_shape(int width, int height)
-{
-  return dfa_shape_t(width * height, 3);
-}
-
-BreakthroughBase::BreakthroughBase(std::string name_in, int width_in, int height_in)
+BreakthroughGame::BreakthroughGame(int width_in, int height_in)
   : RectangularBase(width_in, height_in),
-    NormalPlayGame(name_in,
-		   get_breakthrough_shape(width_in, height_in))
+    RowMajorOrderBase(width_in, height_in),
+    ConfigNormalPlayGame(std::format("breakthrough_{:d}x{:d}", width_in, height_in))
 {
   assert(width >= 1);
   assert(height >= 4);
 }
 
-MoveGraph BreakthroughBase::build_move_graph(int side_to_move) const
-{
-  // setup graph and nodes
-
-  MoveGraph move_graph(get_shape());
-
-  // game not done yet
-
-  std::vector<shared_dfa_ptr> not_done_conditions;
-  // side not to move did not get to last row
-  for(int col = 0; col < width; ++col)
-    {
-      int row = (side_to_move == 0) ? 0 : height - 1;
-      int layer = calculate_layer(row, col);
-
-      not_done_conditions.push_back(DFAUtil::get_count_character(get_shape(),
-								 2 - side_to_move,
-								 0, 0,
-								 layer, layer));
-    }
-
-  shared_dfa_ptr not_done = DFAUtil::get_intersection_vector(get_shape(), not_done_conditions);
-
-  // begin nodes
-  move_graph.add_node("begin");
-  move_graph.add_node("begin+1");
-  move_graph.add_edge("begin not lost", "begin", "begin+1", not_done);
-
-  // move nodes
-
-  auto get_from_node = [](int row, int col) {
-    return "from " + std::to_string(row) + "," + std::to_string(col);
-  };
-  auto get_push_node = [](int row, int col) {
-    return "push " + std::to_string(row) + "," + std::to_string(col);
-  };
-  auto get_capture_node = [](int row, int col) {
-    return "capture " + std::to_string(row) + "," + std::to_string(col);
-  };
-
-  for(int row = 0; row < height; ++row)
-    {
-      for(int col = 0; col < width; ++col)
-        {
-          change_vector move_changes(width * height);
-          move_changes[calculate_layer(row, col)] = change_type(1 + side_to_move, 0);
-          move_graph.add_node(get_from_node(row, col), move_changes);
-          move_graph.add_edge("begin+1", get_from_node(row, col));
-        }
-    }
-
-  for(int row = 0; row < height; ++row)
-    {
-      for(int col = 0; col < width; ++col)
-        {
-          change_vector push_changes(width * height);
-          push_changes[calculate_layer(row, col)] = change_type(0, 1 + side_to_move);
-          move_graph.add_node(get_push_node(row, col), push_changes);
-
-          change_vector capture_changes(width * height);
-          capture_changes[calculate_layer(row, col)] = change_type(2 - side_to_move, 1 + side_to_move);
-          move_graph.add_node(get_capture_node(row, col), capture_changes);
-        }
-    }
-
-  // end nodes
-  move_graph.add_node("end-1");
-  move_graph.add_node("end");
-  move_graph.add_edge("end not lost", "end-1", "end", not_done);
-
-  // add moves
-
-  int delta_row = (side_to_move == 0) ? 1 : -1;
-  for(int from_row = 0; from_row < height; ++from_row)
-    {
-      int to_row = from_row + delta_row;
-      if((to_row < 0) || (height <= to_row))
-	{
-	  continue;
-	}
-
-      for(int from_column = 0; from_column < width; ++from_column)
-	{
-	  std::string from_node = get_from_node(from_row, from_column);
-
-	  move_graph.add_edge(from_node, get_push_node(to_row, from_column));
-
-	  if(from_column > 0)
-	    {
-	      move_graph.add_edge(from_node, get_capture_node(to_row, from_column - 1));
-	      move_graph.add_edge(from_node, get_push_node(to_row, from_column - 1));
-	    }
-	  if(from_column < width - 1)
-	    {
-	      move_graph.add_edge(from_node, get_capture_node(to_row, from_column + 1));
-	      move_graph.add_edge(from_node, get_push_node(to_row, from_column + 1));
-	    }
-	}
-    }
-
-  for(int row = 0; row < height; ++row)
-    {
-      for(int col = 0; col < width; ++col)
-        {
-          move_graph.add_edge(get_push_node(row, col), "end-1");
-          move_graph.add_edge(get_capture_node(row, col), "end-1");
-        }
-    }
-
-  // done
-
-  return move_graph;
-}
-
-DFAString BreakthroughBase::get_position_initial() const
-{
-  std::vector<int> initial_characters(width * height, 0);
-
-  for(int row = 0; row < 2; ++row)
-    {
-      for(int column = 0; column < width; ++column)
-	{
-	  initial_characters.at(calculate_layer(row, column)) = 1;
-	}
-    }
-
-  for(int row = height - 2; row < height; ++row)
-    {
-      for(int column = 0; column < width; ++column)
-	{
-	  initial_characters.at(calculate_layer(row, column)) = 2;
-	}
-    }
-
-  return DFAString(get_shape(), initial_characters);
-}
-
-shared_dfa_ptr BreakthroughBase::build_positions_reversed(shared_dfa_ptr positions_in) const
+shared_dfa_ptr BreakthroughGame::build_positions_reversed(shared_dfa_ptr positions_in) const
 {
   MoveGraph reverse_graph(get_shape());
 
@@ -226,7 +82,7 @@ shared_dfa_ptr BreakthroughBase::build_positions_reversed(shared_dfa_ptr positio
   return reverse_graph.get_moves(name_prefix, positions_in);
 }
 
-std::string BreakthroughBase::position_to_string(const DFAString& string_in) const
+std::string BreakthroughGame::position_to_string(const DFAString& string_in) const
 {
   std::ostringstream output;
 
@@ -255,7 +111,7 @@ std::string BreakthroughBase::position_to_string(const DFAString& string_in) con
   return output.str();
 }
 
-std::vector<DFAString> BreakthroughBase::validate_moves(int side_to_move, const DFAString& position) const
+std::vector<DFAString> BreakthroughGame::validate_moves(int side_to_move, const DFAString& position) const
 {
   const auto& shape = get_shape();
 
@@ -354,13 +210,4 @@ std::vector<DFAString> BreakthroughBase::validate_moves(int side_to_move, const 
   // done
 
   return output;
-}
-
-BreakthroughRowWiseGame::BreakthroughRowWiseGame(int width_in, int height_in)
-  : RectangularBase(width_in, height_in),
-    RowMajorOrderBase(width_in, height_in),
-    BreakthroughBase(std::format("breakthrough_{:d}x{:d}", width_in, height_in),
-		     width_in,
-		     height_in)
-{
 }
