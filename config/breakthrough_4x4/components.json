@@ -1,4 +1,103 @@
 {
-  "components": {},
+  "components": {
+    "not 1,layer=012": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 12,
+        "layer_min": 12
+      },
+      "type": "count"
+    },
+    "not 1,layer=013": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 13,
+        "layer_min": 13
+      },
+      "type": "count"
+    },
+    "not 1,layer=014": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 14,
+        "layer_min": 14
+      },
+      "type": "count"
+    },
+    "not 1,layer=015": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 15,
+        "layer_min": 15
+      },
+      "type": "count"
+    },
+    "not 2,layer=000": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 0,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "not 2,layer=001": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 1,
+        "layer_min": 1
+      },
+      "type": "count"
+    },
+    "not 2,layer=002": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 2,
+        "layer_min": 2
+      },
+      "type": "count"
+    },
+    "not 2,layer=003": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 3,
+        "layer_min": 3
+      },
+      "type": "count"
+    },
+    "not done,side_to_move=0": {
+      "inputs": [
+        "not 2,layer=000",
+        "not 2,layer=001",
+        "not 2,layer=002",
+        "not 2,layer=003"
+      ],
+      "type": "intersection"
+    },
+    "not done,side_to_move=1": {
+      "inputs": [
+        "not 1,layer=012",
+        "not 1,layer=013",
+        "not 1,layer=014",
+        "not 1,layer=015"
+      ],
+      "type": "intersection"
+    }
+  },
   "game": "breakthrough_4x4"
 }

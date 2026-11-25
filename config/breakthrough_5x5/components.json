@@ -1,4 +1,125 @@
 {
-  "components": {},
+  "components": {
+    "not 1,layer=020": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 20,
+        "layer_min": 20
+      },
+      "type": "count"
+    },
+    "not 1,layer=021": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 21,
+        "layer_min": 21
+      },
+      "type": "count"
+    },
+    "not 1,layer=022": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 22,
+        "layer_min": 22
+      },
+      "type": "count"
+    },
+    "not 1,layer=023": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 23,
+        "layer_min": 23
+      },
+      "type": "count"
+    },
+    "not 1,layer=024": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 24,
+        "layer_min": 24
+      },
+      "type": "count"
+    },
+    "not 2,layer=000": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 0,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "not 2,layer=001": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 1,
+        "layer_min": 1
+      },
+      "type": "count"
+    },
+    "not 2,layer=002": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 2,
+        "layer_min": 2
+      },
+      "type": "count"
+    },
+    "not 2,layer=003": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 3,
+        "layer_min": 3
+      },
+      "type": "count"
+    },
+    "not 2,layer=004": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 4,
+        "layer_min": 4
+      },
+      "type": "count"
+    },
+    "not done,side_to_move=0": {
+      "inputs": [
+        "not 2,layer=000",
+        "not 2,layer=001",
+        "not 2,layer=002",
+        "not 2,layer=003",
+        "not 2,layer=004"
+      ],
+      "type": "intersection"
+    },
+    "not done,side_to_move=1": {
+      "inputs": [
+        "not 1,layer=020",
+        "not 1,layer=021",
+        "not 1,layer=022",
+        "not 1,layer=023",
+        "not 1,layer=024"
+      ],
+      "type": "intersection"
+    }
+  },
   "game": "breakthrough_5x5"
 }

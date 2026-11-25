@@ -1,4 +1,147 @@
 {
-  "components": {},
+  "components": {
+    "not 1,layer=024": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 24,
+        "layer_min": 24
+      },
+      "type": "count"
+    },
+    "not 1,layer=025": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 25,
+        "layer_min": 25
+      },
+      "type": "count"
+    },
+    "not 1,layer=026": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 26,
+        "layer_min": 26
+      },
+      "type": "count"
+    },
+    "not 1,layer=027": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 27,
+        "layer_min": 27
+      },
+      "type": "count"
+    },
+    "not 1,layer=028": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 28,
+        "layer_min": 28
+      },
+      "type": "count"
+    },
+    "not 1,layer=029": {
+      "inputs": {
+        "c": 1,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 29,
+        "layer_min": 29
+      },
+      "type": "count"
+    },
+    "not 2,layer=000": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 0,
+        "layer_min": 0
+      },
+      "type": "count"
+    },
+    "not 2,layer=001": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 1,
+        "layer_min": 1
+      },
+      "type": "count"
+    },
+    "not 2,layer=002": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 2,
+        "layer_min": 2
+      },
+      "type": "count"
+    },
+    "not 2,layer=003": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 3,
+        "layer_min": 3
+      },
+      "type": "count"
+    },
+    "not 2,layer=004": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 4,
+        "layer_min": 4
+      },
+      "type": "count"
+    },
+    "not 2,layer=005": {
+      "inputs": {
+        "c": 2,
+        "count_max": 0,
+        "count_min": 0,
+        "layer_max": 5,
+        "layer_min": 5
+      },
+      "type": "count"
+    },
+    "not done,side_to_move=0": {
+      "inputs": [
+        "not 2,layer=000",
+        "not 2,layer=001",
+        "not 2,layer=002",
+        "not 2,layer=003",
+        "not 2,layer=004",
+        "not 2,layer=005"
+      ],
+      "type": "intersection"
+    },
+    "not done,side_to_move=1": {
+      "inputs": [
+        "not 1,layer=024",
+        "not 1,layer=025",
+        "not 1,layer=026",
+        "not 1,layer=027",
+        "not 1,layer=028",
+        "not 1,layer=029"
+      ],
+      "type": "intersection"
+    }
+  },
   "game": "breakthrough_6x5"
 }
