@@ -119,8 +119,7 @@ Regenerating breakthrough_4x4 takes a few minutes. Note that `get_dfa` throws a
 `runtime_error` naming the game and DFA when one is missing, so a dangling
 symlink reports clearly rather than failing obscurely.
 
-Game names are parsed from the argument: `breakthrough_WxH`, `breakthroughcw_WxH`,
-`amazons_WxH`, `clobber_WxH`, `othello_WxH`, `normalnim_*`, `tictactoe_N`, and
+Game names are parsed from the argument: `breakthrough_WxH`, `amazons_WxH`, `clobber_WxH`, `othello_WxH`, `normalnim_*`, `tictactoe_N`, and
 `chess+0` / `chess+1` / `chess+2*`.
 
 ## Site

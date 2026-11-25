@@ -3,7 +3,6 @@
 #ifndef BREAKTHROUGH_GAME_H
 #define BREAKTHROUGH_GAME_H
 
-#include "ColumnMajorOrderBase.h"
 #include "NormalPlayGame.h"
 #include "RowMajorOrderBase.h"
 
@@ -28,15 +27,6 @@ protected:
 
   // the side to move's moves, for validate_position_impl
   virtual std::vector<DFAString> validate_moves(int, const DFAString&) const;
-};
-
-class BreakthroughColumnWiseGame
-  : public ColumnMajorOrderBase,
-    public BreakthroughBase
-{
-public:
-
-  BreakthroughColumnWiseGame(int, int);
 };
 
 class BreakthroughRowWiseGame

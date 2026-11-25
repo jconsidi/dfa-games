@@ -137,13 +137,6 @@ GameBase *get_gamebase(std::string game_name)
       parse_dims(game_name, "breakthrough_", width, height);
       output = new BreakthroughGame(width, height);
     }
-  else if(game_name.starts_with("breakthroughcw_"))
-    {
-      int width = 0;
-      int height = 0;
-      parse_dims(game_name, "breakthroughcw_", width, height);
-      output = new BreakthroughColumnWiseGame(width, height);
-    }
 #if CHESS_SQUARE_OFFSET == 0
   else if(game_name == "chess+0")
     {

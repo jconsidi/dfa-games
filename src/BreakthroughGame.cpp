@@ -356,15 +356,6 @@ std::vector<DFAString> BreakthroughBase::validate_moves(int side_to_move, const 
   return output;
 }
 
-BreakthroughColumnWiseGame::BreakthroughColumnWiseGame(int width_in, int height_in)
-  : RectangularBase(width_in, height_in),
-    ColumnMajorOrderBase(width_in, height_in),
-    BreakthroughBase(std::format("breakthroughcw_{:d}x{:d}", width_in, height_in),
-		     width_in,
-		     height_in)
-{
-}
-
 BreakthroughRowWiseGame::BreakthroughRowWiseGame(int width_in, int height_in)
   : RectangularBase(width_in, height_in),
     RowMajorOrderBase(width_in, height_in),
