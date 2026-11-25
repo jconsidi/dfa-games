@@ -154,8 +154,8 @@ What ties the two together, and so has to change in step:
   `GAMES.md` describes the games and nothing else.
   The Rust rules come from there or from the game itself, never from porting the C++ move graph, since a transcription reproduces whatever the C++ gets wrong and then agrees with it.
 - **The configs.**
-  dfa-verify's `positions_manual` test reads `config/<game>/positions-manual.json` and `positions-generated.json`, and a config naming a game it cannot build fails its run.
-  Adding a game family here means adding its rules there.
+  dfa-verify's `positions_manual` test reads `config/<game>/positions-manual.json` and `positions-generated.json` for the games it has rules for.
+  It does not pick up new games automatically, so a game family added here needs no change there until it gets Rust rules.
 
 The two verifiers are meant to disagree loudly, so when changing either side, check both against the same DFAs.
 dfa-verify's `verify-backward-sound breakthrough_4x4 1` and `./verify_backward breakthrough_4x4 1` cover the same solve in well under two minutes between them.
