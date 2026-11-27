@@ -157,6 +157,19 @@ def main():
             backward_ply = last_backward_ply(game_dir)
             print(f"   last complete backward ply: {backward_ply}")
 
+    # Views are written only when saved as game results: every
+    # "materialized view" line must come from a "saving view" of a result
+    # name, never of a cache or move graph node.
+    saving = [l.split(" ", 2)[2] for o in outputs.values() for l in o.splitlines() if l.startswith("saving view ")]
+    materialized = sum(1 for o in outputs.values() for l in o.splitlines() if l.startswith("materialized view "))
+    not_saving = sum(1 for o in outputs.values() for l in o.splitlines() if l.startswith("not saving view "))
+    bad_saves = [n for n in saving if ("_cache/" in n) or n.startswith("move_nodes/")]
+    if bad_saves:
+        fail("views saved under cache or move graph names:\n" + "\n".join(bad_saves[:20]))
+    if materialized > len(saving):
+        fail(f"{materialized} views materialized but only {len(saving)} saved as game results")
+    print(f"views: {len(saving)} saved as game results, {materialized} materialized, {not_saving} not saved")
+
     hashes = {}
     for name in result_names(game_dir, backward_ply):
         path = os.path.join(game_dir, name)
