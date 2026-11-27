@@ -2,7 +2,6 @@
 
 // internal logical states count the number of matching pieces.
 
-#include <iostream>
 #include <vector>
 
 #include "CountCharacterDFA.h"
@@ -22,10 +21,9 @@ CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int 
 {
 }
 
-CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min, int layer_max)
-  : DedupedDFA(shape_in)
+DFATable CountCharacterDFA::build(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min, int layer_max)
 {
-  int ndim = get_shape_size();
+  int ndim = int(shape_in.size());
 
   if(!((0 <= count_min) && (count_min <= count_max) && (count_max <= ndim)))
     {
@@ -35,6 +33,8 @@ CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int 
     {
       throw std::invalid_argument("must have 0 <= layer_min <= layer_max < ndim");
     }
+
+  DFATable table(shape_in);
 
   std::vector<std::vector<dfa_state_t>> logical_states(ndim+1);
 
@@ -51,16 +51,16 @@ CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int 
 
   for(int layer = layer_max; layer >= layer_min; --layer)
     {
-      int layer_shape = this->get_layer_shape(layer);
+      int layer_shape = shape_in[layer];
 
       for(int layer_count = 0; layer_count <= layer; ++layer_count)
 	{
-	  DFATransitionsStaging next_states(layer_shape);
+	  std::vector<dfa_state_t> next_states(layer_shape);
 	  for(int i = 0; i < layer_shape; ++i)
 	    {
 	      next_states[i] = logical_states[layer+1].at((i == c_in) ? (layer_count + 1) : layer_count);
 	    }
-	  logical_states[layer].push_back(this->add_state(layer, next_states));
+	  logical_states[layer].push_back(table.add_state(layer, next_states));
 	}
     }
 
@@ -68,15 +68,21 @@ CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int 
 
   for(int layer = layer_min - 1; layer >= 0; --layer)
     {
-      int layer_shape = this->get_layer_shape(layer);
+      int layer_shape = shape_in[layer];
 
-      DFATransitionsStaging next_states(layer_shape);
+      std::vector<dfa_state_t> next_states(layer_shape);
       for(int i = 0; i < layer_shape; ++i)
 	{
 	  next_states[i] = logical_states[layer+1].at(0);
 	}
-      logical_states[layer].push_back(this->add_state(layer, next_states));
+      logical_states[layer].push_back(table.add_state(layer, next_states));
     }
 
-  this->set_initial_state(logical_states[0].at(0));
+  table.set_initial_state(logical_states[0].at(0));
+  return table;
+}
+
+CountCharacterDFA::CountCharacterDFA(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min, int layer_max)
+  : TableDFA(build(shape_in, c_in, count_min, count_max, layer_min, layer_max))
+{
 }

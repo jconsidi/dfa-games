@@ -432,47 +432,26 @@ shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& c
 
 // Not memoized in memory the way get_accept/get_reject/get_fixed are --
 // callers do not reuse the same (shape, args) enough to be worth an
-// in-memory map -- but still routed through load_or_build rather than
-// built and returned temporary: at least one caller (ChessGame's en
-// passant clearing condition) stores the result directly in a MoveGraph's
-// node conditions, which lives for the life of the game object. Left
-// temporary, that DFA's build/ staging directory would stay open for as
-// long as the game object does.
+// in-memory map.
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_in)
 {
-  std::string name_in = "count_character_cache/" + _shape_path(shape_in) + "_c" + std::to_string(c_in) + "_n" + std::to_string(count_in);
-  return load_or_build(shape_in, name_in, [&]()
-  {
-    return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_in));
-  });
+  return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_in));
 }
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max)
 {
-  std::string name_in = "count_character_cache/" + _shape_path(shape_in) + "_c" + std::to_string(c_in) + "_" + std::to_string(count_min) + "_" + std::to_string(count_max);
-  return load_or_build(shape_in, name_in, [&]()
-  {
-    return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max));
-  });
+  return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max));
 }
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min)
 {
-  std::string name_in = "count_character_cache/" + _shape_path(shape_in) + "_c" + std::to_string(c_in) + "_" + std::to_string(count_min) + "_" + std::to_string(count_max) + "_" + std::to_string(layer_min);
-  return load_or_build(shape_in, name_in, [&]()
-  {
-    return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min));
-  });
+  return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min));
 }
 
 shared_dfa_ptr DFAUtil::get_count_character(const dfa_shape_t& shape_in, int c_in, int count_min, int count_max, int layer_min, int layer_max)
 {
-  std::string name_in = "count_character_cache/" + _shape_path(shape_in) + "_c" + std::to_string(c_in) + "_" + std::to_string(count_min) + "_" + std::to_string(count_max) + "_" + std::to_string(layer_min) + "_" + std::to_string(layer_max);
-  return load_or_build(shape_in, name_in, [&]()
-  {
-    return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min, layer_max));
-  });
+  return shared_dfa_ptr(new CountCharacterDFA(shape_in, c_in, count_min, count_max, layer_min, layer_max));
 }
 
 shared_dfa_ptr DFAUtil::get_difference(shared_dfa_ptr left_in, shared_dfa_ptr right_in)
