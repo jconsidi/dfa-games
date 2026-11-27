@@ -910,7 +910,8 @@ void test_layer_permutation(const dfa_shape_t& shape)
       std::string case_name = test_name + " input " + std::to_string(input_index);
 
       std::vector<std::vector<int>> permutations = random_permutations();
-      LayerPermutationDFA output(input, permutations);
+      std::shared_ptr<const LayerPermutationDFA> output_ptr = std::make_shared<LayerPermutationDFA>(inputs[input_index], permutations);
+      const LayerPermutationDFA& output = *output_ptr;
 
       for(const DFAString& position : all_positions)
         {
@@ -939,7 +940,7 @@ void test_layer_permutation(const dfa_shape_t& shape)
             }
           inverses.push_back(inverse);
         }
-      LayerPermutationDFA back(output, inverses);
+      LayerPermutationDFA back(output_ptr, inverses);
       if(back.get_initial_state() != input.get_initial_state())
         {
           throw std::logic_error(case_name + ": round trip changed the initial state");
@@ -961,7 +962,7 @@ void test_layer_permutation(const dfa_shape_t& shape)
         }
     }
 
-  // the cached path gives the same language.
+  // DFAUtil::get_layer_permutation gives the same language.
   std::vector<std::vector<int>> permutations = random_permutations();
   shared_dfa_ptr cached = DFAUtil::get_layer_permutation(inputs.back(), permutations);
   for(const DFAString& position : all_positions)
@@ -1006,36 +1007,6 @@ void test_layer_permutation(const dfa_shape_t& shape)
     }
 
   std::cout << test_name << ": " << inputs.size() << " DFAs, " << strings_checked << " strings: passed" << std::endl;
-}
-
-// cache keys group runs of equal permutations and refuse to outgrow a file
-// name.
-void test_layer_permutation_cache_key()
-{
-  dfa_shape_t shape = {3, 3, 3, 2, 3};
-  std::vector<std::vector<int>> permutations = {{0, 2, 1}, {0, 2, 1}, {0, 2, 1}, {1, 0}, {0, 1, 2}};
-  std::string key = LayerPermutationDFA::cache_key(shape, permutations);
-  if(key != "0-2-1x3_1-0x1_0-1-2x1")
-    {
-      throw std::logic_error("test_layer_permutation_cache_key: got " + key);
-    }
-
-  dfa_shape_t long_shape(64, 3);
-  std::vector<std::vector<int>> alternating;
-  for(int layer = 0; layer < 64; ++layer)
-    {
-      alternating.push_back((layer % 2) ? std::vector<int>({0, 2, 1}) : std::vector<int>({0, 1, 2}));
-    }
-  try
-    {
-      LayerPermutationDFA::cache_key(long_shape, alternating);
-    }
-  catch(const std::length_error&)
-    {
-      std::cout << "test_layer_permutation_cache_key: passed" << std::endl;
-      return;
-    }
-  throw std::logic_error("test_layer_permutation_cache_key: a long key did not throw");
 }
 
 // The inverse built the way InverseDFA built it before it became a view,
@@ -1452,7 +1423,6 @@ int main()
       test_layer_permutation(dfa_shape_t({TEST3_DFA_SHAPE}));
       test_layer_permutation(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_layer_permutation(dfa_shape_t({3, 3, 3, 3, 3}));
-      test_layer_permutation_cache_key();
 
       test_views(dfa_shape_t({TEST3_DFA_SHAPE}));
       test_views(dfa_shape_t({TEST5_DFA_SHAPE}));

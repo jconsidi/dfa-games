@@ -642,12 +642,8 @@ shared_dfa_ptr DFAUtil::get_layer_permutation(shared_dfa_ptr dfa_in, const std::
 {
   Profile profile("get_layer_permutation");
 
-  std::string name = "layer_permutation_cache/" + dfa_in->get_hash() + "_" + LayerPermutationDFA::cache_key(dfa_in->get_shape(), permutations);
-
-  return load_or_build(dfa_in->get_shape(), name, [&]()
-  {
-    return shared_dfa_ptr(new LayerPermutationDFA(*dfa_in, permutations));
-  });
+  // a view, so nothing to build or cache
+  return shared_dfa_ptr(new LayerPermutationDFA(dfa_in, permutations));
 }
 
 shared_dfa_ptr DFAUtil::get_reject(const dfa_shape_t& shape_in)
