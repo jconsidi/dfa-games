@@ -65,21 +65,23 @@ depend :
 	mv .depend.tmp .depend
 
 test : all
-	./test_bitset
-	./test_scratch_config
 	./test_dfa
-	./test_sort_utils
-	./test_flash_sort
-	./test_memory_map
 	./test_change_dfa
 	./test_terminal
 	./test_validate
 	./test_move_graph
-	./test_perft_u
 
 test_chess : all
 	./test_perft
 	./test_chess_game
+
+test_slow : test
+	./test_bitset
+	./test_scratch_config
+	./test_sort_utils
+	./test_flash_sort
+	./test_memory_map
+	./test_perft_u
 
 # see PerftTestCases.cpp for origins of each position
 # TODO : these tests have been broking since making test_perft_u config driven.
