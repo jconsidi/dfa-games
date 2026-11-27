@@ -496,7 +496,6 @@ void test_narrow_max(const dfa_shape_t& shape)
   CountDFA count2(shape, 2);
   CountCharacterDFA zero1(shape, 0, 1);
   FixedDFA fixed(shape, 1, 0);
-  IntersectionDFA count2_fixed(count2, fixed);
 
   std::vector<DFAString> all_positions = get_all_positions(shape);
   std::vector<DFAString> some_positions;
@@ -518,7 +517,7 @@ void test_narrow_max(const dfa_shape_t& shape)
     {"intersection count2+fixed (linear)", [&]() {return std::make_shared<IntersectionDFA>(count2, fixed);}},
     {"difference count2-zero1", [&]() {return std::make_shared<DifferenceDFA>(count2, zero1);}},
     {"inverse count2", [&]() {return std::make_shared<InverseDFA>(std::make_shared<CountDFA>(shape, 2));}},
-    {"change", [&]() {return std::make_shared<ChangeDFA>(count2_fixed, changes);}}};
+    {"change", [&]() {return std::make_shared<ChangeDFA>(std::make_shared<IntersectionDFA>(CountDFA(shape, 2), FixedDFA(shape, 1, 0)), changes);}}};
 
   for(const auto& [build_name, build] : builds)
     {

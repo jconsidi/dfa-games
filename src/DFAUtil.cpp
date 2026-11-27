@@ -408,26 +408,8 @@ shared_dfa_ptr DFAUtil::get_change(shared_dfa_ptr dfa_in, const change_vector& c
       return dfa_in;
     }
 
-  // cached change
-
-  std::ostringstream oss;
-  oss << "change_cache/";
-  oss << dfa_in->get_hash();
-  for(int layer = 0; layer < changes_in.size(); ++layer)
-    {
-      change_optional layer_change = changes_in[layer];
-      if(layer_change.has_value())
-	{
-	  oss << "_" << layer << "=" << std::get<0>(*layer_change) << "," << std::get<1>(*layer_change);
-	}
-    }
-  std::string change_name = oss.str();
-  return load_or_build(dfa_in->get_shape(),
-		       change_name,
-		       [&]()
-		       {
-			 return shared_dfa_ptr(new ChangeDFA(*dfa_in, changes_in));
-		       });
+  // a view, so nothing to build or cache
+  return shared_dfa_ptr(new ChangeDFA(dfa_in, changes_in));
 }
 
 // Not memoized in memory the way get_accept/get_reject/get_fixed are --

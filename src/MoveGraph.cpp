@@ -270,11 +270,23 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
       output_names.push_back(output_name_builder.str());
     }
 
+  // A node whose output is a view is not saved under move_nodes, so it is
+  // kept here instead, from when it is first built until its scheduled
+  // release, the point where a saved node's link is removed. Its consumers
+  // then share one view, and the view keeps its own input, so neither is
+  // built again after that input's link has been released.
+  std::vector<shared_dfa_ptr> view_outputs(node_names.size());
+
   std::function<shared_dfa_ptr(int)> get_node_output = [&](int node_index)
   {
+    if(view_outputs.at(node_index))
+      {
+	return view_outputs[node_index];
+      }
+
     std::string output_name = output_names.at(node_index);
 
-    return DFAUtil::load_or_build(shape, output_name, [&]()
+    shared_dfa_ptr output = DFAUtil::load_or_build(shape, output_name, [&]()
     {
       profile.tic("node init");
 
@@ -336,6 +348,12 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 				 node_changes[node_index]);
     },
     false); // move-graph node: self-cleaning intermediate, not solver output
+
+    if(output->is_unsaved_view())
+      {
+	view_outputs[node_index] = output;
+      }
+    return output;
   };
 
   std::vector<bool> node_todo(node_names.size(), false);
@@ -398,6 +416,8 @@ shared_dfa_ptr MoveGraph::get_moves(std::string name_prefix, shared_dfa_ptr posi
 
       for(int cleanup_node_index : cleanup_schedule.at(node_index))
 	{
+	  view_outputs.at(cleanup_node_index).reset();
+
 	  std::string cleanup_link = ScratchConfig::get_local_dir() + "/" + output_names.at(cleanup_node_index);
 	  if(unlink(cleanup_link.c_str()) == 0)
 	    {

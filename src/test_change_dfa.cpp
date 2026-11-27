@@ -28,7 +28,8 @@ void test_change(std::string test_name, const DFA& dfa_in, change_vector changes
 
   std::cout << test_name_full << std::endl;
 
-  ChangeDFA change_test(dfa_in, changes_in);
+  // the caller owns dfa_in and outlives the view
+  ChangeDFA change_test(shared_dfa_ptr(&dfa_in, [](const DFA *) {}), changes_in);
   std::cout << test_name_full << ": expected " << dfa_expected.size() << " matches, actually " << change_test.size() << " matches" << std::endl;
 
   DifferenceDFA extra_dfa(change_test, dfa_expected);
@@ -92,7 +93,7 @@ void test_unfiltered_throws(const dfa_shape_t& shape_in)
   AcceptDFA accept(shape_in);
   try
     {
-      ChangeDFA change_test(accept, change_last);
+      ChangeDFA change_test(shared_dfa_ptr(&accept, [](const DFA *) {}), change_last);
     }
   catch(const std::invalid_argument& e)
     {
