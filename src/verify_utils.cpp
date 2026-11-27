@@ -91,13 +91,13 @@ void verify_losing_position(const Game& game, int side_to_move, const DFAString&
   ValidatedPosition validated = game.validate_position(side_to_move, position);
   if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(over->result == -1)
+      if(over->outcome == -1)
         {
           // lost position
           return;
         }
 
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not lost (-1)");
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->outcome) + ", not lost (-1)");
     }
 
   for(const DFAString& move : std::get<std::vector<DFAString>>(validated))
@@ -132,7 +132,7 @@ void verify_lost_position(const Game& game, int side_to_move, const DFAString& p
 {
   ValidatedPosition validated = game.validate_position(side_to_move, position);
   const GameOver *over = std::get_if<GameOver>(&validated);
-  if(over && (over->result == -1))
+  if(over && (over->outcome == -1))
     {
       return;
     }
@@ -151,7 +151,7 @@ void verify_lost_position(const Game& game, int side_to_move, const DFAString& p
     }
   else
     {
-      report << "# RESULT MISMATCH: expected lost (-1), actual " << over->result << "\n";
+      report << "# RESULT MISMATCH: expected lost (-1), actual " << over->outcome << "\n";
     }
 
   report << "\n";
@@ -421,13 +421,13 @@ void verify_winning_position(const Game& game, int side_to_move, const DFAString
   ValidatedPosition validated = game.validate_position(side_to_move, position);
   if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(over->result == 1)
+      if(over->outcome == 1)
         {
           // won position
           return;
         }
 
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not won (1)");
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->outcome) + ", not won (1)");
     }
 
   for(const DFAString& move : std::get<std::vector<DFAString>>(validated))
@@ -464,7 +464,7 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
 {
   ValidatedPosition validated = game.validate_position(side_to_move, position);
   const GameOver *over = std::get_if<GameOver>(&validated);
-  if(over && (over->result == 1))
+  if(over && (over->outcome == 1))
     {
       return;
     }
@@ -483,7 +483,7 @@ void verify_won_position(const Game& game, int side_to_move, const DFAString& po
     }
   else
     {
-      report << "# RESULT MISMATCH: expected won (1), actual " << over->result << "\n";
+      report << "# RESULT MISMATCH: expected won (1), actual " << over->outcome << "\n";
     }
 
   report << "\n";
@@ -515,13 +515,13 @@ static void verify_unknown_position(const Game& game, int side_to_move, const DF
   ValidatedPosition validated = game.validate_position(side_to_move, position);
   if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(over->result == 0)
+      if(over->outcome == 0)
         {
           // tied position
           return;
         }
 
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not tied (0) or undecided");
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->outcome) + ", not tied (0) or undecided");
     }
 
   bool unknown_move = false;
@@ -553,9 +553,9 @@ static void verify_unknown_last_position(const Game& game, int side_to_move, con
   ValidatedPosition validated = game.validate_position(side_to_move, position);
   if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(over->result != 0)
+      if(over->outcome != 0)
         {
-          throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not tied (0) or undecided");
+          throw std::runtime_error("position is terminal with outcome " + std::to_string(over->outcome) + ", not tied (0) or undecided");
         }
     }
 }
@@ -569,13 +569,13 @@ static void verify_winning_closed_position(const Game& game, int side_to_move, c
   ValidatedPosition validated = game.validate_position(side_to_move, position);
   if(const GameOver *over = std::get_if<GameOver>(&validated))
     {
-      if(over->result == 1)
+      if(over->outcome == 1)
         {
           // won position
           return;
         }
 
-      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->result) + ", not won (1)");
+      throw std::runtime_error("position is terminal with outcome " + std::to_string(over->outcome) + ", not won (1)");
     }
 
   bool losing_move = false;

@@ -22,7 +22,7 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
 
   if(over)
     {
-      std::cout << "validate_position() returned game over with result " << over->result << std::endl;
+      std::cout << "validate_position() returned game over with result " << over->outcome << std::endl;
     }
   else
     {
@@ -37,7 +37,7 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
           std::cout << "expected result none" << std::endl;
           if(over)
             {
-              throw std::logic_error(std::format("validate_position() returned result {:d}, but expected none", over->result));
+              throw std::logic_error(std::format("validate_position() returned result {:d}, but expected none", over->outcome));
             }
         }
       else
@@ -47,9 +47,9 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
             {
               throw std::logic_error(std::format("validate_position() returned moves, but expected result {:d}", expected_result.get<int>()));
             }
-          if(over->result != expected_result.get<int>())
+          if(over->outcome != expected_result.get<int>())
             {
-              throw std::logic_error(std::format("validate_position() returned result {:d}, but expected {:d}", over->result, expected_result.get<int>()));
+              throw std::logic_error(std::format("validate_position() returned result {:d}, but expected {:d}", over->outcome, expected_result.get<int>()));
             }
         }
     }

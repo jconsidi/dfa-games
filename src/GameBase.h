@@ -11,11 +11,11 @@
 #include "DFA.h"
 #include "MoveGraph.h"
 
-// The game is over for the side to move, with result 1 (won), 0 (tied) or
+// The game is over for the side to move, with outcome 1 (won), 0 (tied) or
 // -1 (lost).
 struct GameOver
 {
-  int result;
+  int outcome;
 };
 
 // A position as the rules see it: either the game is over, or the side to
