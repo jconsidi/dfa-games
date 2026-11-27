@@ -61,21 +61,45 @@ void test_suite(const dfa_shape_t& shape_in)
   test_change("accept identity", accept, identity, accept);
   test_change("reject identity", reject, identity, reject);
 
-  // layer 0 change
+  // last layer change, since that layer has the largest alphabet
 
-  if(accept.get_layer_shape(0) < 2)
+  int last = ndim - 1;
+  if(accept.get_layer_shape(last) < 2)
     {
       // too small for this test
       return;
     }
 
-  change_vector l0(ndim);
-  l0[0] = change_type(0, 1);
+  change_vector change_last(ndim);
+  change_last[last] = change_type(0, 1);
 
-  FixedDFA l0_expected(shape_in, 0, 1);
+  FixedDFA last_input(shape_in, last, 0);
+  FixedDFA last_expected(shape_in, last, 1);
 
-  test_change("accept l0", accept, l0, l0_expected);
-  test_change("reject l0", reject, l0, reject);
+  test_change("fixed last", last_input, change_last, last_expected);
+  test_change("reject last", reject, change_last, reject);
+}
+
+// accept is not restricted to the before character at the last layer, so
+// the change must throw. Run last, since a throw ends the program's
+// building.
+void test_unfiltered_throws(const dfa_shape_t& shape_in)
+{
+  int last = int(shape_in.size()) - 1;
+  change_vector change_last(shape_in.size());
+  change_last[last] = change_type(0, 1);
+
+  AcceptDFA accept(shape_in);
+  try
+    {
+      ChangeDFA change_test(accept, change_last);
+    }
+  catch(const std::invalid_argument& e)
+    {
+      std::cout << "accept last: threw as expected: " << e.what() << std::endl;
+      return;
+    }
+  throw std::logic_error("accept last: unfiltered input did not throw");
 }
 
 int main()
@@ -87,6 +111,7 @@ int main()
       test_suite(dfa_shape_t({TEST3_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST4_DFA_SHAPE}));
       test_suite(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_unfiltered_throws(dfa_shape_t({TEST3_DFA_SHAPE}));
     }
   catch(const std::logic_error& e)
     {

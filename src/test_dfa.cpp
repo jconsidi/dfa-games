@@ -516,8 +516,7 @@ void test_narrow_max(const dfa_shape_t& shape)
     {"intersection count2+fixed (linear)", [&]() {return std::make_shared<IntersectionDFA>(count2, fixed);}},
     {"difference count2-zero1", [&]() {return std::make_shared<DifferenceDFA>(count2, zero1);}},
     {"inverse count2", [&]() {return std::make_shared<InverseDFA>(count2);}},
-    {"change two pass", [&]() {return std::make_shared<ChangeDFA>(count2, changes);}},
-    {"change one pass", [&]() {return std::make_shared<ChangeDFA>(count2_fixed, changes);}}};
+    {"change", [&]() {return std::make_shared<ChangeDFA>(count2_fixed, changes);}}};
 
   for(const auto& [build_name, build] : builds)
     {
