@@ -121,4 +121,13 @@ void pwrite_filled(int fildes, size_t offset, size_t count, size_t element_bytes
                    Profile *profile = nullptr,
                    size_t buffer_bytes_max = size_t(1) << 30);
 
+// The same buffered parallel fill, handing each filled buffer to consume
+// (bytes, byte count, index of its first element) in order instead of
+// writing it.
+void for_each_filled(size_t count, size_t element_bytes,
+                     const std::function<void(size_t, size_t, uint8_t *)>& fill,
+                     const std::function<void(const uint8_t *, size_t, size_t)>& consume,
+                     Profile *profile = nullptr,
+                     size_t buffer_bytes_max = size_t(1) << 30);
+
 #endif

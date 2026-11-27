@@ -1,6 +1,7 @@
 // test_union_dfa.cpp
 
 #include <cstdint>
+#include <format>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -187,7 +188,8 @@ void test_inverse(std::string test_name, const DFA& dfa_in)
     }
   size_t expected_boards = accept_all_boards - size_t(dfa_in.size());
 
-  InverseDFA test_dfa(dfa_in);
+  // the caller owns dfa_in and outlives the view
+  InverseDFA test_dfa(shared_dfa_ptr(&dfa_in, [](const DFA *) {}));
   test_helper("inverse " + test_name, test_dfa, expected_boards);
 
   IntersectionDFA intersection_dfa(test_dfa, dfa_in);
@@ -515,7 +517,7 @@ void test_narrow_max(const dfa_shape_t& shape)
     {"intersection count2+zero1", [&]() {return std::make_shared<IntersectionDFA>(count2, zero1);}},
     {"intersection count2+fixed (linear)", [&]() {return std::make_shared<IntersectionDFA>(count2, fixed);}},
     {"difference count2-zero1", [&]() {return std::make_shared<DifferenceDFA>(count2, zero1);}},
-    {"inverse count2", [&]() {return std::make_shared<InverseDFA>(count2);}},
+    {"inverse count2", [&]() {return std::make_shared<InverseDFA>(std::make_shared<CountDFA>(shape, 2));}},
     {"change", [&]() {return std::make_shared<ChangeDFA>(count2_fixed, changes);}}};
 
   for(const auto& [build_name, build] : builds)
@@ -1037,6 +1039,151 @@ void test_layer_permutation_cache_key()
   throw std::logic_error("test_layer_permutation_cache_key: a long key did not throw");
 }
 
+// The inverse built the way InverseDFA built it before it became a view,
+// as an oracle for the view's bytes.
+class BuiltInverseDFA : public DFA
+{
+public:
+
+  BuiltInverseDFA(const DFA& dfa_in)
+    : DFA(dfa_in.get_shape())
+  {
+    dfa_in.mmap();
+    if(dfa_in.get_initial_state() < 2)
+      {
+        set_initial_state(1 - dfa_in.get_initial_state());
+        return;
+      }
+
+    for(int layer = get_shape_size() - 1; layer >= 0; --layer)
+      {
+        int layer_shape = dfa_in.get_layer_shape(layer);
+        build_layer(layer, dfa_in.get_layer_size(layer), [&](dfa_state_t state, dfa_state_t *transitions_out)
+        {
+          DFATransitionsReference transitions_in = dfa_in.get_transitions(layer, state);
+          for(int c = 0; c < layer_shape; ++c)
+            {
+              transitions_out[c] = (transitions_in[c] < 2) ? (1 - transitions_in[c]) : transitions_in[c];
+            }
+        });
+      }
+    set_initial_state(dfa_in.get_initial_state());
+  }
+};
+
+// A view reading no other DFA: one ordinary state per layer, where even
+// characters go on (to accept after the last layer) and odd ones reject.
+// Where the last layer has a single character its state accepts
+// everything, so the view is not minimal there.
+class EvenView : public DFA
+{
+public:
+
+  EvenView(const dfa_shape_t& shape_in)
+    : DFA(shape_in, std::vector<size_t>(shape_in.size(), 3), 2)
+  {
+  }
+
+  virtual dfa_state_t get_transition(int layer, size_t state, int c) const
+  {
+    assert(state == 2);
+    if(c % 2)
+      {
+        return 0;
+      }
+    return (layer + 1 == get_shape_size()) ? 1 : 2;
+  }
+};
+
+// Checks a view against its oracle language, that rows 0 and 1 are
+// uniform, and that its streamed hash is the digest of the file saving it
+// writes.
+static void check_view(std::string test_name, shared_dfa_ptr view, const std::vector<DFAString>& all_positions, std::function<bool(const DFAString&)> expected_contains)
+{
+  for(int layer = 0; layer < view->get_shape_size(); ++layer)
+    {
+      for(int c = 0; c < view->get_layer_shape(layer); ++c)
+        {
+          if((view->get_transitions(layer, 0)[c] != 0) || (view->get_transitions(layer, 1)[c] != 1))
+            {
+              throw std::logic_error(test_name + ": rows 0 and 1 are not all reject and all accept");
+            }
+        }
+    }
+
+  size_t expected_size = 0;
+  for(const DFAString& position : all_positions)
+    {
+      bool expected = expected_contains(position);
+      expected_size += expected;
+      if(view->contains(position) != expected)
+        {
+          throw std::logic_error(test_name + ": contains differs at " + position.to_string());
+        }
+    }
+  if(view->size() != double(expected_size))
+    {
+      throw std::logic_error(std::format("{:s}: size {:f}, expected {:d}", test_name, view->size(), expected_size));
+    }
+
+  std::string streamed = view->get_hash();
+  view->save_cache("test_dfa_views/" + test_name);
+  std::string written = view->calculate_digest();
+  if(written != streamed)
+    {
+      throw std::logic_error(test_name + ": streamed hash " + streamed + " but the saved file's digest is " + written);
+    }
+}
+
+void test_views(const dfa_shape_t& shape)
+{
+  std::string shape_name = get_parameter_string(shape);
+  std::vector<DFAString> all_positions = get_all_positions(shape);
+  std::vector<DFAString> some_positions;
+  for(size_t i = 0; i < all_positions.size(); i += 3)
+    {
+      some_positions.push_back(all_positions[i]);
+    }
+
+  std::vector<std::pair<std::string, shared_dfa_ptr>> inputs = {
+    {"accept", std::make_shared<AcceptDFA>(shape)},
+    {"reject", std::make_shared<RejectDFA>(shape)},
+    {"count1", std::make_shared<CountDFA>(shape, 1)},
+    {"count2", std::make_shared<CountDFA>(shape, 2)},
+    {"strings", std::make_shared<StringDFA>(shape, some_positions)}};
+
+  for(const auto& [input_name, input] : inputs)
+    {
+      std::string test_name = shape_name + " inverse view " + input_name;
+      shared_dfa_ptr view = std::make_shared<InverseDFA>(input);
+      check_view(test_name, view, all_positions, [&](const DFAString& position) {return !input->contains(position);});
+
+      BuiltInverseDFA built(*input);
+      if(built.get_hash() != view->get_hash())
+        {
+          throw std::logic_error(test_name + ": hash " + view->get_hash() + " differs from the built inverse's " + built.get_hash());
+        }
+      std::cout << test_name << ": passed (" << view->states() << " states, same bytes as the built inverse)" << std::endl;
+    }
+
+  {
+    std::string test_name = shape_name + " even view";
+    shared_dfa_ptr view = std::make_shared<EvenView>(shape);
+    check_view(test_name, view, all_positions, [&](const DFAString& position)
+    {
+      for(int layer = 0; layer < position.get_size(); ++layer)
+        {
+          if(position[layer] % 2)
+            {
+              return false;
+            }
+        }
+      return true;
+    });
+    std::cout << test_name << ": passed (" << view->size() << " positions counted)" << std::endl;
+  }
+}
+
 void test_suite(const dfa_shape_t& shape)
 {
 
@@ -1307,6 +1454,10 @@ int main()
       test_layer_permutation(dfa_shape_t({TEST5_DFA_SHAPE}));
       test_layer_permutation(dfa_shape_t({3, 3, 3, 3, 3}));
       test_layer_permutation_cache_key();
+
+      test_views(dfa_shape_t({TEST3_DFA_SHAPE}));
+      test_views(dfa_shape_t({TEST5_DFA_SHAPE}));
+      test_views(dfa_shape_t({2, 4, 5, 2, 4, 5, 2}));
 
       // Must run last: a build abandoned by an exception deliberately
       // leaves build_in_progress set (see DFA.cpp), so any later DFA

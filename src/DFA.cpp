@@ -14,7 +14,9 @@
 #include <atomic>
 #include <chrono>
 #include <filesystem>
+#include <format>
 #include <iomanip>
+#include <iostream>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
@@ -335,6 +337,38 @@ DFA::DFA(const dfa_shape_t& shape_in)
   assert(layer_sizes.size() == ndim);
   assert(layer_file_names.size() == ndim);
   assert(layer_transitions.size() == ndim);
+}
+
+DFA::DFA(const dfa_shape_t& shape_in, const std::vector<size_t>& layer_sizes_in, dfa_state_t initial_state_in)
+  : shape(shape_in),
+    ndim(int(shape.size())),
+    initial_state(initial_state_in),
+    layer_sizes(layer_sizes_in),
+    directory(),
+    layer_file_names(),
+    layer_transitions(),
+    temporary(false),
+    view(true)
+{
+  if(ndim <= 0)
+    {
+      throw std::invalid_argument("DFA view: empty shape");
+    }
+  if(layer_sizes.size() != size_t(ndim))
+    {
+      throw std::invalid_argument(std::format("DFA view: {:d} layer sizes for {:d} layers", layer_sizes.size(), ndim));
+    }
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      if(layer_sizes[layer] < 2)
+	{
+	  throw std::invalid_argument(std::format("DFA view: layer {:d} has {:d} states, below the 2 reserved ones", layer, layer_sizes[layer]));
+	}
+    }
+  if(initial_state >= layer_sizes[0])
+    {
+      throw std::invalid_argument(std::format("DFA view: initial state {:d} outside layer 0's {:d} states", initial_state, layer_sizes[0]));
+    }
 }
 
 // Path of a saved DFA. A name under dfas_by_hash/ addresses the file
@@ -871,24 +905,129 @@ void DFA::set_initial_state(dfa_state_t initial_state_in)
   save_by_hash(ScratchConfig::get_local_dir());
 }
 
+static dfa_format::Layout layout_of(const dfa_shape_t& shape, int ndim, const DFA& dfa)
+{
+  std::vector<uint64_t> sizes;
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      sizes.push_back(uint64_t(dfa.get_layer_size(layer)));
+    }
+  return dfa_format::Layout(shape, sizes);
+}
+
+std::vector<uint8_t> DFA::serialize_prefix(const dfa_format::Layout& layout) const
+{
+  // Header. The digest is filled in at the end, and flags is already settled
+  // because canonicity is declared by the subclass rather than discovered.
+  std::vector<uint8_t> output(dfa_format::header_bytes, 0);
+  memcpy(&output[dfa_format::off_magic], dfa_format::magic, sizeof(dfa_format::magic));
+  dfa_format::encode_entry(dfa_format::version_major, 2, &output[dfa_format::off_version_major]);
+  dfa_format::encode_entry(dfa_format::version_minor, 2, &output[dfa_format::off_version_minor]);
+  dfa_format::encode_entry(dfa_format::header_bytes, 4, &output[dfa_format::off_header_bytes]);
+  dfa_format::encode_entry(uint64_t(ndim), 4, &output[dfa_format::off_ndim]);
+  dfa_format::encode_entry(canonical ? dfa_format::flag_canonical : 0, 4, &output[dfa_format::off_flags]);
+  dfa_format::encode_entry(initial_state, 8, &output[dfa_format::off_initial_state]);
+
+  // Tables, then padding up to the first block.
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      uint8_t entry[8];
+      dfa_format::encode_entry(uint64_t(layer_sizes.at(layer)), 8, entry);
+      output.insert(output.end(), entry, entry + 8);
+    }
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      uint8_t entry[8];
+      dfa_format::encode_entry(layout.get_layer_offset(layer), 8, entry);
+      output.insert(output.end(), entry, entry + 8);
+    }
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      uint8_t entry[4];
+      dfa_format::encode_entry(uint64_t(shape.at(layer)), 4, entry);
+      output.insert(output.end(), entry, entry + 4);
+    }
+  output.resize(size_t(layout.get_layer_offset(0)), 0);
+
+  return output;
+}
+
+// Rows [begin, begin + n) of one layer, narrowed to the width the layout
+// derives, read through get_transitions so staged DFAs and views share it.
+// Every state's checks read only its own row and the one before it, so
+// pieces can be filled in parallel.
+void DFA::serialize_rows(int layer, const dfa_format::Layout& layout, size_t begin, size_t n, uint8_t *out) const
+{
+  int layer_shape = get_layer_shape(layer);
+  int width = layout.get_width(layer);
+  uint64_t bound = layout.next_layer_size(layer);
+  size_t row_bytes = size_t(layer_shape) * size_t(width);
+
+  for(size_t i = 0; i < n; ++i)
+    {
+      uint64_t state = begin + i;
+      DFATransitionsReference source = get_transitions(layer, size_t(state));
+      uint8_t *row_out = out + i * row_bytes;
+
+      for(int c = 0; c < layer_shape; ++c)
+	{
+	  dfa_state_t next_state = source[c];
+	  assert(next_state < bound);
+	  dfa_format::encode_entry(next_state, width, &row_out[size_t(c) * size_t(width)]);
+	}
+
+      // Rows 0 and 1 carry fixed values (section 4).
+      if(state < 2)
+	{
+	  for(int c = 0; c < layer_shape; ++c)
+	    {
+	      assert(source[c] == state);
+	    }
+	  continue;
+	}
+
+      // Verify the cheap half of the canonical claim: no row of new
+      // states is uniformly reject or accept, and each is above the one
+      // before it, so a subclass that declares canonical wrongly fails
+      // here rather than producing a file readers reject.
+      if(canonical)
+	{
+	  bool uniform_reject = true;
+	  bool uniform_accept = true;
+	  for(int c = 0; c < layer_shape; ++c)
+	    {
+	      dfa_state_t next_state = source[c];
+	      uniform_reject = uniform_reject && (next_state == dfa_format::state_reject);
+	      uniform_accept = uniform_accept && (next_state == dfa_format::state_accept);
+	    }
+	  assert(!uniform_reject);
+	  assert(!uniform_accept);
+
+	  if(state > 2)
+	    {
+	      DFATransitionsReference previous = get_transitions(layer, size_t(state - 1));
+	      int c = 0;
+	      while((c < layer_shape) && (previous[c] == source[c]))
+		{
+		  ++c;
+		}
+	      assert(c < layer_shape);
+	      assert(previous[c] < source[c]);
+	    }
+	}
+    }
+}
+
 // Write this DFA to file_name_in in the format of FORMAT-DFA.md and return
 // the hex digest of what was written.
-//
-// Mirrors dfa-format/src/write.rs in dfa-verify. The two write into the same
-// content addressed store, so they have to agree byte for byte.
 std::string DFA::serialize(std::string file_name_in) const
 {
   Profile profile("serialize");
 
   assert(ready());
-  assert(temporary);
+  assert(temporary || view);
 
-  std::vector<uint64_t> sizes;
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      sizes.push_back(uint64_t(layer_sizes.at(layer)));
-    }
-  dfa_format::Layout layout(shape, sizes);
+  dfa_format::Layout layout = layout_of(shape, ndim, *this);
 
   int fildes = open(file_name_in.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
   if(fildes == -1)
@@ -897,117 +1036,21 @@ std::string DFA::serialize(std::string file_name_in) const
       throw std::runtime_error("DFA serialize open failed");
     }
 
-  // Header. The digest is filled in at the end, and flags is already settled
-  // because canonicity is declared by the subclass rather than discovered.
-  std::vector<uint8_t> header(dfa_format::header_bytes, 0);
-  memcpy(&header[dfa_format::off_magic], dfa_format::magic, sizeof(dfa_format::magic));
-  dfa_format::encode_entry(dfa_format::version_major, 2, &header[dfa_format::off_version_major]);
-  dfa_format::encode_entry(dfa_format::version_minor, 2, &header[dfa_format::off_version_minor]);
-  dfa_format::encode_entry(dfa_format::header_bytes, 4, &header[dfa_format::off_header_bytes]);
-  dfa_format::encode_entry(uint64_t(ndim), 4, &header[dfa_format::off_ndim]);
-  dfa_format::encode_entry(canonical ? dfa_format::flag_canonical : 0, 4, &header[dfa_format::off_flags]);
-  dfa_format::encode_entry(initial_state, 8, &header[dfa_format::off_initial_state]);
-  write_buffer(fildes, header.data(), header.size());
+  std::vector<uint8_t> prefix = serialize_prefix(layout);
+  write_buffer(fildes, prefix.data(), prefix.size());
 
-  // Tables, then padding up to the first block.
-  std::vector<uint8_t> tables;
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      uint8_t entry[8];
-      dfa_format::encode_entry(sizes.at(layer), 8, entry);
-      tables.insert(tables.end(), entry, entry + 8);
-    }
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      uint8_t entry[8];
-      dfa_format::encode_entry(layout.get_layer_offset(layer), 8, entry);
-      tables.insert(tables.end(), entry, entry + 8);
-    }
-  for(int layer = 0; layer < ndim; ++layer)
-    {
-      uint8_t entry[4];
-      dfa_format::encode_entry(uint64_t(shape.at(layer)), 4, entry);
-      tables.insert(tables.end(), entry, entry + 4);
-    }
-  tables.resize(size_t(layout.get_layer_offset(0) - dfa_format::off_tables), 0);
-  write_buffer(fildes, tables.data(), tables.size());
-
-  // Blocks, narrowing each transition to the width the layout derives.
+  // Blocks.
   for(int layer = 0; layer < ndim; ++layer)
     {
       profile.tic("serialize layer");
 
-      int layer_shape = get_layer_shape(layer);
-      int width = layout.get_width(layer);
-      uint64_t layer_size = sizes.at(layer);
-      uint64_t bound = layout.next_layer_size(layer);
-
-      layer_transitions.at(layer).mmap();
-      const DFAStagingLayer& source = layer_transitions.at(layer);
-
-      // Each state's row, narrowed, written in parallel pieces through a
-      // bounded buffer. Every state's checks read only the staging layer,
-      // so each piece checks its own states.
-      size_t row_bytes = size_t(layer_shape) * size_t(width);
-      auto fill_rows = [&](size_t begin, size_t n, uint8_t *out)
+      mmap();
+      size_t row_bytes = size_t(get_layer_shape(layer)) * size_t(layout.get_width(layer));
+      pwrite_filled(fildes, size_t(layout.get_layer_offset(layer)), get_layer_size(layer), row_bytes, [&](size_t begin, size_t n, uint8_t *out)
       {
-	for(size_t i = 0; i < n; ++i)
-	  {
-	    uint64_t state = begin + i;
-	    size_t source_offset = size_t(state) * size_t(layer_shape);
-	    uint8_t *row_out = out + i * row_bytes;
-
-	    for(int c = 0; c < layer_shape; ++c)
-	      {
-		dfa_state_t next_state = source.get(source_offset + size_t(c));
-		assert(next_state < bound);
-		dfa_format::encode_entry(next_state, width, &row_out[size_t(c) * size_t(width)]);
-	      }
-
-	    // Rows 0 and 1 carry fixed values (section 4).
-	    if(state < 2)
-	      {
-		for(int c = 0; c < layer_shape; ++c)
-		  {
-		    assert(source.get(source_offset + size_t(c)) == state);
-		  }
-		continue;
-	      }
-
-	    // Verify the cheap half of the canonical claim: no row of new
-	    // states is uniformly reject or accept, and each is above the one
-	    // before it, so a subclass that declares canonical wrongly fails
-	    // here rather than producing a file readers reject.
-	    if(canonical)
-	      {
-		bool uniform_reject = true;
-		bool uniform_accept = true;
-		for(int c = 0; c < layer_shape; ++c)
-		  {
-		    dfa_state_t next_state = source.get(source_offset + size_t(c));
-		    uniform_reject = uniform_reject && (next_state == dfa_format::state_reject);
-		    uniform_accept = uniform_accept && (next_state == dfa_format::state_accept);
-		  }
-		assert(!uniform_reject);
-		assert(!uniform_accept);
-
-		if(state > 2)
-		  {
-		    size_t previous_offset = source_offset - size_t(layer_shape);
-		    int c = 0;
-		    while((c < layer_shape) && (source.get(previous_offset + size_t(c)) == source.get(source_offset + size_t(c))))
-		      {
-			++c;
-		      }
-		    assert(c < layer_shape);
-		    assert(source.get(previous_offset + size_t(c)) < source.get(source_offset + size_t(c)));
-		  }
-	      }
-	  }
-      };
-
-      pwrite_filled(fildes, size_t(layout.get_layer_offset(layer)), size_t(layer_size), row_bytes, fill_rows);
-      assert(size_t(layout.get_block_bytes(layer)) == size_t(layer_size) * row_bytes);
+	serialize_rows(layer, layout, begin, n, out);
+      });
+      assert(size_t(layout.get_block_bytes(layer)) == get_layer_size(layer) * row_bytes);
 
       // Padding between blocks. The last block is followed by EOF.
       if(layer + 1 < ndim)
@@ -1130,12 +1173,70 @@ bool DFA::contains(const DFAString& string_in) const
   return current_state != 0;
 }
 
+
+// The digest serialize would compute, over the same bytes from the same
+// code, hashed as they are produced instead of written.
+std::string DFA::streamed_digest() const
+{
+  Profile profile("streamed_digest");
+
+  assert(ready());
+
+  dfa_format::Layout layout = layout_of(shape, ndim, *this);
+
+  unsigned char digest[SHA256_DIGEST_LENGTH];
+  static const EVP_MD *hash_implementation = EVP_sha256();
+  EVP_MD_CTX *hash_context = EVP_MD_CTX_create();
+  EVP_DigestInit_ex(hash_context, hash_implementation, NULL);
+
+  std::vector<uint8_t> prefix = serialize_prefix(layout);
+  EVP_DigestUpdate(hash_context,
+		   prefix.data() + dfa_format::digest_coverage_start,
+		   prefix.size() - dfa_format::digest_coverage_start);
+
+  mmap();
+  for(int layer = 0; layer < ndim; ++layer)
+    {
+      profile.tic("streamed_digest layer");
+
+      size_t row_bytes = size_t(get_layer_shape(layer)) * size_t(layout.get_width(layer));
+      for_each_filled(get_layer_size(layer), row_bytes, [&](size_t begin, size_t n, uint8_t *out)
+      {
+	serialize_rows(layer, layout, begin, n, out);
+      }, [&](const uint8_t *bytes, size_t byte_count, size_t)
+      {
+	EVP_DigestUpdate(hash_context, bytes, byte_count);
+      });
+
+      if(layer + 1 < ndim)
+	{
+	  uint64_t end = layout.get_layer_offset(layer) + layout.get_block_bytes(layer);
+	  std::vector<uint8_t> padding(size_t(layout.get_layer_offset(layer + 1) - end), 0);
+	  EVP_DigestUpdate(hash_context, padding.data(), padding.size());
+	}
+    }
+
+  EVP_DigestFinal_ex(hash_context, digest, 0);
+  EVP_MD_CTX_destroy(hash_context);
+
+  std::stringstream ss;
+  for(size_t i = 0; i < SHA256_DIGEST_LENGTH; ++i)
+    {
+      ss << std::hex << std::setw(2) << std::setfill('0') << int(digest[i]);
+    }
+  return ss.str();
+}
+
 std::string DFA::calculate_digest() const
 {
   Profile profile("calculate_digest");
 
   if(!file_map)
     {
+      if(view)
+	{
+	  return streamed_digest();
+	}
       throw std::runtime_error("DFA has not been saved, so it has no digest yet");
     }
   file_map->mmap();
@@ -1196,7 +1297,15 @@ std::string DFA::get_hash() const
   // to build some other DFA's cache key, not a result anyone asked to keep.
   if(!hash)
     {
-      save_by_hash(ScratchConfig::get_local_dir());
+      if(view)
+	{
+	  // the digest of the bytes saving would write, without writing them
+	  hash = streamed_digest();
+	}
+      else
+	{
+	  save_by_hash(ScratchConfig::get_local_dir());
+	}
     }
 
   assert(hash);
@@ -1431,6 +1540,11 @@ DFATransitionsReference DFA::get_transitions(int layer, size_t state_index) cons
 
   int layer_shape = get_layer_shape(layer);
 
+  if(view)
+    {
+      return DFATransitionsReference(this, layer, state_index, layer_shape);
+    }
+
   if(file_map)
     {
       // Saved: entries are stored at the width the format derives. Routed
@@ -1452,6 +1566,20 @@ DFATransitionsReference DFA::get_transitions(int layer, size_t state_index) cons
   return DFATransitionsReference(staging.get_bytes(state_index * size_t(layer_shape)),
 				 layer_shape,
 				 staging.get_width());
+}
+
+dfa_state_t DFA::get_transition(int layer, size_t state, int c) const
+{
+  if(view)
+    {
+      throw std::logic_error("DFA view does not override get_transition");
+    }
+  return get_transitions(layer, state)[c];
+}
+
+bool DFA::is_unsaved_view() const
+{
+  return view && !file_map;
 }
 
 bool DFA::is_canonical() const
@@ -1528,6 +1656,13 @@ bool DFA::is_linear() const
 
 void DFA::mmap() const
 {
+  if(view)
+    {
+      // a view's rows come from get_transition; a subclass that reads
+      // another DFA maps it in its own mmap
+      return;
+    }
+
   if(file_map)
     {
       file_map->mmap();
@@ -1560,6 +1695,11 @@ void DFA::mmap() const
 
 void DFA::munmap() const
 {
+  if(view)
+    {
+      return;
+    }
+
   if(file_map)
     {
       file_map->munmap();
@@ -1705,7 +1845,8 @@ void DFA::save_durable(std::string name_in) const
 void DFA::save_by_hash(const std::string& root) const
 {
   assert(ready());
-  if(!temporary)
+  bool unsaved_view = view && !file_map;
+  if(!temporary && !unsaved_view)
     {
       // Already published somewhere. If that happens to be root, there is
       // nothing to do. Otherwise this DFA legitimately needs a second name
@@ -1766,10 +1907,23 @@ void DFA::save_by_hash(const std::string& root) const
       throw std::runtime_error("DFA save directory close failed");
     }
 
+  // A view's hash may already have been streamed, and must name the bytes
+  // just written.
+  if(hash && (*hash != digest))
+    {
+      throw std::logic_error("DFA view streamed digest " + *hash + " but wrote " + digest);
+    }
   hash = digest;
 
-  // Switch this object over to the file, and drop the staging directory.
   attach_file(file_name_new);
+  if(unsaved_view)
+    {
+      // a view has no staging; it goes on computing the same rows
+      std::cout << "materialized view " << digest << std::endl;
+      return;
+    }
+
+  // Switch this object over to the file, and drop the staging directory.
   build_in_progress = false;
 
   // Each MemoryMap's own destructor msyncs before unmapping (see

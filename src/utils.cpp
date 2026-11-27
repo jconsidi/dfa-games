@@ -448,9 +448,24 @@ void pwrite_filled(int fildes, size_t offset, size_t count, size_t element_bytes
                    const std::function<void(size_t, size_t, uint8_t *)>& fill,
                    Profile *profile, size_t buffer_bytes_max)
 {
+  for_each_filled(count, element_bytes, fill, [&](const uint8_t *bytes, size_t byte_count, size_t start)
+  {
+    if(profile)
+      {
+        profile->tic("chunk write");
+      }
+    pwrite_bytes(fildes, bytes, byte_count, offset + start * element_bytes);
+  }, profile, buffer_bytes_max);
+}
+
+void for_each_filled(size_t count, size_t element_bytes,
+                     const std::function<void(size_t, size_t, uint8_t *)>& fill,
+                     const std::function<void(const uint8_t *, size_t, size_t)>& consume,
+                     Profile *profile, size_t buffer_bytes_max)
+{
   if(element_bytes == 0)
     {
-      throw std::invalid_argument("pwrite_filled: element_bytes must be positive");
+      throw std::invalid_argument("for_each_filled: element_bytes must be positive");
     }
 
   const size_t buffer_elements = std::min(count, std::max(buffer_bytes_max / element_bytes, size_t(1)));
@@ -475,11 +490,7 @@ void pwrite_filled(int fildes, size_t offset, size_t count, size_t element_bytes
         fill(buffer_start + piece_start, piece_count, buffer.data() + piece_start * element_bytes);
       });
 
-      if(profile)
-        {
-          profile->tic("chunk write");
-        }
-      pwrite_bytes(fildes, buffer.data(), buffer_count * element_bytes, offset + buffer_start * element_bytes);
+      consume(buffer.data(), buffer_count * element_bytes, buffer_start);
     }
 }
 

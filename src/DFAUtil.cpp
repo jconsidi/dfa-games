@@ -692,12 +692,8 @@ shared_dfa_ptr DFAUtil::get_inverse(shared_dfa_ptr dfa_in)
 {
   Profile profile("get_inverse");
 
-  std::string inverse_name = "inverse_cache/" + dfa_in->get_hash();
-
-  return load_or_build(dfa_in->get_shape(), inverse_name, [&]()
-  {
-    return shared_dfa_ptr(new InverseDFA(*dfa_in));
-  });
+  // a view, so nothing to build or cache
+  return shared_dfa_ptr(new InverseDFA(dfa_in));
 }
 
 shared_dfa_ptr DFAUtil::get_layer_permutation(shared_dfa_ptr dfa_in, const std::vector<std::vector<int>>& permutations)
@@ -871,7 +867,7 @@ shared_dfa_ptr DFAUtil::load_by_name(const dfa_shape_t& shape_in, std::string na
   return shared_dfa_ptr(new DFA(shape_in, name_in, durable));
 }
 
-shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string name_in, std::function<shared_dfa_ptr()> build_func, bool durable)
+shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string name_in, std::function<shared_dfa_ptr()> build_func, bool durable, bool materialize)
 {
   Profile profile("load_or_build " + name_in);
 
@@ -898,6 +894,16 @@ shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string n
 
   profile.tic("stats");
   std::cout << "built " << name_in << " => " << output->states() << " states" << std::endl;
+
+  if(output->is_unsaved_view())
+    {
+      if(!materialize)
+	{
+	  std::cout << "not saving view " << name_in << std::endl;
+	  return output;
+	}
+      std::cout << "saving view " << name_in << std::endl;
+    }
 
   profile.tic("save");
   if(durable)

@@ -45,7 +45,12 @@ public:
   // the default) under the local root. See DFA::save_durable/save_cache.
   static shared_dfa_ptr load_by_hash(const dfa_shape_t&, std::string, bool durable = true);
   static shared_dfa_ptr load_by_name(const dfa_shape_t&, std::string, bool durable = true);
-  static shared_dfa_ptr load_or_build(const dfa_shape_t&, std::string, std::function<shared_dfa_ptr()>, bool durable = false);
+  // materialize: whether a view the build returns is saved under the name.
+  // Game results are (GameBase::load_or_build); caches and move graph nodes
+  // are not by default, since a view costs nothing to build again and
+  // saving it would write the file it exists to avoid. A built DFA that is
+  // not a view is always saved, as it already has its file.
+  static shared_dfa_ptr load_or_build(const dfa_shape_t&, std::string, std::function<shared_dfa_ptr()>, bool durable = false, bool materialize = false);
   static std::string quick_stats(shared_dfa_ptr);
 };
 

@@ -140,7 +140,8 @@ shared_dfa_ptr GameBase::load_or_build(std::string dfa_name_in, std::function<sh
   Profile profile("load_or_build " + dfa_name_in);
 
   std::string dfa_name = name + "/" + dfa_name_in;
-  return DFAUtil::load_or_build(shape, dfa_name, build_func, true);
+  // game results are kept, views included
+  return DFAUtil::load_or_build(shape, dfa_name, build_func, true, true);
 }
 
 ValidatedPosition GameBase::validate_position(int side_to_move, const DFAString& position) const

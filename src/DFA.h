@@ -66,7 +66,10 @@ public:
   std::string to_string() const;
 };
 
-// One row of transitions, as raw bytes plus the width to read them at.
+class DFA;
+
+// One row of transitions, either as raw bytes plus the width to read them
+// at, or computed by a view (see DFA's view constructor).
 //
 // A DFA being built stores transitions at 4 or 8 bytes (DFAStagingLayer),
 // while a saved DFA stores them at the width the format derives from the
@@ -74,11 +77,19 @@ public:
 // start on an 8 byte boundary and an entry sits at a multiple of its own
 // width -- and the width is constant for a whole layer, so at() is a single
 // load under a branch the predictor pins for the duration of a scan.
+//
+// A computed row answers each entry with view->get_transition, except rows
+// 0 and 1, which are all reject and all accept for every DFA (FORMAT-DFA.md
+// section 4).
 class DFATransitionsReference
 {
-  const uint8_t *row;
+  const uint8_t *row = 0;
   int layer_shape;
-  int width;
+  int width = 0;
+
+  const DFA *view = 0;
+  int layer = 0;
+  size_t state = 0;
 
 public:
 
@@ -90,13 +101,20 @@ public:
     assert(layer_shape > 0);
   }
 
+  DFATransitionsReference(const DFA *view_in, int layer_in, size_t state_in, int layer_shape_in)
+    : layer_shape(layer_shape_in),
+      view(view_in),
+      layer(layer_in),
+      state(state_in)
+  {
+    assert(layer_shape > 0);
+    assert(view);
+  }
+
   dfa_state_t operator[](int c) const {return at(size_t(c));}
 
-  dfa_state_t at(size_t c) const
-  {
-    assert(c < size_t(layer_shape));
-    return dfa_state_t(dfa_format::decode_entry(row + c * size_t(width), width));
-  }
+  // defined after DFA, which computed rows call
+  dfa_state_t at(size_t c) const;
 
   int get_layer_shape() const {return layer_shape;}
 };
@@ -206,6 +224,12 @@ class DFA
   // since claiming it wrongly produces a file readers will reject.
   bool canonical = false;
 
+  // Whether this DFA is a view: constructed with its layer sizes and initial
+  // state, and computing its transitions through get_transition rather than
+  // reading staging or a file. Stays true after the view is saved, since
+  // its rows are the same either way.
+  bool view = false;
+
   mutable std::optional<std::string> hash;
 
   mutable double size_cache = 0.0;
@@ -223,6 +247,14 @@ class DFA
   void save_impl(std::string name_in, const std::string& root) const;
   std::string serialize(std::string) const;
 
+  // The bytes of the format up to the first block (header with a zero
+  // digest, tables, padding), and one layer's rows from begin to begin + n.
+  // Shared by serialize, which writes them, and calculate_digest on a view,
+  // which hashes them without writing.
+  std::vector<uint8_t> serialize_prefix(const dfa_format::Layout&) const;
+  void serialize_rows(int layer, const dfa_format::Layout&, size_t begin, size_t n, uint8_t *out) const;
+  std::string streamed_digest() const;
+
   // A DFA already published under a different root legitimately needs a
   // second copy there too (e.g. a config component reused as durable
   // solver output). Hardlinks into root's dfas_by_hash when possible, so
@@ -237,6 +269,21 @@ class DFA
  protected:
 
   DFA(const dfa_shape_t&);
+
+  // Constructs a view: a DFA whose states are given by its layer sizes and
+  // initial state, and whose transitions a subclass computes on demand by
+  // overriding get_transition. It creates no staging, saves nothing, and
+  // leaves build_in_progress alone, so a view can be made while another
+  // DFA is being built.
+  //
+  // A view is in its own state order, so it is not canonical unless it
+  // calls set_canonical, and it may be non-minimal. Saving it writes those
+  // rows; its hash is the digest of exactly those bytes, computed without
+  // writing them (see calculate_digest).
+  //
+  // A view must have no dead ordinary states -- none whose every path leads
+  // only to reject -- so that get_linear_bound stays tight.
+  DFA(const dfa_shape_t&, const std::vector<size_t>& layer_sizes, dfa_state_t initial_state);
 
   virtual dfa_state_t add_state(int, const DFATransitionsStaging&);
   dfa_state_t add_state_by_function(int, std::function<dfa_state_t(int)>);
@@ -287,14 +334,21 @@ class DFA
   std::string get_name() const;
   const dfa_shape_t& get_shape() const;
   int get_shape_size() const;
-  DFATransitionsReference get_transitions(int, size_t) const;
+  // A view's rows are computed (get_transition); everything else reads
+  // staging or its file.
+  virtual DFATransitionsReference get_transitions(int, size_t) const;
+  // One entry. A view overrides this with its computation, and must, since
+  // its get_transitions rows call it. Otherwise it reads get_transitions.
+  virtual dfa_state_t get_transition(int layer, size_t state, int c) const;
 
   bool is_canonical() const;
+  // A view whose rows have not been written to a file.
+  bool is_unsaved_view() const;
   bool is_constant(bool) const;
   bool is_linear() const;
 
-  void mmap() const;
-  void munmap() const;
+  virtual void mmap() const;
+  virtual void munmap() const;
 
   static std::optional<std::string> parse_hash(std::string, bool durable);
   bool ready() const;
@@ -315,9 +369,23 @@ class DFA
   void save_durable(std::string) const;
 
   void set_name(std::string) const;
-  double size() const;
+  virtual double size() const;
   size_t states() const;
 };
+
+inline dfa_state_t DFATransitionsReference::at(size_t c) const
+{
+  assert(c < size_t(layer_shape));
+  if(view)
+    {
+      if(state < 2)
+	{
+	  return dfa_state_t(state);
+	}
+      return view->get_transition(layer, state, int(c));
+    }
+  return dfa_state_t(dfa_format::decode_entry(row + c * size_t(width), width));
+}
 
 class DFAIterator
 {

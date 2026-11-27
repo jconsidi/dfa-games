@@ -2,44 +2,53 @@
 
 #include "InverseDFA.h"
 
-InverseDFA::InverseDFA(const DFA& dfa_in)
-  : DFA(dfa_in.get_shape())
+std::vector<size_t> InverseDFA::view_layer_sizes(const DFA& dfa_in)
 {
-  int ndim = get_shape_size();
-
-  dfa_in.mmap();
-
-  if(dfa_in.get_initial_state() < 2)
+  std::vector<size_t> output;
+  for(int layer = 0; layer < dfa_in.get_shape_size(); ++layer)
     {
-      // accept all or reject all input
-      this->set_initial_state(1 - dfa_in.get_initial_state());
-      return;
+      // a constant input's ordinary states are unreachable, so its inverse
+      // keeps only the reserved rows
+      output.push_back((dfa_in.get_initial_state() < 2) ? 2 : dfa_in.get_layer_size(layer));
     }
+  return output;
+}
 
-  // same transitions as original DFA, but final masks are inverted.
+dfa_state_t InverseDFA::view_initial_state(const DFA& dfa_in)
+{
+  dfa_state_t initial = dfa_in.get_initial_state();
+  return (initial < 2) ? (1 - initial) : initial;
+}
 
-  for(int layer = ndim - 1; layer >= 0; --layer)
+InverseDFA::InverseDFA(shared_dfa_ptr input_in)
+  : DFA(input_in->get_shape(), view_layer_sizes(*input_in), view_initial_state(*input_in)),
+    input(input_in)
+{
+}
+
+dfa_state_t InverseDFA::get_transition(int layer, size_t state, int c) const
+{
+  dfa_state_t next_state = input->get_transitions(layer, state)[c];
+  return (next_state < 2) ? (1 - next_state) : next_state;
+}
+
+void InverseDFA::mmap() const
+{
+  input->mmap();
+}
+
+void InverseDFA::munmap() const
+{
+  // other views may share the input, so it stays mapped while this view
+  // holds it
+}
+
+double InverseDFA::size() const
+{
+  double total = 1.0;
+  for(int layer = 0; layer < get_shape_size(); ++layer)
     {
-      int layer_shape = dfa_in.get_layer_shape(layer);
-
-      build_layer(layer, dfa_in.get_layer_size(layer), [&](dfa_state_t old_state_index, dfa_state_t *transitions_out)
-      {
-        DFATransitionsReference old_transitions = dfa_in.get_transitions(layer, old_state_index);
-        for(int i = 0; i < layer_shape; ++i)
-          {
-	    if(old_transitions[i] < 2)
-	      {
-		// accept/reject case
-		transitions_out[i] = 1 - old_transitions[i];
-	      }
-	    else
-	      {
-		// everything else has inverse in place
-		transitions_out[i] = old_transitions[i];
-	      }
-          }
-      });
+      total *= double(get_layer_shape(layer));
     }
-
-  this->set_initial_state(dfa_in.get_initial_state());
+  return total - input->size();
 }
