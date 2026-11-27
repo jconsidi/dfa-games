@@ -378,17 +378,7 @@ shared_dfa_ptr DFAUtil::get_accept(const dfa_shape_t& shape_in)
       return search->second;
     }
 
-  // Saved immediately (cache-style, not durable) rather than built and left
-  // temporary: this map holds every entry for the life of the process, and
-  // a temporary DFA's build/ staging directory stays open for exactly as
-  // long as something holds the DFA -- process lifetime here, which on a
-  // long build is real accumulated disk usage, not a theoretical one.
-  shared_dfa_ptr output = load_or_build(shape_in,
-					 "accept_cache/" + _shape_path(shape_in),
-					 [&]()
-					 {
-					   return shared_dfa_ptr(new AcceptDFA(shape_in));
-					 });
+  shared_dfa_ptr output(new AcceptDFA(shape_in));
   singletons[singleton_key] = output;
   return output;
 }
@@ -536,9 +526,9 @@ shared_dfa_ptr DFAUtil::get_fixed(const dfa_shape_t& shape_in, int fixed_layer, 
       return search->second;
     }
 
-  // Saved immediately rather than left temporary -- see get_accept above
-  // for why: this map, like that one, holds every entry for the life of
-  // the process.
+  // Saved immediately rather than left temporary: this map holds every
+  // entry for the life of the process, and a temporary DFA's build/
+  // staging directory stays open for as long as something holds the DFA.
   std::string name_in = "fixed_cache/" + _shape_path(shape_in) + "_" + std::to_string(fixed_layer) + "_" + std::to_string(fixed_character);
   shared_dfa_ptr output = load_or_build(shape_in,
 					 name_in,

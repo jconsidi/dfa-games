@@ -5,6 +5,8 @@
 
 #include "DFA.h"
 
+// Every string of the shape, as a view: every layer has only the two reserved
+// rows, and the initial state is accept.
 class AcceptDFA : public DFA
 {
  public:
