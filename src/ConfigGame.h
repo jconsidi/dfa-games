@@ -14,9 +14,13 @@
 class ConfigGameBase
 : public ConfigBase
 {
+  bool impartial;
+
  protected:
 
   ConfigGameBase(std::string);
+
+  bool is_impartial() const;
 
  public:
 
@@ -31,6 +35,7 @@ protected:
 
   virtual MoveGraph build_move_graph(int) const;
   virtual shared_dfa_ptr build_positions_lost(int) const;
+  virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 
   virtual DFAString get_position_initial() const;
   dfa_shape_t get_shape() const {return Game::get_shape();}
@@ -47,6 +52,7 @@ class ConfigNormalPlayGame
 protected:
 
   virtual MoveGraph build_move_graph(int) const;
+  virtual shared_dfa_ptr build_positions_reversed(shared_dfa_ptr) const;
 
   virtual DFAString get_position_initial() const;
   dfa_shape_t get_shape() const {return Game::get_shape();}
