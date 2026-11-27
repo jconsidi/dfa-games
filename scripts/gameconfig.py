@@ -5,7 +5,7 @@ import pathlib
 
 
 class GameConfig(object):
-    def __init__(self, game, shape, initial_position=None, sides=2):
+    def __init__(self, game, shape, initial_position=None, sides=2, impartial=False):
         self.game = game
 
         self.game_data = {
@@ -16,6 +16,9 @@ class GameConfig(object):
 
         if initial_position:
             self.game_data["initial_position"] = list(initial_position)
+
+        if impartial:
+            self.game_data["impartial"] = True
 
         self.components_data = {"game": game, "components": {}}
 

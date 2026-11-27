@@ -12,7 +12,10 @@ def generate_size(width, height):
     initial_position = [0 for _ in range(ndim)]
 
     game_config = GameConfig(
-        f"cram_{width}x{height}", shape=[2] * ndim, initial_position=initial_position
+        f"cram_{width}x{height}",
+        shape=[2] * ndim,
+        initial_position=initial_position,
+        impartial=True,
     )
 
     # components
