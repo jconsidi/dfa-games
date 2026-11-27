@@ -36,7 +36,7 @@ The steps, each with `DFA_LOCAL_DIR` and `DFA_ARCHIVE_DIR` set to the root:
 - Every step exits 0, and every verifier prints its success line (quoted in the output).
 - The final results' hashes match `expected.json`: both sides' `backward,ply_max=014` winning, losing and unknown sets, and ply 0 of the `forward_backward` and proof results.
 - The two stats outputs match the recorded ones line for line, apart from loading and profiling lines.
-- Views (DFAs computed on demand) are written only when saved as game results: no `saving view` log line names a cache or `move_nodes` entry, and there are no more `materialized view` lines than `saving view` ones. The counts are printed either way.
+- Views (DFAs computed on demand) are written only when saved as game results or when constant: no `saving view` log line names a cache or `move_nodes` entry, and there are no more `materialized view` lines than `saving view` and `saving constant view` ones together. The counts are printed either way.
 - With `--compare`, no name present in both roots points at different DFAs.
 
 The last line is `PASSED breakthrough_4x4 from scratch in Ns`; anything else is a failure, printed as `FAILED: <reason>` with the log to look at under `ROOT/logs/`.

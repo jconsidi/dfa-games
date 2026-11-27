@@ -161,14 +161,15 @@ def main():
     # "materialized view" line must come from a "saving view" of a result
     # name, never of a cache or move graph node.
     saving = [l.split(" ", 2)[2] for o in outputs.values() for l in o.splitlines() if l.startswith("saving view ")]
+    saving_constant = sum(1 for o in outputs.values() for l in o.splitlines() if l.startswith("saving constant view "))
     materialized = sum(1 for o in outputs.values() for l in o.splitlines() if l.startswith("materialized view "))
     not_saving = sum(1 for o in outputs.values() for l in o.splitlines() if l.startswith("not saving view "))
     bad_saves = [n for n in saving if ("_cache/" in n) or n.startswith("move_nodes/")]
     if bad_saves:
         fail("views saved under cache or move graph names:\n" + "\n".join(bad_saves[:20]))
-    if materialized > len(saving):
-        fail(f"{materialized} views materialized but only {len(saving)} saved as game results")
-    print(f"views: {len(saving)} saved as game results, {materialized} materialized, {not_saving} not saved")
+    if materialized > len(saving) + saving_constant:
+        fail(f"{materialized} views materialized but only {len(saving)} saved as game results and {saving_constant} constant views saved")
+    print(f"views: {len(saving)} saved as game results, {saving_constant} constant views saved, {materialized} materialized, {not_saving} not saved")
 
     hashes = {}
     for name in result_names(game_dir, backward_ply):
