@@ -16,10 +16,6 @@
 
 shared_dfa_ptr verify_load(const Game& game, std::string dfa_name)
 {
-  // Callers dereference what they get back without checking, and the load
-  // path only reports a missing file as "open() failed" with no indication
-  // of which DFA was wanted.
-
   shared_dfa_ptr output;
   try
     {
