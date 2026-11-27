@@ -14,8 +14,6 @@ void test_validate_case(const GameBase& game, const DFAString& position, const n
   int side_to_move = test_case.at("side_to_move").get<int>();
   std::cout << "SIDE TO MOVE: " << side_to_move << std::endl;
 
-  // validate_position throws if the rules give both moves and a result, or
-  // neither.
   const ValidatedPosition validated = game.validate_position(side_to_move, position);
   const GameOver *over = std::get_if<GameOver>(&validated);
   const std::vector<DFAString> moves = validated_moves(validated);
