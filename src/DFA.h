@@ -277,13 +277,13 @@ class DFA
   // DFA is being built.
   //
   // A view is in its own state order, so it is not canonical unless it
-  // calls set_canonical, and it may be non-minimal. Saving it writes those
+  // passes canonical_in, and it may be non-minimal. Saving it writes those
   // rows; its hash is the digest of exactly those bytes, computed without
   // writing them (see calculate_digest).
   //
   // A view must have no dead ordinary states -- none whose every path leads
   // only to reject -- so that get_linear_bound stays tight.
-  DFA(const dfa_shape_t&, const std::vector<size_t>& layer_sizes, dfa_state_t initial_state);
+  DFA(const dfa_shape_t&, const std::vector<size_t>& layer_sizes, dfa_state_t initial_state, bool canonical_in = false);
 
   virtual dfa_state_t add_state(int, const DFATransitionsStaging&);
   dfa_state_t add_state_by_function(int, std::function<dfa_state_t(int)>);

@@ -339,7 +339,7 @@ DFA::DFA(const dfa_shape_t& shape_in)
   assert(layer_transitions.size() == ndim);
 }
 
-DFA::DFA(const dfa_shape_t& shape_in, const std::vector<size_t>& layer_sizes_in, dfa_state_t initial_state_in)
+DFA::DFA(const dfa_shape_t& shape_in, const std::vector<size_t>& layer_sizes_in, dfa_state_t initial_state_in, bool canonical_in)
   : shape(shape_in),
     ndim(int(shape.size())),
     initial_state(initial_state_in),
@@ -348,6 +348,7 @@ DFA::DFA(const dfa_shape_t& shape_in, const std::vector<size_t>& layer_sizes_in,
     layer_file_names(),
     layer_transitions(),
     temporary(false),
+    canonical(canonical_in),
     view(true)
 {
   if(ndim <= 0)

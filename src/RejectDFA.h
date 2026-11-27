@@ -5,6 +5,8 @@
 
 #include "DFA.h"
 
+// No string, as a view: every layer has only the two reserved
+// rows, and the initial state is reject.
 class RejectDFA : public DFA
 {
  public:

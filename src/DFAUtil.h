@@ -49,7 +49,8 @@ public:
   // Game results are (GameBase::load_or_build); caches and move graph nodes
   // are not by default, since a view costs nothing to build again and
   // saving it would write the file it exists to avoid. A built DFA that is
-  // not a view is always saved, as it already has its file.
+  // not a view is always saved, as it already has its file, and so is a
+  // constant view, whose file is only the reserved rows.
   static shared_dfa_ptr load_or_build(const dfa_shape_t&, std::string, std::function<shared_dfa_ptr()>, bool durable = false, bool materialize = false);
   static std::string quick_stats(shared_dfa_ptr);
 };

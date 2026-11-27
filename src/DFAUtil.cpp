@@ -721,13 +721,7 @@ shared_dfa_ptr DFAUtil::get_reject(const dfa_shape_t& shape_in)
       return search->second;
     }
 
-  // Saved immediately -- see get_accept above for why.
-  shared_dfa_ptr output = load_or_build(shape_in,
-					 "reject_cache/" + _shape_path(shape_in),
-					 [&]()
-					 {
-					   return shared_dfa_ptr(new RejectDFA(shape_in));
-					 });
+  shared_dfa_ptr output(new RejectDFA(shape_in));
   singletons[singleton_key] = output;
   return output;
 }
@@ -895,14 +889,24 @@ shared_dfa_ptr DFAUtil::load_or_build(const dfa_shape_t& shape_in, std::string n
   profile.tic("stats");
   std::cout << "built " << name_in << " => " << output->states() << " states" << std::endl;
 
+  // A constant view is saved anyway: its file is only the reserved rows,
+  // and it is often the result of real work, such as a union or a move
+  // graph that came out empty, which a cache entry saves repeating.
   if(output->is_unsaved_view())
     {
-      if(!materialize)
+      if(output->get_initial_state() < 2)
+	{
+	  std::cout << "saving constant view " << name_in << std::endl;
+	}
+      else if(!materialize)
 	{
 	  std::cout << "not saving view " << name_in << std::endl;
 	  return output;
 	}
-      std::cout << "saving view " << name_in << std::endl;
+      else
+	{
+	  std::cout << "saving view " << name_in << std::endl;
+	}
     }
 
   profile.tic("save");
